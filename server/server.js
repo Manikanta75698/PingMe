@@ -23,16 +23,38 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
+let onlineUsers = [];
 
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
 
+  socket.on("join", (username) => {
+    onlineUsers.push({
+      id: socket.id,
+      username,
+    });
+
+    io.emit("online_users", onlineUsers);
+  });
+
   socket.on("send_message", (data) => {
     io.emit("receive_message", data);
   });
+  socket.on("typing", (username) => {
+  socket.broadcast.emit(
+    "user_typing",
+    username
+  );
+});
 
   socket.on("disconnect", () => {
     console.log("User Disconnected:", socket.id);
+
+    onlineUsers = onlineUsers.filter(
+      (user) => user.id !== socket.id
+    );
+
+    io.emit("online_users", onlineUsers);
   });
 });
 
