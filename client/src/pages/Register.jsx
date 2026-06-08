@@ -13,7 +13,7 @@ export default function Register() {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/auth/register",
+        "https://pingme-api-u477.onrender.com/api/auth/register",
         {
           name,
           email,

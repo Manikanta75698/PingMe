@@ -14,7 +14,7 @@ export default function Login() {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        "https://pingme-api-u477.onrender.com/api/auth/login",
         {
           email,
           password,
@@ -26,16 +26,27 @@ export default function Login() {
         res.data.token
       );
 
+      localStorage.setItem(
+        "user",
+        JSON.stringify(res.data.user)
+      );
+
       alert(res.data.message);
 
       navigate("/chat");
 
     } catch (error) {
-      alert(
-        error.response?.data?.message ||
-        "Login failed"
-      );
-    }
+  console.log("LOGIN ERROR:", error);
+  console.log("RESPONSE:", error.response);
+  console.log("DATA:", error.response?.data);
+  console.log("MESSAGE:", error.response?.data?.message);
+
+  alert(
+    error.response?.data?.message ||
+    error.message ||
+    "Login failed"
+  );
+}
   };
 
   return (
@@ -54,6 +65,7 @@ export default function Login() {
 
           <div className="input-group">
             <label>Email address</label>
+
             <input
               type="email"
               value={email}
@@ -66,6 +78,7 @@ export default function Login() {
 
           <div className="input-group">
             <label>Password</label>
+
             <input
               type="password"
               value={password}
@@ -87,6 +100,7 @@ export default function Login() {
 
         <p className="signup-text">
           Don't have an account?
+
           <Link to="/register">
             {" "}Sign up
           </Link>
