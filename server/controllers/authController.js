@@ -41,9 +41,17 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
+    console.log("LOGIN REQUEST:", req.body);
+
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
+
+    console.log(
+      "USER FOUND:",
+      user ? "YES" : "NO"
+    );
+
 
     if (!user) {
       return res.status(400).json({
