@@ -142,7 +142,9 @@ function Chat() {
               }
             >
               <small>
-                <strong>{msg.username}</strong>
+                <strong>
+  {msg.username || "Unknown"}
+</strong>
               </small>
 
               <br />
