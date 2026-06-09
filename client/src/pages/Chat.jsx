@@ -18,10 +18,6 @@ function Chat() {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] =
     useState([]);
-  const [selectedUser, setSelectedUser] =
-    useState(
-      localStorage.getItem("selectedUser")
-    );
   const [darkMode, setDarkMode] =
     useState(
       localStorage.getItem("darkMode") ===
@@ -40,17 +36,17 @@ function Chat() {
       "selectedUser"
     );
 
-    const toggleDarkMode = () => {
-      const newMode = !darkMode;
-
-      setDarkMode(newMode);
-
-      localStorage.setItem(
-        "darkMode",
-        newMode
-      );
-    };
     navigate("/");
+  };
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+
+    setDarkMode(newMode);
+
+    localStorage.setItem(
+      "darkMode",
+      newMode
+    );
   };
 
   const fetchMessages = async () => {
@@ -186,6 +182,7 @@ function Chat() {
       </div>
 
       <div className="chat-area">
+
         <div className="chat-header">
           <h3>
             {selectedUser
@@ -208,71 +205,72 @@ function Chat() {
               Logout
             </button>
           </div>
+        </div>
 
-          <div className="messages">
-            {filteredMessages.map((msg) => (
-              <div
-                key={`${msg._id}-${msg.sender}`}
-                className={
-                  msg.sender === user?.name
-                    ? "message my-message"
-                    : "message other-message"
-                }
-              >
-
-                {msg.text}
-
-                <small className="message-time">
-                  {new Date(
-                    msg.createdAt || Date.now()
-                  ).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </small>
-              </div>
-            ))}
-            <div ref={messagesEndRef}></div>
-          </div>
-          {typingUser && (
-            <p
-              style={{
-                padding: "10px",
-                color: "gray",
-                fontStyle: "italic",
-              }}
+        <div className="messages">
+          {filteredMessages.map((msg) => (
+            <div
+              key={msg._id}
+              className={
+                msg.sender === user?.name
+                  ? "message my-message"
+                  : "message other-message"
+              }
             >
-              {typingUser} is typing...
-            </p>
-          )}
 
-          <div className="chat-input">
-            <input
-              type="text"
-              placeholder="Type a message..."
-              value={message}
-              onChange={(e) => {
-                setMessage(e.target.value);
+              {msg.text}
 
-                socket.emit(
-                  "typing",
-                  user?.name || "Guest"
-                );
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleSend();
-                }
-              }}
-            />
+              <small className="message-time">
+                {new Date(
+                  msg.createdAt || Date.now()
+                ).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </small>
+            </div>
+          ))}
+          <div ref={messagesEndRef}></div>
+        </div>
+        {typingUser && (
+          <p
+            style={{
+              padding: "10px",
+              color: "gray",
+              fontStyle: "italic",
+            }}
+          >
+            {typingUser} is typing...
+          </p>
+        )}
 
-            <button onClick={handleSend}>
-              Send
-            </button>
-          </div>
+        <div className="chat-input">
+          <input
+            type="text"
+            placeholder="Type a message..."
+            value={message}
+            onChange={(e) => {
+              setMessage(e.target.value);
+
+              socket.emit(
+                "typing",
+                user?.name || "Guest"
+              );
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSend();
+              }
+            }}
+          />
+
+          <button onClick={handleSend}>
+            Send
+          </button>
         </div>
       </div>
-      );
+    </div>
+  );
 }
 
-      export default Chat;
+export default Chat;
