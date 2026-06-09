@@ -201,18 +201,7 @@ function Chat() {
 
               <br />
 
-              <small
-  style={{
-    color:
-      msg.sender === user?.name
-        ? "#dbeafe"
-        : "#64748b",
-    fontSize: "11px",
-    display: "block",
-    textAlign: "right",
-    marginTop: "5px",
-  }}
->
+             <small className="message-time">
   {new Date(
     msg.createdAt || Date.now()
   ).toLocaleTimeString([], {
