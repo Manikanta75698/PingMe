@@ -202,18 +202,24 @@ function Chat() {
               <br />
 
               <small
-                style={{
-                  color: "gray",
-                  fontSize: "11px",
-                }}
-              >
-                {new Date(
-                  msg.createdAt || Date.now()
-                ).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </small>
+  style={{
+    color:
+      msg.sender === user?.name
+        ? "#dbeafe"
+        : "#64748b",
+    fontSize: "11px",
+    display: "block",
+    textAlign: "right",
+    marginTop: "5px",
+  }}
+>
+  {new Date(
+    msg.createdAt || Date.now()
+  ).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}
+</small>
             </div>
           ))}
           <div ref={messagesEndRef}></div>
