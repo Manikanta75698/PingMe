@@ -54,24 +54,23 @@ io.on("connection", (socket) => {
   });
 
   // PRIVATE MESSAGE
-  socket.on("private_message", (data) => {
-    const receiver = onlineUsers.find(
-      (user) =>
-        user.username === data.receiver
-    );
+ socket.on("private_message", (data) => {
+  const targetUser = onlineUsers.find(
+    (u) => u.username === data.receiver
+  );
 
-    if (receiver) {
-      io.to(receiver.id).emit(
-        "receive_private_message",
-        data
-      );
-    }
-
-    socket.emit(
+  if (targetUser) {
+    io.to(targetUser.id).emit(
       "receive_private_message",
       data
     );
-  });
+  }
+
+  socket.emit(
+    "receive_private_message",
+    data
+  );
+});
 
   // TYPING
   socket.on("typing", (data) => {

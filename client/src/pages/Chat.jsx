@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import "./Chat.css";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -8,8 +9,8 @@ function Chat() {
   const navigate = useNavigate();
 
   const user = JSON.parse(
-    localStorage.getItem("user")
-  );
+  localStorage.getItem("user") || "null"
+);
 
   const [typingUser, setTypingUser] =
     useState("");
@@ -18,11 +19,18 @@ function Chat() {
   const [onlineUsers, setOnlineUsers] =
     useState([]);
   const [selectedUser, setSelectedUser] =
-    useState(null);
+    useState(
+      localStorage.getItem("selectedUser")
+    );
+  const messagesEndRef = useRef(null);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem(
+      "selectedUser"
+    );
+
     navigate("/");
   };
 
@@ -39,6 +47,12 @@ function Chat() {
   };
 
   useEffect(() => {
+  messagesEndRef.current?.scrollIntoView({
+    behavior: "smooth",
+  });
+}, [messages]);
+
+  useEffect(() => {
     fetchMessages();
 
     socket.emit(
@@ -46,19 +60,20 @@ function Chat() {
       user?.name || "Guest"
     );
     socket.on(
-  "receive_private_message",
-  (data) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        _id: Date.now(),
-        sender: data.sender,
-        receiver: data.receiver,
-        text: data.text,
-      },
-    ]);
-  }
-);
+      "receive_private_message",
+      (data) => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            _id: Date.now(),
+            sender: data.sender,
+            receiver: data.receiver,
+            text: data.text,
+            createdAt: new Date(),
+          },
+        ]);
+      }
+    );
 
     socket.on("user_typing", (username) => {
       setTypingUser(username);
@@ -80,26 +95,26 @@ function Chat() {
 
   const handleSend = async () => {
     if (!selectedUser) {
-  alert("Select a user first");
-  return;
-}
+      alert("Select a user first");
+      return;
+    }
     if (!message.trim()) return;
 
     try {
       await axios.post(
-  "https://pingme-api-u477.onrender.com/api/messages",
-  {
-    sender: user?.name || "Guest",
-    receiver: selectedUser,
-    text: message,
-  }
-);
+        "https://pingme-api-u477.onrender.com/api/messages",
+        {
+          sender: user?.name || "Guest",
+          receiver: selectedUser,
+          text: message,
+        }
+      );
 
-socket.emit("private_message", {
-  sender: user?.name || "Guest",
-  receiver: selectedUser,
-  text: message,
-});
+      socket.emit("private_message", {
+        sender: user?.name || "Guest",
+        receiver: selectedUser,
+        text: message,
+      });
 
       setMessage("");
     } catch (error) {
@@ -108,12 +123,12 @@ socket.emit("private_message", {
   };
 
   const filteredMessages = messages.filter(
-  (msg) =>
-    (msg.sender === user?.name &&
-      msg.receiver === selectedUser) ||
-    (msg.sender === selectedUser &&
-      msg.receiver === user?.name)
-);
+    (msg) =>
+      (msg.sender === user?.name &&
+        msg.receiver === selectedUser) ||
+      (msg.sender === selectedUser &&
+        msg.receiver === user?.name)
+  );
 
   return (
     <div className="chat-container">
@@ -134,9 +149,14 @@ socket.emit("private_message", {
             <div
               key={`${onlineUser.id}-${index}`}
               className="user"
-              onClick={() =>
-                setSelectedUser(onlineUser.username)
-              }
+              onClick={() => {
+                setSelectedUser(onlineUser.username);
+
+                localStorage.setItem(
+                  "selectedUser",
+                  onlineUser.username
+                );
+              }}
             >
               🟢 {onlineUser.username}
             </div>
@@ -158,9 +178,9 @@ socket.emit("private_message", {
             Logout
           </button>
         </div>
-        
+
         <div className="messages">
-        {filteredMessages.map((msg) => (
+          {filteredMessages.map((msg) => (
             <div
               key={`${msg._id}-${msg.sender}`}
               className={
@@ -178,8 +198,25 @@ socket.emit("private_message", {
               <br />
 
               {msg.text}
+
+              <br />
+
+              <small
+                style={{
+                  color: "gray",
+                  fontSize: "11px",
+                }}
+              >
+                {new Date(
+                  msg.createdAt || Date.now()
+                ).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </small>
             </div>
           ))}
+          <div ref={messagesEndRef}></div>
         </div>
         {typingUser && (
           <p
