@@ -17,6 +17,8 @@ function Chat() {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] =
     useState([]);
+  const [selectedUser, setSelectedUser] =
+    useState(null);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -43,16 +45,20 @@ function Chat() {
       "join",
       user?.name || "Guest"
     );
-    socket.on("receive_message", (data) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          _id: Date.now(),
-          username: data.username,
-          text: data.text,
-        },
-      ]);
-    });
+    socket.on(
+  "receive_private_message",
+  (data) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        _id: Date.now(),
+        sender: data.sender,
+        receiver: data.receiver,
+        text: data.text,
+      },
+    ]);
+  }
+);
 
     socket.on("user_typing", (username) => {
       setTypingUser(username);
@@ -66,34 +72,48 @@ function Chat() {
     });
 
     return () => {
-      socket.off("receive_message");
+      socket.off("receive_private_message");
       socket.off("online_users");
       socket.off("user_typing");
     };
   }, []);
 
   const handleSend = async () => {
+    if (!selectedUser) {
+  alert("Select a user first");
+  return;
+}
     if (!message.trim()) return;
 
     try {
       await axios.post(
-        "https://pingme-api-u477.onrender.com/api/messages",
-        {
-          username: user?.name || "Guest",
-          text: message,
-        }
-      );
+  "https://pingme-api-u477.onrender.com/api/messages",
+  {
+    sender: user?.name || "Guest",
+    receiver: selectedUser,
+    text: message,
+  }
+);
 
-      socket.emit("send_message", {
-        username: user?.name || "Guest",
-        text: message,
-      });
+socket.emit("private_message", {
+  sender: user?.name || "Guest",
+  receiver: selectedUser,
+  text: message,
+});
 
       setMessage("");
     } catch (error) {
       console.log(error);
     }
   };
+
+  const filteredMessages = messages.filter(
+  (msg) =>
+    (msg.sender === user?.name &&
+      msg.receiver === selectedUser) ||
+    (msg.sender === selectedUser &&
+      msg.receiver === user?.name)
+);
 
   return (
     <div className="chat-container">
@@ -114,6 +134,9 @@ function Chat() {
             <div
               key={`${onlineUser.id}-${index}`}
               className="user"
+              onClick={() =>
+                setSelectedUser(onlineUser.username)
+              }
             >
               🟢 {onlineUser.username}
             </div>
@@ -122,7 +145,11 @@ function Chat() {
 
       <div className="chat-area">
         <div className="chat-header">
-          <h3>Chat Room</h3>
+          <h3>
+            {selectedUser
+              ? `Chat with ${selectedUser}`
+              : "Select a User"}
+          </h3>
 
           <button
             className="logout-btn"
@@ -131,20 +158,21 @@ function Chat() {
             Logout
           </button>
         </div>
+        
         <div className="messages">
-          {messages.map((msg) => (
+        {filteredMessages.map((msg) => (
             <div
-              key={msg._id}
+              key={`${msg._id}-${msg.sender}`}
               className={
-                msg.username === user?.name
+                msg.sender === user?.name
                   ? "message my-message"
                   : "message other-message"
               }
             >
               <small>
                 <strong>
-  {msg.username || "Unknown"}
-</strong>
+                  {msg.sender || msg.username}
+                </strong>
               </small>
 
               <br />
