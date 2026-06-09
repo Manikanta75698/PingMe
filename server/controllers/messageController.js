@@ -2,13 +2,17 @@ const Message = require("../models/Message");
 
 const sendMessage = async (req, res) => {
   try {
-    const { username, text } = req.body;
+     console.log("BODY:", req.body);
+    const { sender, receiver, text } =
+      req.body;
+     
 
     const message = await Message.create({
-      username,
+      sender,
+      receiver,
       text,
     });
-
+console.log("SAVED:", message);
     res.status(201).json(message);
   } catch (error) {
     res.status(500).json({
@@ -24,6 +28,7 @@ const getMessages = async (req, res) => {
 
     res.json(messages);
   } catch (error) {
+     console.log("ERROR:", error);
     res.status(500).json({
       message: error.message,
     });

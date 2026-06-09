@@ -32,13 +32,19 @@ app.use(
     ],
   })
 );
+
 app.use(express.json());
+
 let onlineUsers = [];
 
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
 
   socket.on("join", (username) => {
+    onlineUsers = onlineUsers.filter(
+      (user) => user.username !== username
+    );
+
     onlineUsers.push({
       id: socket.id,
       username,
@@ -47,18 +53,46 @@ io.on("connection", (socket) => {
     io.emit("online_users", onlineUsers);
   });
 
-  socket.on("send_message", (data) => {
-    io.emit("receive_message", data);
+  // PRIVATE MESSAGE
+  socket.on("private_message", (data) => {
+    const receiver = onlineUsers.find(
+      (user) =>
+        user.username === data.receiver
+    );
+
+    if (receiver) {
+      io.to(receiver.id).emit(
+        "receive_private_message",
+        data
+      );
+    }
+
+    socket.emit(
+      "receive_private_message",
+      data
+    );
   });
-  socket.on("typing", (username) => {
-  socket.broadcast.emit(
-    "user_typing",
-    username
-  );
-});
+
+  // TYPING
+  socket.on("typing", (data) => {
+    const receiver = onlineUsers.find(
+      (user) =>
+        user.username === data.receiver
+    );
+
+    if (receiver) {
+      io.to(receiver.id).emit(
+        "user_typing",
+        data.sender
+      );
+    }
+  });
 
   socket.on("disconnect", () => {
-    console.log("User Disconnected:", socket.id);
+    console.log(
+      "User Disconnected:",
+      socket.id
+    );
 
     onlineUsers = onlineUsers.filter(
       (user) => user.id !== socket.id
@@ -70,7 +104,9 @@ io.on("connection", (socket) => {
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected ✅"))
+  .then(() =>
+    console.log("MongoDB Connected ✅")
+  )
   .catch((err) => console.log(err));
 
 app.get("/", (req, res) => {
@@ -83,5 +119,7 @@ app.use("/api/messages", messageRoutes);
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(
+    `Server running on port ${PORT}`
+  );
 });
