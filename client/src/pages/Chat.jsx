@@ -189,17 +189,8 @@ function Chat() {
                   : "message other-message"
               }
             >
-              <small>
-                <strong>
-                  {msg.sender || msg.username}
-                </strong>
-              </small>
-
-              <br />
 
               {msg.text}
-
-              <br />
 
              <small className="message-time">
   {new Date(

@@ -85,11 +85,6 @@
   align-self: flex-start;
 }
 
-.message strong {
-  font-size: 12px;
-  margin-bottom: 4px;
-  opacity: 0.85;
-}
 
 .message-time {
   font-size: 11px;
