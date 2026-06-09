@@ -9,8 +9,8 @@ function Chat() {
   const navigate = useNavigate();
 
   const user = JSON.parse(
-  localStorage.getItem("user") || "null"
-);
+    localStorage.getItem("user") || "null"
+  );
 
   const [typingUser, setTypingUser] =
     useState("");
@@ -18,6 +18,15 @@ function Chat() {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] =
     useState([]);
+  const [selectedUser, setSelectedUser] =
+    useState(
+      localStorage.getItem("selectedUser")
+    );
+  const [darkMode, setDarkMode] =
+    useState(
+      localStorage.getItem("darkMode") ===
+      "true"
+    );
   const [selectedUser, setSelectedUser] =
     useState(
       localStorage.getItem("selectedUser")
@@ -31,6 +40,16 @@ function Chat() {
       "selectedUser"
     );
 
+    const toggleDarkMode = () => {
+      const newMode = !darkMode;
+
+      setDarkMode(newMode);
+
+      localStorage.setItem(
+        "darkMode",
+        newMode
+      );
+    };
     navigate("/");
   };
 
@@ -47,10 +66,10 @@ function Chat() {
   };
 
   useEffect(() => {
-  messagesEndRef.current?.scrollIntoView({
-    behavior: "smooth",
-  });
-}, [messages]);
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
 
   useEffect(() => {
     fetchMessages();
@@ -131,7 +150,10 @@ function Chat() {
   );
 
   return (
-    <div className="chat-container">
+    <div
+      className={`chat-container ${darkMode ? "dark" : ""
+        }`}
+    >
       <div className="sidebar">
         <h2>PingMe 💬</h2>
 
@@ -171,73 +193,86 @@ function Chat() {
               : "Select a User"}
           </h3>
 
-          <button
-            className="logout-btn"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-        </div>
-
-        <div className="messages">
-          {filteredMessages.map((msg) => (
-            <div
-              key={`${msg._id}-${msg.sender}`}
-              className={
-                msg.sender === user?.name
-                  ? "message my-message"
-                  : "message other-message"
-              }
+          <div>
+            <button
+              className="dark-btn"
+              onClick={toggleDarkMode}
             >
+              {darkMode ? "☀️" : "🌙"}
+            </button>
 
-              {msg.text}
+            <button
+              className="logout-btn"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
 
-             <small className="message-time">
-  {new Date(
-    msg.createdAt || Date.now()
-  ).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  })}
-</small>
-            </div>
-          ))}
-          <div ref={messagesEndRef}></div>
-        </div>
-        {typingUser && (
-          <p
-            style={{
-              padding: "10px",
-              color: "gray",
-              fontStyle: "italic",
-            }}
-          >
-            {typingUser} is typing...
-          </p>
-        )}
+          <div className="messages">
+            {filteredMessages.map((msg) => (
+              <div
+                key={`${msg._id}-${msg.sender}`}
+                className={
+                  msg.sender === user?.name
+                    ? "message my-message"
+                    : "message other-message"
+                }
+              >
 
-        <div className="chat-input">
-          <input
-            type="text"
-            placeholder="Type a message..."
-            value={message}
-            onChange={(e) => {
-              setMessage(e.target.value);
+                {msg.text}
 
-              socket.emit(
-                "typing",
-                user?.name || "Guest"
-              );
-            }}
-          />
+                <small className="message-time">
+                  {new Date(
+                    msg.createdAt || Date.now()
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </small>
+              </div>
+            ))}
+            <div ref={messagesEndRef}></div>
+          </div>
+          {typingUser && (
+            <p
+              style={{
+                padding: "10px",
+                color: "gray",
+                fontStyle: "italic",
+              }}
+            >
+              {typingUser} is typing...
+            </p>
+          )}
 
-          <button onClick={handleSend}>
-            Send
-          </button>
+          <div className="chat-input">
+            <input
+              type="text"
+              placeholder="Type a message..."
+              value={message}
+              onChange={(e) => {
+                setMessage(e.target.value);
+
+                socket.emit(
+                  "typing",
+                  user?.name || "Guest"
+                );
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSend();
+                }
+              }}
+            />
+
+            <button onClick={handleSend}>
+              Send
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
+      );
 }
 
-export default Chat;
+      export default Chat;

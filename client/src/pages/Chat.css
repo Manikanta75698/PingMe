@@ -134,3 +134,41 @@
 .chat-input button:hover {
   background: #1d4ed8;
 }
+
+.dark {
+  background: #0f172a;
+}
+
+.dark .sidebar {
+  background: #020617;
+}
+
+.dark .chat-header,
+.dark .chat-input {
+  background: #1e293b;
+  color: white;
+}
+
+.dark .messages {
+  background: #0f172a;
+}
+
+.dark .other-message {
+  background: #1e293b;
+  color: white;
+  border: 1px solid #334155;
+}
+
+.dark .chat-input input {
+  background: #334155;
+  color: white;
+  border: 1px solid #475569;
+}
+
+.dark-btn {
+  margin-right: 10px;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
