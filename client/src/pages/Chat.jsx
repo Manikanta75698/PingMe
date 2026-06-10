@@ -222,7 +222,7 @@ function Chat() {
       socket.off("message_seen_update");
     };
   }, []);
-  
+
 
   const handleProfileUpload = async () => {
     console.log("USER OBJECT:", user);
@@ -322,12 +322,14 @@ function Chat() {
       );
 
       const newMessage = {
+        console.log("NEW MESSAGE:", newMessage);
         ...res.data,
         status: "sent",
       };
 
       // Sender screen lo immediate ga show cheyyadaniki
       setMessages((prev) => [
+        console.log("BEFORE ADD:", messages);
         ...prev,
         newMessage,
       ]);

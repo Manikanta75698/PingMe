@@ -6,7 +6,9 @@ const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({
+      email,
+    });
 
     if (existingUser) {
       return res.status(400).json({
@@ -15,7 +17,10 @@ const registerUser = async (req, res) => {
     }
 
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(
+      password,
+      salt
+    );
 
     const user = await User.create({
       name,
@@ -29,6 +34,7 @@ const registerUser = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        profilePic: user.profilePic, // ✅ Added
       },
     });
 
@@ -39,19 +45,21 @@ const registerUser = async (req, res) => {
   }
 };
 
+
 const loginUser = async (req, res) => {
   try {
     console.log("LOGIN REQUEST:", req.body);
 
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      email,
+    });
 
     console.log(
       "USER FOUND:",
       user ? "YES" : "NO"
     );
-
 
     if (!user) {
       return res.status(400).json({
@@ -73,7 +81,9 @@ const loginUser = async (req, res) => {
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d",
+      }
     );
 
     res.status(200).json({
@@ -83,6 +93,7 @@ const loginUser = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        profilePic: user.profilePic, // ✅ Added
       },
     });
 
@@ -92,6 +103,7 @@ const loginUser = async (req, res) => {
     });
   }
 };
+
 
 module.exports = {
   registerUser,
