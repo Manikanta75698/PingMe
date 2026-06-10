@@ -101,7 +101,11 @@ function Chat() {
       );
 
     } catch (error) {
-      console.log(error);
+      console.log("PROFILE ERROR:", error);
+      console.log(
+        "PROFILE RESPONSE:",
+        error.response?.data
+      );
     }
   };
 
@@ -148,7 +152,7 @@ function Chat() {
             _id: data._id || Date.now(),
             sender: data.sender,
             receiver: data.receiver,
-            
+
             text: data.text,
             image: data.image,
             createdAt: data.createdAt || new Date(),
@@ -213,6 +217,8 @@ function Chat() {
   }, []);
 
   const handleProfileUpload = async () => {
+    console.log("USER OBJECT:", user);
+    console.log("USER ID:", user?._id);
     if (!profilePic) {
       alert("Select an image");
       return;
@@ -221,7 +227,10 @@ function Chat() {
     const formData = new FormData();
 
     formData.append("profilePic", profilePic);
-    formData.append("userId", user._id);
+    formData.append(
+      "userId",
+      user.id || user._id
+    );
 
     try {
       const res = await axios.put(

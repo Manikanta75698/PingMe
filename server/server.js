@@ -71,13 +71,6 @@ io.on("connection", (socket) => {
       );
     }
 
-    // Sender ki kuda message chupinchadaniki
-    socket.emit(
-      "receive_private_message",
-      data
-    );
-  });
-
 
   // TYPING
   socket.on("typing", (data) => {
