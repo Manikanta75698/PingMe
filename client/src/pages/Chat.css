@@ -185,3 +185,12 @@
   margin-left: 8px;
   font-weight: bold;
 }
+
+.message-status {
+  margin-left: 5px;
+  font-size: 12px;
+}
+
+.message-status.seen {
+  color: #38bdf8;
+}

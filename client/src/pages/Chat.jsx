@@ -100,6 +100,15 @@ function Chat() {
   }, [selectedUser]);
 
   useEffect(() => {
+  if (selectedUser) {
+    socket.emit("message_seen", {
+      sender: selectedUser,
+      receiver: user?.name,
+    });
+  }
+}, [selectedUser]);
+
+  useEffect(() => {
     fetchMessages();
 
     if (socket.connected) {
@@ -151,9 +160,9 @@ function Chat() {
 
     socket.on("user_typing", (username) => {
       console.log(
-    "Typing from:", username,
-    "Current chat:", selectedUserRef.current
-  );
+        "Typing from:", username,
+        "Current chat:", selectedUserRef.current
+      );
       if (selectedUserRef.current === username) {
         setTypingUser(username);
 
@@ -166,11 +175,28 @@ function Chat() {
       setOnlineUsers(users);
     });
 
+    socket.on("message_seen_update", (data) => {
+  console.log("Seen update:", data);
+
+  setMessages((prev) =>
+    prev.map((msg) =>
+      msg.sender === user?.name &&
+      msg.receiver === data.receiver
+        ? {
+            ...msg,
+            status: "seen",
+          }
+        : msg
+    )
+  );
+});
+
     return () => {
       socket.off("connect");
       socket.off("receive_private_message");
       socket.off("online_users");
       socket.off("user_typing");
+      socket.off("message_seen_update");
     };
   }, []);
 
@@ -195,6 +221,7 @@ function Chat() {
         sender: user?.name || "Guest",
         receiver: selectedUser,
         text: message,
+        status: "sent",
       });
 
       setMessage("");
@@ -305,6 +332,17 @@ function Chat() {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
+
+                {msg.sender === user?.name && (
+                  <span
+                    className={`message-status ${msg.status === "seen" ? "seen" : ""
+                      }`}
+                  >
+                    {msg.status === "sent" && "✔"}
+                    {(msg.status === "delivered" ||
+                      msg.status === "seen") && "✔✔"}
+                  </span>
+                )}
               </small>
             </div>
           ))}

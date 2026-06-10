@@ -40,6 +40,7 @@ let onlineUsers = [];
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
 
+  // JOIN USER
   socket.on("join", (username) => {
     onlineUsers = onlineUsers.filter(
       (user) => user.username !== username
@@ -53,47 +54,67 @@ io.on("connection", (socket) => {
     io.emit("online_users", onlineUsers);
   });
 
+
   // PRIVATE MESSAGE
- socket.on("private_message", (data) => {
-   console.log("Message:", data);
-  console.log("Online Users:", onlineUsers);
-  const targetUser = onlineUsers.find(
-    (u) => u.username === data.receiver
-  );
-   console.log("Target:", targetUser);
+  socket.on("private_message", (data) => {
+    console.log("Message:", data);
 
+    const targetUser = onlineUsers.find(
+      (u) => u.username === data.receiver
+    );
 
-  if (targetUser) {
-    io.to(targetUser.id).emit(
+    if (targetUser) {
+      io.to(targetUser.id).emit(
+        "receive_private_message",
+        data
+      );
+    }
+
+    // Sender ki kuda message chupinchadaniki
+    socket.emit(
       "receive_private_message",
       data
     );
-  }
+  });
 
-  socket.emit(
-    "receive_private_message",
-    data
-  );
-});
 
   // TYPING
   socket.on("typing", (data) => {
-  console.log("TYPING EVENT:", data);
+    console.log("TYPING EVENT:", data);
 
-  const receiver = onlineUsers.find(
-    (user) => user.username === data.receiver
-  );
-
-  console.log("Receiver found:", receiver);
-
-  if (receiver) {
-    io.to(receiver.id).emit(
-      "user_typing",
-      data.sender
+    const receiver = onlineUsers.find(
+      (user) => user.username === data.receiver
     );
-  }
-});
 
+    if (receiver) {
+      io.to(receiver.id).emit(
+        "user_typing",
+        data.sender
+      );
+    }
+  });
+
+
+  // MESSAGE SEEN
+  socket.on("message_seen", (data) => {
+    console.log("MESSAGE SEEN:", data);
+
+    const sender = onlineUsers.find(
+      (user) => user.username === data.sender
+    );
+
+    if (sender) {
+      io.to(sender.id).emit(
+        "message_seen_update",
+        {
+          receiver: data.receiver,
+        }
+      );
+    }
+  });
+
+
+  // DISCONNECT
   socket.on("disconnect", () => {
     console.log(
       "User Disconnected:",
@@ -104,7 +125,10 @@ io.on("connection", (socket) => {
       (user) => user.id !== socket.id
     );
 
-    io.emit("online_users", onlineUsers);
+    io.emit(
+      "online_users",
+      onlineUsers
+    );
   });
 });
 
