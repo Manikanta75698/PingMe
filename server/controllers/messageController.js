@@ -7,11 +7,12 @@ const sendMessage = async (req, res) => {
       req.body;
      
 
-    const message = await Message.create({
-      sender,
-      receiver,
-      text,
-    });
+   const message = await Message.create({
+  sender,
+  receiver,
+  text,
+  status: "delivered",
+});
 console.log("SAVED:", message);
     res.status(201).json(message);
   } catch (error) {
