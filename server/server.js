@@ -78,18 +78,21 @@ io.on("connection", (socket) => {
 
   // TYPING
   socket.on("typing", (data) => {
-    const receiver = onlineUsers.find(
-      (user) =>
-        user.username === data.receiver
-    );
+  console.log("TYPING EVENT:", data);
 
-    if (receiver) {
-      io.to(receiver.id).emit(
-        "user_typing",
-        data.sender
-      );
-    }
-  });
+  const receiver = onlineUsers.find(
+    (user) => user.username === data.receiver
+  );
+
+  console.log("Receiver found:", receiver);
+
+  if (receiver) {
+    io.to(receiver.id).emit(
+      "user_typing",
+      data.sender
+    );
+  }
+});
 
   socket.on("disconnect", () => {
     console.log(

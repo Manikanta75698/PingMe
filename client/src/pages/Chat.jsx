@@ -121,43 +121,47 @@ function Chat() {
     });
 
     socket.on(
-  "receive_private_message",
-  (data) => {
-    console.log("Message received:", data);
+      "receive_private_message",
+      (data) => {
+        console.log("Message received:", data);
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        _id: data._id || Date.now(),
-        sender: data.sender,
-        receiver: data.receiver,
-        text: data.text,
-        createdAt: data.createdAt || new Date(),
-        status: data.status || "delivered",
-      },
-    ]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            _id: data._id || Date.now(),
+            sender: data.sender,
+            receiver: data.receiver,
+            text: data.text,
+            createdAt: data.createdAt || new Date(),
+            status: data.status || "delivered",
+          },
+        ]);
 
-    if (selectedUserRef.current === data.sender) {
-      markMessagesAsSeen(data.sender);
-    } else {
-      setUnreadMessages((prev) => ({
-        ...prev,
-        [data.sender]:
-          (prev[data.sender] || 0) + 1,
-      }));
-    }
-  }
-);
+        if (selectedUserRef.current === data.sender) {
+          markMessagesAsSeen(data.sender);
+        } else {
+          setUnreadMessages((prev) => ({
+            ...prev,
+            [data.sender]:
+              (prev[data.sender] || 0) + 1,
+          }));
+        }
+      }
+    );
 
     socket.on("user_typing", (username) => {
-  if (selectedUserRef.current === username) {
-    setTypingUser(username);
+      console.log(
+    "Typing from:", username,
+    "Current chat:", selectedUserRef.current
+  );
+      if (selectedUserRef.current === username) {
+        setTypingUser(username);
 
-    setTimeout(() => {
-      setTypingUser("");
-    }, 2000);
-  }
-});
+        setTimeout(() => {
+          setTypingUser("");
+        }, 2000);
+      }
+    });
     socket.on("online_users", (users) => {
       setOnlineUsers(users);
     });
@@ -326,10 +330,17 @@ function Chat() {
             onChange={(e) => {
               setMessage(e.target.value);
 
-              socket.emit("typing", {
-                sender: user?.name || "Guest",
-                receiver: selectedUser,
-              });
+              // Emit typing event only if a user is selected
+              if (selectedUser) {
+                socket.emit("typing", {
+                  sender: user?.name || "Guest",
+                  receiver: selectedUser,
+                });
+                console.log(
+                  "Typing sent to:",
+                  selectedUser
+                );
+              }
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
