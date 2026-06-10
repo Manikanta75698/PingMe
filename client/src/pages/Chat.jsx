@@ -150,12 +150,14 @@ function Chat() {
 );
 
     socket.on("user_typing", (username) => {
-      setTypingUser(username);
+  if (selectedUserRef.current === username) {
+    setTypingUser(username);
 
-      setTimeout(() => {
-        setTypingUser("");
-      }, 2000);
-    });
+    setTimeout(() => {
+      setTypingUser("");
+    }, 2000);
+  }
+});
     socket.on("online_users", (users) => {
       setOnlineUsers(users);
     });
