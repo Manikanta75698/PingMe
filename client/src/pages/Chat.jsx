@@ -245,7 +245,11 @@ function Chat() {
         formData
       );
 
-      const updatedUser = res.data.user;
+      const updatedUser = {
+        ...user,
+        ...res.data.user,
+        id: user.id || res.data.user._id,
+      };
 
       localStorage.setItem(
         "user",
@@ -253,7 +257,7 @@ function Chat() {
       );
 
       setImagePreview(
-        `https://pingme-api-u477.onrender.com/uploads/${updatedUser.profilePic}`
+        `https://pingme-api-u477.onrender.com/uploads/${updatedUser.profilePic}?t=${Date.now()}`
       );
 
       alert("Profile updated ✅");
