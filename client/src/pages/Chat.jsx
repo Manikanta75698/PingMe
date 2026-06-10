@@ -63,29 +63,33 @@ function Chat() {
   };
 
   const markMessagesAsSeen = async (sender) => {
-    try {
-      await axios.put(
-        "https://pingme-api-u477.onrender.com/api/messages/seen",
-        {
-          sender,
-          receiver: user?.name,
-        }
-      );
+  try {
+    await axios.put(
+      "https://pingme-api-u477.onrender.com/api/messages/seen",
+      {
+        sender,
+        receiver: user?.name,
+      }
+    );
 
-      // Local messages update
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.sender === sender &&
-            msg.receiver === user?.name
-            ? { ...msg, status: "seen" }
-            : msg
-        )
-      );
+    socket.emit("message_seen", {
+      sender,
+      receiver: user?.name,
+    });
 
-    } catch (error) {
-      console.log(error);
-    }
-  };
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.sender === sender &&
+        msg.receiver === user?.name
+          ? { ...msg, status: "seen" }
+          : msg
+      )
+    );
+
+  } catch (error) {
+    console.log(error);
+  }
+};
 
 
   useEffect(() => {
@@ -98,15 +102,6 @@ function Chat() {
   useEffect(() => {
     selectedUserRef.current = selectedUser;
   }, [selectedUser]);
-
-  useEffect(() => {
-  if (selectedUser) {
-    socket.emit("message_seen", {
-      sender: selectedUser,
-      receiver: user?.name,
-    });
-  }
-}, [selectedUser]);
 
   useEffect(() => {
     fetchMessages();

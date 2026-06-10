@@ -97,21 +97,27 @@ io.on("connection", (socket) => {
 
   // MESSAGE SEEN
   socket.on("message_seen", (data) => {
-    console.log("MESSAGE SEEN:", data);
+  console.log("MESSAGE SEEN RECEIVED:", data);
 
-    const sender = onlineUsers.find(
-      (user) => user.username === data.sender
+  console.log("ONLINE USERS:", onlineUsers);
+
+  const sender = onlineUsers.find(
+    (user) => user.username === data.sender
+  );
+
+  console.log("SENDER FOUND:", sender);
+
+  if (sender) {
+    io.to(sender.id).emit(
+      "message_seen_update",
+      {
+        receiver: data.receiver,
+      }
     );
 
-    if (sender) {
-      io.to(sender.id).emit(
-        "message_seen_update",
-        {
-          receiver: data.receiver,
-        }
-      );
-    }
-  });
+    console.log("SEEN UPDATE SENT");
+  }
+});
 
 
   // DISCONNECT
