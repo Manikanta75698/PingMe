@@ -29,6 +29,7 @@ function Chat() {
   const [unreadMessages, setUnreadMessages] =
     useState({});
   const messagesEndRef = useRef(null);
+  const messagesRef = useRef(null);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -64,11 +65,10 @@ function Chat() {
 
 
 useEffect(() => {
-  requestAnimationFrame(() => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
-  });
+  if (messagesRef.current) {
+    messagesRef.current.scrollTop =
+      messagesRef.current.scrollHeight;
+  }
 }, [messages, selectedUser]);
 
   useEffect(() => {
@@ -251,7 +251,7 @@ useEffect(() => {
           </div>
         </div>
 
-        <div className="messages">
+        <div className="messages" ref={messagesRef}>
           {filteredMessages.map((msg) => (
             <div
               key={msg._id}
@@ -274,8 +274,6 @@ useEffect(() => {
               </small>
             </div>
           ))}
-          <div ref={messagesEndRef}></div>
-        </div>
         {typingUser && (
           <p
             style={{
