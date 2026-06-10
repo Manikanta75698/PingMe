@@ -62,6 +62,15 @@ function Chat() {
     }
   };
 
+
+useEffect(() => {
+  requestAnimationFrame(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  });
+}, [messages, selectedUser]);
+
   useEffect(() => {
     selectedUserRef.current = selectedUser;
   }, [selectedUser]);
