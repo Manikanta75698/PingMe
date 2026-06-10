@@ -70,17 +70,19 @@ io.on("connection", (socket) => {
         data
       );
     }
+  });
 
 
   // TYPING
   socket.on("typing", (data) => {
-    console.log("TYPING EVENT:", data);
-
     const receiver = onlineUsers.find(
       (user) => user.username === data.receiver
     );
 
-    if (receiver) {
+    if (
+      receiver &&
+      receiver.username !== data.sender
+    ) {
       io.to(receiver.id).emit(
         "user_typing",
         data.sender
@@ -91,27 +93,21 @@ io.on("connection", (socket) => {
 
   // MESSAGE SEEN
   socket.on("message_seen", (data) => {
-  console.log("MESSAGE SEEN RECEIVED:", data);
+    console.log("MESSAGE SEEN:", data);
 
-  console.log("ONLINE USERS:", onlineUsers);
-
-  const sender = onlineUsers.find(
-    (user) => user.username === data.sender
-  );
-
-  console.log("SENDER FOUND:", sender);
-
-  if (sender) {
-    io.to(sender.id).emit(
-      "message_seen_update",
-      {
-        receiver: data.receiver,
-      }
+    const sender = onlineUsers.find(
+      (user) => user.username === data.sender
     );
 
-    console.log("SEEN UPDATE SENT");
-  }
-});
+    if (sender) {
+      io.to(sender.id).emit(
+        "message_seen_update",
+        {
+          receiver: data.receiver,
+        }
+      );
+    }
+  });
 
 
   // DISCONNECT
@@ -130,6 +126,7 @@ io.on("connection", (socket) => {
       onlineUsers
     );
   });
+
 });
 
 mongoose
@@ -139,16 +136,22 @@ mongoose
   )
   .catch((err) => console.log(err));
 
+
 app.get("/", (req, res) => {
   res.send("PingMe API Running 🚀");
 });
 
+
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/users", userRoutes);
+
+// Image access
 app.use("/uploads", express.static("uploads"));
 
+
 const PORT = process.env.PORT || 5000;
+
 
 server.listen(PORT, () => {
   console.log(
