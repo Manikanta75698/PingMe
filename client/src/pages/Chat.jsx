@@ -31,9 +31,8 @@ function Chat() {
     );
   const [unreadMessages, setUnreadMessages] =
     useState({});
-
-  const [showEmojiPicker, setShowEmojiPicker] =
-    useState(false);
+  const menuRef = useRef(null);
+  const emojiRef = useRef(null);
   const [profilePic, setProfilePic] = useState(null);
   const [imagePreview, setImagePreview] = useState(
     user?.profilePic
@@ -118,6 +117,52 @@ function Chat() {
   useEffect(() => {
     selectedUserRef.current = selectedUser;
   }, [selectedUser]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target)
+      ) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleEmojiOutside = (event) => {
+      if (
+        emojiRef.current &&
+        !emojiRef.current.contains(event.target)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleEmojiOutside
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleEmojiOutside
+      );
+    };
+  }, []);
 
   useEffect(() => {
     fetchMessages();
@@ -274,6 +319,7 @@ function Chat() {
   };
 
   const [showMenu, setShowMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const handleSend = async () => {
     if (!selectedUser) {
@@ -416,7 +462,7 @@ function Chat() {
           </h3>
 
           <div>
-            <div className="profile-section">
+            <div className="profile-section" ref={menuRef}>
 
               <img
                 src={imagePreview}
@@ -462,19 +508,6 @@ function Chat() {
               )}
 
             </div>
-            <button
-              className="dark-btn"
-              onClick={toggleDarkMode}
-            >
-              {darkMode ? "☀️" : "🌙"}
-            </button>
-
-            <button
-              className="logout-btn"
-              onClick={handleLogout}
-            >
-              Logout
-            </button>
           </div>
         </div>
 
@@ -535,7 +568,10 @@ function Chat() {
           </p>
         )}
 
-        <div className="chat-input-container">
+        <div
+          className="chat-input-container"
+          ref={emojiRef}
+        >
 
           {showEmojiPicker && (
             <div className="emoji-picker">
