@@ -6,11 +6,14 @@ import axios from "axios";
 import socket from "../socket";
 
 function Chat() {
+  console.log("Chat Component Loaded 🔥");
   const navigate = useNavigate();
-
   const user = JSON.parse(
     localStorage.getItem("user") || "null"
   );
+  const [selectedUser, setSelectedUser] =
+    useState(localStorage.getItem("selectedUser"));
+    const selectedUserRef = useRef(selectedUser);
 
   const [typingUser, setTypingUser] =
     useState("");
@@ -22,10 +25,6 @@ function Chat() {
     useState(
       localStorage.getItem("darkMode") ===
       "true"
-    );
-  const [selectedUser, setSelectedUser] =
-    useState(
-      localStorage.getItem("selectedUser")
     );
   const [unreadMessages, setUnreadMessages] =
     useState({});
@@ -64,21 +63,34 @@ function Chat() {
   };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
-  }, [messages]);
+    selectedUserRef.current = selectedUser;
+  }, [selectedUser]);
 
   useEffect(() => {
     fetchMessages();
 
-    socket.emit(
-      "join",
-      user?.name || "Guest"
-    );
+    if (socket.connected) {
+      console.log("Already Connected:", socket.id);
+
+      socket.emit(
+        "join",
+        user?.name || "Guest"
+      );
+    }
+
+    socket.on("connect", () => {
+      console.log("Connected:", socket.id);
+
+      socket.emit(
+        "join",
+        user?.name || "Guest"
+      );
+    });
+
     socket.on(
       "receive_private_message",
       (data) => {
+        console.log("Message received:", data);
         setMessages((prev) => [
           ...prev,
           {
@@ -91,7 +103,7 @@ function Chat() {
         ]);
 
         // Increase unread count only if that chat is not open
-        if (selectedUser !== data.sender) {
+        if (selectedUserRef.current !== data.sender) {
           setUnreadMessages((prev) => ({
             ...prev,
             [data.sender]:
@@ -113,6 +125,7 @@ function Chat() {
     });
 
     return () => {
+      socket.off("connect");
       socket.off("receive_private_message");
       socket.off("online_users");
       socket.off("user_typing");
@@ -180,6 +193,11 @@ function Chat() {
               className="user"
               onClick={() => {
                 setSelectedUser(onlineUser.username);
+
+                setUnreadMessages((prev) => ({
+                  ...prev,
+                  [onlineUser.username]: 0,
+                }));
 
                 localStorage.setItem(
                   "selectedUser",
@@ -269,10 +287,10 @@ function Chat() {
             onChange={(e) => {
               setMessage(e.target.value);
 
-              socket.emit(
-                "typing",
-                user?.name || "Guest"
-              );
+              socket.emit("typing", {
+                sender: user?.name || "Guest",
+                receiver: selectedUser,
+              });
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
