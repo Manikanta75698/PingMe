@@ -101,7 +101,7 @@ function Chat() {
       );
 
     } catch (error) {
-      console.log("PROFILE ERROR:", error);
+      console.log("SEEN ERROR:", error);
       console.log(
         "PROFILE RESPONSE:",
         error.response?.data
@@ -145,6 +145,13 @@ function Chat() {
       "receive_private_message",
       (data) => {
         console.log("Message received:", data);
+
+        if (
+          data.sender === user?.name &&
+          data.receiver === user?.name
+        ) {
+          return;
+        }
 
         setMessages((prev) => [
           ...prev,
@@ -344,10 +351,13 @@ function Chat() {
 
         {onlineUsers
           .filter(
-            (user, index, self) =>
-              index ===
-              self.findIndex(
-                (u) => u.username === user.username
+            (onlineUser) =>
+              onlineUser.username !== user?.name
+          )
+          .filter(
+            (onlineUser, index, self) =>
+              index === self.findIndex(
+                (u) => u.username === onlineUser.username
               )
           )
           .map((onlineUser, index) => (
