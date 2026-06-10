@@ -21,7 +21,7 @@ function Chat() {
     useState("");
   const [message, setMessage] = useState("");
   const [chatImage, setChatImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
+  const [chatImagePreview, setChatImagePreview] = useState("");
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] =
     useState([]);
@@ -148,7 +148,9 @@ function Chat() {
             _id: data._id || Date.now(),
             sender: data.sender,
             receiver: data.receiver,
+            
             text: data.text,
+            image: data.image,
             createdAt: data.createdAt || new Date(),
             status: data.status || "delivered",
           },
