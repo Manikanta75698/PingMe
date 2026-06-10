@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import socket from "../socket";
+import EmojiPicker from "emoji-picker-react";
 
 function Chat() {
   console.log("Chat Component Loaded 🔥");
@@ -29,6 +30,8 @@ function Chat() {
   const [unreadMessages, setUnreadMessages] =
     useState({});
   const messagesRef = useRef(null);
+  const [showEmojiPicker, setShowEmojiPicker] =
+    useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -236,6 +239,14 @@ function Chat() {
     }
   };
 
+  const handleEmojiClick = (emojiData) => {
+  setMessage((prev) =>
+    prev + emojiData.emoji
+  );
+
+  setShowEmojiPicker(false);
+};
+
   const handleSend = async () => {
     if (!selectedUser) {
       alert("Select a user first");
@@ -428,6 +439,21 @@ function Chat() {
         )}
 
         <div className="chat-input">
+          <button
+            className="emoji-btn"
+            onClick={() =>
+              setShowEmojiPicker(!showEmojiPicker)
+            }
+          >
+            😊
+          </button>
+          {
+  showEmojiPicker && (
+    <EmojiPicker
+      onEmojiClick={handleEmojiClick}
+    />
+  )
+}
           <input
             type="text"
             placeholder="Type a message..."

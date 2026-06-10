@@ -226,3 +226,10 @@
   border-radius: 8px;
   cursor: pointer;
 }
+.emoji-btn {
+  margin-right: 10px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+}
