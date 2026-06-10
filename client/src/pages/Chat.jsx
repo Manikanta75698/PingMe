@@ -10,18 +10,37 @@ function Chat() {
   console.log("Chat Component Loaded 🔥");
   const navigate = useNavigate();
   const user = JSON.parse(
-    localStorage.getItem("user") || "null"
-  );
+  localStorage.getItem("user") || "null"
+);
   const [selectedUser, setSelectedUser] =
-    useState(localStorage.getItem("selectedUser"));
+    useState(
+      localStorage.getItem("selectedUser") || ""
+    );
   const selectedUserRef = useRef(selectedUser);
-
   const [typingUser, setTypingUser] =
     useState("");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [onlineUsers, setOnlineUsers] =
-    useState([]);
+    const [onlineUsers, setOnlineUsers] =
+  useState([]);
+  useEffect(() => {
+  const userExists = onlineUsers.some(
+    (u) => u.username === selectedUser
+  );
+
+  useEffect(() => {
+  if (onlineUsers.length === 0) return;
+
+  const userExists = onlineUsers.some(
+    (u) => u.username === selectedUser
+  );
+
+  if (!userExists && selectedUser) {
+    setSelectedUser("");
+    localStorage.removeItem("selectedUser");
+  }
+}, [onlineUsers, selectedUser]);
+}, [onlineUsers, selectedUser]);
   const [darkMode, setDarkMode] =
     useState(
       localStorage.getItem("darkMode") ===
@@ -150,15 +169,17 @@ function Chat() {
           },
         ]);
 
-        if (selectedUserRef.current === data.sender) {
-          markMessagesAsSeen(data.sender);
-        } else {
-          setUnreadMessages((prev) => ({
-            ...prev,
-            [data.sender]:
-              (prev[data.sender] || 0) + 1,
-          }));
-        }
+        if (data.sender !== user?.name) {
+  if (selectedUserRef.current === data.sender) {
+    markMessagesAsSeen(data.sender);
+  } else {
+    setUnreadMessages((prev) => ({
+      ...prev,
+      [data.sender]:
+        (prev[data.sender] || 0) + 1,
+    }));
+  }
+}
       }
     );
 
@@ -438,52 +459,53 @@ function Chat() {
           </p>
         )}
 
-        <div className="chat-input">
-          <button
-            className="emoji-btn"
-            onClick={() =>
-              setShowEmojiPicker(!showEmojiPicker)
-            }
-          >
-            😊
-          </button>
-          {
-  showEmojiPicker && (
-    <EmojiPicker
-      onEmojiClick={handleEmojiClick}
+        <div className="chat-input-container">
+
+  {showEmojiPicker && (
+    <div className="emoji-picker">
+      <EmojiPicker onEmojiClick={handleEmojiClick} />
+    </div>
+  )}
+
+  <div className="chat-input">
+
+    <button
+      className="emoji-btn"
+      onClick={() =>
+        setShowEmojiPicker(!showEmojiPicker)
+      }
+    >
+      😊
+    </button>
+
+    <input
+      type="text"
+      placeholder="Type a message..."
+      value={message}
+      onChange={(e) => {
+        setMessage(e.target.value);
+
+        if (selectedUser) {
+          socket.emit("typing", {
+            sender: user?.name || "Guest",
+            receiver: selectedUser,
+          });
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          handleSend();
+        }
+      }}
     />
-  )
-}
-          <input
-            type="text"
-            placeholder="Type a message..."
-            value={message}
-            onChange={(e) => {
-              setMessage(e.target.value);
 
-              // Emit typing event only if a user is selected
-              if (selectedUser) {
-                socket.emit("typing", {
-                  sender: user?.name || "Guest",
-                  receiver: selectedUser,
-                });
-                console.log(
-                  "Typing sent to:",
-                  selectedUser
-                );
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSend();
-              }
-            }}
-          />
+    <button onClick={handleSend}>
+      Send
+    </button>
 
-          <button onClick={handleSend}>
-            Send
-          </button>
-        </div>
+  </div>
+
+</div>
       </div>
     </div>
   );
