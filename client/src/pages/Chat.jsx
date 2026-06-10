@@ -10,8 +10,8 @@ function Chat() {
   console.log("Chat Component Loaded 🔥");
   const navigate = useNavigate();
   const user = JSON.parse(
-  localStorage.getItem("user") || "null"
-);
+    localStorage.getItem("user") || "null"
+  );
   const [selectedUser, setSelectedUser] =
     useState(
       localStorage.getItem("selectedUser") || ""
@@ -21,26 +21,8 @@ function Chat() {
     useState("");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-    const [onlineUsers, setOnlineUsers] =
-  useState([]);
-  useEffect(() => {
-  const userExists = onlineUsers.some(
-    (u) => u.username === selectedUser
-  );
-
-  useEffect(() => {
-  if (onlineUsers.length === 0) return;
-
-  const userExists = onlineUsers.some(
-    (u) => u.username === selectedUser
-  );
-
-  if (!userExists && selectedUser) {
-    setSelectedUser("");
-    localStorage.removeItem("selectedUser");
-  }
-}, [onlineUsers, selectedUser]);
-}, [onlineUsers, selectedUser]);
+  const [onlineUsers, setOnlineUsers] =
+    useState([]);
   const [darkMode, setDarkMode] =
     useState(
       localStorage.getItem("darkMode") ===
@@ -48,9 +30,17 @@ function Chat() {
     );
   const [unreadMessages, setUnreadMessages] =
     useState({});
-  const messagesRef = useRef(null);
+
   const [showEmojiPicker, setShowEmojiPicker] =
     useState(false);
+  const [profilePic, setProfilePic] = useState(null);
+  const [imagePreview, setImagePreview] = useState(
+    user?.profilePic
+      ? `https://pingme-api-u477.onrender.com/uploads/${user.profilePic}`
+      : ""
+  );
+
+  const messagesRef = useRef(null);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -113,13 +103,6 @@ function Chat() {
     }
   };
 
-  const [profilePic, setProfilePic] = useState(null);
-  const [imagePreview, setImagePreview] = useState(
-    user?.profilePic
-      ? `https://pingme-api-u477.onrender.com/uploads/${user.profilePic}`
-      : ""
-  );
-
   useEffect(() => {
     if (messagesRef.current) {
       messagesRef.current.scrollTop =
@@ -170,16 +153,16 @@ function Chat() {
         ]);
 
         if (data.sender !== user?.name) {
-  if (selectedUserRef.current === data.sender) {
-    markMessagesAsSeen(data.sender);
-  } else {
-    setUnreadMessages((prev) => ({
-      ...prev,
-      [data.sender]:
-        (prev[data.sender] || 0) + 1,
-    }));
-  }
-}
+          if (selectedUserRef.current === data.sender) {
+            markMessagesAsSeen(data.sender);
+          } else {
+            setUnreadMessages((prev) => ({
+              ...prev,
+              [data.sender]:
+                (prev[data.sender] || 0) + 1,
+            }));
+          }
+        }
       }
     );
 
@@ -261,12 +244,12 @@ function Chat() {
   };
 
   const handleEmojiClick = (emojiData) => {
-  setMessage((prev) =>
-    prev + emojiData.emoji
-  );
+    setMessage((prev) =>
+      prev + emojiData.emoji
+    );
 
-  setShowEmojiPicker(false);
-};
+    setShowEmojiPicker(false);
+  };
 
   const handleSend = async () => {
     if (!selectedUser) {
@@ -461,51 +444,51 @@ function Chat() {
 
         <div className="chat-input-container">
 
-  {showEmojiPicker && (
-    <div className="emoji-picker">
-      <EmojiPicker onEmojiClick={handleEmojiClick} />
-    </div>
-  )}
+          {showEmojiPicker && (
+            <div className="emoji-picker">
+              <EmojiPicker onEmojiClick={handleEmojiClick} />
+            </div>
+          )}
 
-  <div className="chat-input">
+          <div className="chat-input">
 
-    <button
-      className="emoji-btn"
-      onClick={() =>
-        setShowEmojiPicker(!showEmojiPicker)
-      }
-    >
-      😊
-    </button>
+            <button
+              className="emoji-btn"
+              onClick={() =>
+                setShowEmojiPicker(!showEmojiPicker)
+              }
+            >
+              😊
+            </button>
 
-    <input
-      type="text"
-      placeholder="Type a message..."
-      value={message}
-      onChange={(e) => {
-        setMessage(e.target.value);
+            <input
+              type="text"
+              placeholder="Type a message..."
+              value={message}
+              onChange={(e) => {
+                setMessage(e.target.value);
 
-        if (selectedUser) {
-          socket.emit("typing", {
-            sender: user?.name || "Guest",
-            receiver: selectedUser,
-          });
-        }
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          handleSend();
-        }
-      }}
-    />
+                if (selectedUser) {
+                  socket.emit("typing", {
+                    sender: user?.name || "Guest",
+                    receiver: selectedUser,
+                  });
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSend();
+                }
+              }}
+            />
 
-    <button onClick={handleSend}>
-      Send
-    </button>
+            <button onClick={handleSend}>
+              Send
+            </button>
 
-  </div>
+          </div>
 
-</div>
+        </div>
       </div>
     </div>
   );
