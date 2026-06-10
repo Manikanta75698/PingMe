@@ -63,34 +63,40 @@ function Chat() {
   };
 
   const markMessagesAsSeen = async (sender) => {
-  try {
-    await axios.put(
-      "https://pingme-api-u477.onrender.com/api/messages/seen",
-      {
+    try {
+      await axios.put(
+        "https://pingme-api-u477.onrender.com/api/messages/seen",
+        {
+          sender,
+          receiver: user?.name,
+        }
+      );
+
+      socket.emit("message_seen", {
         sender,
         receiver: user?.name,
-      }
-    );
+      });
 
-    socket.emit("message_seen", {
-      sender,
-      receiver: user?.name,
-    });
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.sender === sender &&
+            msg.receiver === user?.name
+            ? { ...msg, status: "seen" }
+            : msg
+        )
+      );
 
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.sender === sender &&
-        msg.receiver === user?.name
-          ? { ...msg, status: "seen" }
-          : msg
-      )
-    );
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
-  } catch (error) {
-    console.log(error);
-  }
-};
-
+  const [profilePic, setProfilePic] = useState(null);
+  const [imagePreview, setImagePreview] = useState(
+    user?.profilePic
+      ? `https://pingme-api-u477.onrender.com/uploads/${user.profilePic}`
+      : ""
+  );
 
   useEffect(() => {
     if (messagesRef.current) {
@@ -171,20 +177,20 @@ function Chat() {
     });
 
     socket.on("message_seen_update", (data) => {
-  console.log("Seen update:", data);
+      console.log("Seen update:", data);
 
-  setMessages((prev) =>
-    prev.map((msg) =>
-      msg.sender === user?.name &&
-      msg.receiver === data.receiver
-        ? {
-            ...msg,
-            status: "seen",
-          }
-        : msg
-    )
-  );
-});
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.sender === user?.name &&
+            msg.receiver === data.receiver
+            ? {
+              ...msg,
+              status: "seen",
+            }
+            : msg
+        )
+      );
+    });
 
     return () => {
       socket.off("connect");
@@ -194,6 +200,41 @@ function Chat() {
       socket.off("message_seen_update");
     };
   }, []);
+
+  const handleProfileUpload = async () => {
+    if (!profilePic) {
+      alert("Select an image");
+      return;
+    }
+
+    const formData = new FormData();
+
+    formData.append("profilePic", profilePic);
+    formData.append("userId", user._id);
+
+    try {
+      const res = await axios.put(
+        "https://pingme-api-u477.onrender.com/api/users/upload",
+        formData
+      );
+
+      const updatedUser = res.data.user;
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(updatedUser)
+      );
+
+      setImagePreview(
+        `https://pingme-api-u477.onrender.com/uploads/${updatedUser.profilePic}`
+      );
+
+      alert("Profile updated ✅");
+
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const handleSend = async () => {
     if (!selectedUser) {
@@ -292,6 +333,37 @@ function Chat() {
           </h3>
 
           <div>
+            <div className="profile-section">
+              {imagePreview ? (
+                <img
+                  src={imagePreview}
+                  alt="Profile"
+                  className="profile-pic"
+                />
+              ) : (
+                <div className="profile-placeholder">
+                  👤
+                </div>
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  setProfilePic(e.target.files[0]);
+
+                  setImagePreview(
+                    URL.createObjectURL(
+                      e.target.files[0]
+                    )
+                  );
+                }}
+              />
+
+              <button onClick={handleProfileUpload}>
+                Upload
+              </button>
+            </div>
             <button
               className="dark-btn"
               onClick={toggleDarkMode}
