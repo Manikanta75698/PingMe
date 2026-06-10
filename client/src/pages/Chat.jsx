@@ -222,6 +222,7 @@ function Chat() {
       socket.off("message_seen_update");
     };
   }, []);
+  
 
   const handleProfileUpload = async () => {
     console.log("USER OBJECT:", user);
@@ -315,16 +316,27 @@ function Chat() {
         formData,
         {
           headers: {
-            "Content-Type":
-              "multipart/form-data",
+            "Content-Type": "multipart/form-data",
           },
         }
       );
 
-      socket.emit("private_message", {
+      const newMessage = {
         ...res.data,
         status: "sent",
-      });
+      };
+
+      // Sender screen lo immediate ga show cheyyadaniki
+      setMessages((prev) => [
+        ...prev,
+        newMessage,
+      ]);
+
+      // Receiver ki socket dwara pampadaniki
+      socket.emit(
+        "private_message",
+        newMessage
+      );
 
       setMessage("");
       setChatImage(null);
