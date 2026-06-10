@@ -27,6 +27,8 @@ function Chat() {
     useState(
       localStorage.getItem("selectedUser")
     );
+  const [unreadMessages, setUnreadMessages] =
+    useState({});
   const messagesEndRef = useRef(null);
 
   const handleLogout = () => {
@@ -87,6 +89,15 @@ function Chat() {
             createdAt: new Date(),
           },
         ]);
+
+        // Increase unread count only if that chat is not open
+        if (selectedUser !== data.sender) {
+          setUnreadMessages((prev) => ({
+            ...prev,
+            [data.sender]:
+              (prev[data.sender] || 0) + 1,
+          }));
+        }
       }
     );
 
@@ -177,6 +188,12 @@ function Chat() {
               }}
             >
               🟢 {onlineUser.username}
+
+              {unreadMessages[onlineUser.username] > 0 && (
+                <span className="unread-badge">
+                  {unreadMessages[onlineUser.username]}
+                </span>
+              )}
             </div>
           ))}
       </div>
