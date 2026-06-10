@@ -2,25 +2,32 @@ const Message = require("../models/Message");
 
 const sendMessage = async (req, res) => {
   try {
-     console.log("BODY:", req.body);
-    const { sender, receiver, text } =
-      req.body;
-     
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
 
-   const message = await Message.create({
-  sender,
-  receiver,
-  text,
-  status: "delivered",
-});
-console.log("SAVED:", message);
+    const { sender, receiver, text } = req.body;
+
+    const message = await Message.create({
+      sender,
+      receiver,
+      text: text || "",
+      image: req.file ? req.file.filename : "",
+      status: "delivered",
+    });
+
+    console.log("SAVED:", message);
+
     res.status(201).json(message);
+
   } catch (error) {
+    console.log("SEND ERROR:", error);
+
     res.status(500).json({
       message: error.message,
     });
   }
 };
+
 
 const getMessages = async (req, res) => {
   try {
@@ -28,13 +35,16 @@ const getMessages = async (req, res) => {
       .sort({ createdAt: 1 });
 
     res.json(messages);
+
   } catch (error) {
-     console.log("ERROR:", error);
+    console.log("ERROR:", error);
+
     res.status(500).json({
       message: error.message,
     });
   }
 };
+
 
 const markAsSeen = async (req, res) => {
   try {
@@ -61,6 +71,7 @@ const markAsSeen = async (req, res) => {
     });
   }
 };
+
 
 module.exports = {
   sendMessage,

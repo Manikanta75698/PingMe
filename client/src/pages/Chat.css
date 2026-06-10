@@ -287,3 +287,19 @@
   align-items:center;
   gap:10px;
 }
+.chat-message-image {
+  max-width: 200px;
+  border-radius: 10px;
+  margin-top: 5px;
+}
+
+.chat-image-preview img {
+  max-width: 120px;
+  border-radius: 10px;
+}
+
+.image-btn {
+  cursor: pointer;
+  font-size: 22px;
+  margin: 0 10px;
+}

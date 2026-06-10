@@ -20,6 +20,8 @@ function Chat() {
   const [typingUser, setTypingUser] =
     useState("");
   const [message, setMessage] = useState("");
+  const [chatImage, setChatImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] =
     useState([]);
@@ -256,28 +258,58 @@ function Chat() {
       alert("Select a user first");
       return;
     }
-    if (!message.trim()) return;
+
+    if (!message.trim() && !chatImage) {
+      return;
+    }
 
     try {
-      await axios.post(
+      const formData = new FormData();
+
+      formData.append(
+        "sender",
+        user?.name || "Guest"
+      );
+
+      formData.append(
+        "receiver",
+        selectedUser
+      );
+
+      formData.append(
+        "text",
+        message
+      );
+
+      if (chatImage) {
+        formData.append(
+          "image",
+          chatImage
+        );
+      }
+
+      const res = await axios.post(
         "https://pingme-api-u477.onrender.com/api/messages",
+        formData,
         {
-          sender: user?.name || "Guest",
-          receiver: selectedUser,
-          text: message,
+          headers: {
+            "Content-Type":
+              "multipart/form-data",
+          },
         }
       );
 
       socket.emit("private_message", {
-        sender: user?.name || "Guest",
-        receiver: selectedUser,
-        text: message,
+        ...res.data,
         status: "sent",
       });
 
       setMessage("");
+      setChatImage(null);
+      setChatImagePreview("");
+
     } catch (error) {
-      console.log(error);
+      console.log("SEND ERROR:", error);
     }
   };
 
@@ -405,7 +437,17 @@ function Chat() {
                   : "message other-message"
               }
             >
-              {msg.text}
+              {msg.text && (
+                <p>{msg.text}</p>
+              )}
+
+              {msg.image && (
+                <img
+                  src={`https://pingme-api-u477.onrender.com/uploads/${msg.image}`}
+                  alt="Chat"
+                  className="chat-message-image"
+                />
+              )}
 
               <small className="message-time">
                 {new Date(
@@ -449,6 +491,24 @@ function Chat() {
               <EmojiPicker onEmojiClick={handleEmojiClick} />
             </div>
           )}
+          {chatImagePreview && (
+            <div className="chat-image-preview">
+              <img
+                src={chatImagePreview}
+                alt="Preview"
+                className="preview-image"
+              />
+
+              <button
+                onClick={() => {
+                  setChatImage(null);
+                  setChatImagePreview("");
+                }}
+              >
+                ❌
+              </button>
+            </div>
+          )}
 
           <div className="chat-input">
 
@@ -460,6 +520,29 @@ function Chat() {
             >
               😊
             </button>
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              id="chat-image-input"
+              onChange={(e) => {
+                const file = e.target.files[0];
+
+                if (file) {
+                  setChatImage(file);
+                  setChatImagePreview(
+                    URL.createObjectURL(file)
+                  );
+                }
+              }}
+            />
+
+            <label
+              htmlFor="chat-image-input"
+              className="image-btn"
+            >
+              📎
+            </label>
 
             <input
               type="text"
