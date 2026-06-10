@@ -308,3 +308,43 @@
   color: white;
   min-width: 30px;
 }
+
+.menu-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.profile-section {
+  position: relative;
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: 55px;
+  right: 0;
+  background: white;
+  width: 160px;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px #0003;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1000;
+}
+
+.menu-dropdown button,
+.menu-dropdown label {
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.menu-dropdown button:hover,
+.menu-dropdown label:hover {
+  color: #2563eb;
+}

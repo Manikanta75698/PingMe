@@ -273,6 +273,8 @@ function Chat() {
     setShowEmojiPicker(false);
   };
 
+  const [showMenu, setShowMenu] = useState(false);
+
   const handleSend = async () => {
     if (!selectedUser) {
       alert("Select a user first");
@@ -326,289 +328,304 @@ function Chat() {
       // Sender screen lo immediate ga show cheyyadaniki
       setMessages((prev) => [
         ...prev,
-    newMessage,
+        newMessage,
       ]);
 
-  // Receiver ki socket dwara pampadaniki
-  socket.emit(
-    "private_message",
-    newMessage
-  );
+      // Receiver ki socket dwara pampadaniki
+      socket.emit(
+        "private_message",
+        newMessage
+      );
 
-  setMessage("");
-  setChatImage(null);
-  setChatImagePreview("");
+      setMessage("");
+      setChatImage(null);
+      setChatImagePreview("");
 
-} catch (error) {
-  console.log("SEND ERROR:", error);
-}
+    } catch (error) {
+      console.log("SEND ERROR:", error);
+    }
   };
 
-const filteredMessages = messages.filter(
-  (msg) =>
-    (msg.sender === user?.name &&
-      msg.receiver === selectedUser) ||
-    (msg.sender === selectedUser &&
-      msg.receiver === user?.name)
-);
+  const filteredMessages = messages.filter(
+    (msg) =>
+      (msg.sender === user?.name &&
+        msg.receiver === selectedUser) ||
+      (msg.sender === selectedUser &&
+        msg.receiver === user?.name)
+  );
 
-return (
-  <div
-    className={`chat-container ${darkMode ? "dark" : ""
-      }`}
-  >
-    <div className="sidebar">
-      <h2>PingMe 💬</h2>
+  return (
+    <div
+      className={`chat-container ${darkMode ? "dark" : ""
+        }`}
+    >
+      <div className="sidebar">
+        <h2>PingMe 💬</h2>
 
-      <h3>Online Users</h3>
+        <h3>Online Users</h3>
 
-      {onlineUsers
-        .filter(
-          (onlineUser) =>
-            onlineUser.username !== user?.name
-        )
-        .filter(
-          (onlineUser, index, self) =>
-            index === self.findIndex(
-              (u) => u.username === onlineUser.username
-            )
-        )
-        .map((onlineUser, index) => (
-          <div
-            key={`${onlineUser.id}-${index}`}
-            className="user"
-            onClick={() => {
-              setSelectedUser(onlineUser.username);
+        {onlineUsers
+          .filter(
+            (onlineUser) =>
+              onlineUser.username !== user?.name
+          )
+          .filter(
+            (onlineUser, index, self) =>
+              index === self.findIndex(
+                (u) => u.username === onlineUser.username
+              )
+          )
+          .map((onlineUser, index) => (
+            <div
+              key={`${onlineUser.id}-${index}`}
+              className="user"
+              onClick={() => {
+                setSelectedUser(onlineUser.username);
 
-              markMessagesAsSeen(onlineUser.username);
+                markMessagesAsSeen(onlineUser.username);
 
-              setUnreadMessages((prev) => ({
-                ...prev,
-                [onlineUser.username]: 0,
-              }));
+                setUnreadMessages((prev) => ({
+                  ...prev,
+                  [onlineUser.username]: 0,
+                }));
 
-              localStorage.setItem(
-                "selectedUser",
-                onlineUser.username
-              );
-            }}
-          >
-            🟢 {onlineUser.username}
+                localStorage.setItem(
+                  "selectedUser",
+                  onlineUser.username
+                );
+              }}
+            >
+              🟢 {onlineUser.username}
 
-            {unreadMessages[onlineUser.username] > 0 && (
-              <span className="unread-badge">
-                {unreadMessages[onlineUser.username]}
-              </span>
-            )}
-          </div>
-        ))}
-    </div>
+              {unreadMessages[onlineUser.username] > 0 && (
+                <span className="unread-badge">
+                  {unreadMessages[onlineUser.username]}
+                </span>
+              )}
+            </div>
+          ))}
+      </div>
 
-    <div className="chat-area">
+      <div className="chat-area">
 
-      <div className="chat-header">
-        <h3>
-          {selectedUser
-            ? `Chat with ${selectedUser}`
-            : "Select a User"}
-        </h3>
+        <div className="chat-header">
+          <h3>
+            {selectedUser
+              ? `Chat with ${selectedUser}`
+              : "Select a User"}
+          </h3>
 
-        <div>
-          <div className="profile-section">
-            {imagePreview ? (
+          <div>
+            <div className="profile-section">
+
               <img
                 src={imagePreview}
                 alt="Profile"
                 className="profile-pic"
               />
-            ) : (
-              <div className="profile-placeholder">
-                👤
-              </div>
-            )}
 
+              <button
+                className="menu-btn"
+                onClick={() =>
+                  setShowMenu(!showMenu)
+                }
+              >
+                ⋮
+              </button>
+
+              {showMenu && (
+                <div className="menu-dropdown">
+
+                  <label htmlFor="profile-upload">
+                    👤 Change Photo
+                  </label>
+
+                  <input
+                    id="profile-upload"
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(e) =>
+                      setProfilePic(e.target.files[0])
+                    }
+                  />
+
+                  <button onClick={toggleDarkMode}>
+                    {darkMode ? "☀ Light" : "🌙 Dark"}
+                  </button>
+
+                  <button onClick={handleLogout}>
+                    🚪 Logout
+                  </button>
+
+                </div>
+              )}
+
+            </div>
+            <button
+              className="dark-btn"
+              onClick={toggleDarkMode}
+            >
+              {darkMode ? "☀️" : "🌙"}
+            </button>
+
+            <button
+              className="logout-btn"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        <div className="messages" ref={messagesRef}>
+          {filteredMessages.map((msg) => (
+            <div
+              key={msg._id}
+              className={
+                msg.sender === user?.name
+                  ? "message my-message"
+                  : "message other-message"
+              }
+            >
+              {msg.text && (
+                <p>{msg.text}</p>
+              )}
+
+              {msg.image && (
+                <img
+                  src={`https://pingme-api-u477.onrender.com/uploads/${msg.image}`}
+                  alt="Chat"
+                  className="chat-message-image"
+                />
+              )}
+
+              <small className="message-time">
+                {new Date(
+                  msg.createdAt || Date.now()
+                ).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+
+                {msg.sender === user?.name && (
+                  <span
+                    className={`message-status ${msg.status === "seen" ? "seen" : ""
+                      }`}
+                  >
+                    {msg.status === "sent" && "✔"}
+                    {(msg.status === "delivered" ||
+                      msg.status === "seen") && "✔✔"}
+                  </span>
+                )}
+              </small>
+            </div>
+          ))}
+        </div>
+
+        {typingUser && (
+          <p
+            style={{
+              padding: "10px",
+              color: "gray",
+              fontStyle: "italic",
+            }}
+          >
+            {typingUser} is typing...
+          </p>
+        )}
+
+        <div className="chat-input-container">
+
+          {showEmojiPicker && (
+            <div className="emoji-picker">
+              <EmojiPicker onEmojiClick={handleEmojiClick} />
+            </div>
+          )}
+          {chatImagePreview && (
+            <div className="chat-image-preview">
+              <img
+                src={chatImagePreview}
+                alt="Preview"
+                className="preview-image"
+              />
+
+              <button
+                onClick={() => {
+                  setChatImage(null);
+                  setChatImagePreview("");
+                }}
+              >
+                ❌
+              </button>
+            </div>
+          )}
+
+          <div className="chat-input">
+
+            <button
+              className="emoji-btn"
+              onClick={() =>
+                setShowEmojiPicker(!showEmojiPicker)
+              }
+            >
+              😊
+            </button>
             <input
               type="file"
               accept="image/*"
+              style={{ display: "none" }}
+              id="chat-image-input"
               onChange={(e) => {
-                setProfilePic(e.target.files[0]);
+                const file = e.target.files[0];
 
-                setImagePreview(
-                  URL.createObjectURL(
-                    e.target.files[0]
-                  )
-                );
+                if (file) {
+                  setChatImage(file);
+                  setChatImagePreview(
+                    URL.createObjectURL(file)
+                  );
+                }
               }}
             />
 
-            <button onClick={handleProfileUpload}>
-              Upload
-            </button>
-          </div>
-          <button
-            className="dark-btn"
-            onClick={toggleDarkMode}
-          >
-            {darkMode ? "☀️" : "🌙"}
-          </button>
-
-          <button
-            className="logout-btn"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      <div className="messages" ref={messagesRef}>
-        {filteredMessages.map((msg) => (
-          <div
-            key={msg._id}
-            className={
-              msg.sender === user?.name
-                ? "message my-message"
-                : "message other-message"
-            }
-          >
-            {msg.text && (
-              <p>{msg.text}</p>
-            )}
-
-            {msg.image && (
-              <img
-                src={`https://pingme-api-u477.onrender.com/uploads/${msg.image}`}
-                alt="Chat"
-                className="chat-message-image"
-              />
-            )}
-
-            <small className="message-time">
-              {new Date(
-                msg.createdAt || Date.now()
-              ).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-
-              {msg.sender === user?.name && (
-                <span
-                  className={`message-status ${msg.status === "seen" ? "seen" : ""
-                    }`}
-                >
-                  {msg.status === "sent" && "✔"}
-                  {(msg.status === "delivered" ||
-                    msg.status === "seen") && "✔✔"}
-                </span>
-              )}
-            </small>
-          </div>
-        ))}
-      </div>
-
-      {typingUser && (
-        <p
-          style={{
-            padding: "10px",
-            color: "gray",
-            fontStyle: "italic",
-          }}
-        >
-          {typingUser} is typing...
-        </p>
-      )}
-
-      <div className="chat-input-container">
-
-        {showEmojiPicker && (
-          <div className="emoji-picker">
-            <EmojiPicker onEmojiClick={handleEmojiClick} />
-          </div>
-        )}
-        {chatImagePreview && (
-          <div className="chat-image-preview">
-            <img
-              src={chatImagePreview}
-              alt="Preview"
-              className="preview-image"
-            />
-
-            <button
-              onClick={() => {
-                setChatImage(null);
-                setChatImagePreview("");
-              }}
+            <label
+              htmlFor="chat-image-input"
+              className="image-btn"
             >
-              ❌
+              📎
+            </label>
+
+            <input
+              type="text"
+              placeholder="Type a message..."
+              value={message}
+              onChange={(e) => {
+                setMessage(e.target.value);
+
+                if (selectedUser) {
+                  socket.emit("typing", {
+                    sender: user?.name || "Guest",
+                    receiver: selectedUser,
+                  });
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSend();
+                }
+              }}
+            />
+
+            <button onClick={handleSend}>
+              Send
             </button>
+
           </div>
-        )}
-
-        <div className="chat-input">
-
-          <button
-            className="emoji-btn"
-            onClick={() =>
-              setShowEmojiPicker(!showEmojiPicker)
-            }
-          >
-            😊
-          </button>
-          <input
-            type="file"
-            accept="image/*"
-            style={{ display: "none" }}
-            id="chat-image-input"
-            onChange={(e) => {
-              const file = e.target.files[0];
-
-              if (file) {
-                setChatImage(file);
-                setChatImagePreview(
-                  URL.createObjectURL(file)
-                );
-              }
-            }}
-          />
-
-          <label
-            htmlFor="chat-image-input"
-            className="image-btn"
-          >
-            📎
-          </label>
-
-          <input
-            type="text"
-            placeholder="Type a message..."
-            value={message}
-            onChange={(e) => {
-              setMessage(e.target.value);
-
-              if (selectedUser) {
-                socket.emit("typing", {
-                  sender: user?.name || "Guest",
-                  receiver: selectedUser,
-                });
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSend();
-              }
-            }}
-          />
-
-          <button onClick={handleSend}>
-            Send
-          </button>
 
         </div>
-
       </div>
     </div>
-  </div>
-);
+  );
 }
 
 export default Chat;
