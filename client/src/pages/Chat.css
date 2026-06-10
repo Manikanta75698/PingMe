@@ -166,7 +166,7 @@
 
 
 .profile-section input {
-  width: 100px;
+  width: 110px;
   font-size: 12px;
 }
 
@@ -175,9 +175,10 @@
   background: #16a34a;
   color: white;
   border: none;
-  padding: 8px 12px;
+  padding: 8px 14px;
   border-radius: 8px;
   cursor: pointer;
+  min-width: 70px;
 }
 
 
