@@ -36,7 +36,34 @@ const getMessages = async (req, res) => {
   }
 };
 
+const markAsSeen = async (req, res) => {
+  try {
+    const { sender, receiver } = req.body;
+
+    await Message.updateMany(
+      {
+        sender,
+        receiver,
+        status: "delivered",
+      },
+      {
+        status: "seen",
+      }
+    );
+
+    res.json({
+      message: "Messages marked as seen",
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   sendMessage,
   getMessages,
+  markAsSeen,
 };

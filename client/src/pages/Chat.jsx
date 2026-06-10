@@ -13,7 +13,7 @@ function Chat() {
   );
   const [selectedUser, setSelectedUser] =
     useState(localStorage.getItem("selectedUser"));
-    const selectedUserRef = useRef(selectedUser);
+  const selectedUserRef = useRef(selectedUser);
 
   const [typingUser, setTypingUser] =
     useState("");
@@ -28,7 +28,6 @@ function Chat() {
     );
   const [unreadMessages, setUnreadMessages] =
     useState({});
-  const messagesEndRef = useRef(null);
   const messagesRef = useRef(null);
 
   const handleLogout = () => {
@@ -63,13 +62,38 @@ function Chat() {
     }
   };
 
+  const markMessagesAsSeen = async (sender) => {
+    try {
+      await axios.put(
+        "https://pingme-api-u477.onrender.com/api/messages/seen",
+        {
+          sender,
+          receiver: user?.name,
+        }
+      );
 
-useEffect(() => {
-  if (messagesRef.current) {
-    messagesRef.current.scrollTop =
-      messagesRef.current.scrollHeight;
-  }
-}, [messages, selectedUser]);
+      // Local messages update
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.sender === sender &&
+            msg.receiver === user?.name
+            ? { ...msg, status: "seen" }
+            : msg
+        )
+      );
+
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+
+  useEffect(() => {
+    if (messagesRef.current) {
+      messagesRef.current.scrollTop =
+        messagesRef.current.scrollHeight;
+    }
+  }, [messages, selectedUser]);
 
   useEffect(() => {
     selectedUserRef.current = selectedUser;
@@ -97,30 +121,33 @@ useEffect(() => {
     });
 
     socket.on(
-      "receive_private_message",
-      (data) => {
-        console.log("Message received:", data);
-        setMessages((prev) => [
-          ...prev,
-          {
-            _id: Date.now(),
-            sender: data.sender,
-            receiver: data.receiver,
-            text: data.text,
-            createdAt: new Date(),
-          },
-        ]);
+  "receive_private_message",
+  (data) => {
+    console.log("Message received:", data);
 
-        // Increase unread count only if that chat is not open
-        if (selectedUserRef.current !== data.sender) {
-          setUnreadMessages((prev) => ({
-            ...prev,
-            [data.sender]:
-              (prev[data.sender] || 0) + 1,
-          }));
-        }
-      }
-    );
+    setMessages((prev) => [
+      ...prev,
+      {
+        _id: data._id || Date.now(),
+        sender: data.sender,
+        receiver: data.receiver,
+        text: data.text,
+        createdAt: data.createdAt || new Date(),
+        status: data.status || "delivered",
+      },
+    ]);
+
+    if (selectedUserRef.current === data.sender) {
+      markMessagesAsSeen(data.sender);
+    } else {
+      setUnreadMessages((prev) => ({
+        ...prev,
+        [data.sender]:
+          (prev[data.sender] || 0) + 1,
+      }));
+    }
+  }
+);
 
     socket.on("user_typing", (username) => {
       setTypingUser(username);
@@ -203,6 +230,8 @@ useEffect(() => {
               onClick={() => {
                 setSelectedUser(onlineUser.username);
 
+                markMessagesAsSeen(onlineUser.username);
+
                 setUnreadMessages((prev) => ({
                   ...prev,
                   [onlineUser.username]: 0,
@@ -261,7 +290,6 @@ useEffect(() => {
                   : "message other-message"
               }
             >
-
               {msg.text}
 
               <small className="message-time">
@@ -274,6 +302,8 @@ useEffect(() => {
               </small>
             </div>
           ))}
+        </div>
+
         {typingUser && (
           <p
             style={{
