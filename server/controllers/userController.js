@@ -1,23 +1,13 @@
 const User = require("../models/User");
-
 const uploadProfilePic = async (req, res) => {
   try {
-    console.log("PROFILE FILE:", req.file);
-    console.log("BODY:", req.body);
-
-    const { userId } = req.body;
-
+    const userId = req.user._id;
     if (!req.file) {
       return res.status(400).json({
         message: "No image uploaded",
       });
     }
 
-    if (!userId) {
-      return res.status(400).json({
-        message: "User ID is required",
-      });
-    }
 
     const user = await User.findByIdAndUpdate(
       userId,
@@ -26,6 +16,7 @@ const uploadProfilePic = async (req, res) => {
       },
       {
         new: true,
+        runValidators: true,
       }
     );
 
@@ -35,20 +26,254 @@ const uploadProfilePic = async (req, res) => {
       });
     }
 
-    res.json({
+    res.status(200).json({
       message: "Profile picture updated ✅",
-      user,
+      profilePic: user.profilePic,
     });
-
   } catch (error) {
     console.log("PROFILE UPLOAD ERROR:", error);
 
     res.status(500).json({
-      message: error.message,
+      message: "Something went wrong",
+    });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const { name, username, bio } = req.body;
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    if (name) {
+      user.name = name.trim();
+    }
+
+    if (username) {
+      const formattedUsername = username.toLowerCase().trim();
+
+      const existingUser = await User.findOne({
+        username: formattedUsername,
+        _id: { $ne: req.user._id },
+      });
+
+      if (existingUser) {
+        return res.status(400).json({
+          message: "Username already taken",
+        });
+      }
+
+      user.username = formattedUsername;
+    }
+
+    if (bio !== undefined) {
+      user.bio = bio.trim();
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile updated successfully ✅",
+      user: {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        bio: user.bio,
+        profilePic: user.profilePic,
+      },
+    });
+
+  } catch (error) {
+    console.log("UPDATE PROFILE ERROR:", error);
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+};
+
+const followUser = async (req, res) => {
+  try {
+    const currentUserId = req.user._id;
+    const targetUserId = req.params.id;
+
+    // User cannot follow himself
+    if (currentUserId.toString() === targetUserId) {
+      return res.status(400).json({
+        message: "You cannot follow yourself",
+      });
+    }
+
+    // Find both users
+    const currentUser = await User.findById(currentUserId);
+    const targetUser = await User.findById(targetUserId);
+
+    // Check current user
+    if (!currentUser) {
+      return res.status(404).json({
+        message: "Current user not found",
+      });
+    }
+
+    // Check target user
+    if (!targetUser) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    // Check already following
+    const isFollowing = currentUser.following.some(
+      id => id.toString() === targetUserId
+    );
+
+    if (isFollowing) {
+      return res.status(400).json({
+        message: "Already following this user",
+      });
+    }
+
+    // Update both users
+    currentUser.following.push(targetUserId);
+    targetUser.followers.push(currentUserId);
+
+    await currentUser.save();
+    await targetUser.save();
+
+    res.status(200).json({
+      message: "User followed successfully ✅",
+    });
+
+  } catch (error) {
+    console.log("FOLLOW USER ERROR:", error);
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+};
+
+const unfollowUser = async (req, res) => {
+  try {
+    const currentUserId = req.user._id;
+    const targetUserId = req.params.id;
+
+    // Cannot unfollow yourself
+    if (currentUserId.toString() === targetUserId) {
+      return res.status(400).json({
+        message: "You cannot unfollow yourself",
+      });
+    }
+
+    // Find both users
+    const currentUser = await User.findById(currentUserId);
+    const targetUser = await User.findById(targetUserId);
+
+    if (!currentUser) {
+      return res.status(404).json({
+        message: "Current user not found",
+      });
+    }
+
+    if (!targetUser) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    // Check if not following
+    const isFollowing = currentUser.following.some(
+      id => id.toString() === targetUserId
+    );
+
+    if (!isFollowing) {
+      return res.status(400).json({
+        message: "You are not following this user",
+      });
+    }
+
+    // Remove from following list
+    currentUser.following = currentUser.following.filter(
+      id => id.toString() !== targetUserId
+    );
+
+    // Remove from followers list
+    targetUser.followers = targetUser.followers.filter(
+      id => id.toString() !== currentUserId.toString()
+    );
+
+    await currentUser.save();
+    await targetUser.save();
+
+    res.status(200).json({
+      message: "User unfollowed successfully ✅",
+    });
+
+  } catch (error) {
+    console.log("UNFOLLOW USER ERROR:", error);
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+};
+
+const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await User.findById(userId)
+      .select(
+        "name username bio profilePic followers following isPrivate"
+      );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    // Check if current user follows this user
+    const isFollowing = user.followers.some(
+      id => id.toString() === req.user._id.toString()
+    );
+
+    res.status(200).json({
+      user: {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        bio: user.bio,
+        profilePic: user.profilePic,
+        followersCount: user.followers.length,
+        followingCount: user.following.length,
+        isPrivate: user.isPrivate,
+        isFollowing,
+      },
+    });
+
+  } catch (error) {
+    console.log(
+      "GET PROFILE ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Something went wrong",
     });
   }
 };
 
 module.exports = {
   uploadProfilePic,
+  updateProfile,
+  followUser,
+  unfollowUser,
+  getUserProfile,
 };

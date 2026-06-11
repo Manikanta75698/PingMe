@@ -10,6 +10,50 @@ const userSchema = new mongoose.Schema(
   maxlength: 30,
 },
 
+username: {
+  type: String,
+  unique: true,
+  trim: true,
+  lowercase: true,
+  minlength: 3,
+  maxlength: 30,
+  match: [
+    /^[a-z0-9_]+$/,
+    "Username can contain only letters, numbers and underscore",
+  ],
+},
+
+bio: {
+  type: String,
+  maxlength: 150,
+  default: "",
+},
+
+followers: {
+  type: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
+  default: [],
+},
+
+following: {
+  type: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
+  default: [],
+},
+
+isPrivate: {
+  type: Boolean,
+  default: false,
+},
+
    email: {
   type: String,
   required: true,
@@ -22,12 +66,16 @@ const userSchema = new mongoose.Schema(
   ],
 },
 
-    password: {
+  password: {
   type: String,
   required: true,
   select: false,
+  minlength: 8,
+  match: [
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/,
+    "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+  ],
 },
-
    profilePic: {
   type: String,
   default: null,

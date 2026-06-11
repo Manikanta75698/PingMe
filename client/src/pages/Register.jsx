@@ -1,5 +1,5 @@
 import "./Register.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -8,6 +8,7 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -23,6 +24,12 @@ export default function Register() {
       );
 
       toast.success(res.data.message);
+
+      navigate("/verify-otp", {
+        state: {
+          email,
+        },
+      });
 
       setName("");
       setEmail("");

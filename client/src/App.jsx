@@ -21,6 +21,10 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/verify-otp"
+          element={<VerifyOTP />}
+        />
       </Routes>
     </BrowserRouter>
   );
