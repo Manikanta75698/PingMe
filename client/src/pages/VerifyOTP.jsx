@@ -20,7 +20,7 @@ const VerifyOTP = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/verify-otp",
+        "https://pingme-api-u477.onrender.com/api/auth/verify-otp",
         {
           email,
           otp,
