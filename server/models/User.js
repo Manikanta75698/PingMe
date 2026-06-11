@@ -19,9 +19,23 @@ const userSchema = new mongoose.Schema(
     },
 
     profilePic: {
-  type: String,
-  default: "",
-},
+      type: String,
+      default: "",
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    otp: {
+      type: String,
+      default: "",
+    },
+
+    otpExpiry: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );

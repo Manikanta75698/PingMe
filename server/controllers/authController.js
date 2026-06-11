@@ -1,7 +1,12 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
+const transporter = require("../config/nodemailer");
+const generateOTP = () => {
+  return Math.floor(
+    100000 + Math.random() * 900000
+  ).toString();
+};
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -16,29 +21,79 @@ const registerUser = async (req, res) => {
       });
     }
 
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(
       password,
       salt
     );
 
+    // Generate OTP
+    const otp = generateOTP();
+
+    // OTP expires in 5 minutes
+    const otpExpiry = new Date(
+      Date.now() + 5 * 60 * 1000
+    );
+
+    // Create user
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
+      otp,
+      otpExpiry,
+    });
+
+    // Send OTP Email
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "PingMe Email Verification 🔐",
+      html: `
+        <div style="font-family: Arial, sans-serif;">
+          <h2>Welcome to PingMe 👋</h2>
+
+          <p>Hello ${name},</p>
+
+          <p>Your verification code is:</p>
+
+          <h1 style="
+            background:#2563eb;
+            color:white;
+            padding:10px;
+            width:150px;
+            text-align:center;
+            border-radius:8px;
+          ">
+            ${otp}
+          </h1>
+
+          <p>This OTP expires in 5 minutes.</p>
+
+          <p>Do not share this code with anyone.</p>
+
+          <br />
+
+          <strong>Team PingMe ❤️</strong>
+        </div>
+      `,
     });
 
     res.status(201).json({
-      message: "User registered successfully",
+      message:
+        "OTP sent to your email. Please verify your account 📧",
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        profilePic: user.profilePic, // ✅ Added
+        profilePic: user.profilePic,
       },
     });
 
   } catch (error) {
+    console.log("REGISTER ERROR:", error);
+
     res.status(500).json({
       message: error.message,
     });
