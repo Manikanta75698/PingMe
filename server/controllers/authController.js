@@ -19,15 +19,15 @@ const generateOTP = () => {
   ).toString();
 };
 
-console.log(
-  "BREVO KEY EXISTS:",
-  !!process.env.BREVO_API_KEY
-);
-
-
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        message: "All fields are required",
+      });
+    }
 
     const existingUser = await User.findOne({
       email,
@@ -48,6 +48,8 @@ const registerUser = async (req, res) => {
 
     const otp = generateOTP();
 
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
     const otpExpiry = new Date(
       Date.now() + 5 * 60 * 1000
     );
@@ -56,7 +58,7 @@ const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      otp,
+      otp: hashedOtp,
       otpExpiry,
     });
 
@@ -107,7 +109,12 @@ const registerUser = async (req, res) => {
     ];
 
     // Send OTP using Brevo API
-    await transEmailApi.sendTransacEmail(emailData);
+    try {
+      await transEmailApi.sendTransacEmail(emailData);
+    } catch (error) {
+      await user.deleteOne();
+      throw error;
+    }
 
     res.status(201).json({
       message:
@@ -127,7 +134,7 @@ const registerUser = async (req, res) => {
     );
 
     res.status(500).json({
-      message: error.message,
+      message: "Something went wrong",
     });
   }
 };
@@ -135,22 +142,27 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    console.log("LOGIN REQUEST:", req.body);
-
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
 
     const user = await User.findOne({
       email,
-    });
-
-    console.log(
-      "USER FOUND:",
-      user ? "YES" : "NO"
-    );
+    }).select("+password");
 
     if (!user) {
       return res.status(400).json({
-        message: "User not found",
+        message: "Invalid email or password",
+      });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({
+        message: "Please verify your email first",
       });
     }
 
@@ -161,7 +173,7 @@ const loginUser = async (req, res) => {
 
     if (!isMatch) {
       return res.status(400).json({
-        message: "Invalid password",
+        message: "Invalid email or password",
       });
     }
 
@@ -191,7 +203,80 @@ const loginUser = async (req, res) => {
     );
 
     res.status(500).json({
-      message: error.message,
+      message: "Something went wrong",
+    });
+  }
+};
+
+ const verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    // Validation
+    if (!email || !otp) {
+      return res.status(400).json({
+        message: "Email and OTP are required",
+      });
+    }
+
+    // Get user with OTP fields
+    const user = await User.findOne({
+      email,
+    }).select("+otp +otpExpiry");
+
+   if (!user) {
+  return res.status(400).json({
+    message: "Invalid email or OTP",
+  });
+}
+
+    // Already verified
+    if (user.isVerified) {
+      return res.status(400).json({
+        message: "Account already verified",
+      });
+    }
+
+    // Check OTP expiry
+    if (!user.otpExpiry || user.otpExpiry < new Date()) {
+      return res.status(400).json({
+        message: "OTP has expired",
+      });
+    }
+
+    // Compare hashed OTP
+    const isOtpValid = await bcrypt.compare(
+      otp,
+      user.otp
+    );
+
+    if (!isOtpValid) {
+      return res.status(400).json({
+        message: "Invalid email or OTP",
+      });
+    }
+
+    // Verify account
+    user.isVerified = true;
+
+    // Clear OTP data
+    user.otp = null;
+    user.otpExpiry = null;
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Email verified successfully 🎉",
+    });
+
+  } catch (error) {
+    console.log(
+      "VERIFY OTP ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Something went wrong",
     });
   }
 };
@@ -200,4 +285,5 @@ const loginUser = async (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
+  verifyOTP,
 };
