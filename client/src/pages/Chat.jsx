@@ -34,9 +34,7 @@ function Chat() {
   const emojiRef = useRef(null);
   const [profilePic, setProfilePic] = useState(null);
   const [imagePreview, setImagePreview] = useState(
-    user?.profilePic
-      ? `https://pingme-api-u477.onrender.com/uploads/${user.profilePic}?t=${Date.now()}`
-      : ""
+    user?.profilePic || ""
   );
 
   const messagesRef = useRef(null);
@@ -298,9 +296,7 @@ function Chat() {
         JSON.stringify(updatedUser)
       );
 
-      setImagePreview(
-        `https://pingme-api-u477.onrender.com/uploads/${updatedUser.profilePic}?t=${Date.now()}`
-      );
+      setImagePreview(updatedUser.profilePic);
 
       alert("Profile updated ✅");
 
@@ -505,6 +501,11 @@ function Chat() {
                       setProfilePic(e.target.files[0])
                     }
                   />
+                  {profilePic && (
+                    <button onClick={handleProfileUpload}>
+                      📤 Upload
+                    </button>
+                  )}
 
                   <button onClick={toggleDarkMode}>
                     {darkMode ? "☀ Light" : "🌙 Dark"}
@@ -537,7 +538,7 @@ function Chat() {
 
               {msg.image && (
                 <img
-                  src={`https://pingme-api-u477.onrender.com/uploads/${msg.image}`}
+                  src={msg.image}
                   alt="Chat"
                   className="chat-message-image"
                 />

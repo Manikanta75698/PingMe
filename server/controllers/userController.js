@@ -22,7 +22,7 @@ const uploadProfilePic = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       userId,
       {
-        profilePic: req.file.filename,
+        profilePic: req.file.path,
       },
       {
         new: true,

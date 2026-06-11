@@ -11,7 +11,7 @@ const sendMessage = async (req, res) => {
       sender,
       receiver,
       text: text || "",
-      image: req.file ? req.file.filename : "",
+      image: req.file ? req.file.path : "",
       status: "delivered",
     });
 

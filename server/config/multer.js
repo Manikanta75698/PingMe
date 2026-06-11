@@ -1,25 +1,30 @@
 const multer = require("multer");
-const fs = require("fs");
+const {
+  CloudinaryStorage,
+} = require("multer-storage-cloudinary");
 
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
-}
+const cloudinary = require("./cloudinary");
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
 
-  filename: function (req, file, cb) {
-    const uniqueName =
-      Date.now() + "-" + file.originalname;
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
 
-    cb(null, uniqueName);
+  params: {
+    folder: "PingMe",
+
+    allowed_formats: [
+      "jpg",
+      "png",
+      "jpeg",
+      "webp",
+    ],
   },
 });
+
 
 const upload = multer({
   storage,
 });
+
 
 module.exports = upload;
