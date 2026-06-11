@@ -1,12 +1,25 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const transporter = require("../config/nodemailer");
+const SibApiV3Sdk = require("sib-api-v3-sdk");
+
+// Brevo API Setup
+const client = SibApiV3Sdk.ApiClient.instance;
+
+const apiKey = client.authentications["api-key"];
+
+apiKey.apiKey = process.env.BREVO_API_KEY;
+
+const transEmailApi =
+  new SibApiV3Sdk.TransactionalEmailsApi();
+
 const generateOTP = () => {
   return Math.floor(
     100000 + Math.random() * 900000
   ).toString();
 };
+
+
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -21,22 +34,19 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
+
     const hashedPassword = await bcrypt.hash(
       password,
       salt
     );
 
-    // Generate OTP
     const otp = generateOTP();
 
-    // OTP expires in 5 minutes
     const otpExpiry = new Date(
       Date.now() + 5 * 60 * 1000
     );
 
-    // Create user
     const user = await User.create({
       name,
       email,
@@ -45,40 +55,54 @@ const registerUser = async (req, res) => {
       otpExpiry,
     });
 
-    // Send OTP Email
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "PingMe Email Verification 🔐",
-      html: `
-        <div style="font-family: Arial, sans-serif;">
-          <h2>Welcome to PingMe 👋</h2>
+    // Brevo Email
+    const emailData = new SibApiV3Sdk.SendSmtpEmail();
 
-          <p>Hello ${name},</p>
+    emailData.subject =
+      "PingMe Email Verification 🔐";
 
-          <p>Your verification code is:</p>
+    emailData.htmlContent = `
+    <div style="font-family: Arial">
+      <h2>Welcome to PingMe 👋</h2>
 
-          <h1 style="
-            background:#2563eb;
-            color:white;
-            padding:10px;
-            width:150px;
-            text-align:center;
-            border-radius:8px;
-          ">
-            ${otp}
-          </h1>
+      <p>Hello ${name},</p>
 
-          <p>This OTP expires in 5 minutes.</p>
+      <p>Your OTP is:</p>
 
-          <p>Do not share this code with anyone.</p>
+      <h1 style="
+        background:#2563eb;
+        color:white;
+        padding:10px;
+        border-radius:8px;
+        width:150px;
+        text-align:center;
+      ">
+        ${otp}
+      </h1>
 
-          <br />
+      <p>
+        This OTP expires in 5 minutes.
+      </p>
 
-          <strong>Team PingMe ❤️</strong>
-        </div>
-      `,
-    });
+      <strong>
+        Team PingMe ❤️
+      </strong>
+    </div>
+  `;
+    emailData.sender = {
+      name: "PingMe",
+      email: "kasireddymanikantha@gmail.com",
+    };
+
+    emailData.to = [
+      {
+        email: email,
+        name: name,
+      },
+    ];
+
+    // Send OTP using Brevo API
+    await transEmailApi.sendTransacEmail(emailData);
 
     res.status(201).json({
       message:
@@ -92,7 +116,10 @@ const registerUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.log("REGISTER ERROR:", error);
+    console.log(
+      "REGISTER ERROR:",
+      error
+    );
 
     res.status(500).json({
       message: error.message,
@@ -148,11 +175,16 @@ const loginUser = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        profilePic: user.profilePic, // ✅ Added
+        profilePic: user.profilePic,
       },
     });
 
   } catch (error) {
+    console.log(
+      "LOGIN ERROR:",
+      error
+    );
+
     res.status(500).json({
       message: error.message,
     });
