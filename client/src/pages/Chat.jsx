@@ -1,7 +1,6 @@
-import { useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./Chat.css";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
 import axios from "axios";
 import socket from "../socket";
 import EmojiPicker from "emoji-picker-react";
@@ -12,9 +11,7 @@ function Chat() {
     localStorage.getItem("user") || "null"
   );
   const [selectedUser, setSelectedUser] =
-    useState(
-      localStorage.getItem("selectedUser") || ""
-    );
+    useState("");
   const selectedUserRef = useRef(selectedUser);
   const [typingUser, setTypingUser] =
     useState("");
@@ -24,6 +21,8 @@ function Chat() {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] =
     useState([]);
+  const [showChat, setShowChat] =
+    useState(false);
   const [darkMode, setDarkMode] =
     useState(
       localStorage.getItem("darkMode") ===
@@ -405,7 +404,7 @@ function Chat() {
       className={`chat-container ${darkMode ? "dark" : ""
         }`}
     >
-      <div className="sidebar">
+      <div className={`sidebar ${showChat ? "mobile-hide" : ""}`}>
         <h2>PingMe 💬</h2>
 
         <h3>Online Users</h3>
@@ -427,6 +426,7 @@ function Chat() {
               className="user"
               onClick={() => {
                 setSelectedUser(onlineUser.username);
+                setShowChat(true);
 
                 markMessagesAsSeen(onlineUser.username);
 
@@ -434,11 +434,6 @@ function Chat() {
                   ...prev,
                   [onlineUser.username]: 0,
                 }));
-
-                localStorage.setItem(
-                  "selectedUser",
-                  onlineUser.username
-                );
               }}
             >
               🟢 {onlineUser.username}
@@ -452,14 +447,29 @@ function Chat() {
           ))}
       </div>
 
-      <div className="chat-area">
+      <div className={`chat-area ${!showChat ? "mobile-hide-chat" : ""}`}>
 
         <div className="chat-header">
-          <h3>
-            {selectedUser
-              ? `Chat with ${selectedUser}`
-              : "Select a User"}
-          </h3>
+          <div className="chat-title">
+
+            <button
+              className="back-btn"
+              onClick={() => {
+                setShowChat(false);
+                setSelectedUser("");
+                localStorage.removeItem("selectedUser");
+              }}
+            >
+              ←
+            </button>
+
+            <h3>
+              {selectedUser
+                ? `Chat with ${selectedUser}`
+                : "Select a User"}
+            </h3>
+
+          </div>
 
           <div>
             <div className="profile-section" ref={menuRef}>
