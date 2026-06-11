@@ -2,6 +2,7 @@ import "./Register.css";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -21,7 +22,7 @@ export default function Register() {
         }
       );
 
-      alert(res.data.message);
+      toast.success(res.data.message);
 
       setName("");
       setEmail("");
@@ -31,7 +32,7 @@ export default function Register() {
       console.log("FULL ERROR:", error);
       console.log("RESPONSE:", error.response);
 
-      alert(
+      toast.error(
         error.response?.data?.message ||
         error.message ||
         "Registration failed"

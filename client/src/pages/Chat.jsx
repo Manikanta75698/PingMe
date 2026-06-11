@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import socket from "../socket";
 import EmojiPicker from "emoji-picker-react";
+import toast from "react-hot-toast";
 
 function Chat() {
   const navigate = useNavigate();
@@ -267,7 +268,7 @@ function Chat() {
 
   const handleProfileUpload = async () => {
     if (!profilePic) {
-      alert("Select an image");
+      toast.success("Select an image first");
       return;
     }
 
@@ -298,10 +299,11 @@ function Chat() {
 
       setImagePreview(updatedUser.profilePic);
 
-      alert("Profile updated ✅");
+      toast.success("Profile updated ✅");
 
     } catch (error) {
       console.log(error);
+      toast.error("Failed to update profile");
     }
   };
 
@@ -318,7 +320,7 @@ function Chat() {
 
   const handleSend = async () => {
     if (!selectedUser) {
-      alert("Select a user first");
+      toast.error("Select a user first");
       return;
     }
 

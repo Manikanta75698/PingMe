@@ -2,6 +2,7 @@ import "./Login.css";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export default function Login() {
         JSON.stringify(res.data.user)
       );
 
-      alert(res.data.message);
+      toast.success(res.data.message);
 
       navigate("/chat");
 
@@ -41,7 +42,7 @@ export default function Login() {
   console.log("DATA:", error.response?.data);
   console.log("MESSAGE:", error.response?.data?.message);
 
-  alert(
+  toast.error(
     error.response?.data?.message ||
     error.message ||
     "Login failed"
