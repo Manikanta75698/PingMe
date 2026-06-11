@@ -19,6 +19,11 @@ const generateOTP = () => {
   ).toString();
 };
 
+console.log(
+  "BREVO KEY EXISTS:",
+  !!process.env.BREVO_API_KEY
+);
+
 
 const registerUser = async (req, res) => {
   try {

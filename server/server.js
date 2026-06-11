@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
 const messageRoutes = require("./routes/messageRoutes");
@@ -8,9 +10,6 @@ const cors = require("cors");
 
 const http = require("http");
 const { Server } = require("socket.io");
-
-require("dotenv").config();
-
 const app = express();
 
 const server = http.createServer(app);
