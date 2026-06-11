@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 
 const socket = io(
-  "https://pingme-api-u477.onrender.com",
+  "https://pingme-api-new.onrender.com",
   {
     transports: ["websocket"],
     reconnection: true,

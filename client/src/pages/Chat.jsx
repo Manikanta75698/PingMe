@@ -65,7 +65,7 @@ function Chat() {
   const fetchMessages = async () => {
     try {
       const res = await axios.get(
-        "https://pingme-api-u477.onrender.com/api/messages",
+        "https://pingme-api-new.onrender.com/api/messages",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -82,7 +82,7 @@ function Chat() {
   const markMessagesAsSeen = async (sender) => {
     try {
       await axios.put(
-        "https://pingme-api-u477.onrender.com/api/messages/seen",
+        "https://pingme-api-new.onrender.com/api/messages/seen",
         {
           sender,
           receiver: user?.name,
@@ -289,7 +289,7 @@ function Chat() {
 
     try {
       const res = await axios.put(
-        "https://pingme-api-u477.onrender.com/api/users/upload",
+        "https://pingme-api-new.onrender.com/api/users/upload",
         formData,
         {
           headers: {
@@ -363,7 +363,7 @@ function Chat() {
       }
 
       const res = await axios.post(
-        "https://pingme-api-u477.onrender.com/api/messages",
+        "https://pingme-api-new.onrender.com/api/messages",
         formData,
         {
           headers: {

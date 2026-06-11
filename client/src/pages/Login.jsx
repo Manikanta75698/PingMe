@@ -15,7 +15,7 @@ export default function Login() {
 
     try {
       const res = await axios.post(
-        "https://pingme-api-u477.onrender.com/api/auth/login",
+        "https://pingme-api-new.onrender.com/api/auth/login",
         {
           email,
           password,

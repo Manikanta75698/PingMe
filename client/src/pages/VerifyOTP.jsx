@@ -22,7 +22,7 @@ const VerifyOTP = () => {
 
     try {
       const response = await axios.post(
-        "https://pingme-api-u477.onrender.com/api/auth/verify-otp",
+        "https://pingme-api-new.onrender.com/api/auth/verify-otp",
         {
           email,
           otp,
