@@ -24,6 +24,8 @@ function Chat() {
     useState([]);
   const [showChat, setShowChat] =
     useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [darkMode, setDarkMode] =
     useState(
       localStorage.getItem("darkMode") ===
@@ -63,7 +65,12 @@ function Chat() {
   const fetchMessages = async () => {
     try {
       const res = await axios.get(
-        "https://pingme-api-u477.onrender.com/api/messages"
+        "https://pingme-api-u477.onrender.com/api/messages",
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
       );
 
       setMessages(res.data);
@@ -283,7 +290,12 @@ function Chat() {
     try {
       const res = await axios.put(
         "https://pingme-api-u477.onrender.com/api/users/upload",
-        formData
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
       );
 
       const updatedUser = {
@@ -314,9 +326,6 @@ function Chat() {
 
     setShowEmojiPicker(false);
   };
-
-  const [showMenu, setShowMenu] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const handleSend = async () => {
     if (!selectedUser) {

@@ -281,9 +281,121 @@ const loginUser = async (req, res) => {
   }
 };
 
+const resendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Validation
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
+    }
+
+    // Find user with OTP fields
+    const user = await User.findOne({
+      email,
+    }).select("+otp +otpExpiry");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    // Check already verified
+    if (user.isVerified) {
+      return res.status(400).json({
+        message: "Account already verified",
+      });
+    }
+
+    // Generate new OTP
+    const otp = generateOTP();
+
+    // Hash OTP
+    const hashedOtp = await bcrypt.hash(
+      otp,
+      10
+    );
+
+    // Update OTP and expiry
+    user.otp = hashedOtp;
+
+    user.otpExpiry = new Date(
+      Date.now() + 5 * 60 * 1000
+    );
+
+    await user.save();
+
+    // Create email
+    const emailData =
+      new SibApiV3Sdk.SendSmtpEmail();
+
+    emailData.subject =
+      "PingMe New OTP Verification 🔄";
+
+    emailData.htmlContent = `
+      <div style="font-family: Arial">
+        <h2>PingMe OTP Resend 🔐</h2>
+
+        <p>Hello ${user.name},</p>
+
+        <p>Your new OTP is:</p>
+
+        <h1 style="
+          background:#2563eb;
+          color:white;
+          padding:10px;
+          border-radius:8px;
+          width:150px;
+          text-align:center;
+        ">
+          ${otp}
+        </h1>
+
+        <p>This OTP expires in 5 minutes.</p>
+
+        <strong>Team PingMe ❤️</strong>
+      </div>
+    `;
+
+    emailData.sender = {
+      name: "PingMe",
+      email: "kasireddymanikantha@gmail.com",
+    };
+
+    emailData.to = [
+      {
+        email: user.email,
+        name: user.name,
+      },
+    ];
+
+    // Send email
+    await transEmailApi.sendTransacEmail(
+      emailData
+    );
+
+    res.status(200).json({
+      message: "New OTP sent successfully 📧",
+    });
+
+  } catch (error) {
+    console.log(
+      "RESEND OTP ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+};
 
 module.exports = {
   registerUser,
   loginUser,
   verifyOTP,
+  resendOTP,
 };
