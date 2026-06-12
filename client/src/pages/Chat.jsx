@@ -297,6 +297,7 @@ function Chat() {
       const updatedUser = {
         id: user.id,
         name: user.name,
+        username: user.username,
         email: user.email,
         profilePic: res.data.profilePic,
       };
@@ -444,7 +445,7 @@ function Chat() {
         {onlineUsers
           .filter(
             (onlineUser) =>
-              onlineUser.username !== user?.name
+              onlineUser.username !== user?.username
           )
           .filter(
             (onlineUser, index, self) =>
