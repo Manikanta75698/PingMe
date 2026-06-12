@@ -11,8 +11,7 @@ function Chat() {
   const user = JSON.parse(
     localStorage.getItem("user") || "null"
   );
-  const [selectedUser, setSelectedUser] =
-    useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
   const selectedUserRef = useRef(selectedUser);
   const [typingUser, setTypingUser] =
     useState("");
@@ -392,6 +391,9 @@ function Chat() {
     }
   };
 
+  const selectedUserData = onlineUsers.find(
+    (u) => u.username === selectedUser
+  );
   const filteredMessages = messages.filter(
     (msg) =>
       (msg.sender === user?.name &&
@@ -407,19 +409,20 @@ function Chat() {
     >
       <div className={`sidebar ${showChat ? "mobile-hide" : ""}`}>
 
-        <div className="sidebar-top">
+        <div className="message-header">
+
+          <h2>
+            Messages
+          </h2>
 
           <img
             src={imagePreview}
-            className="sidebar-avatar"
+            className="mini-profile"
             alt="Profile"
+            onClick={() =>
+              navigate(`/profile/${user._id || user.id}`)
+            }
           />
-
-          <h2>{user?.name}</h2>
-
-          <p className="status">
-            🟢 Online
-          </p>
 
         </div>
 
@@ -434,8 +437,8 @@ function Chat() {
         </div>
 
 
-        <h3 className="online-heading">
-          Online Users
+        <h3 className="chat-list-title">
+          Chats
         </h3>
 
 
@@ -454,7 +457,7 @@ function Chat() {
           .map((onlineUser, index) => (
 
             <div
-              key={`${onlineUser.id}-${index}`}
+              key={onlineUser.username}
               className={
                 selectedUser === onlineUser.username
                   ? "user-card active-user"
@@ -473,10 +476,30 @@ function Chat() {
               }}
             >
 
-              <div>
-                🟢 {onlineUser.username}
-              </div>
+              <div className="user-left">
 
+                <img
+                  src={
+                    onlineUser.profilePic ||
+                    imagePreview
+                  }
+                  className="user-avatar"
+                  alt="user"
+                />
+
+                <div className="user-details">
+
+                  <h4>
+                    {onlineUser.username}
+                  </h4>
+
+                  <p>
+                    Tap to chat
+                  </p>
+
+                </div>
+
+              </div>
 
               {
                 unreadMessages[onlineUser.username] > 0 &&
@@ -504,7 +527,7 @@ function Chat() {
               className="back-btn"
               onClick={() => {
                 setShowChat(false);
-                setSelectedUser("");
+                setSelectedUser(null);
                 localStorage.removeItem("selectedUser");
               }}
             >
@@ -513,78 +536,118 @@ function Chat() {
 
             <div className="chat-user-info">
 
-              <h3>
-                {selectedUser || "PingMe"}
-              </h3>
+              <div className="chat-user-top">
 
-              <p>
-                {selectedUser
-                  ? "🟢 Online"
-                  : "Select someone to start chatting"}
-              </p>
+                {selectedUser && (
+                  <img
+                    src={
+                      selectedUserData?.profilePic ||
+                      imagePreview
+                    }
+                    className="header-avatar"
+                    alt="user"
+                  />
+                )}
+
+                <div>
+
+                  <h3>
+                    {selectedUser || "Select Chat"}
+                  </h3>
+
+                  <p>
+                    {selectedUser
+                      ? "Active now"
+                      : "Select someone to start chatting"}
+                  </p>
+
+                </div>
+
+              </div>
 
             </div>
 
           </div>
 
           <div>
-            <div className="profile-section" ref={menuRef}>
+            <div className="header-actions">
 
-              <img
-                src={imagePreview}
-                alt="Profile"
-                className="profile-pic"
-              />
-
-              <button
-                className="menu-btn"
-                onClick={() =>
-                  setShowMenu(!showMenu)
-                }
-              >
-                ⋮
-              </button>
-
-              {showMenu && (
-                <div className="menu-dropdown">
-
-                  <label htmlFor="profile-upload">
-                    👤 Change Photo
-                  </label>
-
-                  <input
-                    id="profile-upload"
-                    type="file"
-                    hidden
-                    onChange={(e) => setProfilePic(e.target.files[0])}
-                  />
-
-                  {profilePic && (
-                    <button onClick={handleProfileUpload}>
-                      📤 Upload
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => {
-                      navigate(`/profile/${user._id || user.id}`);
-                      setShowMenu(false);
-                    }}
-                  >
-                    👤 Profile
+              {selectedUser && (
+                <>
+                  <button className="action-btn">
+                    📞
                   </button>
 
-                  <button onClick={toggleDarkMode}>
-                    {darkMode ? "☀ Light" : "🌙 Dark"}
+                  <button className="action-btn">
+                    🎥
                   </button>
-
-                  <button onClick={handleLogout}>
-                    🚪 Logout
-                  </button>
-
-                </div>
+                </>
               )}
 
+              <div className="profile-section" ref={menuRef}>
+                <img
+                  src={imagePreview}
+                  alt="Profile"
+                  className="profile-pic"
+                />
+
+                <button
+                  className="menu-btn"
+                  onClick={() =>
+                    setShowMenu(!showMenu)
+                  }
+                >
+                  ⋮
+                </button>
+
+
+                {showMenu && (
+                  <div className="menu-dropdown">
+
+                    <label htmlFor="profile-upload">
+                      👤 Change Photo
+                    </label>
+
+                    <input
+                      id="profile-upload"
+                      type="file"
+                      hidden
+                      onChange={(e) =>
+                        setProfilePic(e.target.files[0])
+                      }
+                    />
+
+                    {profilePic && (
+                      <button onClick={handleProfileUpload}>
+                        📤 Upload
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        navigate(
+                          `/profile/${user._id || user.id}`
+                        );
+                        setShowMenu(false);
+                      }}
+                    >
+                      👤 Profile
+                    </button>
+
+
+                    <button onClick={toggleDarkMode}>
+                      {darkMode ? "☀ Light" : "🌙 Dark"}
+                    </button>
+
+
+                    <button onClick={handleLogout}>
+                      🚪 Logout
+                    </button>
+
+                  </div>
+                )}
+
+              </div>
             </div>
           </div>
         </div>
@@ -730,16 +793,18 @@ function Chat() {
               }}
             />
 
-            <button onClick={handleSend}>
-              Send
+            <button
+              className="send-btn"
+              onClick={handleSend}
+            >
+              ➤
             </button>
 
           </div>
-
         </div>
       </div>
     </div>
-  );
-}
+    );
+  } 
 
-export default Chat;
+      export default Chat;
