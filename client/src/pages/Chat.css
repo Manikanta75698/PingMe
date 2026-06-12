@@ -221,6 +221,13 @@
   gap: 5px;
   animation: popup 0.2s ease;
 }
+
+.menu-dropdown label,
+.menu-dropdown button {
+  width: 100%;
+  display: block;
+  text-align: left;
+}
 /* ================= Messages ================= */
 
 .messages {
