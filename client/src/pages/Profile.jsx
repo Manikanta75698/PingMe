@@ -34,7 +34,7 @@ function Profile() {
       try {
 
         const res = await axios.get(
-          `https://pingme-api-new.onrender.com/api/users/profile/${id}`,
+          `https://pingme-api-new.onrender.com/api/users/${id}`,
           {
             headers: {
               Authorization:
@@ -262,7 +262,7 @@ function Profile() {
             />
           )
         }
-        
+
         {/* Upload Button */}
         {
           isOwnProfile &&
