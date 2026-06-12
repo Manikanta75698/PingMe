@@ -23,6 +23,10 @@ const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
+    const username = email
+      .split("@")[0]
+      .toLowerCase();
+
     if (!name || !email || !password) {
       return res.status(400).json({
         message: "All fields are required",
@@ -56,6 +60,7 @@ const registerUser = async (req, res) => {
 
     const user = await User.create({
       name,
+      username,
       email,
       password: hashedPassword,
       otp: hashedOtp,
@@ -208,7 +213,7 @@ const loginUser = async (req, res) => {
   }
 };
 
- const verifyOTP = async (req, res) => {
+const verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
@@ -224,11 +229,11 @@ const loginUser = async (req, res) => {
       email,
     }).select("+otp +otpExpiry");
 
-   if (!user) {
-  return res.status(400).json({
-    message: "Invalid email or OTP",
-  });
-}
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid email or OTP",
+      });
+    }
 
     // Already verified
     if (user.isVerified) {
