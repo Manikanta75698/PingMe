@@ -457,24 +457,21 @@ function Chat() {
 
             <div
               key={`${onlineUser.id}-${index}`}
-              className="user-card"
+              className={
+                selectedUser === onlineUser.username
+                  ? "user-card active-user"
+                  : "user-card"
+              }
               onClick={() => {
-
-                setSelectedUser(
-                  onlineUser.username
-                );
-
+                setSelectedUser(onlineUser.username);
                 setShowChat(true);
 
-                markMessagesAsSeen(
-                  onlineUser.username
-                );
+                markMessagesAsSeen(onlineUser.username);
 
                 setUnreadMessages((prev) => ({
                   ...prev,
                   [onlineUser.username]: 0,
                 }));
-
               }}
             >
 
