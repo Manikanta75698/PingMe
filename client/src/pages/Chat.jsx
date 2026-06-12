@@ -299,10 +299,10 @@ function Chat() {
       );
 
       const updatedUser = {
-        id: user.id || res.data.user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
-        profilePic: res.data.user.profilePic,
+        profilePic: res.data.profilePic,
       };
       localStorage.setItem(
         "user",
