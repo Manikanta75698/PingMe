@@ -28,7 +28,7 @@ function App() {
           element={<VerifyOTP />}
         />
         <Route
-          path="/profile"
+          path="/profile/:id"
           element={
             <ProtectedRoute>
               <Profile />
