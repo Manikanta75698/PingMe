@@ -693,3 +693,200 @@
   background: #2563eb;
   transform: scale(1.1);
 }
+
+/* ================= Search Results ================= */
+
+.search-user {
+  position: relative;
+}
+
+
+.search-results {
+  position: absolute;
+  top: 55px;
+  left: 0;
+  width: 100%;
+  background: #101f3d;
+  border: 1px solid #24324d;
+  border-radius: 15px;
+  overflow: hidden;
+  z-index: 999;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  animation: popup 0.25s ease;
+}
+
+
+.search-user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+
+.search-user-card:hover {
+  background: #2563eb;
+}
+
+
+.search-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #2563eb;
+}
+
+
+.search-user-card h4 {
+  margin: 0;
+  color: white;
+  font-size: 15px;
+}
+
+
+.search-user-card p {
+  margin: 3px 0 0;
+  color: #8ca2c8;
+  font-size: 13px;
+}
+
+/* ================= Followers / Following Modal ================= */
+
+.follow-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+
+.follow-box {
+  width: 90%;
+  max-width: 400px;
+
+  background: #101f3d;
+  color: white;
+
+  border: 1px solid #24324d;
+  border-radius: 20px;
+
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+
+  max-height: 500px;
+  overflow-y: auto;
+
+  animation: popup 0.3s ease;
+}
+
+
+.follow-box h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+
+.follow-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px;
+  margin-bottom: 10px;
+
+  border-radius: 12px;
+  background: #16233f;
+
+  transition: 0.3s;
+}
+
+
+.follow-user:hover {
+  background: #2563eb;
+}
+
+
+.follow-image {
+  width: 50px;
+  height: 50px;
+
+  border-radius: 50%;
+  object-fit: cover;
+
+  border: 2px solid #2563eb;
+}
+
+
+.follow-user h4 {
+  margin: 0;
+  font-size: 16px;
+}
+
+
+.follow-user p {
+  margin: 3px 0 0;
+  color: #8ca2c8;
+}
+
+
+.close-btn {
+  width: 100%;
+  margin-top: 15px;
+
+  padding: 12px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #ef4444;
+  color: white;
+
+  font-size: 16px;
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+
+.close-btn:hover {
+  background: #dc2626;
+  transform: scale(1.03);
+}
+
+
+/* Animations */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+
+@keyframes popup {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

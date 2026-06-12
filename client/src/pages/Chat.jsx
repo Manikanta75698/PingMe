@@ -38,6 +38,9 @@ function Chat() {
   const [imagePreview, setImagePreview] = useState(
     user?.profilePic || ""
   );
+  const [search, setSearch] = useState("");
+
+  const [searchResults, setSearchResults] = useState([]);
 
   const messagesRef = useRef(null);
 
@@ -271,6 +274,48 @@ function Chat() {
     };
   }, []);
 
+  useEffect(() => {
+
+    const searchUsers = async () => {
+
+      if (!search.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      try {
+
+        const res = await axios.get(
+          `https://pingme-api-new.onrender.com/api/users/search?keyword=${search}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        setSearchResults(res.data.users);
+
+      } catch (error) {
+
+        console.log(
+          "SEARCH ERROR:",
+          error
+        );
+
+      }
+    };
+
+
+    const timer = setTimeout(() => {
+      searchUsers();
+    }, 500);
+
+
+    return () => clearTimeout(timer);
+
+  }, [search]);
+
 
   const handleProfileUpload = async () => {
     if (!profilePic) {
@@ -432,7 +477,63 @@ function Chat() {
           <input
             type="text"
             placeholder="🔍 Search users"
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
           />
+
+
+          {searchResults.length > 0 && (
+
+            <div className="search-results">
+
+              {searchResults.map((searchUser) => (
+
+                <div
+                  key={searchUser._id}
+                  className="search-user-card"
+                  onClick={() => {
+
+                    setSelectedUser(
+                      searchUser.username
+                    );
+
+                    setShowChat(true);
+
+                    setSearch("");
+
+                    setSearchResults([]);
+
+                  }}
+                >
+
+                  <img
+                    src={searchUser.profilePic}
+                    alt="user"
+                    className="search-avatar"
+                  />
+
+
+                  <div>
+
+                    <h4>
+                      {searchUser.name}
+                    </h4>
+
+                    <p>
+                      @{searchUser.username}
+                    </p>
+
+                  </div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          )}
 
         </div>
 
@@ -804,7 +905,7 @@ function Chat() {
         </div>
       </div>
     </div>
-    );
-  } 
+  );
+}
 
-  export default Chat;
+export default Chat;

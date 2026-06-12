@@ -8,6 +8,9 @@ const {
   updateProfile,
   followUser,
   unfollowUser,
+  searchUsers,
+  getFollowers,
+  getFollowing,
   getUserProfile,
 } = require("../controllers/userController");
 
@@ -47,12 +50,35 @@ router.put(
 );
 
 
-// Get User Profile
+// Search Users
+router.get(
+  "/search",
+  protect,
+  searchUsers
+);
+
+
+// Get Followers
+router.get(
+  "/followers/:id",
+  protect,
+  getFollowers
+);
+
+
+// Get Following
+router.get(
+  "/following/:id",
+  protect,
+  getFollowing
+);
+
+
+// Get User Profile (Always Last)
 router.get(
   "/:id",
   protect,
   getUserProfile
 );
-
 
 module.exports = router;

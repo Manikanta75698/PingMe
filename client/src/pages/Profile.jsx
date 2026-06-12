@@ -4,11 +4,18 @@ import axios from "axios";
 import "./Profile.css";
 
 function Profile() {
+
   const { id } = useParams();
 
   const [profile, setProfile] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
+
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
 
   const [editData, setEditData] = useState({
     name: "",
@@ -23,14 +30,18 @@ function Profile() {
     localStorage.getItem("user")
   );
 
+  const currentUserId =
+    currentUser?.id || currentUser?._id;
+
+
   const isOwnProfile =
-    currentUser?.id === id ||
-    currentUser?._id === id;
+    currentUserId === id;
 
 
   useEffect(() => {
 
     const fetchProfile = async () => {
+
       try {
 
         const res = await axios.get(
@@ -57,22 +68,84 @@ function Profile() {
           bio: res.data.user.bio || "",
         });
 
+
       } catch (error) {
 
         console.log(
           "PROFILE ERROR:",
           error
         );
+
       }
+
     };
 
 
     fetchProfile();
 
-  }, [id]);
+
+ }, [id]);
 
 
-  // Follow / Unfollow
+const fetchFollowers = async () => {
+    try {
+
+      const res = await axios.get(
+        `https://pingme-api-new.onrender.com/api/users/followers/${id}`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      setFollowers(res.data.followers);
+      setShowFollowers(true);
+
+    } catch (error) {
+
+      console.log(
+        "FOLLOWERS ERROR:",
+        error
+      );
+
+    }
+
+  };
+
+
+  const fetchFollowing = async () => {
+
+    try {
+
+      const res = await axios.get(
+        `https://pingme-api-new.onrender.com/api/users/following/${id}`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      setFollowing(res.data.following);
+      setShowFollowing(true);
+
+    } catch (error) {
+
+      console.log(
+        "FOLLOWING ERROR:",
+        error
+      );
+
+    }
+
+  };
+
+
+  // Main Follow / Unfollow
+
   const handleFollow = async () => {
 
     try {
@@ -117,7 +190,75 @@ function Profile() {
   };
 
 
-  // Update Profile
+  // Follow button inside modal
+
+  const handleModalFollow = async (
+    userId,
+    isUserFollowing,
+    type
+  ) => {
+
+    try {
+
+      const url = isUserFollowing
+        ? `https://pingme-api-new.onrender.com/api/users/unfollow/${userId}`
+        : `https://pingme-api-new.onrender.com/api/users/follow/${userId}`;
+
+
+      await axios.put(
+        url,
+        {},
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+
+      if (type === "followers") {
+
+        setFollowers((prev) =>
+          prev.map((user) =>
+            user._id === userId
+              ? {
+                  ...user,
+                  isFollowing: !isUserFollowing,
+                }
+              : user
+          )
+        );
+
+      }
+
+
+      if (type === "following") {
+
+        setFollowing((prev) =>
+          prev.map((user) =>
+            user._id === userId
+              ? {
+                  ...user,
+                  isFollowing: !isUserFollowing,
+                }
+              : user
+          )
+        );
+
+      }
+
+
+    } catch (error) {
+
+      console.log(
+        "MODAL FOLLOW ERROR:",
+        error
+      );
+
+    }
+
+  };  // Update Profile
   const handleUpdateProfile = async () => {
 
     try {
@@ -134,7 +275,10 @@ function Profile() {
       );
 
 
-      setProfile(res.data.user);
+      setProfile((prev) => ({
+        ...prev,
+        ...res.data.user,
+      }));
 
 
       localStorage.setItem(
@@ -143,15 +287,14 @@ function Profile() {
           ...currentUser,
           name: res.data.user.name,
           username: res.data.user.username,
+          profilePic: res.data.user.profilePic,
         })
       );
 
 
       setIsEditing(false);
 
-      alert(
-        "Profile updated successfully ✅"
-      );
+      alert("Profile updated successfully ✅");
 
 
     } catch (error) {
@@ -161,15 +304,23 @@ function Profile() {
         error
       );
 
+
       alert(
         error.response?.data?.message ||
         "Update failed"
       );
+
     }
+
   };
+
+
   // Upload Profile Picture
+
   const handleProfilePicUpload = async () => {
+
     try {
+
       const formData = new FormData();
 
       formData.append(
@@ -182,7 +333,8 @@ function Profile() {
         formData,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
@@ -206,45 +358,61 @@ function Profile() {
       alert("Profile picture updated ✅");
 
     } catch (error) {
+
       console.log(
         "PROFILE PIC ERROR:",
         error
       );
 
       alert("Upload failed ❌");
-    }
-  };
-  if (!profile) {
-    return <h2>Loading profile...</h2>;
-  }
 
+    }
+
+  };
+
+  if (!profile) {
+  return <h2>Loading profile...</h2>;
+}
 
   return (
     <div className="profile-container">
+
       <div className="profile-card">
 
-        {/* Profile Image */}
-        {isOwnProfile && (
-          <input
-            type="file"
-            id="profilePicInput"
-            hidden
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files[0];
 
-              if (file) {
-                setNewProfilePic(file);
-                setPreviewPic(
-                  URL.createObjectURL(file)
-                );
-              }
-            }}
-          />
-        )}
+        {/* Profile Image */}
+        {
+          isOwnProfile && (
+            <input
+              type="file"
+              id="profilePicInput"
+              hidden
+              accept="image/*"
+              onChange={(e) => {
+
+                const file = e.target.files[0];
+
+                if (file) {
+
+                  setNewProfilePic(file);
+
+                  setPreviewPic(
+                    URL.createObjectURL(file)
+                  );
+
+                }
+
+              }}
+            />
+          )
+        }
+
+
         {
           isOwnProfile ? (
+
             <label htmlFor="profilePicInput">
+
               <img
                 src={
                   previewPic ||
@@ -253,26 +421,32 @@ function Profile() {
                 alt="Profile"
                 className="profile-image"
               />
+
             </label>
+
           ) : (
+
             <img
               src={profile.profilePic}
               alt="Profile"
               className="profile-image"
             />
+
           )
         }
 
-        {/* Upload Button */}
+
         {
           isOwnProfile &&
           newProfilePic && (
+
             <button
               className="follow-btn"
               onClick={handleProfilePicUpload}
             >
               📤 Upload Photo
             </button>
+
           )
         }
 
@@ -288,16 +462,20 @@ function Profile() {
 
 
         <p className="profile-bio">
+
           {
             profile.bio ||
             "No bio added yet"
           }
+
         </p>
 
 
-        {/* Edit / Follow */}
+        {/* Follow / Edit Button */}
+
         {
           isOwnProfile ? (
+
             <button
               className="follow-btn"
               onClick={() =>
@@ -306,7 +484,9 @@ function Profile() {
             >
               ✏️ Edit Profile
             </button>
+
           ) : (
+
             <button
               className="follow-btn"
               onClick={handleFollow}
@@ -317,34 +497,238 @@ function Profile() {
                   : "Follow +"
               }
             </button>
+
           )
         }
 
 
         {/* Stats */}
+
         <div className="profile-stats">
 
-          <div className="stat">
+          <div
+            className="stat"
+            onClick={fetchFollowers}
+          >
+
             <h3>
               {profile.followersCount}
             </h3>
-            <p>Followers</p>
+
+            <p>
+              Followers
+            </p>
+
           </div>
 
 
-          <div className="stat">
+          <div
+            className="stat"
+            onClick={fetchFollowing}
+          >
+
             <h3>
               {profile.followingCount}
             </h3>
-            <p>Following</p>
+
+            <p>
+              Following
+            </p>
+
           </div>
 
         </div>
+                {/* Followers Modal */}
+        {
+          showFollowers && (
+            <div className="follow-modal">
+
+              <div className="follow-box">
+
+                <h2>Followers</h2>
+
+                {
+                  followers.length === 0 ? (
+
+                    <p>No followers yet</p>
+
+                  ) : (
+
+                    followers.map((user) => (
+
+                      <div
+                        key={user._id}
+                        className="follow-user"
+                      >
+
+                        <div className="follow-info">
+
+                          <img
+                            src={user.profilePic}
+                            alt="Profile"
+                            className="follow-image"
+                          />
+
+                          <div>
+                            <h4>{user.name}</h4>
+                            <p>@{user.username}</p>
+                          </div>
+
+                        </div>
 
 
-        {/* Edit Modal */}
+                        {
+                          user._id !== currentUserId && (
+
+                            <button
+                              className="follow-small-btn"
+                              onClick={() =>
+                                handleModalFollow(
+                                  user._id,
+                                  user.isFollowing,
+                                  "followers"
+                                )
+                              }
+                            >
+
+                              {
+                                user.isFollowing
+                                  ? "Following ✓"
+                                  : "Follow +"
+                              }
+
+                            </button>
+
+                          )
+                        }
+
+                      </div>
+
+                    ))
+
+                  )
+                }
+
+
+                <button
+                  className="close-btn"
+                  onClick={() =>
+                    setShowFollowers(false)
+                  }
+                >
+                  Close
+                </button>
+
+              </div>
+
+            </div>
+          )
+        }
+
+
+        {/* Following Modal */}
+
+        {
+          showFollowing && (
+
+            <div className="follow-modal">
+
+              <div className="follow-box">
+
+                <h2>Following</h2>
+
+                {
+                  following.length === 0 ? (
+
+                    <p>
+                      Not following anyone
+                    </p>
+
+                  ) : (
+
+                    following.map((user) => (
+
+                      <div
+                        key={user._id}
+                        className="follow-user"
+                      >
+
+                        <div className="follow-info">
+
+                          <img
+                            src={user.profilePic}
+                            alt="Profile"
+                            className="follow-image"
+                          />
+
+                          <div>
+
+                            <h4>
+                              {user.name}
+                            </h4>
+
+                            <p>
+                              @{user.username}
+                            </p>
+
+                          </div>
+
+                        </div>
+
+
+                        {
+                          user._id !== currentUserId && (
+
+                            <button
+                              className="follow-small-btn"
+                              onClick={() =>
+                                handleModalFollow(
+                                  user._id,
+                                  user.isFollowing,
+                                  "following"
+                                )
+                              }
+                            >
+
+                              {
+                                user.isFollowing
+                                  ? "Following ✓"
+                                  : "Follow +"
+                              }
+
+                            </button>
+
+                          )
+                        }
+
+                      </div>
+
+                    ))
+
+                  )
+                }
+
+
+                <button
+                  className="close-btn"
+                  onClick={() =>
+                    setShowFollowing(false)
+                  }
+                >
+                  Close
+                </button>
+
+              </div>
+
+            </div>
+
+          )
+        }
+                {/* Edit Modal */}
+
         {
           isEditing && (
+
             <div className="edit-modal">
 
               <div className="edit-box">
@@ -374,8 +758,7 @@ function Profile() {
                   onChange={(e) =>
                     setEditData({
                       ...editData,
-                      username:
-                        e.target.value,
+                      username: e.target.value,
                     })
                   }
                 />
@@ -387,14 +770,14 @@ function Profile() {
                   onChange={(e) =>
                     setEditData({
                       ...editData,
-                      bio:
-                        e.target.value,
+                      bio: e.target.value,
                     })
                   }
                 />
 
 
                 <div className="edit-buttons">
+
 
                   <button
                     className="cancel-btn"
@@ -408,24 +791,32 @@ function Profile() {
 
                   <button
                     className="save-btn"
-                    onClick={
-                      handleUpdateProfile
-                    }
+                    onClick={handleUpdateProfile}
                   >
                     Save
                   </button>
 
+
                 </div>
+
 
               </div>
 
+
             </div>
+
           )
         }
 
+
       </div>
+
+
     </div>
+
   );
+
 }
+
 
 export default Profile;

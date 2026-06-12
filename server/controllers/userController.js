@@ -224,6 +224,66 @@ const unfollowUser = async (req, res) => {
   }
 };
 
+const searchUsers = async (req, res) => {
+  try {
+
+    const keyword = req.query.keyword;
+
+    if (!keyword) {
+      return res.status(400).json({
+        message: "Search keyword required",
+      });
+    }
+
+
+    const users = await User.find({
+      $and: [
+        {
+          _id: {
+            $ne: req.user._id,
+          },
+        },
+        {
+          $or: [
+            {
+              name: {
+                $regex: keyword,
+                $options: "i",
+              },
+            },
+            {
+              username: {
+                $regex: keyword,
+                $options: "i",
+              },
+            },
+          ],
+        },
+      ],
+    })
+    .select(
+      "name username profilePic"
+    )
+    .limit(10);
+
+
+    res.status(200).json({
+      users,
+    });
+
+  } catch (error) {
+
+    console.log(
+      "SEARCH USERS ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+};
+
 const getUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -270,10 +330,139 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+const getFollowers = async (req, res) => {
+  try {
+
+    const currentUser = await User.findById(
+      req.user._id
+    );
+
+    const user = await User.findById(req.params.id)
+      .populate(
+        "followers",
+        "name username profilePic"
+      );
+
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+
+    const followers = user.followers.map(
+      (follower) => ({
+
+        _id: follower._id,
+
+        name: follower.name,
+
+        username: follower.username,
+
+        profilePic: follower.profilePic,
+
+        isFollowing:
+          currentUser.following.some(
+            (id) =>
+              id.toString() ===
+              follower._id.toString()
+          ),
+
+      })
+    );
+
+
+    res.status(200).json({
+      followers,
+    });
+
+
+  } catch (error) {
+
+    console.log(
+      "GET FOLLOWERS ERROR:",
+      error
+    );
+
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+
+  }
+};
+
+
+const getFollowing = async (req, res) => {
+  try {
+
+    const currentUser = await User.findById(
+      req.user._id
+    );
+
+    const user = await User.findById(req.params.id)
+      .populate(
+        "following",
+        "name username profilePic"
+      );
+
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+
+    const following = user.following.map(
+      (person) => ({
+
+        _id: person._id,
+
+        name: person.name,
+
+        username: person.username,
+
+        profilePic: person.profilePic,
+
+        isFollowing:
+          currentUser.following.some(
+            (id) =>
+              id.toString() ===
+              person._id.toString()
+          ),
+
+      })
+    );
+
+
+    res.status(200).json({
+      following,
+    });
+
+
+  } catch (error) {
+
+    console.log(
+      "GET FOLLOWING ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+
+  }
+};
+
 module.exports = {
   uploadProfilePic,
   updateProfile,
   followUser,
   unfollowUser,
+  searchUsers,
   getUserProfile,
+  getFollowers,
+  getFollowing,
 };
