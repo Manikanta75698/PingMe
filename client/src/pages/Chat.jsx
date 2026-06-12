@@ -295,10 +295,7 @@ function Chat() {
       );
 
       const updatedUser = {
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        email: user.email,
+        ...user,
         profilePic: res.data.profilePic,
       };
       localStorage.setItem(
@@ -567,6 +564,15 @@ function Chat() {
                       📤 Upload
                     </button>
                   )}
+
+                  <button
+                    onClick={() => {
+                      navigate(`/profile/${user._id || user.id}`);
+                      setShowMenu(false);
+                    }}
+                  >
+                    👤 Profile
+                  </button>
 
                   <button onClick={toggleDarkMode}>
                     {darkMode ? "☀ Light" : "🌙 Dark"}
