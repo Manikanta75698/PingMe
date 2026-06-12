@@ -558,12 +558,10 @@ function Chat() {
                   <input
                     id="profile-upload"
                     type="file"
-                    accept="image/*"
                     hidden
-                    onChange={(e) =>
-                      setProfilePic(e.target.files[0])
-                    }
+                    onChange={(e) => setProfilePic(e.target.files[0])}
                   />
+
                   {profilePic && (
                     <button onClick={handleProfileUpload}>
                       📤 Upload
