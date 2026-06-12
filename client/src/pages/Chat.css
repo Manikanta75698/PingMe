@@ -204,6 +204,23 @@
   font-size: 22px;
   cursor: pointer;
 }
+
+.menu-dropdown {
+  position: absolute;
+  top: 55px;
+  right: 0;
+  width: 180px;
+  background: #101f3d;
+  border: 1px solid #24324d;
+  border-radius: 12px;
+  padding: 10px;
+  z-index: 999;
+  box-shadow: 0 0 20px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  animation: popup 0.2s ease;
+}
 /* ================= Messages ================= */
 
 .messages {
