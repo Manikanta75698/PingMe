@@ -275,17 +275,13 @@ function Chat() {
 
   const handleProfileUpload = async () => {
     if (!profilePic) {
-      toast.success("Select an image first");
+      toast.error("Select an image first");
       return;
     }
 
     const formData = new FormData();
 
     formData.append("profilePic", profilePic);
-    formData.append(
-      "userId",
-      user.id || user._id
-    );
 
     try {
       const res = await axios.put(
@@ -412,9 +408,38 @@ function Chat() {
         }`}
     >
       <div className={`sidebar ${showChat ? "mobile-hide" : ""}`}>
-        <h2>PingMe 💬</h2>
 
-        <h3>Online Users</h3>
+        <div className="sidebar-top">
+
+          <img
+            src={imagePreview}
+            className="sidebar-avatar"
+            alt="Profile"
+          />
+
+          <h2>{user?.name}</h2>
+
+          <p className="status">
+            🟢 Online
+          </p>
+
+        </div>
+
+
+        <div className="search-user">
+
+          <input
+            type="text"
+            placeholder="🔍 Search users"
+          />
+
+        </div>
+
+
+        <h3 className="online-heading">
+          Online Users
+        </h3>
+
 
         {onlineUsers
           .filter(
@@ -424,34 +449,55 @@ function Chat() {
           .filter(
             (onlineUser, index, self) =>
               index === self.findIndex(
-                (u) => u.username === onlineUser.username
+                (u) =>
+                  u.username === onlineUser.username
               )
           )
           .map((onlineUser, index) => (
+
             <div
               key={`${onlineUser.id}-${index}`}
-              className="user"
+              className="user-card"
               onClick={() => {
-                setSelectedUser(onlineUser.username);
+
+                setSelectedUser(
+                  onlineUser.username
+                );
+
                 setShowChat(true);
 
-                markMessagesAsSeen(onlineUser.username);
+                markMessagesAsSeen(
+                  onlineUser.username
+                );
 
                 setUnreadMessages((prev) => ({
                   ...prev,
                   [onlineUser.username]: 0,
                 }));
+
               }}
             >
-              🟢 {onlineUser.username}
 
-              {unreadMessages[onlineUser.username] > 0 && (
-                <span className="unread-badge">
-                  {unreadMessages[onlineUser.username]}
-                </span>
-              )}
+              <div>
+                🟢 {onlineUser.username}
+              </div>
+
+
+              {
+                unreadMessages[onlineUser.username] > 0 &&
+                (
+                  <span className="unread-badge">
+                    {
+                      unreadMessages[onlineUser.username]
+                    }
+                  </span>
+                )
+              }
+
             </div>
+
           ))}
+
       </div>
 
       <div className={`chat-area ${!showChat ? "mobile-hide-chat" : ""}`}>
@@ -470,11 +516,19 @@ function Chat() {
               ←
             </button>
 
-            <h3>
-              {selectedUser
-                ? `Chat with ${selectedUser}`
-                : "Select a User"}
-            </h3>
+            <div className="chat-user-info">
+
+              <h3>
+                {selectedUser || "PingMe"}
+              </h3>
+
+              <p>
+                {selectedUser
+                  ? "🟢 Online"
+                  : "Select someone to start chatting"}
+              </p>
+
+            </div>
 
           </div>
 
