@@ -1,0 +1,158 @@
+* {
+  box-sizing: border-box;
+}
+
+.profile-container {
+  min-height: 100vh;
+  background: #061126;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.profile-card {
+  background: #0d1b35;
+  width: 100%;
+  max-width: 450px;
+  border-radius: 20px;
+  padding: 35px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(0,0,0,0.4);
+  border: 1px solid #24324d;
+}
+
+.profile-image {
+  width: 130px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 4px solid #2563eb;
+  box-shadow: 0 0 20px #2563eb;
+  transition: 0.3s;
+}
+
+.profile-image:hover {
+  transform: scale(1.05);
+}
+
+.profile-name {
+  margin-top: 15px;
+  font-size: 28px;
+}
+
+.profile-username {
+  color: #60a5fa;
+  margin: 5px 0 15px;
+}
+
+.profile-bio {
+  color: #cbd5e1;
+  margin-bottom: 25px;
+}
+
+.profile-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+.stat h3 {
+  margin: 0;
+  color: #2563eb;
+}
+
+.stat p {
+  margin-top: 5px;
+  color: #94a3b8;
+}
+
+.follow-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 15px;
+  transition: 0.3s;
+}
+
+.follow-btn:hover {
+  background: #1d4ed8;
+  transform: scale(1.05);
+}
+/* Edit Profile Modal */
+
+.edit-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.edit-box {
+  width: 90%;
+  max-width: 400px;
+  background: #0d1b35;
+  border: 1px solid #24324d;
+  border-radius: 18px;
+  padding: 25px;
+  animation: popup 0.25s ease;
+}
+
+.edit-box h2 {
+  margin-top: 0;
+  text-align: center;
+}
+
+.edit-box input,
+.edit-box textarea {
+  width: 100%;
+  background: #16233f;
+  color: white;
+  border: none;
+  outline: none;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 10px;
+}
+
+.edit-box textarea {
+  min-height: 90px;
+  resize: none;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.cancel-btn,
+.save-btn {
+  flex: 1;
+  border: none;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: white;
+}
+
+.cancel-btn {
+  background: #ef4444;
+}
+
+.save-btn {
+  background: #2563eb;
+}
+
+.cancel-btn:hover,
+.save-btn:hover {
+  opacity: 0.9;
+}

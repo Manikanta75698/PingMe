@@ -5,6 +5,7 @@ import Register from "./pages/Register";
 import VerifyOTP from "./pages/VerifyOTP";
 import Chat from "./pages/Chat";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -25,6 +26,14 @@ function App() {
         <Route
           path="/verify-otp"
           element={<VerifyOTP />}
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
         />
       </Routes>
     </BrowserRouter>
