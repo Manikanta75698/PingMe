@@ -55,14 +55,12 @@ function Profile() {
 
   const isOwnProfile =
     currentUserId === id;
-  console.log("Current User:", currentUserId);
-  console.log("Profile ID:", id);
-  console.log("Is Own Profile:", isOwnProfile);
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (showLoader = true) => {
 
-    setLoading(true);
-
+    if (showLoader) {
+      setLoading(true);
+    }
     try {
 
       const res = await axios.get(
@@ -115,10 +113,9 @@ function Profile() {
 
     socket.on("profile_updated", (data) => {
 
+
       if (data.userId === id) {
-
-        fetchProfile();
-
+        fetchProfile(false);
       }
 
     });
