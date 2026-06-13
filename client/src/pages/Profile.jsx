@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import socket from "../socket";
 import "./Profile.css";
 
 function Profile() {
@@ -58,57 +59,76 @@ function Profile() {
   console.log("Profile ID:", id);
   console.log("Is Own Profile:", isOwnProfile);
 
+  const fetchProfile = async () => {
+
+    setLoading(true);
+
+    try {
+
+      const res = await axios.get(
+        `https://pingme-api-new.onrender.com/api/users/${id}`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+
+      setProfile(res.data.user);
+
+      setIsFollowing(
+        res.data.user.isFollowing
+      );
+
+
+      setEditData({
+        name: res.data.user.name || "",
+        username: res.data.user.username || "",
+        bio: res.data.user.bio || "",
+      });
+
+
+    } catch (error) {
+
+      console.log(
+        "PROFILE ERROR:",
+        error
+      );
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  };
 
   useEffect(() => {
 
-    const fetchProfile = async () => {
+    fetchProfile();
 
-      setLoading(true);
+  }, [id]);
 
-      try {
+  useEffect(() => {
 
-        const res = await axios.get(
-          `https://pingme-api-new.onrender.com/api/users/${id}`,
-          {
-            headers: {
-              Authorization:
-                `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
+    socket.on("profile_updated", (data) => {
 
+      if (data.userId === id) {
 
-        setProfile(res.data.user);
-        setLoading(false);
-
-        setIsFollowing(
-          res.data.user.isFollowing
-        );
-
-
-        setEditData({
-          name: res.data.user.name || "",
-          username: res.data.user.username || "",
-          bio: res.data.user.bio || "",
-        });
-
-
-      } catch (error) {
-
-        setLoading(false);
-
-        console.log(
-          "PROFILE ERROR:",
-          error
-        );
+        fetchProfile();
 
       }
 
+    });
+
+
+    return () => {
+
+      socket.off("profile_updated");
+
     };
-
-
-    fetchProfile();
-
 
   }, [id]);
 

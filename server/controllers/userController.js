@@ -146,6 +146,12 @@ const followUser = async (req, res) => {
     await currentUser.save();
     await targetUser.save();
 
+    const io = req.app.get("io");
+
+    io.emit("profile_updated", {
+      userId: req.params.id,
+    });
+
     res.status(200).json({
       message: "User followed successfully ✅",
     });
@@ -211,6 +217,12 @@ const unfollowUser = async (req, res) => {
     await currentUser.save();
     await targetUser.save();
 
+    const io = req.app.get("io");
+
+    io.emit("profile_updated", {
+      userId: req.params.id,
+    });
+
     res.status(200).json({
       message: "User unfollowed successfully ✅",
     });
@@ -261,10 +273,10 @@ const searchUsers = async (req, res) => {
         },
       ],
     })
-    .select(
-      "name username profilePic"
-    )
-    .limit(10);
+      .select(
+        "name username profilePic"
+      )
+      .limit(10);
 
 
     res.status(200).json({
