@@ -87,19 +87,19 @@ function Chat() {
         "https://pingme-api-new.onrender.com/api/messages/seen",
         {
           sender,
-          receiver: user?.name,
+          receiver: user.username,
         }
       );
 
       socket.emit("message_seen", {
         sender,
-        receiver: user?.name,
+        receiver: user.username,
       });
 
       setMessages((prev) =>
         prev.map((msg) =>
           msg.sender === sender &&
-            msg.receiver === user?.name
+            msg.receiver === user.username
             ? { ...msg, status: "seen" }
             : msg
         )
@@ -180,7 +180,7 @@ function Chat() {
       socket.emit(
         "join",
         {
-          username: user?.username || user?.name || "Guest",
+          username: user.username,
 
           profilePic:
             user?.profilePic || "",
@@ -194,7 +194,7 @@ function Chat() {
       socket.emit(
         "join",
         {
-          username: user?.username || user?.name || "Guest",
+          username: user.username,
           profilePic:
             user?.profilePic || "",
         }
@@ -207,8 +207,8 @@ function Chat() {
         console.log("Message received:", data);
 
         if (
-          data.sender === user?.name &&
-          data.receiver === user?.name
+          data.sender === user.username &&
+          data.receiver === user.username
         ) {
           return;
         }
@@ -227,7 +227,7 @@ function Chat() {
           },
         ]);
 
-        if (data.sender !== user?.name) {
+        if (data.sender !== user.username) {
           if (selectedUserRef.current === data.sender) {
             markMessagesAsSeen(data.sender);
           } else {
@@ -263,7 +263,7 @@ function Chat() {
 
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.sender === user?.name &&
+          msg.sender === user.username &&
             msg.receiver === data.receiver
             ? {
               ...msg,
@@ -389,9 +389,8 @@ function Chat() {
 
       formData.append(
         "sender",
-        user?.name || "Guest"
+        user.username
       );
-
       formData.append(
         "receiver",
         selectedUser
@@ -450,10 +449,10 @@ function Chat() {
   );
   const filteredMessages = messages.filter(
     (msg) =>
-      (msg.sender === user?.name &&
+      (msg.sender === user.username &&
         msg.receiver === selectedUser) ||
       (msg.sender === selectedUser &&
-        msg.receiver === user?.name)
+        msg.receiver === user.username)
   );
 
   return (
@@ -767,7 +766,7 @@ function Chat() {
             <div
               key={msg._id}
               className={
-                msg.sender === user?.name
+                msg.sender === user.username
                   ? "message my-message"
                   : "message other-message"
               }
@@ -792,7 +791,7 @@ function Chat() {
                   minute: "2-digit",
                 })}
 
-                {msg.sender === user?.name && (
+                {msg.sender === user.username && (
                   <span
                     className={`message-status ${msg.status === "seen" ? "seen" : ""
                       }`}
@@ -891,7 +890,7 @@ function Chat() {
 
                 if (selectedUser) {
                   socket.emit("typing", {
-                    sender: user?.name || "Guest",
+                    sender: user.username,
                     receiver: selectedUser,
                   });
                 }
