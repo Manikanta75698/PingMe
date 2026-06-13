@@ -178,57 +178,56 @@ function Profile() {
 
   const handleFollow = async () => {
 
-    const oldFollowing = isFollowing;
+  const oldFollowing = isFollowing;
+  const oldCount = profile.followersCount;
 
-    // 🔥 Instant UI update
-    setIsFollowing(!oldFollowing);
+  // Instant UI update
+  setIsFollowing(!oldFollowing);
+
+  setProfile((prev) => ({
+    ...prev,
+    followersCount: oldFollowing
+      ? oldCount - 1
+      : oldCount + 1,
+  }));
+
+  try {
+
+    const url = oldFollowing
+      ? `https://pingme-api-new.onrender.com/api/users/unfollow/${id}`
+      : `https://pingme-api-new.onrender.com/api/users/follow/${id}`;
+
+    await axios.put(
+      url,
+      {},
+      {
+        headers: {
+          Authorization:
+            `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+
+  } catch (error) {
+
+    console.log(
+      "FOLLOW ERROR:",
+      error.response?.data || error
+    );
+
+    // Restore original state
+    setIsFollowing(oldFollowing);
 
     setProfile((prev) => ({
       ...prev,
-      followersCount: oldFollowing
-        ? prev.followersCount - 1
-        : prev.followersCount + 1,
+      followersCount: oldCount,
     }));
 
-    try {
+    alert("Something went wrong ❌");
 
-      const url = oldFollowing
-        ? `https://pingme-api-new.onrender.com/api/users/unfollow/${id}`
-        : `https://pingme-api-new.onrender.com/api/users/follow/${id}`;
+  }
 
-      await axios.put(
-        url,
-        {},
-        {
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-    } catch (error) {
-
-      console.log(
-        "FOLLOW ERROR:",
-        error
-      );
-
-      // ❌ Rollback if API fails
-      setIsFollowing(oldFollowing);
-
-      setProfile((prev) => ({
-        ...prev,
-        followersCount: oldFollowing
-          ? prev.followersCount + 1
-          : prev.followersCount - 1,
-      }));
-
-      alert("Something went wrong ❌");
-
-    }
-
-  };
+};
 
 
   // Follow button inside modal
