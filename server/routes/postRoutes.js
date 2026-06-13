@@ -10,8 +10,8 @@ const {
   unlikePost,
   addComment,
   getPosts,
+  getUserPosts,
 } = require("../controllers/postController");
-
 router.post(
   "/create",
   protect,
@@ -41,6 +41,12 @@ router.get(
   "/",
   protect,
   getPosts
+);
+
+router.get(
+  "/user/:id",
+  protect,
+  getUserPosts
 );
 
 module.exports = router;

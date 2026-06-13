@@ -26,6 +26,7 @@ function Profile() {
       }
       : null
   );
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -72,6 +73,17 @@ function Profile() {
           },
         }
       );
+
+      const postRes = await axios.get(
+        `https://pingme-api-new.onrender.com/api/posts/user/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      setPosts(postRes.data.posts);
 
 
       setProfile(res.data.user);
@@ -576,30 +588,18 @@ function Profile() {
             {/* Stats */}
             <div className="profile-stats">
 
-              <div className="stat">
-                <h3>0</h3>
+              <div>
+                <h3>{posts.length}</h3>
                 <p>Posts</p>
               </div>
 
-
-              <div
-                className="stat"
-                onClick={fetchFollowers}
-              >
-                <h3>
-                  {profile.followersCount}
-                </h3>
+              <div>
+                <h3>{profile.followersCount}</h3>
                 <p>Followers</p>
               </div>
 
-
-              <div
-                className="stat"
-                onClick={fetchFollowing}
-              >
-                <h3>
-                  {profile.followingCount}
-                </h3>
+              <div>
+                <h3>{profile.followingCount}</h3>
                 <p>Following</p>
               </div>
 
@@ -617,11 +617,36 @@ function Profile() {
             POSTS
           </h3>
 
+          <div className="profile-posts">
 
-          <div className="no-posts">
-            No posts yet 📷
+            {
+              posts.length === 0 ? (
+
+                <div className="no-posts">
+
+                  <h2>
+                    No posts yet 📷
+                  </h2>
+
+                </div>
+
+              ) : (
+
+                posts.map((post) => (
+
+                  <img
+                    key={post._id}
+                    src={post.image}
+                    alt="Post"
+                    className="profile-post-image"
+                  />
+
+                ))
+
+              )
+            }
+
           </div>
-
         </div>
 
 
@@ -632,7 +657,7 @@ function Profile() {
 
           <div className="edit-box">
 
-            <h2>Edit Profile ✏️</h2>
+            <h2>Edit Profile </h2>
 
             <input
               type="text"

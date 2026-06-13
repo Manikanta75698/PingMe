@@ -191,6 +191,32 @@ const getPosts = async (req, res) => {
   }
 };
 
+const getUserPosts = async (req, res) => {
+  try {
+
+    const posts = await Post.find({
+      user: req.params.id,
+    })
+      .sort({
+        createdAt: -1,
+      });
+
+    res.status(200).json({
+      posts,
+    });
+
+  } catch (error) {
+
+    console.log(
+      "GET USER POSTS ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+};
 
 module.exports = {
   createPost,
@@ -198,4 +224,5 @@ module.exports = {
   unlikePost,
   addComment,
   getPosts,
+  getUserPosts,
 };
