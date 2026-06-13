@@ -178,12 +178,23 @@ function Profile() {
 
   const handleFollow = async () => {
 
+    const oldFollowing = isFollowing;
+
+    // 🔥 Instant UI update
+    setIsFollowing(!oldFollowing);
+
+    setProfile((prev) => ({
+      ...prev,
+      followersCount: oldFollowing
+        ? prev.followersCount - 1
+        : prev.followersCount + 1,
+    }));
+
     try {
 
-      const url = isFollowing
+      const url = oldFollowing
         ? `https://pingme-api-new.onrender.com/api/users/unfollow/${id}`
         : `https://pingme-api-new.onrender.com/api/users/follow/${id}`;
-
 
       await axios.put(
         url,
@@ -196,24 +207,24 @@ function Profile() {
         }
       );
 
-
-      setIsFollowing(!isFollowing);
-
-
-      setProfile((prev) => ({
-        ...prev,
-        followersCount: isFollowing
-          ? prev.followersCount - 1
-          : prev.followersCount + 1,
-      }));
-
-
     } catch (error) {
 
       console.log(
         "FOLLOW ERROR:",
         error
       );
+
+      // ❌ Rollback if API fails
+      setIsFollowing(oldFollowing);
+
+      setProfile((prev) => ({
+        ...prev,
+        followersCount: oldFollowing
+          ? prev.followersCount + 1
+          : prev.followersCount - 1,
+      }));
+
+      alert("Something went wrong ❌");
 
     }
 
@@ -486,8 +497,8 @@ function Profile() {
                   >
                     {
                       isFollowing
-                        ? "Following ✓"
-                        : "Follow +"
+                        ? "Unfollow"
+                        : "Follow"
                     }
                   </button>
                 )
