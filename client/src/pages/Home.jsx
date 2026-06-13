@@ -86,6 +86,11 @@ function Home() {
         <button className="icon-btn">
           <FaSearch />
         </button>
+
+        <h1 className="app-title">
+          PingMe
+        </h1>
+
         <button
           className="icon-btn"
           onClick={() => navigate("/chat")}

@@ -271,3 +271,29 @@
   }
 
 }
+
+/* PingMe Title */
+
+.app-title {
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0;
+
+  background: linear-gradient(
+    90deg,
+    #0095ff,
+    #00e5ff
+  );
+
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  text-shadow:
+    0 0 15px rgba(0,149,255,0.8);
+
+  letter-spacing: 1px;
+
+  font-family:
+    "Trebuchet MS",
+    sans-serif;
+}
