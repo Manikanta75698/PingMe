@@ -516,9 +516,9 @@ function Profile() {
                     disabled={followLoading}
                   >
                     {
-                      followLoading
-                        ? "Please wait..."
-                        : isFollowing ? "Following ✓" : "Follow"
+                      isFollowing
+                        ? "Following ✓"
+                        : "Follow"
                     }
                   </button>
                 )
