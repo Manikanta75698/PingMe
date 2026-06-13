@@ -221,13 +221,10 @@ function Profile() {
 
     } catch (error) {
 
-      setFollowLoading(false);
-
       console.log(
         "FOLLOW ERROR:",
         error.response?.data || error
       );
-
       setIsFollowing(oldFollowing);
 
       setProfile((prev) => ({
@@ -236,6 +233,12 @@ function Profile() {
       }));
 
       alert("Something went wrong ❌");
+    }
+
+    finally {
+
+      setFollowLoading(false);
+
     }
 
   };
@@ -266,8 +269,6 @@ function Profile() {
           },
         }
       );
-      setFollowLoading(false);
-
 
       if (type === "followers") {
 
@@ -517,9 +518,7 @@ function Profile() {
                     {
                       followLoading
                         ? "Please wait..."
-                        : isFollowing
-                          ? "Unfollow"
-                          : "Follow"
+                        : isFollowing ? "Following ✓" : "Follow"
                     }
                   </button>
                 )
