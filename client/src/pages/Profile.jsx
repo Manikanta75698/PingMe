@@ -64,24 +64,29 @@ function Profile() {
     }
     try {
 
-      const res = await axios.get(
-        `https://pingme-api-new.onrender.com/api/users/${id}`,
-        {
-          headers: {
-            Authorization:
-              `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      const [res, postRes] = await Promise.all([
 
-      const postRes = await axios.get(
-        `https://pingme-api-new.onrender.com/api/posts/user/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+        axios.get(
+          `https://pingme-api-new.onrender.com/api/users/${id}`,
+          {
+            headers: {
+              Authorization:
+                `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        ),
+
+        axios.get(
+          `https://pingme-api-new.onrender.com/api/posts/user/${id}`,
+          {
+            headers: {
+              Authorization:
+                `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        ),
+
+      ]);
 
       setPosts(postRes.data.posts);
 
@@ -454,11 +459,37 @@ function Profile() {
 
   if (loading) {
     return (
-      <div className="profile-container">
-        <div className="profile-card">
-          <div className="loader"></div>
-          <h3>Loading Profile...</h3>
+      <div className="profile-skeleton">
+
+        <div className="skeleton-profile-pic"></div>
+
+        <div className="skeleton-name"></div>
+
+        <div className="skeleton-bio"></div>
+
+
+        <div className="skeleton-stats">
+
+          <div></div>
+          <div></div>
+          <div></div>
+
         </div>
+
+
+        <div className="skeleton-grid">
+
+          {[1, 2, 3, 4, 5, 6].map((item) => (
+
+            <div
+              key={item}
+              className="skeleton-box"
+            ></div>
+
+          ))}
+
+        </div>
+
       </div>
     );
   }
@@ -611,42 +642,37 @@ function Profile() {
 
 
         {/* Posts Section */}
+        {/* Posts Section */}
+
+        <h3 className="posts-title">
+          POSTS
+        </h3>
+
         <div className="profile-posts">
 
-          <h3 className="posts-title">
-            POSTS
-          </h3>
+          {
+            posts.length === 0 ? (
 
-          <div className="profile-posts">
+              <div className="no-posts">
+                <h2>No posts yet 📷</h2>
+              </div>
 
-            {
-              posts.length === 0 ? (
+            ) : (
 
-                <div className="no-posts">
+              posts.map((post) => (
 
-                  <h2>
-                    No posts yet 📷
-                  </h2>
+                <img
+                  key={post._id}
+                  src={post.image}
+                  alt="Post"
+                  className="profile-post-image"
+                />
 
-                </div>
+              ))
 
-              ) : (
+            )
+          }
 
-                posts.map((post) => (
-
-                  <img
-                    key={post._id}
-                    src={post.image}
-                    alt="Post"
-                    className="profile-post-image"
-                  />
-
-                ))
-
-              )
-            }
-
-          </div>
         </div>
 
 

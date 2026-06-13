@@ -102,7 +102,39 @@ function Home() {
         {
           loadingPosts ? (
 
-            <h2>Loading Posts...</h2>
+            <div className="skeleton-container">
+
+              {[1, 2].map((item) => (
+
+                <div
+                  className="skeleton-post"
+                  key={item}
+                >
+
+                  <div className="skeleton-header">
+
+                    <div className="skeleton-profile"></div>
+
+                    <div className="skeleton-text">
+
+                      <div></div>
+                      <div></div>
+
+                    </div>
+
+                  </div>
+
+
+                  <div className="skeleton-image"></div>
+
+
+                  <div className="skeleton-caption"></div>
+
+                </div>
+
+              ))}
+
+            </div>
 
           ) : posts.length === 0 ? (
 
