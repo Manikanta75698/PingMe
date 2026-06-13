@@ -34,8 +34,8 @@ export default function Login() {
 
       toast.success(res.data.message);
 
-      navigate("/chat");
-
+      navigate("/home");
+      
     } catch (error) {
   console.log("LOGIN ERROR:", error);
   console.log("RESPONSE:", error.response);
