@@ -40,16 +40,16 @@ let onlineUsers = [];
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
 
-  socket.on("join", (username) => {
+  socket.on("join", (user) => {
     onlineUsers = onlineUsers.filter(
-      (user) => user.username !== username
+      (u) => u.username !== user.username
     );
 
     onlineUsers.push({
       id: socket.id,
-      username,
+      username: user.username,
+      profilePic: user.profilePic,
     });
-
     io.emit("online_users", onlineUsers);
   });
 

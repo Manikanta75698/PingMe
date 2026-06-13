@@ -179,7 +179,13 @@ function Chat() {
 
       socket.emit(
         "join",
-        user?.name || "Guest"
+        {
+          username:
+            user?.username || "Guest",
+
+          profilePic:
+            user?.profilePic || "",
+        }
       );
     }
 
@@ -187,9 +193,15 @@ function Chat() {
       console.log("Connected:", socket.id);
 
       socket.emit(
-        "join",
-        user?.name || "Guest"
-      );
+  "join",
+  {
+    username:
+      user?.username || "Guest",
+
+    profilePic:
+      user?.profilePic || "",
+  }
+);
     });
 
     socket.on(
