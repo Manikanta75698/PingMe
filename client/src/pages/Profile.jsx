@@ -25,6 +25,7 @@ function Profile() {
       }
       : null
   );
+  const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -62,6 +63,8 @@ function Profile() {
 
     const fetchProfile = async () => {
 
+      setLoading(true);
+
       try {
 
         const res = await axios.get(
@@ -76,6 +79,7 @@ function Profile() {
 
 
         setProfile(res.data.user);
+        setLoading(false);
 
         setIsFollowing(
           res.data.user.isFollowing
@@ -90,6 +94,8 @@ function Profile() {
 
 
       } catch (error) {
+
+        setLoading(false);
 
         console.log(
           "PROFILE ERROR:",
@@ -417,8 +423,15 @@ function Profile() {
 
   };
 
-  if (!profile) {
-    return <h2>Loading profile...</h2>;
+  if (loading) {
+    return (
+      <div className="profile-container">
+        <div className="profile-card">
+          <div className="loader"></div>
+          <h3>Loading Profile...</h3>
+        </div>
+      </div>
+    );
   }
 
   return (
