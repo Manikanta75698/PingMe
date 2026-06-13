@@ -582,7 +582,7 @@ function Chat() {
                 <img
                   src={
                     onlineUser.profilePic ||
-                    imagePreview
+                    "/default-avatar.png"
                   }
                   className="user-avatar"
                   alt="user"
@@ -643,7 +643,7 @@ function Chat() {
                   <img
                     src={
                       selectedUserData?.profilePic ||
-                      imagePreview
+                      "/default-avatar.png"
                     }
                     className="header-avatar"
                     alt="user"
