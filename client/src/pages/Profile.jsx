@@ -26,6 +26,7 @@ function Profile() {
       : null
   );
   const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   const [followers, setFollowers] = useState([]);
@@ -169,6 +170,7 @@ function Profile() {
       );
 
       setFollowingLoading(false);
+      setFollowLoading(false);
     }
 
   };
@@ -178,56 +180,60 @@ function Profile() {
 
   const handleFollow = async () => {
 
-  const oldFollowing = isFollowing;
-  const oldCount = profile.followersCount;
+    if (followLoading) return;
 
-  // Instant UI update
-  setIsFollowing(!oldFollowing);
+    setFollowLoading(true);
 
-  setProfile((prev) => ({
-    ...prev,
-    followersCount: oldFollowing
-      ? oldCount - 1
-      : oldCount + 1,
-  }));
+    const oldFollowing = isFollowing;
+    const oldCount = profile.followersCount;
 
-  try {
-
-    const url = oldFollowing
-      ? `https://pingme-api-new.onrender.com/api/users/unfollow/${id}`
-      : `https://pingme-api-new.onrender.com/api/users/follow/${id}`;
-
-    await axios.put(
-      url,
-      {},
-      {
-        headers: {
-          Authorization:
-            `Bearer ${localStorage.getItem("token")}`,
-        },
-      }
-    );
-
-  } catch (error) {
-
-    console.log(
-      "FOLLOW ERROR:",
-      error.response?.data || error
-    );
-
-    // Restore original state
-    setIsFollowing(oldFollowing);
+    // Instant UI update
+    setIsFollowing(!oldFollowing);
 
     setProfile((prev) => ({
       ...prev,
-      followersCount: oldCount,
+      followersCount: oldFollowing
+        ? oldCount - 1
+        : oldCount + 1,
     }));
 
-    alert("Something went wrong ❌");
+    try {
 
-  }
+      const url = oldFollowing
+        ? `https://pingme-api-new.onrender.com/api/users/unfollow/${id}`
+        : `https://pingme-api-new.onrender.com/api/users/follow/${id}`;
 
-};
+      await axios.put(
+        url,
+        {},
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+    } catch (error) {
+
+      console.log(
+        "FOLLOW ERROR:",
+        error.response?.data || error
+      );
+
+      // Restore original state
+      setIsFollowing(oldFollowing);
+
+      setProfile((prev) => ({
+        ...prev,
+        followersCount: oldCount,
+      }));
+
+      alert("Something went wrong ❌");
+
+    }
+
+  };
 
 
   // Follow button inside modal
@@ -255,6 +261,7 @@ function Profile() {
           },
         }
       );
+      setFollowLoading(false);
 
 
       if (type === "followers") {
@@ -493,11 +500,14 @@ function Profile() {
                   <button
                     className="follow-btn"
                     onClick={handleFollow}
+                    disabled={followLoading}
                   >
                     {
-                      isFollowing
-                        ? "Unfollow"
-                        : "Follow"
+                      followLoading
+                        ? "Please wait..."
+                        : isFollowing
+                          ? "Unfollow"
+                          : "Follow"
                     }
                   </button>
                 )
