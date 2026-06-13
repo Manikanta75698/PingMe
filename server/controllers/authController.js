@@ -127,6 +127,7 @@ const registerUser = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
+        username: user.username,
         email: user.email,
         profilePic: user.profilePic,
       },
@@ -196,6 +197,7 @@ const loginUser = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
+        username: user.username,
         email: user.email,
         profilePic: user.profilePic,
       },
