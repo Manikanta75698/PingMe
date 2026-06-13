@@ -180,8 +180,7 @@ function Chat() {
       socket.emit(
         "join",
         {
-          username:
-            user?.username || "Guest",
+          username: user?.username || user?.name || "Guest",
 
           profilePic:
             user?.profilePic || "",
@@ -193,15 +192,13 @@ function Chat() {
       console.log("Connected:", socket.id);
 
       socket.emit(
-  "join",
-  {
-    username:
-      user?.username || "Guest",
-
-    profilePic:
-      user?.profilePic || "",
-  }
-);
+        "join",
+        {
+          username: user?.username || user?.name || "Guest",
+          profilePic:
+            user?.profilePic || "",
+        }
+      );
     });
 
     socket.on(
