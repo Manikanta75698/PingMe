@@ -40,17 +40,21 @@ let onlineUsers = [];
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
 
-  socket.on("join", (user) => {
+  socket.on("join", (data) => {
+
     onlineUsers = onlineUsers.filter(
-      (u) => u.username !== user.username
+      (user) => user.username !== data.username
     );
 
     onlineUsers.push({
-      id: socket.id,
-      username: user.username,
-      profilePic: user.profilePic,
+      socketId: socket.id,
+      userId: data.userId,
+      username: data.username,
+      profilePic: data.profilePic,
     });
+
     io.emit("online_users", onlineUsers);
+
   });
 
   socket.on("private_message", (data) => {
@@ -59,7 +63,7 @@ io.on("connection", (socket) => {
     );
 
     if (targetUser) {
-      io.to(targetUser.id).emit(
+      io.to(targetUser.socketId).emit(
         "receive_private_message",
         data
       );
@@ -72,7 +76,7 @@ io.on("connection", (socket) => {
     );
 
     if (receiver && receiver.username !== data.sender) {
-      io.to(receiver.id).emit(
+      io.to(receiver.socketId).emit(
         "user_typing",
         data.sender
       );
@@ -85,7 +89,7 @@ io.on("connection", (socket) => {
     );
 
     if (sender) {
-      io.to(sender.id).emit(
+      io.to(sender.socketId).emit(
         "message_seen_update",
         {
           receiver: data.receiver,
@@ -98,7 +102,7 @@ io.on("connection", (socket) => {
     console.log("User Disconnected:", socket.id);
 
     onlineUsers = onlineUsers.filter(
-      (user) => user.id !== socket.id
+      (user) => user.socketId !== socket.id
     );
 
     io.emit("online_users", onlineUsers);

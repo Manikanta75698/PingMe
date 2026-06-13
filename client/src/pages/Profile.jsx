@@ -52,6 +52,9 @@ function Profile() {
 
   const isOwnProfile =
     currentUserId === id;
+  console.log("Current User:", currentUserId);
+  console.log("Profile ID:", id);
+  console.log("Is Own Profile:", isOwnProfile);
 
 
   useEffect(() => {

@@ -175,30 +175,18 @@ function Chat() {
     fetchMessages();
 
     if (socket.connected) {
-      console.log("Already Connected:", socket.id);
-
-      socket.emit(
-        "join",
-        {
-          username: user.username,
-
-          profilePic:
-            user?.profilePic || "",
-        }
-      );
+      socket.emit("join", {
+        userId: user.id || user._id,
+        username: user.username,
+        profilePic: user?.profilePic || "",
+      });
     }
-
     socket.on("connect", () => {
-      console.log("Connected:", socket.id);
-
-      socket.emit(
-        "join",
-        {
-          username: user.username,
-          profilePic:
-            user?.profilePic || "",
-        }
-      );
+      socket.emit("join", {
+        userId: user.id || user._id,
+        username: user.username,
+        profilePic: user?.profilePic || "",
+      });
     });
 
     socket.on(
@@ -447,6 +435,8 @@ function Chat() {
   const selectedUserData = onlineUsers.find(
     (u) => u.username === selectedUser
   );
+  console.log("ONLINE USERS:", onlineUsers);
+
   const filteredMessages = messages.filter(
     (msg) =>
       (msg.sender === user.username &&
@@ -473,7 +463,7 @@ function Chat() {
             className="mini-profile"
             alt="Profile"
             onClick={() =>
-              navigate(`/profile/${user._id || user.id}`)
+              navigate(`/profile/${user.id || user._id}`)
             }
           />
 
@@ -503,12 +493,7 @@ function Chat() {
                   className="search-user-card"
                   onClick={() => {
 
-                    setSelectedUser(
-                      searchUser.username
-                    );
-
-                    setShowChat(true);
-
+                    navigate(`/profile/${searchUser._id}`)
                     setSearch("");
 
                     setSearchResults([]);
@@ -565,6 +550,7 @@ function Chat() {
           )
           .map((onlineUser, index) => (
 
+
             <div
               key={onlineUser.username}
               className={
@@ -594,6 +580,11 @@ function Chat() {
                   }
                   className="user-avatar"
                   alt="user"
+                  onClick={(e) => {
+                    e.stopPropagation();
+
+                    navigate(`/profile/${onlineUser.userId}`);
+                  }}
                 />
 
                 <div className="user-details">
@@ -734,15 +725,12 @@ function Chat() {
 
                     <button
                       onClick={() => {
-                        navigate(
-                          `/profile/${user._id || user.id}`
-                        );
+                        navigate(`/profile/${user.id || user._id}`);
                         setShowMenu(false);
                       }}
                     >
                       👤 Profile
                     </button>
-
 
                     <button onClick={toggleDarkMode}>
                       {darkMode ? "☀ Light" : "🌙 Dark"}
