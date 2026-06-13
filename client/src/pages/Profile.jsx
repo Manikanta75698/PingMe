@@ -30,6 +30,9 @@ function Profile() {
 
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
+  const [followersLoading, setFollowersLoading] = useState(false);
+
+  const [followingLoading, setFollowingLoading] = useState(false);
 
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
@@ -101,6 +104,11 @@ function Profile() {
 
 
   const fetchFollowers = async () => {
+
+    setShowFollowers(true);
+    setFollowers([]);
+    setFollowersLoading(true);
+
     try {
 
       const res = await axios.get(
@@ -114,7 +122,7 @@ function Profile() {
       );
 
       setFollowers(res.data.followers);
-      setShowFollowers(true);
+      setFollowersLoading(false);
 
     } catch (error) {
 
@@ -123,12 +131,17 @@ function Profile() {
         error
       );
 
+      setFollowersLoading(false);
     }
 
   };
 
 
   const fetchFollowing = async () => {
+
+    setShowFollowing(true);
+    setFollowing([]);
+    setFollowingLoading(true);
 
     try {
 
@@ -143,7 +156,7 @@ function Profile() {
       );
 
       setFollowing(res.data.following);
-      setShowFollowing(true);
+      setFollowingLoading(false);
 
     } catch (error) {
 
@@ -152,6 +165,7 @@ function Profile() {
         error
       );
 
+      setFollowingLoading(false);
     }
 
   };
@@ -460,7 +474,7 @@ function Profile() {
                       setIsEditing(true)
                     }
                   >
-                    ✏️ Edit Profile
+                    Edit Profile
                   </button>
                 ) : (
                   <button
@@ -624,6 +638,209 @@ function Profile() {
               </button>
 
             </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {showFollowers && (
+        <div className="follow-modal">
+
+          <div className="follow-box">
+
+            <h2>
+              Followers
+            </h2>
+
+
+            {
+              followersLoading ? (
+
+                <p>
+                  ⏳ Loading followers...
+                </p>
+
+              ) : followers.length === 0 ? (
+
+                <p>
+                  No followers yet
+                </p>
+
+              ) : (
+
+                followers.map((user) => (
+
+                  <div
+                    className="follow-user"
+                    key={user._id}
+                  >
+
+                    <img
+                      src={user.profilePic}
+                      alt={user.name}
+                      className="follow-image"
+                    />
+
+
+                    <div
+                      style={{
+                        flex: 1
+                      }}
+                    >
+
+                      <h4>
+                        {user.name}
+                      </h4>
+
+
+                      <p>
+                        @{user.username}
+                      </p>
+
+                    </div>
+
+
+                    {
+                      user._id !== currentUserId && (
+
+                        <button
+                          className="follow-btn"
+                          onClick={() =>
+                            handleModalFollow(
+                              user._id,
+                              user.isFollowing,
+                              "followers"
+                            )
+                          }
+                        >
+
+                          {
+                            user.isFollowing
+                              ? "Following ✓"
+                              : "Follow +"
+                          }
+
+                        </button>
+
+                      )
+                    }
+
+                  </div>
+
+                ))
+
+              )
+            }
+
+
+            <button
+              className="close-btn"
+              onClick={() =>
+                setShowFollowers(false)
+              }
+            >
+              Close
+            </button>
+
+
+          </div>
+
+        </div>
+      )}
+
+      {showFollowing && (
+        <div className="follow-modal">
+
+          <div className="follow-box">
+
+            <h2>
+              Following
+            </h2>
+
+            {
+              followingLoading ? (
+
+                <p>
+                  ⏳ Loading following...
+                </p>
+
+              ) : following.length === 0 ? (
+
+                <p>
+                  Not following anyone
+                </p>
+
+              ) : (
+
+                following.map((user) => (
+
+                  <div
+                    className="follow-user"
+                    key={user._id}
+                  >
+
+                    <img
+                      src={user.profilePic}
+                      alt={user.name}
+                      className="follow-image"
+                    />
+
+
+                    <div style={{ flex: 1 }}>
+
+                      <h4>
+                        {user.name}
+                      </h4>
+
+                      <p>
+                        @{user.username}
+                      </p>
+
+                    </div>
+
+
+                    {
+                      user._id !== currentUserId && (
+
+                        <button
+                          className="follow-btn"
+                          onClick={() =>
+                            handleModalFollow(
+                              user._id,
+                              user.isFollowing,
+                              "following"
+                            )
+                          }
+                        >
+
+                          {
+                            user.isFollowing
+                              ? "Following ✓"
+                              : "Follow +"
+                          }
+
+                        </button>
+
+                      )
+                    }
+
+                  </div>
+
+                ))
+
+              )
+            }
+
+
+            <button
+              className="close-btn"
+              onClick={() =>
+                setShowFollowing(false)
+              }
+            >
+              Close
+            </button>
 
           </div>
 
