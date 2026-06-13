@@ -176,7 +176,6 @@ function Profile() {
       );
 
       setFollowingLoading(false);
-      setFollowLoading(false);
     }
 
   };
@@ -222,12 +221,13 @@ function Profile() {
 
     } catch (error) {
 
+      setFollowLoading(false);
+
       console.log(
         "FOLLOW ERROR:",
         error.response?.data || error
       );
 
-      // Restore original state
       setIsFollowing(oldFollowing);
 
       setProfile((prev) => ({
@@ -236,7 +236,6 @@ function Profile() {
       }));
 
       alert("Something went wrong ❌");
-
     }
 
   };
