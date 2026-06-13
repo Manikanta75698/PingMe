@@ -6,6 +6,7 @@ import VerifyOTP from "./pages/VerifyOTP";
 import Chat from "./pages/Chat";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Profile from "./pages/Profile";
+import CreatePost from "./pages/CreatePost";
 import Home from "./pages/Home";
 
 function App() {
@@ -42,6 +43,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/create-post"
+          element={
+            <ProtectedRoute>
+              <CreatePost />
             </ProtectedRoute>
           }
         />

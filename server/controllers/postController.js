@@ -161,10 +161,41 @@ const addComment = async (req, res) => {
   }
 };
 
+const getPosts = async (req, res) => {
+  try {
+
+    const posts = await Post.find()
+      .populate(
+        "user",
+        "name username profilePic"
+      )
+      .sort({
+        createdAt: -1,
+      });
+
+    res.status(200).json({
+      posts,
+    });
+
+  } catch (error) {
+
+    console.log(
+      "GET POSTS ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+
+  }
+};
+
 
 module.exports = {
   createPost,
   likePost,
   unlikePost,
   addComment,
+  getPosts,
 };

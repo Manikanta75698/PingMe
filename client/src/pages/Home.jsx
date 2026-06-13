@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FaSearch, FaCommentDots, FaHome, FaPlusSquare, FaUser } from "react-icons/fa";
 import "./Home.css";
@@ -13,6 +14,38 @@ function Home() {
 
   const [showHeader, setShowHeader] = useState(true);
   const [lastScroll, setLastScroll] = useState(0);
+  const [posts, setPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+
+  const fetchPosts = async () => {
+
+    try {
+
+      const res = await axios.get(
+        "https://pingme-api-new.onrender.com/api/posts",
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      setPosts(res.data.posts);
+
+    } catch (error) {
+
+      console.log(
+        "GET POSTS ERROR:",
+        error
+      );
+
+    } finally {
+
+      setLoadingPosts(false);
+
+    }
+
+  };
 
   useEffect(() => {
 
@@ -39,7 +72,11 @@ function Home() {
 
   }, [lastScroll]);
 
+  useEffect(() => {
 
+    fetchPosts();
+
+  }, []);
   return (
     <div className="home-container">
 
@@ -62,17 +99,74 @@ function Home() {
       {/* Feed */}
       <div className="feed-container">
 
-        <div className="empty-feed">
+        {
+          loadingPosts ? (
 
-          <h2>
-            No Posts Yet 📷
-          </h2>
+            <h2>Loading Posts...</h2>
 
-          <p>
-            Share your first moment ✨
-          </p>
+          ) : posts.length === 0 ? (
 
-        </div>
+            <div className="empty-feed">
+
+              <h2>No Posts Yet 📷</h2>
+
+              <p>
+                Share your first moment ✨
+              </p>
+
+            </div>
+
+          ) : (
+
+            posts.map((post) => (
+
+              <div
+                className="post-card"
+                key={post._id}
+              >
+
+                <div className="post-user">
+
+                  <img
+                    src={post.user.profilePic}
+                    alt={post.user.name}
+                    className="post-profile"
+                  />
+
+                  <div>
+
+                    <h4>
+                      {post.user.name}
+                    </h4>
+
+                    <p>
+                      @{post.user.username}
+                    </p>
+
+                  </div>
+
+                </div>
+
+
+                <img
+                  src={post.image}
+                  alt="Post"
+                  className="post-image"
+                />
+
+
+                <p className="post-caption">
+
+                  {post.caption}
+
+                </p>
+
+              </div>
+
+            ))
+
+          )
+        }
 
       </div>
 
@@ -82,8 +176,9 @@ function Home() {
 
         <FaHome onClick={() => navigate("/home")} />
 
-        <FaPlusSquare onClick={() => alert("Create Post Coming Soon 🚀")} />
-
+        <FaPlusSquare
+          onClick={() => navigate("/create-post")}
+        />
         <FaCommentDots onClick={() => navigate("/chat")} />
 
         <FaUser

@@ -8,7 +8,8 @@ const {
   createPost,
   likePost,
   unlikePost,
-  addComment
+  addComment,
+  getPosts,
 } = require("../controllers/postController");
 
 router.post(
@@ -34,6 +35,12 @@ router.post(
   "/comment/:id",
   protect,
   addComment
+);
+
+router.get(
+  "/",
+  protect,
+  getPosts
 );
 
 module.exports = router;
