@@ -339,3 +339,133 @@
   }
 
 }
+
+/* Edit Profile Modal */
+
+.edit-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.65);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 1000;
+}
+
+.edit-box {
+  width: 90%;
+  max-width: 400px;
+
+  background: #091b3b;
+  border-radius: 20px;
+
+  padding: 25px;
+
+  box-shadow:
+    0 0 30px rgba(37, 99, 235, 0.6);
+
+  animation: popUp 0.3s ease;
+}
+
+
+.edit-box h2 {
+  color: white;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+
+.edit-box input,
+.edit-box textarea {
+  width: 100%;
+
+  background: #13284d;
+  color: white;
+
+  border: 1px solid #2563eb;
+  border-radius: 12px;
+
+  padding: 12px;
+  margin-bottom: 15px;
+
+  outline: none;
+
+  font-size: 15px;
+}
+
+
+.edit-box textarea {
+  height: 100px;
+  resize: none;
+}
+
+
+.edit-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+
+.cancel-btn,
+.save-btn {
+  flex: 1;
+
+  padding: 12px;
+
+  border: none;
+  border-radius: 12px;
+
+  font-size: 15px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.3s;
+}
+
+
+.cancel-btn {
+  background: #444;
+  color: white;
+}
+
+
+.cancel-btn:hover {
+  background: #666;
+}
+
+
+.save-btn {
+  background: linear-gradient(135deg,
+      #2563eb,
+      #4f46e5);
+
+  color: white;
+}
+
+
+.save-btn:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 0 15px #2563eb;
+}
+
+
+@keyframes popUp {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
