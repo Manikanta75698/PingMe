@@ -73,8 +73,76 @@ const markAsSeen = async (req, res) => {
 };
 
 
+// Delete for Me
+const deleteForMe = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+
+    const message = await Message.findByIdAndUpdate(
+      id,
+      {
+        $addToSet: {
+          deletedFor: userId,
+        },
+      },
+      { new: true }
+    );
+
+    res.json(message);
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+
+// Delete for Everyone
+const deleteForEveryone = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+
+    const message = await Message.findById(id);
+
+    if (!message) {
+      return res.status(404).json({
+        message: "Message not found",
+      });
+    }
+
+    // Sender only can delete for everyone
+    if (message.sender !== userId) {
+      return res.status(403).json({
+        message: "You can delete only your messages",
+      });
+    }
+
+    message.isDeleted = true;
+    message.text = "";
+    message.image = "";
+
+    await message.save();
+
+    res.json({
+      message: "Message deleted for everyone",
+      data: message,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+
 module.exports = {
   sendMessage,
   getMessages,
   markAsSeen,
+  deleteForMe,
+  deleteForEveryone,
 };

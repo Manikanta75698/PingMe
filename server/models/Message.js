@@ -27,13 +27,24 @@ const messageSchema = new mongoose.Schema(
       enum: ["sent", "delivered", "seen"],
       default: "sent",
     },
+
+    // Delete for everyone
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+
+    // Delete only for selected users
+    deletedFor: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,
   }
 );
 
-module.exports = mongoose.model(
-  "Message",
-  messageSchema
-);
+const Message = mongoose.model("Message", messageSchema);
+
+module.exports = Message;
