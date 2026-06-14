@@ -41,7 +41,7 @@ function Chat() {
   const [search, setSearch] = useState("");
 
   const [searchResults, setSearchResults] = useState([]);
-
+  const [showDeleteMenu, setShowDeleteMenu] = useState(null);
   const messagesRef = useRef(null);
 
   const handleLogout = () => {
@@ -432,6 +432,70 @@ function Chat() {
     }
   };
 
+  const deleteForMe = async (id) => {
+    try {
+      await axios.put(
+        `https://pingme-api-new.onrender.com/api/messages/delete-for-me/${id}`,
+        {
+          userId: user.username,
+        }
+      );
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === id
+            ? {
+              ...msg,
+              deletedFor: [
+                ...(msg.deletedFor || []),
+                user.username,
+              ],
+            }
+            : msg
+        )
+      );
+
+      setShowDeleteMenu(null);
+
+      toast.success("Deleted for me");
+
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+
+  const deleteForEveryone = async (id) => {
+    try {
+      await axios.put(
+        `https://pingme-api-new.onrender.com/api/messages/delete-for-everyone/${id}`,
+        {
+          userId: user.username,
+        }
+      );
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === id
+            ? {
+              ...msg,
+              isDeleted: true,
+              text: "",
+              image: "",
+            }
+            : msg
+        )
+      );
+
+      setShowDeleteMenu(null);
+
+      toast.success("Message deleted");
+
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const selectedUserData = onlineUsers.find(
     (u) => u.username === selectedUser
   );
@@ -750,154 +814,219 @@ function Chat() {
         </div>
 
         <div className="messages" ref={messagesRef}>
-          {filteredMessages.map((msg) => (
-            <div
-              key={msg._id}
-              className={
-                msg.sender === user.username
-                  ? "message my-message"
-                  : "message other-message"
-              }
-            >
-              {msg.text && (
-                <p>{msg.text}</p>
-              )}
+          {filteredMessages
+            .filter(
+              (msg) =>
+                !msg.deletedFor?.includes(user.username)
+            )
+            .map((msg) => (
+              <div
+                key={msg._id}
+                className={
+                  msg.sender === user.username
+                    ? "message my-message"
+                    : "message other-message"
+                }
+              >
 
-              {msg.image && (
-                <img
-                  src={msg.image}
-                  alt="Chat"
-                  className="chat-message-image"
-                />
-              )}
+                <button
+                  className="delete-menu-btn"
+                  onClick={() =>
+                    setShowDeleteMenu(
+                      showDeleteMenu === msg._id
+                        ? null
+                        : msg._id
+                    )
+                  }
+                >
+                  ⋮
+                </button>
 
-              <small className="message-time">
-                {new Date(
-                  msg.createdAt || Date.now()
-                ).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
 
-                {msg.sender === user.username && (
-                  <span
-                    className={`message-status ${msg.status === "seen" ? "seen" : ""
-                      }`}
-                  >
-                    {msg.status === "sent" && "✔"}
-                    {(msg.status === "delivered" ||
-                      msg.status === "seen") && "✔✔"}
-                  </span>
+                {showDeleteMenu === msg._id && (
+                  <div className="delete-menu">
+
+                    <button
+                      onClick={() =>
+                        deleteForMe(msg._id)
+                      }
+                    >
+                      🗑 Delete for me
+                    </button>
+
+
+                    {msg.sender === user.username && (
+                      <button
+                        onClick={() =>
+                          deleteForEveryone(msg._id)
+                        }
+                      >
+                        🌍 Delete for everyone
+                      </button>
+                    )}
+
+                  </div>
                 )}
-              </small>
-            </div>
-          ))}
+
+
+                {msg.isDeleted ? (
+                  <p
+                    style={{
+                      color: "gray",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    This message was deleted
+                  </p>
+                ) : (
+                  <>
+                    {msg.text && (
+                      <p>{msg.text}</p>
+                    )}
+
+                    {msg.image && (
+                      <img
+                        src={msg.image}
+                        alt="Chat"
+                        className="chat-message-image"
+                      />
+                    )}
+                  </>
+                )}
+
+
+                <small className="message-time">
+                  {new Date(
+                    msg.createdAt || Date.now()
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+
+                  {msg.sender === user.username && (
+                    <span
+                      className={`message-status ${msg.status === "seen"
+                        ? "seen"
+                        : ""
+                        }`}
+                    >
+                      {msg.status === "sent" && "✔"}
+                      {(msg.status === "delivered" ||
+                        msg.status === "seen") &&
+                        "✔✔"}
+                    </span>
+                  )}
+                </small>
+
+              </div>
+            ))}
         </div>
 
-        {typingUser && (
-          <p
-            style={{
-              padding: "10px",
-              color: "gray",
-              fontStyle: "italic",
-            }}
-          >
-            {typingUser} is typing...
-          </p>
+      </div>
+
+      {typingUser && (
+        <p
+          style={{
+            padding: "10px",
+            color: "gray",
+            fontStyle: "italic",
+          }}
+        >
+          {typingUser} is typing...
+        </p>
+      )}
+
+      <div
+        className="chat-input-container"
+        ref={emojiRef}
+      >
+
+        {showEmojiPicker && (
+          <div className="emoji-picker">
+            <EmojiPicker onEmojiClick={handleEmojiClick} />
+          </div>
+        )}
+        {chatImagePreview && (
+          <div className="chat-image-preview">
+            <img
+              src={chatImagePreview}
+              alt="Preview"
+              className="preview-image"
+            />
+
+            <button
+              onClick={() => {
+                setChatImage(null);
+                setChatImagePreview("");
+              }}
+            >
+              ❌
+            </button>
+          </div>
         )}
 
-        <div
-          className="chat-input-container"
-          ref={emojiRef}
-        >
+        <div className="chat-input">
 
-          {showEmojiPicker && (
-            <div className="emoji-picker">
-              <EmojiPicker onEmojiClick={handleEmojiClick} />
-            </div>
-          )}
-          {chatImagePreview && (
-            <div className="chat-image-preview">
-              <img
-                src={chatImagePreview}
-                alt="Preview"
-                className="preview-image"
-              />
+          <button
+            className="emoji-btn"
+            onClick={() =>
+              setShowEmojiPicker(!showEmojiPicker)
+            }
+          >
+            😊
+          </button>
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            id="chat-image-input"
+            onChange={(e) => {
+              const file = e.target.files[0];
 
-              <button
-                onClick={() => {
-                  setChatImage(null);
-                  setChatImagePreview("");
-                }}
-              >
-                ❌
-              </button>
-            </div>
-          )}
-
-          <div className="chat-input">
-
-            <button
-              className="emoji-btn"
-              onClick={() =>
-                setShowEmojiPicker(!showEmojiPicker)
+              if (file) {
+                setChatImage(file);
+                setChatImagePreview(
+                  URL.createObjectURL(file)
+                );
               }
-            >
-              😊
-            </button>
-            <input
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              id="chat-image-input"
-              onChange={(e) => {
-                const file = e.target.files[0];
+            }}
+          />
 
-                if (file) {
-                  setChatImage(file);
-                  setChatImagePreview(
-                    URL.createObjectURL(file)
-                  );
-                }
-              }}
-            />
+          <label
+            htmlFor="chat-image-input"
+            className="image-btn"
+          >
+            📎
+          </label>
 
-            <label
-              htmlFor="chat-image-input"
-              className="image-btn"
-            >
-              📎
-            </label>
+          <input
+            type="text"
+            placeholder="Type a message..."
+            value={message}
+            onChange={(e) => {
+              setMessage(e.target.value);
 
-            <input
-              type="text"
-              placeholder="Type a message..."
-              value={message}
-              onChange={(e) => {
-                setMessage(e.target.value);
+              if (selectedUser) {
+                socket.emit("typing", {
+                  sender: user.username,
+                  receiver: selectedUser,
+                });
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleSend();
+              }
+            }}
+          />
 
-                if (selectedUser) {
-                  socket.emit("typing", {
-                    sender: user.username,
-                    receiver: selectedUser,
-                  });
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleSend();
-                }
-              }}
-            />
+          <button
+            className="send-btn"
+            onClick={handleSend}
+          >
+            ➤
+          </button>
 
-            <button
-              className="send-btn"
-              onClick={handleSend}
-            >
-              ➤
-            </button>
-
-          </div>
         </div>
       </div>
     </div>
