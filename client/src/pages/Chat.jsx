@@ -34,6 +34,7 @@ function Chat() {
     useState({});
   const menuRef = useRef(null);
   const emojiRef = useRef(null);
+  const deleteMenuRef = useRef(null);
   const [profilePic, setProfilePic] = useState(null);
   const [imagePreview, setImagePreview] = useState(
     user?.profilePic || ""
@@ -41,6 +42,7 @@ function Chat() {
   const [search, setSearch] = useState("");
 
   const [searchResults, setSearchResults] = useState([]);
+  const [showDeleteMenu, setShowDeleteMenu] = useState(null);
 
   const messagesRef = useRef(null);
 
@@ -167,6 +169,29 @@ function Chat() {
       document.removeEventListener(
         "mousedown",
         handleEmojiOutside
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        deleteMenuRef.current &&
+        !deleteMenuRef.current.contains(event.target)
+      ) {
+        setShowDeleteMenu(null);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
       );
     };
   }, []);
@@ -432,6 +457,70 @@ function Chat() {
     }
   };
 
+  const deleteForMe = async (id) => {
+    try {
+      await axios.put(
+        `https://pingme-api-new.onrender.com/api/messages/delete-for-me/${id}`,
+        {
+          userId: user.username,
+        }
+      );
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === id
+            ? {
+              ...msg,
+              deletedFor: [
+                ...(msg.deletedFor || []),
+                user.username,
+              ],
+            }
+            : msg
+        )
+      );
+
+      setShowDeleteMenu(null);
+      toast.success("Deleted for me");
+
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to delete");
+    }
+  };
+
+
+  const deleteForEveryone = async (id) => {
+    try {
+      await axios.put(
+        `https://pingme-api-new.onrender.com/api/messages/delete-for-everyone/${id}`,
+        {
+          userId: user.username,
+        }
+      );
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === id
+            ? {
+              ...msg,
+              isDeleted: true,
+              text: "",
+              image: "",
+            }
+            : msg
+        )
+      );
+
+      setShowDeleteMenu(null);
+      toast.success("Message deleted");
+
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to delete");
+    }
+  };
+
   const selectedUserData = onlineUsers.find(
     (u) => u.username === selectedUser
   );
@@ -685,11 +774,6 @@ function Chat() {
               )}
 
               <div className="profile-section" ref={menuRef}>
-                <img
-                  src={imagePreview}
-                  alt="Profile"
-                  className="profile-pic"
-                />
 
                 <button
                   className="menu-btn"
@@ -699,7 +783,6 @@ function Chat() {
                 >
                   ⋮
                 </button>
-
 
                 {showMenu && (
                   <div className="menu-dropdown">
@@ -750,48 +833,104 @@ function Chat() {
         </div>
 
         <div className="messages" ref={messagesRef}>
-          {filteredMessages.map((msg) => (
-            <div
-              key={msg._id}
-              className={
-                msg.sender === user.username
-                  ? "message my-message"
-                  : "message other-message"
-              }
-            >
-              {msg.text && (
-                <p>{msg.text}</p>
-              )}
+          {filteredMessages
+            .filter(
+              (msg) =>
+                !msg.deletedFor?.includes(user.username)
+            )
+            .map((msg) => (
+              <div
+                key={msg._id}
+                className={
+                  msg.sender === user.username
+                    ? "message my-message"
+                    : "message other-message"
+                }
+              >
+                <button
+                  className="delete-menu-btn"
+                  onClick={() =>
+                    setShowDeleteMenu(
+                      showDeleteMenu === msg._id
+                        ? null
+                        : msg._id
+                    )
+                  }
+                >
+                  ⋮
+                </button>
 
-              {msg.image && (
-                <img
-                  src={msg.image}
-                  alt="Chat"
-                  className="chat-message-image"
-                />
-              )}
-
-              <small className="message-time">
-                {new Date(
-                  msg.createdAt || Date.now()
-                ).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-
-                {msg.sender === user.username && (
-                  <span
-                    className={`message-status ${msg.status === "seen" ? "seen" : ""
-                      }`}
+                {showDeleteMenu === msg._id && (
+                  <div
+                    className="delete-menu"
+                    ref={deleteMenuRef}
                   >
-                    {msg.status === "sent" && "✔"}
-                    {(msg.status === "delivered" ||
-                      msg.status === "seen") && "✔✔"}
-                  </span>
+
+                    <button
+                      onClick={() =>
+                        deleteForMe(msg._id)
+                      }
+                    >
+                      🗑 Delete for me
+                    </button>
+
+                    {msg.sender === user.username && (
+                      <button
+                        onClick={() =>
+                          deleteForEveryone(msg._id)
+                        }
+                      >
+                        🌍 Delete for everyone
+                      </button>
+                    )}
+
+                  </div>
                 )}
-              </small>
-            </div>
-          ))}
+                {msg.text && (
+                  <p>{msg.text}</p>
+                )}
+
+                {msg.isDeleted ? (
+                  <p className="deleted-message">
+                    🚫 This message was deleted
+                  </p>
+                ) : (
+                  <>
+                    {msg.text && (
+                      <p>{msg.text}</p>
+                    )}
+
+                    {msg.image && (
+                      <img
+                        src={msg.image}
+                        alt="Chat"
+                        className="chat-message-image"
+                      />
+                    )}
+                  </>
+                )}
+
+                <small className="message-time">
+                  {new Date(
+                    msg.createdAt || Date.now()
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+
+                  {msg.sender === user.username && (
+                    <span
+                      className={`message-status ${msg.status === "seen" ? "seen" : ""
+                        }`}
+                    >
+                      {msg.status === "sent" && "✔"}
+                      {(msg.status === "delivered" ||
+                        msg.status === "seen") && "✔✔"}
+                    </span>
+                  )}
+                </small>
+              </div>
+            ))}
         </div>
 
         {typingUser && (

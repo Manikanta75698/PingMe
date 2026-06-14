@@ -242,14 +242,6 @@
 
 /* ================= Messages ================= */
 
-.messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-}
-
 .messages::-webkit-scrollbar {
   width: 6px;
 }
@@ -271,6 +263,7 @@
   word-break: break-word;
   animation: messagePop 0.3s ease;
   position: relative;
+  overflow: visible;
 }
 
 .my-message {
@@ -299,10 +292,40 @@
     0 8px 25px rgba(0, 0, 0, .35);
 }
 
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
 .message p {
   margin: 0;
 }
 
+/* Sender message */
+.my-message .delete-menu {
+  right: 0;
+  top: 35px;
+}
+
+/* Sender popup */
+.my-message .delete-menu {
+  right: 0;
+  top: 35px;
+}
+
+/* Receiver popup */
+.other-message .delete-menu {
+  left: 100%;
+  top: 0;
+  margin-left: 8px;
+}
+
+.other-message .delete-menu-btn {
+  right: 8px;
+}
 
 /* Image Messages */
 
@@ -892,4 +915,72 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* Delete Message Menu */
+
+.message {
+  position: relative;
+  overflow: visible !important;
+}
+
+.delete-menu-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #b0b0b0;
+  cursor: pointer;
+  font-size: 16px;
+  z-index: 10;
+  opacity: 0;
+  transition: 0.2s;
+}
+
+.message:hover .delete-menu-btn {
+  opacity: 1;
+}
+
+.delete-menu-btn:hover {
+  color: white;
+}
+
+.delete-menu {
+  position: absolute;
+  top: 35px;
+  right: 10px;
+  background: #111b3d;
+  border-radius: 10px;
+  min-width: 160px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 9999;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.delete-menu button {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.delete-menu button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Deleted message style */
+
+.deleted-message {
+  color: #9e9e9e;
+  font-style: italic;
+  font-size: 14px;
 }
