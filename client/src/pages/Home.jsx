@@ -236,69 +236,6 @@ function Home() {
 
       </div>
 
-      {/* Desktop Profile Panel */}
-
-      <div className="desktop-profile-card">
-
-        <img
-          src={user.profilePic}
-          alt={user.name}
-          className="desktop-profile-image"
-        />
-
-        <h3>
-          {user.name}
-        </h3>
-
-        <p>
-          @{user.username}
-        </p>
-
-        <div className="profile-stats">
-
-          <div>
-            <strong>
-              {posts.length}
-            </strong>
-
-            <span>
-              Posts
-            </span>
-          </div>
-
-
-          <div>
-            <strong>
-              2
-            </strong>
-
-            <span>
-              Followers
-            </span>
-
-          </div>
-
-
-          <div>
-            <strong>
-              2
-            </strong>
-
-            <span>
-              Following
-            </span>
-
-          </div>
-
-        </div>
-
-
-        <p className="developer-tag">
-          ✨ PingMe Developer
-        </p>
-
-      </div>
-
 
       {/* Bottom Navigation */}
       <div className="bottom-nav">
