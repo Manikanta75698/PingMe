@@ -1,7 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { FaSearch, FaCommentDots, FaHome, FaPlusSquare, FaUser } from "react-icons/fa";
+import {
+  FaSearch,
+  FaBars,
+  FaMoon,
+  FaSun,
+  FaSignOutAlt,
+  FaHome,
+  FaPlusSquare,
+  FaCommentDots,
+  FaUser
+} from "react-icons/fa";
 import "./Home.css";
 
 function Home() {
@@ -16,6 +26,11 @@ function Home() {
   const [lastScroll, setLastScroll] = useState(0);
   const [posts, setPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+  const [darkMode, setDarkMode] = useState(
+    localStorage.getItem("darkMode") === "true"
+  );
 
   const fetchPosts = async () => {
 
@@ -49,6 +64,52 @@ function Home() {
 
   useEffect(() => {
 
+    const handleClickOutside = (event) => {
+
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target)
+      ) {
+        setShowMenu(false);
+      }
+
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () => {
+
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+
+    };
+
+  }, []);
+
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+
+    setDarkMode(newMode);
+
+    localStorage.setItem(
+      "darkMode",
+      newMode
+    );
+  };
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    navigate("/");
+  };
+
+  useEffect(() => {
+
     const handleScroll = () => {
 
       const currentScroll = window.scrollY;
@@ -78,7 +139,9 @@ function Home() {
 
   }, []);
   return (
-    <div className="home-container">
+    <div
+      className={`home-container ${darkMode ? "dark" : ""}`}
+    >
 
       <div className="desktop-sidebar">
 
@@ -102,7 +165,7 @@ function Home() {
         </button>
 
         <button
-          onClick={() => navigate(`/profile/${user.id}`)}
+          onClick={() => navigate(`/profile/${user.id || user._id}`)}
         >
           <FaUser /> Profile
         </button>
@@ -120,12 +183,46 @@ function Home() {
           PingMe
         </h1>
 
-        <button
-          className="icon-btn"
-          onClick={() => navigate("/chat")}
+        <div
+          className="menu-container"
+          ref={menuRef}
         >
-          <FaCommentDots />
-        </button>
+
+          <button
+            className="icon-btn"
+            onClick={() =>
+              setShowMenu(!showMenu)
+            }
+          >
+            <FaBars />
+          </button>
+
+
+          {showMenu && (
+            <div className="home-dropdown">
+
+              <button onClick={toggleDarkMode}>
+                {darkMode ? (
+                  <>
+                    <FaSun /> Light
+                  </>
+                ) : (
+                  <>
+                    <FaMoon /> Dark
+                  </>
+                )}
+              </button>
+
+
+              <button onClick={handleLogout}>
+                <FaSignOutAlt />
+                Logout
+              </button>
+
+            </div>
+          )}
+
+        </div>
 
       </div>
 
@@ -236,7 +333,6 @@ function Home() {
 
       </div>
 
-
       {/* Bottom Navigation */}
       <div className="bottom-nav">
 
@@ -248,7 +344,7 @@ function Home() {
         <FaCommentDots onClick={() => navigate("/chat")} />
 
         <FaUser
-          onClick={() => navigate(`/profile/${user.id}`)}
+          onClick={() => navigate(`/profile/${user.id || user._id}`)}
         />
 
       </div>
