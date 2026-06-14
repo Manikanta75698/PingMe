@@ -1,3 +1,30 @@
+/* ================= Theme Variables ================= */
+
+:root {
+  /* Light Theme */
+  --bg-color: #f5f7fb;
+  --sidebar-bg: #ffffff;
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+  --text-color: #111827;
+  --secondary-text: #6b7280;
+  --border-color: #dbe3f0;
+  --shadow: rgba(0, 0, 0, 0.08);
+}
+
+
+.dark {
+  /* Dark Theme */
+  --bg-color: #061126;
+  --sidebar-bg: #050d1f;
+  --card-bg: #16233f;
+  --input-bg: #16233f;
+  --text-color: #ffffff;
+  --secondary-text: #8ca2c8;
+  --border-color: #24324d;
+  --shadow: rgba(0, 0, 0, 0.4);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -5,8 +32,8 @@
 .chat-container {
   height: 100vh;
   display: flex;
-  background: #061126;
-  color: white;
+  background: var(--bg-color);
+  color: var(--text-color);
   overflow: hidden;
 }
 
@@ -14,8 +41,8 @@
 
 .sidebar {
   width: 300px;
-  background: #050d1f;
-  border-right: 1px solid #24324d;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   padding: 20px;
@@ -78,8 +105,9 @@
   border-radius: 12px;
   border: none;
   outline: none;
-  background: #16233f;
-  color: white;
+  background: var(--input-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
 }
 
 .search-user input:focus {
@@ -98,7 +126,9 @@
 /* User cards */
 
 .user-card {
-  background: #16233f;
+  background: var(--card-bg);
+  color: var(--text-color);
+  box-shadow: 0 4px 12px var(--shadow);
   padding: 12px 15px;
   margin-bottom: 10px;
   border-radius: 12px;
@@ -136,7 +166,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #07152d;
+  background: var(--bg-color);
 }
 
 
@@ -144,8 +174,8 @@
 
 .chat-header {
   height: 75px;
-  background: #0d1b35;
-  border-bottom: 1px solid #24324d;
+  background: var(--sidebar-bg);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -200,7 +230,7 @@
 .menu-btn {
   background: transparent;
   border: none;
-  color: white;
+  color: var(--text-color);
   font-size: 22px;
   cursor: pointer;
 }
@@ -210,8 +240,9 @@
   top: 60px;
   right: 0;
   width: 200px;
-  background: #101f3d;
-  border: 1px solid #24324d;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 25px var(--shadow);
   border-radius: 15px;
   padding: 10px;
   z-index: 999;
@@ -227,7 +258,7 @@
   gap: 10px;
   background: transparent;
   border: none;
-  color: white;
+  color: var(--text-color);
   padding: 12px;
   border-radius: 10px;
   cursor: pointer;
@@ -281,13 +312,10 @@
 }
 
 .other-message {
-  background: #16233f;
-  color: white;
-
+  background: var(--card-bg);
+  color: var(--text-color);
   border-bottom-left-radius: 6px;
-
   align-self: flex-start;
-
   box-shadow:
     0 8px 25px rgba(0, 0, 0, .35);
 }
@@ -373,9 +401,9 @@
 
 .chat-input-container {
   position: relative;
-  background: #0d1b35;
   padding: 15px 20px;
-  border-top: 1px solid #24324d;
+  background: var(--sidebar-bg);
+  border-top: 1px solid var(--border-color);
 }
 
 
@@ -383,7 +411,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #16233f;
+  background: var(--input-bg);
+  box-shadow: 0 4px 10px var(--shadow);
   padding: 12px;
   border-radius: 18px;
   transition: 0.3s;
@@ -400,13 +429,13 @@
   background: transparent;
   border: none;
   outline: none;
-  color: white;
+  color: var(--text-color);
   font-size: 15px;
 }
 
 
 .chat-input input::placeholder {
-  color: #8ca2c8;
+  color: var(--secondary-text);
 }
 
 
@@ -500,7 +529,7 @@
     display: inline-block;
     background: transparent;
     border: none;
-    color: white;
+    color: var(--text-color);
     font-size: 22px;
     margin-right: 10px;
     cursor: pointer;
@@ -708,8 +737,9 @@
   height: 40px;
   border-radius: 50%;
   border: none;
-  background: #16233f;
-  color: white;
+  background: var(--card-bg);
+  color: var(--text-color);
+  box-shadow: 0 4px 12px var(--shadow);
   cursor: pointer;
   font-size: 18px;
   transition: 0.3s;
@@ -732,8 +762,9 @@
   top: 55px;
   left: 0;
   width: 100%;
-  background: #101f3d;
-  border: 1px solid #24324d;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 25px var(--shadow);
   border-radius: 15px;
   overflow: hidden;
   z-index: 999;
@@ -768,7 +799,7 @@
 
 .search-user-card h4 {
   margin: 0;
-  color: white;
+  color: var(--text-color);
   font-size: 15px;
 }
 
@@ -801,19 +832,14 @@
 .follow-box {
   width: 90%;
   max-width: 400px;
-
-  background: #101f3d;
-  color: white;
-
+  background: var(--card-bg);
+  color: var(--text-color);
   border: 1px solid #24324d;
   border-radius: 20px;
-
   padding: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-
   max-height: 500px;
   overflow-y: auto;
-
   animation: popup 0.3s ease;
 }
 
@@ -950,7 +976,9 @@
   position: absolute;
   top: 35px;
   right: 10px;
-  background: #111b3d;
+  background: var(--sidebar-bg);
+  box-shadow: 0 5px 20px var(--shadow);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   min-width: 160px;
   padding: 8px;
@@ -964,7 +992,7 @@
 .delete-menu button {
   background: transparent;
   border: none;
-  color: white;
+  color: var(--text-color);
   padding: 10px 12px;
   border-radius: 8px;
   text-align: left;

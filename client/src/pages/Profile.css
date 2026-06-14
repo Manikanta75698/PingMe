@@ -1,11 +1,33 @@
+/* ================= Theme Variables ================= */
+
+:root {
+  --profile-bg: #f5f7fb;
+  --profile-card: #ffffff;
+  --profile-text: #111827;
+  --profile-secondary: #6b7280;
+  --profile-border: #e5e7eb;
+  --profile-input: #ffffff;
+  --profile-skeleton: #d1d5db;
+}
+
+.dark {
+  --profile-bg: #061126;
+  --profile-card: #091b3b;
+  --profile-text: #ffffff;
+  --profile-secondary: #a5b4d4;
+  --profile-border: #24324d;
+  --profile-input: #13284d;
+  --profile-skeleton: #222;
+}
+
 /* =========================
    Profile Page
 ========================= */
 
 .profile-container {
   min-height: 100vh;
-  background: #061126;
-  color: white;
+  background: var(--profile-bg);
+  color: var(--profile-text);
   padding: 25px 15px 90px;
 }
 
@@ -97,7 +119,7 @@
 
 .profile-bio {
   margin-top: 8px;
-  color: #ddd;
+  color: var(--profile-secondary);
   font-size: 16px;
 }
 
@@ -123,7 +145,7 @@
 
 
 .profile-stats p {
-  color: #aaa;
+  color: var(--profile-secondary);
 }
 
 /* =========================
@@ -135,10 +157,10 @@
   text-align: center;
   margin: 15px 0;
   padding: 15px 0;
-  color: #aaa;
+  color: var(--profile-secondary);
+  border-top: 1px solid var(--profile-border);
   letter-spacing: 2px;
   font-size: 16px;
-  border-top: 1px solid #333;
 }
 
 
@@ -162,13 +184,14 @@
   object-fit: cover;
   cursor: pointer;
   transition: 0.3s;
-  background: #111;
+  background: var(--profile-card);
 }
 
 
 .profile-post-image:hover {
-  transform: scale(1.03);
   opacity: 0.85;
+  transform: scale(1.04);
+  filter: brightness(0.85);
 }
 
 
@@ -180,7 +203,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  color: #777;
+  color: var(--profile-secondary);
   font-size: 18px;
 }
 
@@ -194,6 +217,9 @@
     padding: 0;
   }
 
+  .profile-container {
+    padding-top: 20px;
+  }
 
   .profile-top {
     flex-direction: column;
@@ -261,7 +287,7 @@
 
 .profile-skeleton {
   min-height: 100vh;
-  background: #061126;
+  background: var(--profile-bg);
   padding: 30px 15px 90px;
   animation: pulse 1.5s infinite;
 }
@@ -271,7 +297,7 @@
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background: #222;
+  background: var(--profile-skeleton);
   margin: 0 auto 20px;
 }
 
@@ -279,7 +305,7 @@
 .skeleton-name {
   width: 180px;
   height: 25px;
-  background: #222;
+  background: var(--profile-skeleton);
   border-radius: 10px;
   margin: 0 auto 15px;
 }
@@ -288,7 +314,7 @@
 .skeleton-bio {
   width: 120px;
   height: 15px;
-  background: #222;
+  background: var(--profile-skeleton);
   border-radius: 10px;
   margin: 0 auto 25px;
 }
@@ -305,7 +331,7 @@
 .skeleton-stats div {
   width: 55px;
   height: 45px;
-  background: #222;
+  background: var(--profile-skeleton);
   border-radius: 10px;
 }
 
@@ -320,7 +346,7 @@
 .skeleton-box {
   width: 100%;
   aspect-ratio: 1 / 1;
-  background: #222;
+  background: var(--profile-skeleton);
 }
 
 
@@ -360,21 +386,19 @@
 .edit-box {
   width: 90%;
   max-width: 400px;
-
-  background: #091b3b;
   border-radius: 20px;
-
   padding: 25px;
+  background: var(--profile-card);
+  border: 1px solid var(--profile-border);
 
   box-shadow:
-    0 0 30px rgba(37, 99, 235, 0.6);
-
+    0 0 30px rgba(37, 99, 235, 0.25);
   animation: popUp 0.3s ease;
 }
 
 
 .edit-box h2 {
-  color: white;
+  color: var(--profile-text);
   text-align: center;
   margin-bottom: 20px;
 }
@@ -384,10 +408,10 @@
 .edit-box textarea {
   width: 100%;
 
-  background: #13284d;
-  color: white;
+  background: var(--profile-input);
+  color: var(--profile-text);
 
-  border: 1px solid #2563eb;
+  border: 1px solid var(--profile-border);
   border-radius: 12px;
 
   padding: 12px;
@@ -403,7 +427,6 @@
   height: 100px;
   resize: none;
 }
-
 
 .edit-buttons {
   display: flex;
@@ -431,13 +454,13 @@
 
 
 .cancel-btn {
-  background: #444;
-  color: white;
+  background: var(--profile-border);
+  color: var(--profile-text);
 }
 
 
 .cancel-btn:hover {
-  background: #666;
+  opacity: 0.85;
 }
 
 
@@ -468,4 +491,18 @@
     transform: scale(1);
     opacity: 1;
   }
+}
+
+.follow-btn {
+  transition:
+    0.3s ease,
+    transform 0.3s ease;
+}
+
+.follow-btn:hover {
+  background: #0066cc;
+  transform: translateY(-3px);
+
+  box-shadow:
+    0 5px 15px rgba(10, 132, 255, .5);
 }

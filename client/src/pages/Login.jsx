@@ -3,12 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function Login() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -35,19 +37,19 @@ export default function Login() {
       toast.success(res.data.message);
 
       navigate("/home");
-      
-    } catch (error) {
-  console.log("LOGIN ERROR:", error);
-  console.log("RESPONSE:", error.response);
-  console.log("DATA:", error.response?.data);
-  console.log("MESSAGE:", error.response?.data?.message);
 
-  toast.error(
-    error.response?.data?.message ||
-    error.message ||
-    "Login failed"
-  );
-}
+    } catch (error) {
+      console.log("LOGIN ERROR:", error);
+      console.log("RESPONSE:", error.response);
+      console.log("DATA:", error.response?.data);
+      console.log("MESSAGE:", error.response?.data?.message);
+
+      toast.error(
+        error.response?.data?.message ||
+        error.message ||
+        "Login failed"
+      );
+    }
   };
 
   return (
@@ -80,14 +82,27 @@ export default function Login() {
           <div className="input-group">
             <label>Password</label>
 
-            <input
-              type="password"
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              required
-            />
+            <div className="password-container">
+
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
+                required
+              />
+
+              <span
+                className="eye-icon"
+                onClick={() =>
+                  setShowPassword(!showPassword)
+                }
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
+
+            </div>
           </div>
 
           <button
