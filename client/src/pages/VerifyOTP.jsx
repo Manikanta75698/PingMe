@@ -1,5 +1,5 @@
 import "./VerifyOTP.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -12,6 +12,18 @@ const VerifyOTP = () => {
   const location = useLocation();
 
   const email = location.state?.email;
+
+  useEffect(() => {
+
+    if (!email) {
+
+      toast.error("Please register first");
+
+      navigate("/register");
+
+    }
+
+  }, [email, navigate]);
 
   const handleVerify = async (e) => {
     e.preventDefault();
@@ -66,7 +78,9 @@ const VerifyOTP = () => {
         </h2>
 
         <p className="verify-text">
-          Enter the 6-digit OTP sent to your email
+          Enter the 6-digit OTP sent to
+          <br />
+          <strong>{email}</strong>
         </p>
 
         <form onSubmit={handleVerify}>
@@ -74,6 +88,7 @@ const VerifyOTP = () => {
           <input
             className="otp-input"
             type="text"
+            autoFocus
             placeholder="------"
             value={otp}
             maxLength="6"

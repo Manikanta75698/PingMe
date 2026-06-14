@@ -1,17 +1,26 @@
 import "./Register.css";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import toast from "react-hot-toast";
 
 export default function Register() {
+  const navigate = useNavigate();
+  useEffect(() => {
+
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      navigate("/home");
+    }
+
+  }, [navigate]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -72,9 +81,12 @@ export default function Register() {
             <label>Full Name</label>
             <input
               type="text"
+              autoComplete="name"
               placeholder="Enter your name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) =>
+                setName(e.target.value)
+              }
               required
             />
           </div>
@@ -83,9 +95,12 @@ export default function Register() {
             <label>Email Address</label>
             <input
               type="email"
+              autoComplete="email"
               placeholder="Enter your email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
               required
             />
           </div>
@@ -96,9 +111,12 @@ export default function Register() {
 
               <input
                 type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
                 placeholder="Enter password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
                 required
               />
 

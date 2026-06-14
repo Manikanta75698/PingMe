@@ -1,12 +1,22 @@
 import "./Login.css";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function Login() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      navigate("/home");
+    }
+
+  }, [navigate]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -79,6 +89,7 @@ export default function Login() {
 
             <input
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) =>
                 setEmail(e.target.value)
@@ -94,6 +105,7 @@ export default function Login() {
 
               <input
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) =>
                   setPassword(e.target.value)

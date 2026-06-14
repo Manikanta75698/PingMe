@@ -277,3 +277,8 @@
   }
 
 }
+
+.verify-text strong {
+  color: #0095ff;
+  font-weight: 700;
+}
