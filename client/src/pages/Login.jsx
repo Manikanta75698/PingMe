@@ -11,9 +11,14 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    if (loading) return;
+
+    setLoading(true);
 
     try {
       const res = await axios.post(
@@ -49,6 +54,9 @@ export default function Login() {
         error.message ||
         "Login failed"
       );
+    }
+    finally {
+      setLoading(false);
     }
   };
 
@@ -108,8 +116,9 @@ export default function Login() {
           <button
             type="submit"
             className="signin-btn"
+            disabled={loading}
           >
-            Sign In
+            {loading ? "Signing In..." : "Sign In"}
           </button>
 
         </form>

@@ -1,86 +1,279 @@
+/* =========================
+   Verify Theme Variables
+========================= */
+
+:root {
+  --verify-bg: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  --verify-card: rgba(255, 255, 255, 0.85);
+  --verify-text: #111827;
+  --verify-secondary: #64748b;
+  --verify-border: rgba(0, 0, 0, 0.08);
+  --verify-input: #ffffff;
+  --verify-shadow: rgba(0, 0, 0, 0.12);
+}
+
+.dark {
+  --verify-bg: linear-gradient(135deg, #020617, #0f172a);
+  --verify-card: rgba(15, 23, 42, 0.85);
+  --verify-text: #ffffff;
+  --verify-secondary: #94a3b8;
+  --verify-border: rgba(255, 255, 255, 0.08);
+  --verify-input: #1e293b;
+  --verify-shadow: rgba(0, 0, 0, 0.5);
+}
+
+
+/* =========================
+   Page
+========================= */
+
 * {
   box-sizing: border-box;
 }
 
 .verify-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--verify-bg);
+
   display: flex;
   justify-content: center;
   align-items: center;
+
   padding: 20px;
 }
 
+
+/* =========================
+   Verify Card
+========================= */
+
 .verify-card {
   width: 100%;
-  max-width: 420px;
-  background: white;
-  padding: 40px 30px;
-  border-radius: 20px;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  max-width: 430px;
+
+  background: var(--verify-card);
+
+  backdrop-filter: blur(25px);
+
+  border: 1px solid var(--verify-border);
+
+  border-radius: 25px;
+
+  padding: 45px 35px;
+
   text-align: center;
+
+  box-shadow:
+    0 15px 45px var(--verify-shadow);
+
+  animation: fadeUp 0.6s ease;
 }
+
+
+/* =========================
+   Icon
+========================= */
 
 .verify-icon {
-  font-size: 50px;
+  font-size: 55px;
+
   margin-bottom: 15px;
+
+  animation: bounce 2s infinite;
 }
+
+
+/* =========================
+   Title & Text
+========================= */
 
 .verify-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #222;
-  margin-bottom: 10px;
+  font-size: 30px;
+  font-weight: 800;
+
+  background: linear-gradient(90deg,
+      #0095ff,
+      #00e5ff);
+
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  margin-bottom: 12px;
 }
 
+
 .verify-text {
-  color: #666;
-  margin-bottom: 30px;
+  color: var(--verify-secondary);
+
   font-size: 15px;
+
+  line-height: 1.6;
+
+  margin-bottom: 30px;
 }
+
+
+/* =========================
+   OTP Input
+========================= */
 
 .otp-input {
   width: 100%;
-  height: 55px;
-  border: 2px solid #ddd;
-  border-radius: 12px;
-  padding: 0 15px;
-  font-size: 18px;
+  height: 60px;
+
+  background: var(--verify-input);
+
+  color: var(--verify-text);
+
+  border: 1px solid var(--verify-border);
+
+  border-radius: 15px;
+
+  padding: 0 18px;
+
+  font-size: 22px;
+
   text-align: center;
-  letter-spacing: 8px;
+
+  letter-spacing: 10px;
+
   outline: none;
+
   transition: 0.3s;
 }
 
+
 .otp-input:focus {
-  border-color: #667eea;
+  border-color: #0095ff;
+
+  box-shadow:
+    0 0 18px rgba(0, 149, 255, 0.4);
+
+  transform: scale(1.02);
 }
+
+
+.otp-input::placeholder {
+  color: var(--verify-secondary);
+}
+
+
+/* =========================
+   Verify Button
+========================= */
 
 .verify-btn {
   width: 100%;
-  margin-top: 20px;
-  height: 55px;
+
+  height: 58px;
+
+  margin-top: 25px;
+
   border: none;
-  border-radius: 12px;
-  background: #667eea;
+
+  border-radius: 15px;
+
+  background: linear-gradient(135deg,
+      #0095ff,
+      #2563eb);
+
   color: white;
+
   font-size: 17px;
-  font-weight: 600;
+
+  font-weight: 700;
+
   cursor: pointer;
+
   transition: 0.3s;
 }
 
+
 .verify-btn:hover {
-  background: #5567d8;
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+
+  box-shadow:
+    0 12px 30px rgba(0, 149, 255, 0.5);
 }
 
-@media (max-width: 480px) {
-  .verify-card {
-    padding: 30px 20px;
+
+/* Disabled Button */
+
+.verify-btn:disabled {
+  opacity: 0.7;
+
+  cursor: not-allowed;
+
+  transform: none;
+
+  box-shadow: none;
+}
+
+
+/* =========================
+   Animations
+========================= */
+
+@keyframes fadeUp {
+
+  from {
+    opacity: 0;
+
+    transform: translateY(35px);
   }
 
-  .verify-title {
-    font-size: 24px;
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
   }
+
+}
+
+
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+
+}
+
+
+/* =========================
+   Mobile Responsive
+========================= */
+
+@media (max-width: 480px) {
+
+  .verify-card {
+    padding: 35px 22px;
+
+    border-radius: 22px;
+  }
+
+
+  .verify-title {
+    font-size: 26px;
+  }
+
+
+  .verify-text {
+    font-size: 14px;
+  }
+
+
+  .otp-input {
+    height: 55px;
+
+    font-size: 20px;
+
+    letter-spacing: 7px;
+  }
+
 }

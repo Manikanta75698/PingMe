@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 
 const VerifyOTP = () => {
   const [otp, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,14 +16,19 @@ const VerifyOTP = () => {
   const handleVerify = async (e) => {
     e.preventDefault();
 
+    if (loading) return;
+
     if (!otp) {
       toast.error("Please enter OTP");
       return;
     }
 
+    setLoading(true);
+
     try {
+
       const response = await axios.post(
-        "https://pingme-api-new.onrender.com/api/auth/verify-otp",
+        "YOUR_API",
         {
           email,
           otp,
@@ -30,13 +36,20 @@ const VerifyOTP = () => {
       );
 
       toast.success(response.data.message);
+
       navigate("/");
 
     } catch (error) {
+
       toast.error(
         error.response?.data?.message ||
         "Verification failed"
       );
+
+    } finally {
+
+      setLoading(false);
+
     }
   };
 
@@ -74,8 +87,9 @@ const VerifyOTP = () => {
           <button
             className="verify-btn"
             type="submit"
+            disabled={loading}
           >
-            Verify OTP
+            {loading ? "Verifying..." : "Verify OTP"}
           </button>
 
         </form>

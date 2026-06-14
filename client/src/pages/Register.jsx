@@ -2,16 +2,23 @@ import "./Register.css";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import toast from "react-hot-toast";
 
 export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
+
+    if (loading) return;
+
+    setLoading(true);
 
     try {
       const res = await axios.post(
@@ -44,6 +51,8 @@ export default function Register() {
         error.message ||
         "Registration failed"
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,20 +92,38 @@ export default function Register() {
 
           <div className="input-group">
             <label>Password</label>
-            <input
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="password-container">
+
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+
+              <span
+                className="eye-icon"
+                onClick={() =>
+                  setShowPassword(!showPassword)
+                }
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
+
+            </div>
           </div>
 
           <button
             type="submit"
             className="signup-btn"
+            disabled={loading}
           >
-            Create Account
+            {
+              loading
+                ? "Creating Account..."
+                : "Create Account"
+            }
           </button>
         </form>
 

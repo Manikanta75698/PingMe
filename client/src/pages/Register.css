@@ -1,6 +1,41 @@
+/* =========================
+   Register Theme Variables
+========================= */
+
+:root {
+  /* Light */
+  --register-bg: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  --register-card: rgba(255, 255, 255, 0.85);
+  --register-text: #111827;
+  --register-secondary: #64748b;
+  --register-border: rgba(0, 0, 0, 0.08);
+  --register-input: #ffffff;
+  --register-shadow: rgba(0, 0, 0, 0.12);
+}
+
+.dark {
+  /* Dark */
+  --register-bg: linear-gradient(135deg, #020617, #0f172a);
+  --register-card: rgba(15, 23, 42, 0.85);
+  --register-text: #ffffff;
+  --register-secondary: #94a3b8;
+  --register-border: rgba(255, 255, 255, 0.08);
+  --register-input: #1e293b;
+  --register-shadow: rgba(0, 0, 0, 0.45);
+}
+
+
+/* =========================
+   Page
+========================= */
+
+* {
+  box-sizing: border-box;
+}
+
 .register-page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--register-bg);
 
   display: flex;
   justify-content: center;
@@ -9,93 +44,269 @@
   padding: 20px;
 }
 
+
+/* =========================
+   Card
+========================= */
+
 .register-card {
   width: 100%;
   max-width: 460px;
 
-  background: white;
-  padding: 45px;
+  background: var(--register-card);
 
-  border-radius: 18px;
+  backdrop-filter: blur(25px);
 
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  border: 1px solid var(--register-border);
+
+  border-radius: 25px;
+
+  padding: 45px 35px;
+
+  box-shadow:
+    0 15px 45px var(--register-shadow);
+
+  animation: slideUp 0.6s ease;
 }
+
+
+/* =========================
+   Title
+========================= */
 
 .register-title {
-  font-size: 42px;
-  font-weight: 700;
+  font-size: 40px;
+  font-weight: 800;
+
   margin-bottom: 8px;
-  color: #111;
+
+  background: linear-gradient(90deg,
+      #0095ff,
+      #00e5ff);
+
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
+
 .register-subtitle {
-  color: #666;
+  color: var(--register-secondary);
+
+  font-size: 15px;
+
   margin-bottom: 30px;
 }
+
+
+/* =========================
+   Inputs
+========================= */
 
 .input-group {
   margin-bottom: 18px;
 }
 
+
 .input-group label {
   display: block;
+
   margin-bottom: 8px;
 
+  color: var(--register-text);
+
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
 }
+
 
 .input-group input {
   width: 100%;
-  height: 54px;
+  height: 56px;
 
-  border: 1px solid #d8d8d8;
-  border-radius: 10px;
+  background: var(--register-input);
+
+  color: var(--register-text);
+
+  border: 1px solid var(--register-border);
+
+  border-radius: 14px;
 
   padding: 0 16px;
+
   font-size: 15px;
+
+  outline: none;
+
+  transition: 0.3s;
 }
 
-.input-group input:focus {
-  outline: none;
-  border-color: #000;
+
+.input-group input::placeholder {
+  color: var(--register-secondary);
 }
+
+
+.input-group input:focus {
+  border-color: #0095ff;
+
+  box-shadow:
+    0 0 18px rgba(0, 149, 255, 0.35);
+
+  transform: translateY(-2px);
+}
+
+
+/* =========================
+   Create Account Button
+========================= */
 
 .signup-btn {
   width: 100%;
-  height: 54px;
+  height: 56px;
+
+  margin-top: 10px;
 
   border: none;
-  border-radius: 10px;
+  border-radius: 15px;
 
-  background: black;
+  background: linear-gradient(135deg,
+      #0095ff,
+      #2563eb);
+
   color: white;
 
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
 
   cursor: pointer;
 
-  margin-top: 10px;
+  transition: 0.3s;
 }
+
+
+.signup-btn:hover {
+  transform: translateY(-3px);
+
+  box-shadow:
+    0 12px 30px rgba(0, 149, 255, 0.45);
+}
+
+
+/* Loading State */
+
+.signup-btn:disabled {
+  opacity: 0.7;
+
+  cursor: not-allowed;
+
+  transform: none;
+
+  box-shadow: none;
+}
+
+
+/* =========================
+   Login Link
+========================= */
 
 .login-text {
   text-align: center;
-  margin-top: 24px;
-  color: #666;
+
+  margin-top: 25px;
+
+  color: var(--register-secondary);
+
+  font-size: 15px;
 }
 
-.login-text span {
-  color: #2563eb;
-  cursor: pointer;
-  font-weight: 500;
-}
-a {
-  color: #2563eb;
+
+.login-text a {
+  color: #0095ff;
+
+  font-weight: 700;
+
   text-decoration: none;
-  font-weight: 500;
 }
 
-a:hover {
+
+.login-text a:hover {
   text-decoration: underline;
+}
+
+
+/* =========================
+   Animation
+========================= */
+
+@keyframes slideUp {
+
+  from {
+    opacity: 0;
+
+    transform: translateY(35px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+  }
+
+}
+
+
+/* =========================
+   Mobile Responsive
+========================= */
+
+@media (max-width: 480px) {
+
+  .register-card {
+    padding: 35px 22px;
+
+    border-radius: 22px;
+  }
+
+
+  .register-title {
+    font-size: 32px;
+  }
+
+
+  .register-subtitle {
+    font-size: 14px;
+  }
+
+
+  .input-group input {
+    height: 52px;
+  }
+
+}
+
+/* Password Eye */
+
+.password-container {
+  position: relative;
+}
+
+.password-container input {
+  padding-right: 50px;
+}
+
+.eye-icon {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  color: #0095ff;
+  font-size: 18px;
+
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.eye-icon:hover {
+  color: #2563eb;
 }
