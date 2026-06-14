@@ -26,44 +26,45 @@ const VerifyOTP = () => {
   }, [email, navigate]);
 
   const handleVerify = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (loading) return;
+  if (loading) return;
 
-    if (!otp) {
-      toast.error("Please enter OTP");
-      return;
-    }
+  if (!otp) {
+    toast.error("Please enter OTP");
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
+  try {
 
-      const response = await axios.post(
-        "YOUR_API",
-        {
-          email,
-          otp,
-        }
-      );
+    const response = await axios.post(
+      "https://pingme-api-new.onrender.com/api/auth/verify-otp",
+      {
+        email,
+        otp,
+      }
+    );
 
-      toast.success(response.data.message);
+    toast.success(response.data.message);
 
-      navigate("/");
+    navigate("/");
 
-    } catch (error) {
+  } catch (error) {
 
-      toast.error(
-        error.response?.data?.message ||
-        "Verification failed"
-      );
 
-    } finally {
+    toast.error(
+      error.response?.data?.message ||
+      "Verification failed"
+    );
 
-      setLoading(false);
+  } finally {
 
-    }
-  };
+    setLoading(false);
+
+  }
+};
 
   return (
     <div className="verify-page">
