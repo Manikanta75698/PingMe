@@ -279,21 +279,347 @@
   font-weight: 800;
   margin: 0;
 
-  background: linear-gradient(
-    90deg,
-    #0095ff,
-    #00e5ff
-  );
+  background: linear-gradient(90deg,
+      #0095ff,
+      #00e5ff);
 
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 
   text-shadow:
-    0 0 15px rgba(0,149,255,0.8);
+    0 0 15px rgba(0, 149, 255, 0.8);
 
   letter-spacing: 1px;
 
   font-family:
     "Trebuchet MS",
     sans-serif;
+}
+
+/* =========================
+   Desktop Home Upgrade
+========================= */
+
+.desktop-sidebar {
+  display: none;
+}
+
+
+@media (min-width: 1024px) {
+
+  /* Main layout */
+  .home-container {
+    padding-top: 30px;
+    padding-bottom: 30px;
+    padding-left: 260px;
+    background: #020817;
+  }
+
+
+  /* Hide mobile UI */
+  .home-header {
+    display: none;
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+
+  /* Left Sidebar */
+  .desktop-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+
+    width: 230px;
+    height: 100vh;
+
+    background: #030d22;
+    border-right: 1px solid #162544;
+
+    display: flex;
+    flex-direction: column;
+
+    padding: 30px 20px;
+
+    z-index: 1000;
+  }
+
+
+  .desktop-logo {
+    font-size: 36px;
+    font-weight: 800;
+
+    margin-bottom: 50px;
+
+    background: linear-gradient(90deg,
+        #0095ff,
+        #00e5ff);
+
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    text-shadow:
+      0 0 20px #0095ff;
+  }
+
+
+  .desktop-sidebar button {
+    background: none;
+    border: none;
+
+    color: white;
+
+    font-size: 18px;
+
+    padding: 15px;
+
+    margin-bottom: 10px;
+
+    text-align: left;
+
+    border-radius: 14px;
+
+    cursor: pointer;
+
+    transition: 0.3s;
+
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+
+  .desktop-sidebar button:hover {
+    background: #142850;
+
+    transform: translateX(8px);
+  }
+
+  /* Active Sidebar */
+
+  .active-nav {
+    background: linear-gradient(135deg,
+        #0095ff,
+        #004cff) !important;
+
+    color: white !important;
+
+    box-shadow:
+      0 0 20px rgba(0, 149, 255, .7);
+  }
+
+
+  /* Better Hover */
+
+  .desktop-sidebar button:hover {
+    background: rgba(0, 149, 255, .15);
+
+    color: #00e5ff;
+
+    transform: translateX(10px);
+
+    box-shadow:
+      0 0 15px rgba(0, 149, 255, .4);
+  }
+
+  /* Active Sidebar */
+
+  .active-nav {
+    background: linear-gradient(135deg,
+        #0095ff,
+        #004cff) !important;
+
+    color: white !important;
+
+    box-shadow:
+      0 0 20px rgba(0, 149, 255, .7);
+  }
+
+
+  /* Better Hover */
+
+  .desktop-sidebar button:hover {
+    background: rgba(0, 149, 255, .15);
+
+    color: #00e5ff;
+
+    transform: translateX(10px);
+
+    box-shadow:
+      0 0 15px rgba(0, 149, 255, .4);
+  }
+
+  .post-card {
+    transition:
+      transform .3s ease,
+      box-shadow .3s ease;
+  }
+
+
+  .post-card:hover {
+    transform: translateY(-8px);
+
+    box-shadow:
+      0 0 35px rgba(0, 149, 255, .35);
+  }
+
+  /* Feed */
+  .feed-container {
+    max-width: 850px;
+
+    margin: auto;
+
+    padding: 20px;
+  }
+
+
+  .post-card {
+    background: #0b1428;
+
+    border: 1px solid #1e3a5f;
+
+    border-radius: 20px;
+
+    overflow: hidden;
+
+    margin-bottom: 30px;
+
+    box-shadow:
+      0 0 30px rgba(0, 149, 255, 0.15);
+  }
+
+
+  .post-user {
+    padding: 18px;
+  }
+
+
+  .post-profile {
+    width: 55px;
+    height: 55px;
+  }
+
+
+  .post-user h4 {
+    font-size: 18px;
+  }
+
+
+  .post-user p {
+    font-size: 14px;
+  }
+
+
+  .post-image {
+    max-height: 700px;
+    object-fit: cover;
+  }
+
+
+  .post-caption {
+    padding: 18px;
+
+    font-size: 16px;
+  }
+
+}
+
+/* =========================
+   Desktop Right Profile Card
+========================= */
+
+@media (min-width: 1024px) {
+
+  .desktop-profile-card {
+    position: fixed;
+
+    top: 80px;
+    right: 40px;
+
+    width: 260px;
+
+    background: #0b1428;
+    border: 1px solid #1e3a5f;
+    border-radius: 20px;
+
+    padding: 25px;
+
+    text-align: center;
+
+    color: white;
+
+    box-shadow:
+      0 0 30px rgba(0, 149, 255, 0.15);
+  }
+
+
+  .desktop-profile-image {
+    width: 90px;
+    height: 90px;
+
+    border-radius: 50%;
+
+    object-fit: cover;
+
+    border: 3px solid #0095ff;
+
+    box-shadow:
+      0 0 20px #0095ff;
+  }
+
+
+  .desktop-profile-card h3 {
+    margin-top: 15px;
+    font-size: 22px;
+  }
+
+
+  .desktop-profile-card p {
+    color: #8e8e8e;
+    font-size: 14px;
+  }
+
+
+  .profile-stats {
+    margin-top: 25px;
+
+    display: flex;
+    justify-content: space-around;
+
+    border-top: 1px solid #1e3a5f;
+    border-bottom: 1px solid #1e3a5f;
+
+    padding: 15px 0;
+  }
+
+
+  .profile-stats div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+
+  .profile-stats strong {
+    color: #00e5ff;
+    font-size: 18px;
+  }
+
+
+  .profile-stats span {
+    font-size: 13px;
+    color: #8e8e8e;
+  }
+
+
+  .developer-tag {
+    margin-top: 20px;
+
+    color: #00e5ff !important;
+
+    font-weight: 600;
+  }
+
 }

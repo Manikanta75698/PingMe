@@ -80,6 +80,35 @@ function Home() {
   return (
     <div className="home-container">
 
+      <div className="desktop-sidebar">
+
+        <h1 className="desktop-logo">
+          PingMe
+        </h1>
+
+        <button
+          className="active-nav"
+          onClick={() => navigate("/home")}
+        >
+          <FaHome /> Home
+        </button>
+
+        <button onClick={() => navigate("/create-post")}>
+          <FaPlusSquare /> Create
+        </button>
+
+        <button onClick={() => navigate("/chat")}>
+          <FaCommentDots /> Messages
+        </button>
+
+        <button
+          onClick={() => navigate(`/profile/${user.id}`)}
+        >
+          <FaUser /> Profile
+        </button>
+
+      </div>
+
       {/* Header */}
       <div className={`home-header ${showHeader ? "show" : "hide"}`}>
 
@@ -204,6 +233,69 @@ function Home() {
 
           )
         }
+
+      </div>
+
+      {/* Desktop Profile Panel */}
+
+      <div className="desktop-profile-card">
+
+        <img
+          src={user.profilePic}
+          alt={user.name}
+          className="desktop-profile-image"
+        />
+
+        <h3>
+          {user.name}
+        </h3>
+
+        <p>
+          @{user.username}
+        </p>
+
+        <div className="profile-stats">
+
+          <div>
+            <strong>
+              {posts.length}
+            </strong>
+
+            <span>
+              Posts
+            </span>
+          </div>
+
+
+          <div>
+            <strong>
+              2
+            </strong>
+
+            <span>
+              Followers
+            </span>
+
+          </div>
+
+
+          <div>
+            <strong>
+              2
+            </strong>
+
+            <span>
+              Following
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <p className="developer-tag">
+          ✨ PingMe Developer
+        </p>
 
       </div>
 
