@@ -66,19 +66,58 @@ const likePost = async (req, res) => {
       userId.toString()
     ) {
 
-      await Notification.create({
+      const notification =
+        await Notification.create({
 
-        receiver: post.user,
+          receiver: post.user,
 
-        sender: userId,
+          sender: userId,
 
-        type: "like",
+          type: "like",
 
-        post: post._id,
+          post: post._id,
 
-        message: "liked your post ❤️",
+          message: "liked your post ❤️",
 
-      });
+        });
+
+      const io = req.app.get("io");
+
+      const getUserSocket =
+        req.app.get("getUserSocket");
+
+
+      const receiverSocket =
+        getUserSocket(post.user.toString());
+
+
+      if (receiverSocket) {
+
+        const senderUser = req.user;
+
+
+        io.to(receiverSocket).emit(
+          "new_notification",
+          {
+
+            ...notification.toObject(),
+
+            sender: {
+
+              _id: senderUser._id,
+
+              name: senderUser.name,
+
+              username: senderUser.username,
+
+              profilePic: senderUser.profilePic,
+
+            },
+
+          }
+        );
+
+      }
 
     }
 
