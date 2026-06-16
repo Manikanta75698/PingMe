@@ -565,7 +565,14 @@
 }
 
 .menu-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
   position: relative;
+}
+
+.notification-btn:hover {
+  transform: scale(1.1);
 }
 
 
@@ -796,9 +803,10 @@
   overflow: hidden;
 
   box-shadow:
-    0 0 40px rgba(0,0,0,.35);
+    0 0 40px rgba(0, 0, 0, .35);
 
 }
+
 .search-header {
 
   display: flex;
@@ -879,7 +887,7 @@
 
 .search-user:hover {
 
-  background: rgba(0,149,255,.15);
+  background: rgba(0, 149, 255, .15);
 
 }
 
@@ -917,6 +925,7 @@
   font-size: 13px;
 
 }
+
 .search-message {
 
   text-align: center;
@@ -929,3 +938,42 @@
 
 }
 
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.notification-btn {
+  position: relative;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  color: inherit;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+
+  background: red;
+  color: white;
+
+  min-width: 18px;
+  height: 18px;
+
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 11px;
+  font-weight: bold;
+}

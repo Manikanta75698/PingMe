@@ -8,6 +8,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Profile from "./pages/Profile";
 import CreatePost from "./pages/CreatePost";
 import Home from "./pages/Home";
+import Notifications from "./pages/Notifications";
 
 function App() {
   return (
@@ -54,6 +55,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
       </Routes>
     </BrowserRouter>
   );

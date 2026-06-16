@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import {
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 
 import {
   FaSearch,
@@ -14,7 +17,8 @@ import {
   FaUser,
   FaHeart,
   FaComment,
-  FaTimes
+  FaTimes,
+  FaBell
 } from "react-icons/fa";
 
 import "./Home.css";
@@ -23,6 +27,7 @@ import "./Home.css";
 function Home() {
 
   const navigate = useNavigate();
+  const location = useLocation();
 
 
   const user = JSON.parse(
@@ -60,6 +65,11 @@ function Home() {
 
   const [searchLoading, setSearchLoading] =
     useState(false);
+  const [notifications, setNotifications] =
+    useState([]);
+
+  const [unreadCount, setUnreadCount] =
+    useState(0);
 
 
   // Fetch posts
@@ -91,6 +101,47 @@ function Home() {
     } finally {
 
       setLoadingPosts(false);
+
+    }
+
+  };
+
+  const fetchNotifications = async () => {
+
+    try {
+
+      const res = await axios.get(
+        "https://pingme-api-new.onrender.com/api/notifications",
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+
+      setNotifications(
+        res.data.notifications
+      );
+
+
+      const unread =
+        res.data.notifications.filter(
+          (notification) =>
+            !notification.isRead
+        ).length;
+
+
+      setUnreadCount(unread);
+
+
+    } catch (error) {
+
+      console.log(
+        "NOTIFICATION ERROR:",
+        error
+      );
 
     }
 
@@ -286,6 +337,13 @@ function Home() {
     fetchPosts();
 
   }, []);
+
+
+  useEffect(() => {
+
+    fetchNotifications();
+
+  }, [location]);
 
   useEffect(() => {
 
@@ -484,23 +542,31 @@ function Home() {
 
         </button>
 
-
-
-
         <h1 className="app-title">
-
           PingMe
-
         </h1>
-
-
-
 
         <div
           className="menu-container"
           ref={menuRef}
         >
 
+          <button
+            className="notification-btn"
+            onClick={() =>
+              navigate("/notifications")
+            }
+          >
+
+            <FaBell />
+
+            {unreadCount > 0 && (
+              <span className="notification-badge">
+                {unreadCount}
+              </span>
+            )}
+
+          </button>
 
           <button
             className="icon-btn"
@@ -508,7 +574,6 @@ function Home() {
               setShowMenu(!showMenu)
             }
           >
-
             <FaBars />
 
           </button>

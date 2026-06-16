@@ -49,9 +49,53 @@ const getNotifications = async (req, res) => {
 
 };
 
+const markNotificationsAsRead = async (req, res) => {
+
+  try {
+
+    await Notification.updateMany(
+
+      {
+        receiver: req.user._id,
+        isRead: false,
+      },
+
+      {
+        isRead: true,
+      }
+
+    );
+
+
+    res.status(200).json({
+
+      message:
+        "Notifications marked as read",
+
+    });
+
+  } catch (error) {
+
+
+    console.log(
+      "MARK NOTIFICATION ERROR:",
+      error
+    );
+
+
+    res.status(500).json({
+
+      message:
+        "Something went wrong",
+
+    });
+
+  }
+
+};
+
 
 module.exports = {
-
   getNotifications,
-
+  markNotificationsAsRead,
 };
