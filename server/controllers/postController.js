@@ -1,4 +1,5 @@
 const Post = require("../models/Post");
+const Notification = require("../models/Notification");
 
 const createPost = async (req, res) => {
   try {
@@ -57,6 +58,29 @@ const likePost = async (req, res) => {
     post.likes.push(userId);
 
     await post.save();
+
+
+    // Don't notify yourself
+    if (
+      post.user.toString() !==
+      userId.toString()
+    ) {
+
+      await Notification.create({
+
+        receiver: post.user,
+
+        sender: userId,
+
+        type: "like",
+
+        post: post._id,
+
+        message: "liked your post ❤️",
+
+      });
+
+    }
 
     res.status(200).json({
       message: "Post liked ❤️",
@@ -147,6 +171,29 @@ const addComment = async (req, res) => {
 
     await post.save();
 
+
+    // Don't notify yourself
+    if (
+      post.user.toString() !==
+      userId.toString()
+    ) {
+
+      await Notification.create({
+
+        receiver: post.user,
+
+        sender: userId,
+
+        type: "comment",
+
+        post: post._id,
+
+        message: "commented on your post 💬",
+
+      });
+
+    }
+
     res.status(201).json({
       message: "Comment added successfully 💬",
       commentsCount: post.comments.length,
@@ -168,6 +215,10 @@ const getPosts = async (req, res) => {
       .populate(
         "user",
         "name username profilePic"
+      )
+      .populate(
+        "comments.user",
+        "username name profilePic"
       )
       .sort({
         createdAt: -1,

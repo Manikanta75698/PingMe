@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 const uploadProfilePic = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -145,6 +146,17 @@ const followUser = async (req, res) => {
 
     await currentUser.save();
     await targetUser.save();
+    await Notification.create({
+
+      receiver: targetUserId,
+
+      sender: currentUserId,
+
+      type: "follow",
+
+      message: "started following you 👤",
+
+    });
 
     const io = req.app.get("io");
 
@@ -239,7 +251,7 @@ const unfollowUser = async (req, res) => {
 const searchUsers = async (req, res) => {
   try {
 
-    const keyword = req.query.keyword;
+    const keyword = req.query.keyword?.trim();
 
     if (!keyword) {
       return res.status(400).json({

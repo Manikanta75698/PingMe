@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+
 import {
   FaSearch,
   FaBars,
@@ -10,28 +11,58 @@ import {
   FaHome,
   FaPlusSquare,
   FaCommentDots,
-  FaUser
+  FaUser,
+  FaHeart,
+  FaComment,
+  FaTimes
 } from "react-icons/fa";
+
 import "./Home.css";
+
 
 function Home() {
 
   const navigate = useNavigate();
 
+
   const user = JSON.parse(
-    localStorage.getItem("user")
+    localStorage.getItem("user") || "{}"
   );
+
+
+  const userId = user.id || user._id;
+
+
+  const [posts, setPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
 
   const [showHeader, setShowHeader] = useState(true);
   const [lastScroll, setLastScroll] = useState(0);
-  const [posts, setPosts] = useState([]);
-  const [loadingPosts, setLoadingPosts] = useState(true);
+
   const [showMenu, setShowMenu] = useState(false);
+  const [commentText, setCommentText] = useState({});
+
   const menuRef = useRef(null);
+
+
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem("darkMode") === "true"
   );
 
+  const [showSearch, setShowSearch] =
+    useState(false);
+
+  const [searchText, setSearchText] =
+    useState("");
+
+  const [searchResults, setSearchResults] =
+    useState([]);
+
+  const [searchLoading, setSearchLoading] =
+    useState(false);
+
+
+  // Fetch posts
   const fetchPosts = async () => {
 
     try {
@@ -40,12 +71,15 @@ function Home() {
         "https://pingme-api-new.onrender.com/api/posts",
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
         }
       );
 
+
       setPosts(res.data.posts);
+
 
     } catch (error) {
 
@@ -62,6 +96,138 @@ function Home() {
 
   };
 
+
+  // Like & Unlike
+  const toggleLike = async (
+    postId,
+    likes
+  ) => {
+
+
+    if (!userId) return;
+
+
+    try {
+
+
+      const alreadyLiked = likes.some(
+        id =>
+          id.toString() === userId.toString()
+      );
+
+
+      const url = alreadyLiked
+        ?
+        `https://pingme-api-new.onrender.com/api/posts/unlike/${postId}`
+        :
+        `https://pingme-api-new.onrender.com/api/posts/like/${postId}`;
+
+
+      await axios.post(
+        url,
+        {},
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+
+      // Instant UI update
+      setPosts(prevPosts =>
+        prevPosts.map(post => {
+
+
+          if (post._id !== postId)
+            return post;
+
+
+          return {
+
+            ...post,
+
+
+            likes: alreadyLiked
+              ?
+              post.likes.filter(
+                id =>
+                  id.toString() !== userId.toString()
+              )
+              :
+              [
+                ...post.likes,
+                userId
+              ]
+
+          };
+
+
+        })
+      );
+
+
+    } catch (error) {
+
+
+      console.log(
+        "LIKE ERROR:",
+        error
+      );
+
+    }
+
+
+  };
+
+  const handleComment = async (postId) => {
+
+    const text = commentText[postId];
+
+    if (!text || !text.trim()) {
+      return;
+    }
+
+    try {
+
+      await axios.post(
+        `https://pingme-api-new.onrender.com/api/posts/comment/${postId}`,
+        {
+          text: text.trim()
+        },
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+
+      // Refresh posts to get new comments
+      fetchPosts();
+
+
+      // Clear input field
+      setCommentText(prev => ({
+        ...prev,
+        [postId]: ""
+      }));
+
+
+    } catch (error) {
+
+      console.log(
+        "COMMENT ERROR:",
+        error
+      );
+
+    }
+
+  };
+
+  // Close menu when clicking outside
   useEffect(() => {
 
     const handleClickOutside = (event) => {
@@ -70,15 +236,19 @@ function Home() {
         menuRef.current &&
         !menuRef.current.contains(event.target)
       ) {
+
         setShowMenu(false);
+
       }
 
     };
+
 
     document.addEventListener(
       "mousedown",
       handleClickOutside
     );
+
 
     return () => {
 
@@ -89,104 +259,248 @@ function Home() {
 
     };
 
+
   }, []);
 
-  const toggleDarkMode = () => {
-    const newMode = !darkMode;
 
-    setDarkMode(newMode);
 
-    localStorage.setItem(
-      "darkMode",
-      newMode
-    );
-  };
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
 
-    navigate("/");
-  };
-
+  // Hide header on scroll
   useEffect(() => {
-
     const handleScroll = () => {
-
-      const currentScroll = window.scrollY;
-
-      if (currentScroll > lastScroll) {
-        setShowHeader(false);
-      } else {
-        setShowHeader(true);
-      }
-
-      setLastScroll(currentScroll);
+      setShowHeader(window.scrollY <= lastScroll);
+      setLastScroll(window.scrollY);
     };
 
     window.addEventListener("scroll", handleScroll);
 
-    return () =>
-      window.removeEventListener(
-        "scroll",
-        handleScroll
-      );
-
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScroll]);
 
+
+
+
+  // Initial posts fetch
   useEffect(() => {
 
     fetchPosts();
 
   }, []);
+
+  useEffect(() => {
+
+    const timer = setTimeout(async () => {
+
+      if (!searchText.trim()) {
+
+        setSearchResults([]);
+        return;
+
+      }
+
+
+      try {
+
+        setSearchLoading(true);
+
+
+        const res = await axios.get(
+          `https://pingme-api-new.onrender.com/api/users/search?keyword=${searchText}`,
+          {
+            headers: {
+              Authorization:
+                `Bearer ${localStorage.getItem("token")}`
+            }
+          }
+        );
+
+
+        setSearchResults(
+          res.data.users
+        );
+
+
+      } catch (error) {
+
+        console.log(
+          "SEARCH ERROR:",
+          error
+        );
+
+      } finally {
+
+        setSearchLoading(false);
+
+      }
+
+
+    }, 500);
+
+
+    return () => clearTimeout(timer);
+
+
+  }, [searchText]);
+
+
+
+
+  // Dark & Light Theme
+  const toggleDarkMode = () => {
+
+
+    const newMode = !darkMode;
+
+
+    setDarkMode(newMode);
+
+
+    localStorage.setItem(
+      "darkMode",
+      newMode
+    );
+
+
+  };
+
+
+
+
+  // Logout
+  const handleLogout = () => {
+
+
+    localStorage.removeItem("token");
+
+    localStorage.removeItem("user");
+
+
+    navigate("/");
+
+
+  };
+
+
+
+
+
   return (
+
     <div
-      className={`home-container ${darkMode ? "dark" : ""}`}
+      className={`home-container ${darkMode ? "dark" : ""
+        }`}
     >
 
+
+
+      {/* Desktop Sidebar */}
       <div className="desktop-sidebar">
+
 
         <h1 className="desktop-logo">
           PingMe
         </h1>
 
+
+
         <button
           className="active-nav"
-          onClick={() => navigate("/home")}
+          onClick={() =>
+            navigate("/home")
+          }
         >
-          <FaHome /> Home
+
+          <FaHome />
+
+          Home
+
         </button>
 
-        <button onClick={() => navigate("/create-post")}>
-          <FaPlusSquare /> Create
-        </button>
 
-        <button onClick={() => navigate("/chat")}>
-          <FaCommentDots /> Messages
-        </button>
 
         <button
-          onClick={() => navigate(`/profile/${user.id || user._id}`)}
+          onClick={() =>
+            navigate("/create-post")
+          }
         >
-          <FaUser /> Profile
+
+          <FaPlusSquare />
+
+          Create
+
         </button>
+
+
+
+
+        <button
+          onClick={() =>
+            navigate("/chat")
+          }
+        >
+
+          <FaCommentDots />
+
+          Messages
+
+        </button>
+
+
+
+
+        <button
+          onClick={() =>
+            navigate(`/profile/${userId}`)
+          }
+        >
+
+          <FaUser />
+
+          Profile
+
+        </button>
+
+
 
       </div>
 
-      {/* Header */}
-      <div className={`home-header ${showHeader ? "show" : "hide"}`}>
 
-        <button className="icon-btn">
+
+
+      {/* Header */}
+      <div
+        className={`home-header ${showHeader ? "show" : "hide"
+          }`}
+      >
+
+        <button
+          className="icon-btn"
+          onClick={() =>
+            setShowSearch(true)
+          }
+        >
+
           <FaSearch />
+
         </button>
 
+
+
+
         <h1 className="app-title">
+
           PingMe
+
         </h1>
+
+
+
 
         <div
           className="menu-container"
           ref={menuRef}
         >
+
 
           <button
             className="icon-btn"
@@ -194,76 +508,239 @@ function Home() {
               setShowMenu(!showMenu)
             }
           >
+
             <FaBars />
+
           </button>
 
 
+
           {showMenu && (
+
             <div className="home-dropdown">
 
-              <button onClick={toggleDarkMode}>
+
+              <button
+                onClick={toggleDarkMode}
+              >
+
+
                 {darkMode ? (
+
                   <>
-                    <FaSun /> Light
+
+                    <FaSun />
+
+                    Light
+
                   </>
+
                 ) : (
+
                   <>
-                    <FaMoon /> Dark
+
+                    <FaMoon />
+
+                    Dark
+
                   </>
+
                 )}
+
+
               </button>
 
 
-              <button onClick={handleLogout}>
+
+              <button
+                onClick={handleLogout}
+              >
+
+
                 <FaSignOutAlt />
+
                 Logout
+
+
               </button>
+
 
             </div>
+
           )}
+
 
         </div>
 
+
       </div>
 
+      {
+        showSearch && (
 
-      {/* Feed */}
+          <div className="search-overlay">
+
+            <div className="search-box">
+
+
+              {/* Top bar */}
+              <div className="search-header">
+
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={searchText}
+                  onChange={(e) =>
+                    setSearchText(e.target.value)
+                  }
+                />
+
+
+                <button
+                  onClick={() => {
+
+                    setShowSearch(false);
+
+                    setSearchText("");
+
+                    setSearchResults([]);
+
+                  }}
+                >
+
+                  <FaTimes />
+
+                </button>
+
+              </div>
+
+
+              {/* Loading */}
+              {
+                searchLoading && (
+
+                  <p className="search-message">
+                    Searching...
+                  </p>
+
+                )
+              }
+
+
+              {/* No results */}
+              {
+                !searchLoading &&
+                searchText &&
+                searchResults.length === 0 && (
+
+                  <p className="search-message">
+
+                    No users found 😢
+
+                  </p>
+
+                )
+              }
+
+
+              {/* User results */}
+              {
+                searchResults.map((person) => (
+
+                  <div
+                    key={person._id}
+                    className="search-user"
+
+                    onClick={() => {
+
+                      navigate(
+                        `/profile/${person._id}`
+                      );
+
+                      setShowSearch(false);
+
+                    }}
+
+                  >
+
+                    <img
+                      src={person.profilePic}
+                      alt={person.name}
+                    />
+
+
+                    <div>
+
+                      <h4>
+                        {person.name}
+                      </h4>
+
+                      <p>
+                        @{person.username}
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                ))
+              }
+
+            </div>
+
+          </div>
+
+        )
+      }
+
+
+
+      {/* Feed Start */}
       <div className="feed-container">
+
 
         {
           loadingPosts ? (
 
             <div className="skeleton-container">
 
-              {[1, 2].map((item) => (
+              {
+                [1, 2].map(item => (
 
-                <div
-                  className="skeleton-post"
-                  key={item}
-                >
+                  <div
+                    className="skeleton-post"
+                    key={item}
+                  >
 
-                  <div className="skeleton-header">
 
-                    <div className="skeleton-profile"></div>
+                    <div className="skeleton-header">
 
-                    <div className="skeleton-text">
+                      <div className="skeleton-profile"></div>
 
-                      <div></div>
-                      <div></div>
+
+                      <div className="skeleton-text">
+
+                        <div></div>
+
+                        <div></div>
+
+                      </div>
+
 
                     </div>
 
+
+                    <div className="skeleton-image"></div>
+
+
+                    <div className="skeleton-caption"></div>
+
+
                   </div>
 
+                ))
+              }
 
-                  <div className="skeleton-image"></div>
-
-
-                  <div className="skeleton-caption"></div>
-
-                </div>
-
-              ))}
 
             </div>
 
@@ -271,7 +748,9 @@ function Home() {
 
             <div className="empty-feed">
 
-              <h2>No Posts Yet 📷</h2>
+              <h2>
+                No Posts Yet 📷
+              </h2>
 
               <p>
                 Share your first moment ✨
@@ -281,54 +760,141 @@ function Home() {
 
           ) : (
 
-            posts.map((post) => (
+            posts.map((post) => {
 
-              <div
-                className="post-card"
-                key={post._id}
-              >
+              const isLiked =
+                userId &&
+                post.likes.some(
+                  id =>
+                    id.toString() === userId.toString()
+                );
+              return (
 
-                <div className="post-user">
+                <div
+                  className="post-card"
+                  key={post._id}
+                >
 
-                  <img
-                    src={post.user.profilePic}
-                    alt={post.user.name}
-                    className="post-profile"
-                  />
 
-                  <div>
+                  {/* User */}
+                  <div className="post-user">
 
-                    <h4>
-                      {post.user.name}
-                    </h4>
+                    <img
+                      src={post.user.profilePic}
+                      alt={post.user.name}
+                      className="post-profile"
+                    />
 
-                    <p>
-                      @{post.user.username}
-                    </p>
+                    <div>
+
+                      <h4>
+                        {post.user.name}
+                      </h4>
+
+                      <p>
+                        @{post.user.username}
+                      </p>
+
+                    </div>
 
                   </div>
 
+
+                  {/* Post Image */}
+                  <img
+                    src={post.image}
+                    alt="Post"
+                    className="post-image"
+                  />
+
+
+                  {/* Like */}
+                  <div className="post-actions">
+
+                    <button
+                      className={`like-btn ${isLiked ? "liked" : ""}`}
+                      onClick={() =>
+                        toggleLike(post._id, post.likes)
+                      }
+                    >
+
+                      <FaHeart />
+
+                      <span>
+                        {post.likes.length}
+                      </span>
+
+                    </button>
+
+
+                    <button className="comment-btn">
+
+                      <FaComment />
+
+                      <span>
+                        {post.comments.length}
+                      </span>
+
+                    </button>
+
+                  </div>
+
+                  <div className="comment-input-container">
+
+                    <input
+                      type="text"
+                      placeholder="Write a comment..."
+                      value={commentText[post._id] || ""}
+                      onChange={(e) =>
+                        setCommentText({
+                          ...commentText,
+                          [post._id]: e.target.value
+                        })
+                      }
+                    />
+
+                    <button
+                      onClick={() =>
+                        handleComment(post._id)
+                      }
+                    >
+                      Post
+                    </button>
+
+                  </div>
+                  <div className="comments-list">
+
+                    {
+                      post.comments.map((comment) => (
+
+                        <p key={comment._id}>
+
+                          <strong>
+                            {comment.user?.username}
+                          </strong>
+                          {" "}
+                          {comment.text}
+
+                        </p>
+
+                      ))
+                    }
+
+                  </div>
+                  {/* Caption */}
+                  <p className="post-caption">
+                    {post.caption}
+                  </p>
+
+
                 </div>
 
+              );
 
-                <img
-                  src={post.image}
-                  alt="Post"
-                  className="post-image"
-                />
-
-
-                <p className="post-caption">
-
-                  {post.caption}
-
-                </p>
-
-              </div>
-
-            ))
+            })
 
           )
+
         }
 
       </div>
@@ -341,15 +907,20 @@ function Home() {
         <FaPlusSquare
           onClick={() => navigate("/create-post")}
         />
-        <FaCommentDots onClick={() => navigate("/chat")} />
+
+        <FaCommentDots
+          onClick={() => navigate("/chat")}
+        />
 
         <FaUser
-          onClick={() => navigate(`/profile/${user.id || user._id}`)}
+          onClick={() => navigate(`/profile/${userId}`)}
         />
 
       </div>
 
+
     </div>
+
   );
 
 }

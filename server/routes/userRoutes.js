@@ -50,14 +50,6 @@ router.put(
 );
 
 
-// Search Users
-router.get(
-  "/search",
-  protect,
-  searchUsers
-);
-
-
 // Get Followers
 router.get(
   "/followers/:id",
@@ -79,6 +71,12 @@ router.get(
   "/:id",
   protect,
   getUserProfile
+);
+
+router.get(
+  "/search",
+  protect,
+  searchUsers
 );
 
 module.exports = router;
