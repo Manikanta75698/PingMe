@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import socket from "../socket";
 import {
   useNavigate,
   useLocation,
@@ -399,6 +400,37 @@ function Home() {
 
 
   }, [searchText]);
+
+  useEffect(() => {
+
+    socket.on(
+      "new_notification",
+      (notification) => {
+
+        setUnreadCount(
+          (prev) => prev + 1
+        );
+
+        setNotifications(
+          (prev) => [
+            notification,
+            ...prev,
+          ]
+        );
+
+      }
+    );
+
+
+    return () => {
+
+      socket.off(
+        "new_notification"
+      );
+
+    };
+
+  }, []);
 
 
 

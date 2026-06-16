@@ -160,6 +160,35 @@ const followUser = async (req, res) => {
 
     const io = req.app.get("io");
 
+const getUserSocket =
+  req.app.get("getUserSocket");
+
+
+const receiverSocket =
+  getUserSocket(targetUserId.toString());
+
+
+if (receiverSocket) {
+
+  io.to(receiverSocket).emit(
+    "new_notification",
+    {
+      type: "follow",
+      sender: {
+        _id: currentUser._id,
+        name: currentUser.name,
+        username: currentUser.username,
+        profilePic: currentUser.profilePic,
+      },
+      message:
+        "started following you 👤",
+    }
+  );
+
+}
+
+    const io = req.app.get("io");
+
     io.emit("profile_updated", {
       userId: req.params.id,
     });

@@ -39,6 +39,24 @@ app.use(express.json());
 
 let onlineUsers = [];
 
+
+const getUserSocket = (userId) => {
+
+  const user = onlineUsers.find(
+    (user) =>
+      user.userId === userId
+  );
+
+  return user?.socketId;
+
+};
+
+
+app.set(
+  "getUserSocket",
+  getUserSocket
+);
+
 io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
 
