@@ -21,6 +21,8 @@ function Chat() {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] =
     useState([]);
+  const [allUsers, setAllUsers] =
+    useState([]);
   const [showChat, setShowChat] =
     useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -83,6 +85,33 @@ function Chat() {
     }
   };
 
+  const fetchAllUsers = async () => {
+
+    try {
+
+      const res = await axios.get(
+        "https://pingme-api-new.onrender.com/api/users/all",
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      setAllUsers(res.data.users);
+
+    } catch (error) {
+
+      console.log(
+        "GET USERS ERROR:",
+        error
+      );
+
+    }
+
+  };
+
   const markMessagesAsSeen = async (sender) => {
     try {
       await axios.put(
@@ -90,6 +119,12 @@ function Chat() {
         {
           sender,
           receiver: user.username,
+        },
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
 
@@ -197,7 +232,10 @@ function Chat() {
   }, []);
 
   useEffect(() => {
+
     fetchMessages();
+
+    fetchAllUsers();
 
     if (socket.connected) {
       socket.emit("join", {
@@ -426,7 +464,10 @@ function Chat() {
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type":
+              "multipart/form-data",
           },
         }
       );
@@ -463,6 +504,12 @@ function Chat() {
         `https://pingme-api-new.onrender.com/api/messages/delete-for-me/${id}`,
         {
           userId: user.username,
+        },
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
 
@@ -496,6 +543,12 @@ function Chat() {
         `https://pingme-api-new.onrender.com/api/messages/delete-for-everyone/${id}`,
         {
           userId: user.username,
+        },
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
 
@@ -521,10 +574,11 @@ function Chat() {
     }
   };
 
-  const selectedUserData = onlineUsers.find(
-    (u) => u.username === selectedUser
-  );
-  console.log("ONLINE USERS:", onlineUsers);
+  const selectedUserData =
+    allUsers.find(
+      user =>
+        user.username === selectedUser
+    );
 
   const filteredMessages = messages.filter(
     (msg) =>
@@ -625,38 +679,35 @@ function Chat() {
         </h3>
 
 
-        {onlineUsers
-          .filter(
-            (onlineUser) =>
-              onlineUser.username !== user?.username
-          )
-          .filter(
-            (onlineUser, index, self) =>
-              index === self.findIndex(
-                (u) =>
-                  u.username === onlineUser.username
-              )
-          )
-          .map((onlineUser, index) => (
+        {allUsers.map((chatUser) => {
 
+          const isOnline = onlineUsers.some(
+            (onlineUser) =>
+              onlineUser.username === chatUser.username
+          );
+
+          return (
 
             <div
-              key={onlineUser.username}
+              key={chatUser._id}
               className={
-                selectedUser === onlineUser.username
+                selectedUser === chatUser.username
                   ? "user-card active-user"
                   : "user-card"
               }
               onClick={() => {
-                setSelectedUser(onlineUser.username);
+
+                setSelectedUser(chatUser.username);
+
                 setShowChat(true);
 
-                markMessagesAsSeen(onlineUser.username);
+                markMessagesAsSeen(chatUser.username);
 
                 setUnreadMessages((prev) => ({
                   ...prev,
-                  [onlineUser.username]: 0,
+                  [chatUser.username]: 0,
                 }));
+
               }}
             >
 
@@ -664,46 +715,59 @@ function Chat() {
 
                 <img
                   src={
-                    onlineUser.profilePic ||
+                    chatUser.profilePic ||
                     "/default-avatar.png"
                   }
                   className="user-avatar"
                   alt="user"
                   onClick={(e) => {
+
                     e.stopPropagation();
 
-                    navigate(`/profile/${onlineUser.userId}`);
+                    navigate(
+                      `/profile/${chatUser._id}`
+                    );
+
                   }}
                 />
 
                 <div className="user-details">
 
                   <h4>
-                    {onlineUser.username}
+                    {chatUser.username}
                   </h4>
 
                   <p>
-                    Tap to chat
+
+                    {isOnline
+                      ? "🟢 Online"
+                      : "⚫ Offline"}
+
                   </p>
 
                 </div>
 
               </div>
 
+
               {
-                unreadMessages[onlineUser.username] > 0 &&
+                unreadMessages[chatUser.username] > 0 &&
                 (
                   <span className="unread-badge">
+
                     {
-                      unreadMessages[onlineUser.username]
+                      unreadMessages[chatUser.username]
                     }
+
                   </span>
                 )
               }
 
             </div>
 
-          ))}
+          );
+
+        })}
 
       </div>
 
@@ -746,7 +810,12 @@ function Chat() {
 
                   <p>
                     {selectedUser
-                      ? "Active now"
+                      ? onlineUsers.some(
+                        (u) =>
+                          u.username === selectedUser
+                      )
+                        ? "🟢 Online"
+                        : "⚫ Offline"
                       : "Select someone to start chatting"}
                   </p>
 
@@ -885,9 +954,6 @@ function Chat() {
                     )}
 
                   </div>
-                )}
-                {msg.text && (
-                  <p>{msg.text}</p>
                 )}
 
                 {msg.isDeleted ? (

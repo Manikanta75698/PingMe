@@ -480,6 +480,49 @@ const getFollowing = async (req, res) => {
   }
 };
 
+
+const getAllUsers = async (req, res) => {
+
+  try {
+
+    const users = await User.find({
+
+      _id: {
+        $ne: req.user._id,
+      },
+
+    })
+      .select(
+        "name username profilePic"
+      );
+
+
+    res.status(200).json({
+
+      users,
+
+    });
+
+  }
+  catch (error) {
+
+    console.log(
+      "GET ALL USERS ERROR:",
+      error
+    );
+
+
+    res.status(500).json({
+
+      message:
+        "Something went wrong",
+    });
+
+  }
+
+};
+
+
 module.exports = {
   uploadProfilePic,
   updateProfile,
@@ -489,4 +532,5 @@ module.exports = {
   getUserProfile,
   getFollowers,
   getFollowing,
+  getAllUsers,
 };

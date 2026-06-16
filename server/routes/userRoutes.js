@@ -12,6 +12,7 @@ const {
   getFollowers,
   getFollowing,
   getUserProfile,
+  getAllUsers,
 } = require("../controllers/userController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -49,6 +50,11 @@ router.put(
   unfollowUser
 );
 
+router.get(
+  "/search",
+  protect,
+  searchUsers
+);
 
 // Get Followers
 router.get(
@@ -65,6 +71,11 @@ router.get(
   getFollowing
 );
 
+router.get(
+  "/all",
+  protect,
+  getAllUsers
+);
 
 // Get User Profile (Always Last)
 router.get(
@@ -73,10 +84,6 @@ router.get(
   getUserProfile
 );
 
-router.get(
-  "/search",
-  protect,
-  searchUsers
-);
+
 
 module.exports = router;
