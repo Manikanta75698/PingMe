@@ -99,10 +99,6 @@ function Chat() {
         }
       );
 
-      console.log(
-        "CHAT USERS 🔥",
-        res.data.users
-      );
 
       setAllUsers(res.data.users);
 
@@ -701,9 +697,11 @@ function Chat() {
                 >
 
                   <img
-                    src={searchUser.profilePic}
-                    alt="user"
-                    className="search-avatar"
+                    src={user.profilePic || "/default-avatar.png"}
+                    alt="Profile"
+                    onError={(e) => {
+                      e.target.src = "/default-avatar.png";
+                    }}
                   />
 
 
@@ -776,6 +774,9 @@ function Chat() {
                   }
                   className="user-avatar"
                   alt="user"
+                  onError={(e) => {
+                    e.target.src = "/default-avatar.png";
+                  }}
                   onClick={(e) => {
 
                     e.stopPropagation();

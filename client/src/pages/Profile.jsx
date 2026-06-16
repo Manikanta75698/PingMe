@@ -580,17 +580,24 @@ function Profile() {
                   <img
                     src={
                       previewPic ||
-                      profile.profilePic
+                      profile.profilePic ||
+                      "/default-avatar.png"
                     }
                     alt="Profile"
                     className="profile-image"
+                    onError={(e) => {
+                      e.target.src = "/default-avatar.png";
+                    }}
                   />
                 </label>
               ) : (
                 <img
-                  src={profile.profilePic}
+                  src={profile.profilePic || "/default-avatar.png"}
                   alt="Profile"
                   className="profile-image"
+                  onError={(e) => {
+                    e.target.src = "/default-avatar.png";
+                  }}
                 />
               )
             }
@@ -848,9 +855,12 @@ function Profile() {
                   >
 
                     <img
-                      src={user.profilePic}
+                      src={user.profilePic || "/default-avatar.png"}
                       alt={user.name}
                       className="follow-image"
+                      onError={(e) => {
+                        e.target.src = "//default-avatar.png";
+                      }}
                     />
 
 
@@ -952,9 +962,12 @@ function Profile() {
                   >
 
                     <img
-                      src={user.profilePic}
+                      src={user.profilePic || "/default-avatar.png"}
                       alt={user.name}
                       className="follow-image"
+                      onError={(e) => {
+                        e.target.src = "/default-avatar.png";
+                      }}
                     />
 
 

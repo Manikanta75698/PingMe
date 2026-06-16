@@ -141,8 +141,15 @@ function Notifications() {
             >
 
               <img
-                src={notification.sender.profilePic}
+                src={
+                  notification.sender.profilePic ||
+                  "/default-avatar.png"
+                }
                 alt={notification.sender.name}
+                className="notification-avatar"
+                onError={(e) => {
+                  e.target.src = "/default-avatar.png";
+                }}
               />
 
 

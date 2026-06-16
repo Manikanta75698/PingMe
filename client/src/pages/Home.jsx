@@ -905,9 +905,12 @@ function Home() {
                   >
 
                     <img
-                      src={post.user.profilePic}
+                      src={post.user.profilePic || "/default-avatar.png"}
                       alt={post.user.name}
                       className="post-profile"
+                      onError={(e) => {
+                        e.target.src = "/default-avatar.png";
+                      }}
                     />
 
                     <div>
