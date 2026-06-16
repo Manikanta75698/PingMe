@@ -282,3 +282,25 @@
   color: #0095ff;
   font-weight: 700;
 }
+
+.resend-text {
+  margin-top: 15px;
+  color: #666;
+  font-size: 14px;
+}
+
+.resend-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: 0.3s;
+}
+
+.resend-btn:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}

@@ -37,12 +37,88 @@ const registerUser = async (req, res) => {
       email,
     });
 
+    // Existing user check
     if (existingUser) {
-      return res.status(400).json({
-        message: "User already exists",
+
+      // Already verified account
+      if (existingUser.isVerified) {
+        return res.status(400).json({
+          message: "User already exists. Please login",
+        });
+      }
+
+      // Generate new OTP
+      const otp = generateOTP();
+
+      const hashedOtp = await bcrypt.hash(
+        otp,
+        10
+      );
+
+      existingUser.otp = hashedOtp;
+
+      existingUser.otpExpiry = new Date(
+        Date.now() + 5 * 60 * 1000
+      );
+
+      await existingUser.save();
+
+      // Send OTP email
+      const emailData =
+        new SibApiV3Sdk.SendSmtpEmail();
+
+      emailData.subject =
+        "PingMe Email Verification 🔐";
+
+      emailData.htmlContent = `
+        <div style="font-family: Arial">
+          <h2>Welcome back to PingMe 👋</h2>
+
+          <p>Hello ${existingUser.name},</p>
+
+          <p>Your new OTP is:</p>
+
+          <h1 style="
+            background:#2563eb;
+            color:white;
+            padding:10px;
+            border-radius:8px;
+            width:150px;
+            text-align:center;
+          ">
+            ${otp}
+          </h1>
+
+          <p>This OTP expires in 5 minutes.</p>
+
+          <strong>Team PingMe ❤️</strong>
+        </div>
+      `;
+
+      emailData.sender = {
+        name: "PingMe",
+        email: "kasireddymanikantha@gmail.com",
+      };
+
+      emailData.to = [
+        {
+          email: existingUser.email,
+          name: existingUser.name,
+        },
+      ];
+
+      await transEmailApi.sendTransacEmail(
+        emailData
+      );
+
+      return res.status(200).json({
+        message:
+          "New OTP sent. Please verify your account 📧",
+        email: existingUser.email,
       });
     }
 
+    // Hash password
     const salt = await bcrypt.genSalt(10);
 
     const hashedPassword = await bcrypt.hash(
@@ -50,14 +126,19 @@ const registerUser = async (req, res) => {
       salt
     );
 
+    // Generate OTP
     const otp = generateOTP();
 
-    const hashedOtp = await bcrypt.hash(otp, 10);
+    const hashedOtp = await bcrypt.hash(
+      otp,
+      10
+    );
 
     const otpExpiry = new Date(
       Date.now() + 5 * 60 * 1000
     );
 
+    // Create user
     const user = await User.create({
       name,
       username,
@@ -67,40 +148,42 @@ const registerUser = async (req, res) => {
       otpExpiry,
     });
 
-    // Brevo Email
-    const emailData = new SibApiV3Sdk.SendSmtpEmail();
+    // Send OTP email
+    const emailData =
+      new SibApiV3Sdk.SendSmtpEmail();
 
     emailData.subject =
       "PingMe Email Verification 🔐";
 
     emailData.htmlContent = `
-    <div style="font-family: Arial">
-      <h2>Welcome to PingMe 👋</h2>
+      <div style="font-family: Arial">
+        <h2>Welcome to PingMe 👋</h2>
 
-      <p>Hello ${name},</p>
+        <p>Hello ${name},</p>
 
-      <p>Your OTP is:</p>
+        <p>Your OTP is:</p>
 
-      <h1 style="
-        background:#2563eb;
-        color:white;
-        padding:10px;
-        border-radius:8px;
-        width:150px;
-        text-align:center;
-      ">
-        ${otp}
-      </h1>
+        <h1 style="
+          background:#2563eb;
+          color:white;
+          padding:10px;
+          border-radius:8px;
+          width:150px;
+          text-align:center;
+        ">
+          ${otp}
+        </h1>
 
-      <p>
-        This OTP expires in 5 minutes.
-      </p>
+        <p>
+          This OTP expires in 5 minutes.
+        </p>
 
-      <strong>
-        Team PingMe ❤️
-      </strong>
-    </div>
-  `;
+        <strong>
+          Team PingMe ❤️
+        </strong>
+      </div>
+    `;
+
     emailData.sender = {
       name: "PingMe",
       email: "kasireddymanikantha@gmail.com",
@@ -113,11 +196,16 @@ const registerUser = async (req, res) => {
       },
     ];
 
-    // Send OTP using Brevo API
     try {
-      await transEmailApi.sendTransacEmail(emailData);
+      await transEmailApi.sendTransacEmail(
+        emailData
+      );
+
     } catch (error) {
+
+      // Remove user if email failed
       await user.deleteOne();
+
       throw error;
     }
 
@@ -134,6 +222,7 @@ const registerUser = async (req, res) => {
     });
 
   } catch (error) {
+
     console.log(
       "REGISTER ERROR:",
       error
@@ -320,13 +409,11 @@ const resendOTP = async (req, res) => {
     // Generate new OTP
     const otp = generateOTP();
 
-    // Hash OTP
     const hashedOtp = await bcrypt.hash(
       otp,
       10
     );
 
-    // Update OTP and expiry
     user.otp = hashedOtp;
 
     user.otpExpiry = new Date(
@@ -336,6 +423,7 @@ const resendOTP = async (req, res) => {
     await user.save();
 
     // Create email
+    // Brevo Email
     const emailData =
       new SibApiV3Sdk.SendSmtpEmail();
 
@@ -343,29 +431,29 @@ const resendOTP = async (req, res) => {
       "PingMe New OTP Verification 🔄";
 
     emailData.htmlContent = `
-      <div style="font-family: Arial">
-        <h2>PingMe OTP Resend 🔐</h2>
+<div style="font-family: Arial">
+  <h2>PingMe OTP Resend 🔐</h2>
 
-        <p>Hello ${user.name},</p>
+  <p>Hello ${user.name},</p>
 
-        <p>Your new OTP is:</p>
+  <p>Your new OTP is:</p>
 
-        <h1 style="
-          background:#2563eb;
-          color:white;
-          padding:10px;
-          border-radius:8px;
-          width:150px;
-          text-align:center;
-        ">
-          ${otp}
-        </h1>
+  <h1 style="
+    background:#2563eb;
+    color:white;
+    padding:10px;
+    border-radius:8px;
+    width:150px;
+    text-align:center;
+  ">
+    ${otp}
+  </h1>
 
-        <p>This OTP expires in 5 minutes.</p>
+  <p>This OTP expires in 5 minutes.</p>
 
-        <strong>Team PingMe ❤️</strong>
-      </div>
-    `;
+  <strong>Team PingMe ❤️</strong>
+</div>
+`;
 
     emailData.sender = {
       name: "PingMe",
@@ -379,7 +467,6 @@ const resendOTP = async (req, res) => {
       },
     ];
 
-    // Send email
     await transEmailApi.sendTransacEmail(
       emailData
     );
