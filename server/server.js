@@ -10,6 +10,7 @@ const authRoutes = require("./routes/authRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const postRoutes = require("./routes/postRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const User = require("./models/User");
 
 const app = express();
 const server = http.createServer(app);
@@ -125,15 +126,47 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
+
     console.log("User Disconnected:", socket.id);
 
+
+    const disconnectedUser =
+      onlineUsers.find(
+        (user) =>
+          user.socketId === socket.id
+      );
+
+
+    if (disconnectedUser) {
+
+      await User.findByIdAndUpdate(
+        disconnectedUser.userId,
+        {
+          lastSeen: new Date(),
+        }
+      );
+
+      console.log(
+        "Last seen updated ✅"
+      );
+
+    }
+
+
     onlineUsers = onlineUsers.filter(
-      (user) => user.socketId !== socket.id
+      (user) =>
+        user.socketId !== socket.id
     );
 
-    io.emit("online_users", onlineUsers);
+
+    io.emit(
+      "online_users",
+      onlineUsers
+    );
+
   });
+
 });
 
 // Routes

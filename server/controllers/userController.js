@@ -160,32 +160,32 @@ const followUser = async (req, res) => {
 
     const io = req.app.get("io");
 
-const getUserSocket =
-  req.app.get("getUserSocket");
+    const getUserSocket =
+      req.app.get("getUserSocket");
 
 
-const receiverSocket =
-  getUserSocket(targetUserId.toString());
+    const receiverSocket =
+      getUserSocket(targetUserId.toString());
 
 
-if (receiverSocket) {
+    if (receiverSocket) {
 
-  io.to(receiverSocket).emit(
-    "new_notification",
-    {
-      type: "follow",
-      sender: {
-        _id: currentUser._id,
-        name: currentUser.name,
-        username: currentUser.username,
-        profilePic: currentUser.profilePic,
-      },
-      message:
-        "started following you 👤",
+      io.to(receiverSocket).emit(
+        "new_notification",
+        {
+          type: "follow",
+          sender: {
+            _id: currentUser._id,
+            name: currentUser.name,
+            username: currentUser.username,
+            profilePic: currentUser.profilePic,
+          },
+          message:
+            "started following you 👤",
+        }
+      );
+
     }
-  );
-
-}
 
 
     io.emit("profile_updated", {
@@ -342,9 +342,8 @@ const getUserProfile = async (req, res) => {
 
     const user = await User.findById(userId)
       .select(
-        "name username bio profilePic followers following isPrivate"
+        "name username bio profilePic followers following isPrivate lastSeen"
       );
-
     if (!user) {
       return res.status(404).json({
         message: "User not found",
@@ -366,6 +365,7 @@ const getUserProfile = async (req, res) => {
         followersCount: user.followers.length,
         followingCount: user.following.length,
         isPrivate: user.isPrivate,
+        lastSeen: user.lastSeen,
         isFollowing,
       },
     });

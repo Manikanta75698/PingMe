@@ -49,7 +49,7 @@ function Profile() {
 
   const [newProfilePic, setNewProfilePic] = useState(null);
   const [previewPic, setPreviewPic] = useState("");
-
+  const [isOnline, setIsOnline] = useState(false);
   const currentUserId =
     currentUser?.id || currentUser?._id;
 
@@ -142,6 +142,24 @@ function Profile() {
 
       socket.off("profile_updated");
 
+    };
+
+  }, [id]);
+
+  useEffect(() => {
+
+    socket.on("online_users", (users) => {
+
+      const online = users.some(
+        (user) => user.userId === id
+      );
+
+      setIsOnline(online);
+
+    });
+
+    return () => {
+      socket.off("online_users");
     };
 
   }, [id]);
@@ -404,6 +422,39 @@ function Profile() {
 
   // Upload Profile Picture
 
+  const formatLastSeen = (date) => {
+
+    if (!date) return "Offline";
+
+    const seconds =
+      Math.floor(
+        (new Date() - new Date(date)) / 1000
+      );
+
+    const minutes =
+      Math.floor(seconds / 60);
+
+    const hours =
+      Math.floor(minutes / 60);
+
+    const days =
+      Math.floor(hours / 24);
+
+
+    if (minutes < 1)
+      return "Last seen just now";
+
+    if (minutes < 60)
+      return `Last seen ${minutes} min ago`;
+
+    if (hours < 24)
+      return `Last seen ${hours} hr ago`;
+
+    return `Last seen ${days} days ago`;
+
+  };
+
+
   const handleProfilePicUpload = async () => {
 
     try {
@@ -591,6 +642,19 @@ function Profile() {
             <h3 className="profile-username">
               @{profile.username}
             </h3>
+
+            <p className="profile-status">
+
+              {
+                isOnline ? (
+                  "🟢 Online"
+                ) : (
+                  `⚫ ${formatLastSeen(profile.lastSeen)}`
+                )
+
+              }
+
+            </p>
 
 
             {/* Bio */}
