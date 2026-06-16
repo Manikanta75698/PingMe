@@ -407,6 +407,11 @@ function Home() {
       "new_notification",
       (notification) => {
 
+        console.log(
+          "LIVE NOTIFICATION RECEIVED 🔥",
+          notification
+        );
+
         setUnreadCount(
           (prev) => prev + 1
         );
@@ -420,7 +425,6 @@ function Home() {
 
       }
     );
-
 
     return () => {
 
