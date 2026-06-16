@@ -99,6 +99,11 @@ function Chat() {
         }
       );
 
+      console.log(
+        "CHAT USERS 🔥",
+        res.data.users
+      );
+
       setAllUsers(res.data.users);
 
     } catch (error) {

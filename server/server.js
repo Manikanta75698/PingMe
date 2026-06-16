@@ -130,13 +130,11 @@ io.on("connection", (socket) => {
 
     console.log("User Disconnected:", socket.id);
 
-
     const disconnectedUser =
       onlineUsers.find(
         (user) =>
           user.socketId === socket.id
       );
-
 
     if (disconnectedUser) {
 
@@ -153,12 +151,10 @@ io.on("connection", (socket) => {
 
     }
 
-
     onlineUsers = onlineUsers.filter(
       (user) =>
         user.socketId !== socket.id
     );
-
 
     io.emit(
       "online_users",
