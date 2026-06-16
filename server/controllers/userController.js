@@ -521,7 +521,7 @@ const getAllUsers = async (req, res) => {
 
     })
       .select(
-        "name username profilePic"
+        "name username profilePic lastSeen"
       );
 
 
@@ -531,14 +531,12 @@ const getAllUsers = async (req, res) => {
 
     });
 
-  }
-  catch (error) {
+  } catch (error) {
 
     console.log(
       "GET ALL USERS ERROR:",
       error
     );
-
 
     res.status(500).json({
 

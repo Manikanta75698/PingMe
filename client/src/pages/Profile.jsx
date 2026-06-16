@@ -90,7 +90,6 @@ function Profile() {
 
       setPosts(postRes.data.posts);
 
-
       setProfile(res.data.user);
 
       setIsFollowing(

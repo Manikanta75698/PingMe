@@ -580,6 +580,32 @@ function Chat() {
         user.username === selectedUser
     );
 
+  const formatLastSeen = (date) => {
+
+    if (!date) return "Offline";
+
+    const seconds = Math.floor(
+      (new Date() - new Date(date)) / 1000
+    );
+
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (minutes < 1)
+      return "Last seen just now";
+
+    if (minutes < 60)
+      return `Last seen ${minutes} min ago`;
+
+    if (hours < 24)
+      return `Last seen ${hours} hr ago`;
+
+    return `Last seen ${days} days ago`;
+
+  };
+
+
   const filteredMessages = messages.filter(
     (msg) =>
       (msg.sender === user.username &&
@@ -741,7 +767,7 @@ function Chat() {
 
                     {isOnline
                       ? "🟢 Online"
-                      : "⚫ Offline"}
+                      : `⚫ ${formatLastSeen(chatUser.lastSeen)}`}
 
                   </p>
 
@@ -815,7 +841,7 @@ function Chat() {
                           u.username === selectedUser
                       )
                         ? "🟢 Online"
-                        : "⚫ Offline"
+                        : `⚫ ${formatLastSeen(selectedUserData?.lastSeen)}`
                       : "Select someone to start chatting"}
                   </p>
 
