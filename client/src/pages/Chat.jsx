@@ -310,8 +310,33 @@ function Chat() {
         }, 2000);
       }
     });
-    socket.on("online_users", (users) => {
+    socket.on("online_users", async (users) => {
+
       setOnlineUsers(users);
+
+      try {
+
+        const res = await axios.get(
+          "https://pingme-api-new.onrender.com/api/users/all",
+          {
+            headers: {
+              Authorization:
+                `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        setAllUsers(res.data.users);
+
+      } catch (error) {
+
+        console.log(
+          "REFRESH USERS ERROR:",
+          error
+        );
+
+      }
+
     });
 
     socket.on("message_seen_update", (data) => {
