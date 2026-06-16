@@ -42,14 +42,19 @@ let onlineUsers = [];
 
 const getUserSocket = (userId) => {
 
+  console.log("Finding socket for:", userId);
+
+  console.log("Current online users:", onlineUsers);
+
   const user = onlineUsers.find(
     (onlineUser) =>
       onlineUser.userId.toString() === userId.toString()
   );
 
+  console.log("FOUND USER:", user);
+
   return user?.socketId;
 };
-
 
 app.set(
   "getUserSocket",
@@ -60,6 +65,8 @@ io.on("connection", (socket) => {
   console.log("User Connected:", socket.id);
 
   socket.on("join", (data) => {
+
+    console.log("JOIN DATA:", data);
 
     onlineUsers = onlineUsers.filter(
       (user) => user.username !== data.username
@@ -72,8 +79,9 @@ io.on("connection", (socket) => {
       profilePic: data.profilePic,
     });
 
-    io.emit("online_users", onlineUsers);
+    console.log("ONLINE USERS:", onlineUsers);
 
+    io.emit("online_users", onlineUsers);
   });
 
   socket.on("private_message", (data) => {

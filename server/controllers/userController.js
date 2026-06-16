@@ -187,7 +187,6 @@ if (receiverSocket) {
 
 }
 
-    const io = req.app.get("io");
 
     io.emit("profile_updated", {
       userId: req.params.id,

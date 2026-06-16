@@ -348,6 +348,25 @@ function Home() {
 
   useEffect(() => {
 
+    if (userId && user.username) {
+
+      socket.emit("join", {
+        userId: userId,
+        username: user.username,
+        profilePic: user.profilePic,
+      });
+
+      console.log(
+        "SOCKET JOIN SENT 🔥",
+        user.username
+      );
+
+    }
+
+  }, []);
+
+  useEffect(() => {
+
     const timer = setTimeout(async () => {
 
       if (!searchText.trim()) {
