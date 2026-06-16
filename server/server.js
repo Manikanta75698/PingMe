@@ -43,12 +43,11 @@ let onlineUsers = [];
 const getUserSocket = (userId) => {
 
   const user = onlineUsers.find(
-    (user) =>
-      user.userId === userId
+    (onlineUser) =>
+      onlineUser.userId.toString() === userId.toString()
   );
 
   return user?.socketId;
-
 };
 
 
