@@ -654,9 +654,12 @@ function Chat() {
           </h2>
 
           <img
-            src={imagePreview}
+            src={imagePreview || "/default-avatar.png"}
             className="mini-profile"
             alt="Profile"
+            onError={(e) => {
+              e.target.src = "/default-avatar.png";
+            }}
             onClick={() =>
               navigate(`/profile/${user.id || user._id}`)
             }
