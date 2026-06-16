@@ -897,7 +897,12 @@ function Home() {
 
 
                   {/* User */}
-                  <div className="post-user">
+                  <div
+                    className="post-user"
+                    onClick={() =>
+                      navigate(`/profile/${post.user._id}`)
+                    }
+                  >
 
                     <img
                       src={post.user.profilePic}
