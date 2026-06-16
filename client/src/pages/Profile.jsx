@@ -624,12 +624,18 @@ function Profile() {
                 <p>Posts</p>
               </div>
 
-              <div>
+              <div
+                onClick={fetchFollowers}
+                style={{ cursor: "pointer" }}
+              >
                 <h3>{profile.followersCount}</h3>
                 <p>Followers</p>
               </div>
 
-              <div>
+              <div
+                onClick={fetchFollowing}
+                style={{ cursor: "pointer" }}
+              >
                 <h3>{profile.followingCount}</h3>
                 <p>Following</p>
               </div>
