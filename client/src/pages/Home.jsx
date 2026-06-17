@@ -52,6 +52,8 @@ function Home() {
   const [selectedPost, setSelectedPost] = useState(null);
   const [animatedPost, setAnimatedPost] =
     useState(null);
+  const [showLikesModal, setShowLikesModal] = useState(false);
+  const [selectedLikes, setSelectedLikes] = useState([]);
 
   const menuRef = useRef(null);
 
@@ -127,6 +129,11 @@ function Home() {
 
   };
 
+  const openLikesModal = (post) => {
+    setSelectedLikes(post.likes || []);
+    setShowLikesModal(true);
+  };
+
   const fetchNotifications = async () => {
 
     try {
@@ -184,7 +191,9 @@ function Home() {
 
       const alreadyLiked = likes.some(
         id =>
-          id.toString() === userId.toString()
+          likeUser._id
+            ? likeUser._id.toString() === userId.toString()
+            : likeUser.toString() === userId.toString()
       );
 
 
@@ -206,8 +215,9 @@ function Home() {
             ...post,
             likes: alreadyLiked
               ? post.likes.filter(
-                id =>
-                  id.toString() !== userId.toString()
+                likeUser =>
+                  (likeUser._id || likeUser)
+                    .toString() !== userId.toString()
               )
               : [...post.likes, userId]
           };
@@ -976,10 +986,10 @@ function Home() {
             posts.map((post) => {
 
               const isLiked =
-                userId &&
                 post.likes.some(
-                  id =>
-                    id.toString() === userId.toString()
+                  likeUser =>
+                    likeUser?._id?.toString() ===
+                    userId?.toString()
                 );
               return (
 
@@ -1086,8 +1096,11 @@ function Home() {
 
                   </div>
 
-                  <p className="likes-count">
-                    {post.likes.length} likes
+                  <p
+                    className="likes-count"
+                    onClick={() => openLikesModal(post)}
+                  >
+                    ❤️ {post.likes.length} likes
                   </p>
 
                   {/* Caption */}
@@ -1174,6 +1187,56 @@ function Home() {
 
             <button
               onClick={() => setSelectedPost(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showLikesModal && (
+        <div
+          className="comments-modal"
+          onClick={() => setShowLikesModal(false)}
+        >
+          <div
+            className="comments-box"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>❤️ Likes</h3>
+
+            {selectedLikes.length === 0 ? (
+              <p>No likes yet</p>
+            ) : (
+              selectedLikes.map((user) => (
+                <div
+                  key={user._id}
+                  className="search-user"
+                  onClick={() => {
+                    navigate(`/profile/${user._id}`);
+                    setShowLikesModal(false);
+                  }}
+                >
+                  <img
+                    src={
+                      user.profilePic ||
+                      "/default-avatar.png"
+                    }
+                    alt={user.name}
+                  />
+
+                  <div>
+                    <h4>{user.name}</h4>
+                    <p>@{user.username}</p>
+                  </div>
+                </div>
+              ))
+            )}
+
+            <button
+              onClick={() =>
+                setShowLikesModal(false)
+              }
             >
               Close
             </button>

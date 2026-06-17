@@ -299,26 +299,30 @@ const getPosts = async (req, res) => {
         "comments.user",
         "username name profilePic"
       )
+      .populate(
+        "likes",
+        "name username profilePic"
+      )
       .sort({
         createdAt: -1,
       });
 
-    res.status(200).json({
-      posts,
-    });
+res.status(200).json({
+  posts,
+});
 
   } catch (error) {
 
-    console.log(
-      "GET POSTS ERROR:",
-      error
-    );
+  console.log(
+    "GET POSTS ERROR:",
+    error
+  );
 
-    res.status(500).json({
-      message: "Something went wrong",
-    });
+  res.status(500).json({
+    message: "Something went wrong",
+  });
 
-  }
+}
 };
 
 const getUserPosts = async (req, res) => {
