@@ -188,31 +188,15 @@
   font-size: 15px;
 }
 
-/* =====================
-   Post Actions
-===================== */
-
-.post-actions {
-  padding: 12px 15px 5px;
-}
-
 .like-btn {
-  background: transparent;
-  border: none;
-
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  color: var(--home-text);
-
-  font-size: 22px;
-  cursor: pointer;
-
-  transition: 0.25s;
-
-  -webkit-tap-highlight-color: transparent;
+  color: #ff3040;
 }
+
+.comment-btn {
+  color: #333;
+}
+
+
 
 .like-btn span {
   font-size: 15px;
@@ -558,9 +542,9 @@
 
 
   .post-caption {
-    padding: 18px;
-
-    font-size: 16px;
+    padding: 0 18px 12px;
+    font-size: 15px;
+    font-weight: 500;
   }
 
 }
@@ -978,13 +962,119 @@
   font-size: 11px;
   font-weight: bold;
 }
+
+
+.left-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+
+.post-actions {
+  display: flex;
+  align-items: center;
+  padding: 12px 18px;
+}
+
+.likes-count {
+  padding: 0 18px;
+  margin: 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+
+.likes-count {
+  padding: 0 18px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.view-comments {
+  color: var(--home-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.comments-list strong {
+  color: var(--home-text);
+  font-weight: 600;
+}
+
+.post-actions {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 12px 18px !important;
+}
+
+.left-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 18px !important;
+}
+
 .save-btn {
-  background: none;
+  background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 20px;
+  color: black;
+
+  font-size: 22px;
+
+  display: block;
+}
+
+.dark .save-btn {
+  color: white;
 }
 
 .save-btn.saved {
-  color: #ffb300;
+  color: #ffb300 !important;
+}
+
+.post-actions .save-btn {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+
+  width: auto !important;
+  min-width: auto !important;
+  max-width: fit-content !important;
+
+  padding: 0 !important;
+  margin-left: auto !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  flex: 0 0 auto !important;
+
+  box-shadow: none !important;
+
+  font-size: 22px !important;
+}
+
+.comments-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.comments-box {
+  width: 90%;
+  max-width: 450px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
 }
