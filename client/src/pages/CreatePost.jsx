@@ -63,9 +63,7 @@ function CreatePost() {
       );
 
 
-      alert(
-        res.data.message
-      );
+      alert("Post shared successfully 🚀");
 
       navigate("/home");
 
@@ -97,27 +95,51 @@ function CreatePost() {
 
       <div className="create-card">
 
-        <h1>
-          Create Post 📸
+        <h1 className="create-title">
+          Create New Post ✨
         </h1>
 
 
         <input
+          id="post-image"
           type="file"
           accept="image/*"
+          hidden
           onChange={handleImageChange}
         />
 
+        <label
+          htmlFor="post-image"
+          className="upload-box"
+        >
 
-        {
-          preview && (
-            <img
-              src={preview}
-              alt="Preview"
-              className="preview-image"
-            />
-          )
-        }
+          {
+            preview ? (
+
+              <img
+                src={preview}
+                alt="Preview"
+                className="preview-image"
+              />
+
+            ) : (
+
+              <div className="upload-content">
+
+                <h2>📷</h2>
+
+                <h3>Upload Image</h3>
+
+                <p>
+                  Click here to select image
+                </p>
+
+              </div>
+
+            )
+          }
+
+        </label>
 
 
         <textarea
@@ -137,8 +159,8 @@ function CreatePost() {
 
           {
             loading
-              ? "Sharing..."
-              : "Share 🚀"
+              ? "Uploading... ⏳"
+              : "Share Post 🚀"
           }
 
         </button>
