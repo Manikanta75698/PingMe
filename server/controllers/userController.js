@@ -355,6 +355,14 @@ const getUserProfile = async (req, res) => {
       id => id.toString() === req.user._id.toString()
     );
 
+    const validFollowers = await User.countDocuments({
+      _id: { $in: user.followers }
+    });
+
+    const validFollowing = await User.countDocuments({
+      _id: { $in: user.following }
+    });
+
     res.status(200).json({
       user: {
         id: user._id,
@@ -362,8 +370,8 @@ const getUserProfile = async (req, res) => {
         username: user.username,
         bio: user.bio,
         profilePic: user.profilePic,
-        followersCount: user.followers.length,
-        followingCount: user.following.length,
+        followersCount: validFollowers,
+        followingCount: validFollowing,
         isPrivate: user.isPrivate,
         lastSeen: user.lastSeen,
         isFollowing,
