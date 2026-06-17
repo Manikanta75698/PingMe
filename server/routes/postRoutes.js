@@ -13,6 +13,7 @@ const {
   getUserPosts,
   savePost,
   getSavedPosts,
+  deletePost,
 } = require("../controllers/postController");
 
 router.post(
@@ -56,6 +57,12 @@ router.get(
   "/saved",
   protect,
   getSavedPosts
+);
+
+router.delete(
+  "/:id",
+  protect,
+  deletePost
 );
 
 router.get(

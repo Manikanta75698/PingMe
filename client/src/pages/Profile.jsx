@@ -7,6 +7,7 @@ import {
   FaTh,
   FaBookmark
 } from "react-icons/fa";
+import { FaTrash } from "react-icons/fa";
 
 function Profile() {
 
@@ -34,6 +35,7 @@ function Profile() {
   const [savedPosts, setSavedPosts] = useState([]);
   const [activeTab, setActiveTab] = useState("posts");
   const [selectedPost, setSelectedPost] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -531,6 +533,56 @@ function Profile() {
 
   };
 
+  const handleDeletePost = async (postId) => {
+
+    const confirmDelete =
+      window.confirm(
+        "Delete this post?"
+      );
+
+    if (!confirmDelete) return;
+
+    try {
+
+      setDeleteLoading(true);
+
+      await axios.delete(
+        `https://pingme-api-new.onrender.com/api/posts/${postId}`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+      setPosts(prev =>
+        prev.filter(
+          post => post._id !== postId
+        )
+      );
+
+      setSelectedPost(null);
+
+      alert("Post deleted 🗑️");
+
+    } catch (error) {
+
+      console.log(
+        "DELETE POST ERROR:",
+        error
+      );
+
+      alert("Delete failed ❌");
+
+    } finally {
+
+      setDeleteLoading(false);
+
+    }
+
+  };
+
   if (loading) {
     return (
       <div className="profile-skeleton">
@@ -915,6 +967,20 @@ function Profile() {
                 {selectedPost.caption}
               </p>
 
+              {isOwnProfile && (
+                <button
+                  className="delete-post-btn"
+                  onClick={() =>
+                    handleDeletePost(
+                      selectedPost._id
+                    )
+                  }
+                  disabled={deleteLoading}
+                >
+                  <FaTrash />
+                  Delete Post
+                </button>
+              )}
               <button
                 className="close-btn"
                 onClick={() =>

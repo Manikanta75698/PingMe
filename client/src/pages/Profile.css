@@ -619,3 +619,25 @@
   }
 
 }
+
+.delete-post-btn {
+  background: #ef4444;
+  color: white;
+
+  border: none;
+  border-radius: 10px;
+
+  padding: 12px;
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+}
+
+.delete-post-btn:hover {
+  background: #dc2626;
+}
