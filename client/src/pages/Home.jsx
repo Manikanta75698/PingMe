@@ -190,10 +190,9 @@ function Home() {
 
 
       const alreadyLiked = likes.some(
-        id =>
-          likeUser._id
-            ? likeUser._id.toString() === userId.toString()
-            : likeUser.toString() === userId.toString()
+        (likeUser) =>
+          (likeUser?._id || likeUser)
+            ?.toString() === userId.toString()
       );
 
 
@@ -215,8 +214,8 @@ function Home() {
             ...post,
             likes: alreadyLiked
               ? post.likes.filter(
-                likeUser =>
-                  (likeUser._id || likeUser)
+                (likeUser) =>
+                  (likeUser?._id || likeUser)
                     .toString() !== userId.toString()
               )
               : [...post.likes, userId]
