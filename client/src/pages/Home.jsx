@@ -130,7 +130,12 @@ function Home() {
   };
 
   const openLikesModal = (post) => {
-    setSelectedLikes(post.likes || []);
+    setSelectedLikes(
+      (post.likes || []).filter(
+        (user) => user && user.username
+      )
+    );
+
     setShowLikesModal(true);
   };
 
@@ -203,7 +208,6 @@ function Home() {
         `https://pingme-api-new.onrender.com/api/posts/like/${postId}`;
 
 
-      // Instant UI update FIRST
       setPosts(prevPosts =>
         prevPosts.map(post => {
 
@@ -215,13 +219,16 @@ function Home() {
             likes: alreadyLiked
               ? post.likes.filter(
                 (likeUser) =>
-                  (likeUser?._id || likeUser)
-                    .toString() !== userId.toString()
+                  String(likeUser?._id || likeUser) !==
+                  String(userId)
               )
               : [
                 ...post.likes,
                 {
-                  _id: userId
+                  _id: userId,
+                  name: user.name,
+                  username: user.username,
+                  profilePic: user.profilePic
                 }
               ]
           };
@@ -258,9 +265,9 @@ function Home() {
 
     const alreadyLiked =
       post.likes.some(
-        id =>
-          id.toString() ===
-          userId.toString()
+        (likeUser) =>
+          String(likeUser?._id || likeUser) ===
+          String(userId)
       );
 
     if (!alreadyLiked) {
@@ -1213,29 +1220,33 @@ function Home() {
             {selectedLikes.length === 0 ? (
               <p>No likes yet</p>
             ) : (
-              selectedLikes.map((user) => (
-                <div
-                  key={user._id}
-                  className="search-user"
-                  onClick={() => {
-                    navigate(`/profile/${user._id}`);
-                    setShowLikesModal(false);
-                  }}
-                >
-                  <img
-                    src={
-                      user.profilePic ||
-                      "/default-avatar.png"
-                    }
-                    alt={user.name}
-                  />
+              selectedLikes
+                .filter(
+                  (user) => user && user.username
+                )
+                .map((user) => (
+                  <div
+                    key={user._id}
+                    className="search-user"
+                    onClick={() => {
+                      navigate(`/profile/${user._id}`);
+                      setShowLikesModal(false);
+                    }}
+                  >
+                    <img
+                      src={
+                        user.profilePic ||
+                        "/default-avatar.png"
+                      }
+                      alt={user.name}
+                    />
 
-                  <div>
-                    <h4>{user.name}</h4>
-                    <p>@{user.username}</p>
+                    <div>
+                      <h4>{user.name}</h4>
+                      <p>@{user.username}</p>
+                    </div>
                   </div>
-                </div>
-              ))
+                ))
             )}
 
             <button
