@@ -1,5 +1,6 @@
 const Post = require("../models/Post");
 const Notification = require("../models/Notification");
+const User = require("../models/User");
 
 const createPost = async (req, res) => {
   try {
@@ -232,43 +233,43 @@ const addComment = async (req, res) => {
 
         });
 
-        const io = req.app.get("io");
+      const io = req.app.get("io");
 
-const getUserSocket =
-  req.app.get("getUserSocket");
-
-
-const receiverSocket =
-  getUserSocket(post.user.toString());
+      const getUserSocket =
+        req.app.get("getUserSocket");
 
 
-if (receiverSocket) {
+      const receiverSocket =
+        getUserSocket(post.user.toString());
 
-  const senderUser = req.user;
+
+      if (receiverSocket) {
+
+        const senderUser = req.user;
 
 
-  io.to(receiverSocket).emit(
-    "new_notification",
-    {
+        io.to(receiverSocket).emit(
+          "new_notification",
+          {
 
-      ...notification.toObject(),
+            ...notification.toObject(),
 
-      sender: {
+            sender: {
 
-        _id: senderUser._id,
+              _id: senderUser._id,
 
-        name: senderUser.name,
+              name: senderUser.name,
 
-        username: senderUser.username,
+              username: senderUser.username,
 
-        profilePic: senderUser.profilePic,
+              profilePic: senderUser.profilePic,
 
-      },
+            },
 
-    }
-  );
+          }
+        );
 
-}
+      }
 
     }
 
@@ -347,6 +348,70 @@ const getUserPosts = async (req, res) => {
   }
 };
 
+const savePost = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const postId = req.params.id;
+
+    const user = await User.findById(userId);
+
+    const alreadySaved = user.savedPosts.some(
+      (id) => id.toString() === postId
+    );
+
+    if (alreadySaved) {
+      user.savedPosts = user.savedPosts.filter(
+        (id) => id.toString() !== postId
+      );
+
+      await user.save();
+
+      return res.status(200).json({
+        saved: false,
+        message: "Post removed from saved",
+      });
+    }
+
+    user.savedPosts.push(postId);
+
+    await user.save();
+
+    res.status(200).json({
+      saved: true,
+      message: "Post saved successfully 🔖",
+    });
+  } catch (error) {
+    console.log("SAVE POST ERROR:", error);
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+};
+
+const getSavedPosts = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .populate({
+        path: "savedPosts",
+        populate: {
+          path: "user",
+          select: "name username profilePic",
+        },
+      });
+
+    res.status(200).json({
+      posts: user.savedPosts.reverse(),
+    });
+  } catch (error) {
+    console.log("GET SAVED POSTS ERROR:", error);
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+};
+
 module.exports = {
   createPost,
   likePost,
@@ -354,4 +419,6 @@ module.exports = {
   addComment,
   getPosts,
   getUserPosts,
+  savePost,
+  getSavedPosts,
 };

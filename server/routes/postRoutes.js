@@ -11,7 +11,10 @@ const {
   addComment,
   getPosts,
   getUserPosts,
+  savePost,
+  getSavedPosts,
 } = require("../controllers/postController");
+
 router.post(
   "/create",
   protect,
@@ -41,6 +44,18 @@ router.get(
   "/",
   protect,
   getPosts
+);
+
+router.post(
+  "/save/:id",
+  protect,
+  savePost
+);
+
+router.get(
+  "/saved",
+  protect,
+  getSavedPosts
 );
 
 router.get(

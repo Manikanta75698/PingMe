@@ -49,6 +49,16 @@ const userSchema = new mongoose.Schema(
       default: [],
     },
 
+    savedPosts: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Post",
+        },
+      ],
+      default: [],
+    },
+
     isPrivate: {
       type: Boolean,
       default: false,

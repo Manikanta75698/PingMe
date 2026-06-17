@@ -19,7 +19,8 @@ import {
   FaHeart,
   FaComment,
   FaTimes,
-  FaBell
+  FaBell,
+  FaBookmark
 } from "react-icons/fa";
 
 import "./Home.css";
@@ -47,6 +48,7 @@ function Home() {
 
   const [showMenu, setShowMenu] = useState(false);
   const [commentText, setCommentText] = useState({});
+  const [savedPosts, setSavedPosts] = useState([]);
 
   const menuRef = useRef(null);
 
@@ -91,6 +93,21 @@ function Home() {
 
       setPosts(res.data.posts);
 
+      const savedRes = await axios.get(
+        "https://pingme-api-new.onrender.com/api/posts/saved",
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+      setSavedPosts(
+        savedRes.data.posts.map(
+          post => post._id
+        )
+      );
 
     } catch (error) {
 
@@ -231,6 +248,45 @@ function Home() {
     }
 
 
+  };
+
+  const toggleSave = async (postId) => {
+    try {
+
+      const res = await axios.post(
+        `https://pingme-api-new.onrender.com/api/posts/save/${postId}`,
+        {},
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+      if (res.data.saved) {
+
+        setSavedPosts(prev => [
+          ...prev,
+          postId
+        ]);
+
+      } else {
+
+        setSavedPosts(prev =>
+          prev.filter(id => id !== postId)
+        );
+
+      }
+
+    } catch (error) {
+
+      console.log(
+        "SAVE ERROR:",
+        error
+      );
+
+    }
   };
 
   const handleComment = async (postId) => {
@@ -945,24 +1001,25 @@ function Home() {
                         toggleLike(post._id, post.likes)
                       }
                     >
-
                       <FaHeart />
-
-                      <span>
-                        {post.likes.length}
-                      </span>
-
+                      <span>{post.likes.length}</span>
                     </button>
 
-
                     <button className="comment-btn">
-
                       <FaComment />
+                      <span>{post.comments.length}</span>
+                    </button>
 
-                      <span>
-                        {post.comments.length}
-                      </span>
-
+                    <button
+                      className={`save-btn ${savedPosts.includes(post._id)
+                          ? "saved"
+                          : ""
+                        }`}
+                      onClick={() =>
+                        toggleSave(post._id)
+                      }
+                    >
+                      <FaBookmark />
                     </button>
 
                   </div>
