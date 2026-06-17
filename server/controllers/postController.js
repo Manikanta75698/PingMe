@@ -370,6 +370,15 @@ const deletePost = async (req, res) => {
       });
     }
 
+    await User.updateMany(
+      {},
+      {
+        $pull: {
+          savedPosts: req.params.id,
+        },
+      }
+    );
+
     await Post.findByIdAndDelete(
       req.params.id
     );
