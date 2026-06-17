@@ -3,6 +3,10 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import socket from "../socket";
 import "./Profile.css";
+import {
+  FaTh,
+  FaBookmark
+} from "react-icons/fa";
 
 function Profile() {
 
@@ -27,6 +31,9 @@ function Profile() {
       : null
   );
   const [posts, setPosts] = useState([]);
+  const [savedPosts, setSavedPosts] = useState([]);
+  const [activeTab, setActiveTab] = useState("posts");
+  const [selectedPost, setSelectedPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -119,11 +126,28 @@ function Profile() {
 
   };
 
+  const fetchSavedPosts = async () => {
+    try {
+      const res = await axios.get(
+        "https://pingme-api-new.onrender.com/api/posts/saved",
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+      setSavedPosts(res.data.posts);
+
+    } catch (error) {
+      console.log("SAVED POSTS ERROR:", error);
+    }
+  };
+
   useEffect(() => {
-
     fetchProfile();
-
-  }, [id]);
+    fetchSavedPosts();
+  }, []);
 
   useEffect(() => {
 
@@ -712,42 +736,79 @@ function Profile() {
 
             </div>
 
+            <div className="profile-tabs">
+
+              <button
+                className={activeTab === "posts"
+                  ? "active-tab"
+                  : ""}
+                onClick={() =>
+                  setActiveTab("posts")
+                }
+              >
+                <FaTh />
+              </button>
+
+              <button
+                className={activeTab === "saved"
+                  ? "active-tab"
+                  : ""}
+                onClick={() =>
+                  setActiveTab("saved")
+                }
+              >
+                <FaBookmark />
+              </button>
+
+            </div>
+
           </div>
 
         </div>
 
 
         {/* Posts Section */}
-        {/* Posts Section */}
+
 
         <h3 className="posts-title">
-          POSTS
+          {activeTab === "posts"
+            ? "POSTS"
+            : "SAVED POSTS"}
         </h3>
 
         <div className="profile-posts">
 
-          {
-            posts.length === 0 ? (
+          {(activeTab === "posts"
+            ? posts
+            : savedPosts
+          ).length === 0 ? (
 
-              <div className="no-posts">
-                <h2>No posts yet 📷</h2>
-              </div>
+            <div className="no-posts">
+              <h2>
+                {activeTab === "posts"
+                  ? "No posts yet 📷"
+                  : "No saved posts 🔖"}
+              </h2>
+            </div>
 
-            ) : (
+          ) : (
 
-              posts.map((post) => (
+            (activeTab === "posts"
+              ? posts
+              : savedPosts
+            ).map((post) => (
 
-                <img
-                  key={post._id}
-                  src={post.image}
-                  alt="Post"
-                  className="profile-post-image"
-                />
+              <img
+                key={post._id}
+                src={post.image}
+                alt="Post"
+                className="profile-post-image"
+                onClick={() => setSelectedPost(post)}
+              />
 
-              ))
+            ))
 
-            )
-          }
+          )}
 
         </div>
 
@@ -820,6 +881,55 @@ function Profile() {
           </div>
 
         </div>
+      )}
+
+      {selectedPost && (
+
+        <div
+          className="post-modal"
+          onClick={() =>
+            setSelectedPost(null)
+          }
+        >
+
+          <div
+            className="post-modal-content"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+
+            <img
+              src={selectedPost.image}
+              alt="Post"
+              className="post-modal-image"
+            />
+
+            <div className="post-modal-info">
+
+              <h3>
+                @{profile.username}
+              </h3>
+
+              <p>
+                {selectedPost.caption}
+              </p>
+
+              <button
+                className="close-btn"
+                onClick={() =>
+                  setSelectedPost(null)
+                }
+              >
+                Close
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
       )}
 
       {showFollowers && (
