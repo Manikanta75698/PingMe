@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import toast from "react-hot-toast";
 import "./CreatePost.css";
 
 function CreatePost() {
@@ -30,7 +31,7 @@ function CreatePost() {
   const handleCreatePost = async () => {
 
     if (!image) {
-      alert("Please select an image 📷");
+      toast.error("Please select an image 📷");
       return;
     }
 
@@ -63,7 +64,7 @@ function CreatePost() {
       );
 
 
-      alert("Post shared successfully 🚀");
+      toast.success("Post shared successfully 🚀");
 
       navigate("/home");
 
@@ -75,7 +76,7 @@ function CreatePost() {
         error
       );
 
-      alert(
+      toast.error(
         error.response?.data?.message ||
         "Failed to create post ❌"
       );

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import socket from "../socket";
+import toast from "react-hot-toast";
 import "./Profile.css";
 import {
   FaTh,
@@ -309,7 +310,7 @@ function Profile() {
         followersCount: oldCount,
       }));
 
-      alert("Something went wrong ❌");
+      toast.error("Something went wrong");
     }
 
     finally {
@@ -424,7 +425,7 @@ function Profile() {
 
       setIsEditing(false);
 
-      alert("Profile updated successfully ✅");
+      toast.success("Profile updated successfully");
 
 
     } catch (error) {
@@ -435,7 +436,7 @@ function Profile() {
       );
 
 
-      alert(
+      toast.error(
         error.response?.data?.message ||
         "Update failed"
       );
@@ -518,7 +519,7 @@ function Profile() {
       setNewProfilePic(null);
       setPreviewPic("");
 
-      alert("Profile picture updated ✅");
+      toast.success("Profile picture updated");
 
     } catch (error) {
 
@@ -527,7 +528,7 @@ function Profile() {
         error
       );
 
-      alert("Upload failed ❌");
+      toast.error("Upload failed ❌");
 
     }
 
@@ -564,7 +565,7 @@ function Profile() {
 
       setSelectedPost(null);
 
-      alert("Post deleted 🗑️");
+      toast.success("Post deleted successfully");
 
     } catch (error) {
 
@@ -573,7 +574,7 @@ function Profile() {
         error
       );
 
-      alert("Delete failed ❌");
+      toast.error("Failed to delete post");
 
     } finally {
 
