@@ -194,7 +194,17 @@
 }
 
 .like-btn {
-  color: #ff3040;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  font-size: 26px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: all .25s ease;
 }
 
 .comment-btn {
@@ -213,8 +223,21 @@
   transform: scale(1.08);
 }
 
+.like-btn {
+  color: #666;
+  transition: 0.3s ease;
+}
+
+.like-btn svg {
+  color: inherit;
+}
+
 .like-btn.liked {
-  color: #ff3040;
+  color: #ff3040 !important;
+}
+
+.like-btn.liked svg {
+  color: #ff3040 !important;
 }
 
 .like-btn.liked svg {
@@ -963,10 +986,22 @@
 }
 
 .likes-count {
-  padding: 0 18px;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 0 20px;
+
+  margin-bottom: 10px;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  color: var(--home-text);
+
+  cursor: pointer;
+}
+
+.like-btn:hover,
+.comment-btn:hover,
+.save-btn:hover {
+  transform: scale(1.15);
 }
 
 .view-comments {
@@ -985,13 +1020,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 18px;
+
+  padding: 16px 20px 10px;
+
+  border-top: 1px solid rgba(255, 255, 255, .05);
 }
 
 .left-actions {
   display: flex;
   align-items: center;
-  gap: 25px;
+  gap: 30px;
 }
 
 .save-btn {
@@ -999,7 +1037,7 @@
   border: none;
   cursor: pointer;
   color: var(--home-text);
-  font-size: 22px;
+  font-size: 26px;
   display: block;
 }
 

@@ -218,7 +218,12 @@ function Home() {
                   (likeUser?._id || likeUser)
                     .toString() !== userId.toString()
               )
-              : [...post.likes, userId]
+              : [
+                ...post.likes,
+                {
+                  _id: userId
+                }
+              ]
           };
         })
       );
@@ -985,10 +990,11 @@ function Home() {
             posts.map((post) => {
 
               const isLiked =
+                userId &&
                 post.likes.some(
-                  likeUser =>
-                    likeUser?._id?.toString() ===
-                    userId?.toString()
+                  (likeUser) =>
+                    String(likeUser?._id || likeUser) ===
+                    String(userId)
                 );
               return (
 
