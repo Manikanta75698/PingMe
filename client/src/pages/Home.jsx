@@ -28,6 +28,7 @@ import {
 } from "react-icons/fa";
 import { FaPlus } from "react-icons/fa";
 
+
 import "./Home.css";
 
 
@@ -94,6 +95,9 @@ function Home() {
   const [currentStoryIndex,
     setCurrentStoryIndex] =
     useState(0);
+  const [showStoryMenu,
+    setShowStoryMenu] =
+    useState(false);
 
   const menuRef = useRef(null);
 
@@ -118,7 +122,38 @@ function Home() {
 
   const [unreadCount, setUnreadCount] =
     useState(0);
+  const storyMenuRef = useRef(null);
 
+  useEffect(() => {
+
+    const handleOutsideClick = (e) => {
+
+      if (
+        storyMenuRef.current &&
+        !storyMenuRef.current.contains(e.target)
+      ) {
+
+        setShowStoryMenu(false);
+
+      }
+
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleOutsideClick
+    );
+
+    return () => {
+
+      document.removeEventListener(
+        "mousedown",
+        handleOutsideClick
+      );
+
+    };
+
+  }, []);
 
   // Fetch posts
   const fetchPosts = async () => {
@@ -1123,7 +1158,14 @@ function Home() {
 
         {selectedStory && (
 
-          <div className="story-modal">
+          <div
+            className="story-modal"
+            onClick={() => {
+
+              setSelectedStory(null);
+
+            }}
+          >
 
             <div
               className="story-nav left"
@@ -1172,12 +1214,6 @@ function Home() {
 
             <div className="story-top">
 
-              {stories.length > 1 && (
-                <span className="story-count">
-                  {currentStoryIndex + 1} / {stories.length}
-                </span>
-              )}
-
               <div
                 className="story-profile-link"
                 onClick={() => {
@@ -1211,14 +1247,45 @@ function Home() {
                 </div>
 
               </div>
-
-              <button
-                className="story-delete-btn"
-                onClick={deleteStory}
+              <div
+                className="story-menu"
+                ref={storyMenuRef}
               >
-                🗑
-              </button>
 
+                <FaEllipsisH
+                  className="story-menu-icon"
+                  onClick={(e) => {
+
+                    e.stopPropagation();
+
+                    setShowStoryMenu(
+                      prev => !prev
+                    );
+
+                  }}
+                />
+
+                {showStoryMenu &&
+                  selectedStory.user._id === userId && (
+
+                    <div className="story-dropdown">
+
+                      <button
+                        onClick={() => {
+
+                          deleteStory();
+                          setShowStoryMenu(false);
+
+                        }}
+                      >
+                        Delete Story
+                      </button>
+
+                    </div>
+
+                  )}
+
+              </div>
               <button
                 className="story-close"
                 onClick={() =>
@@ -1230,7 +1297,12 @@ function Home() {
 
             </div>
 
-            <div className="story-frame">
+            <div
+              className="story-frame"
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+            >
 
               <img
                 src={selectedStory.image}

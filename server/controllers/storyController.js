@@ -26,7 +26,7 @@ const getStories = async (
       await Story.find()
         .populate(
           "user",
-          "name username profilePic"
+          "_id name username profilePic"
         )
         .sort({
           createdAt: -1,
@@ -87,7 +87,12 @@ const deleteStory = async (
 
     console.log(
       "DELETE STORY ERROR:",
-      error
+      error.response?.data
+    );
+
+    console.log(
+      "DELETE STATUS:",
+      error.response?.status
     );
 
     res.status(500).json({
