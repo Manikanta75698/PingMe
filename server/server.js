@@ -11,6 +11,8 @@ const authRoutes = require("./routes/authRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const postRoutes = require("./routes/postRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const storyRoutes =
+  require("./routes/storyRoutes");
 const User = require("./models/User");
 
 const app = express();
@@ -175,6 +177,10 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use(
+  "/api/stories",
+  storyRoutes
+);
 
 // Static uploads
 app.use("/uploads", express.static("uploads"));

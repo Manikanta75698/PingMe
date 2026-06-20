@@ -26,6 +26,7 @@ import {
   FaRegBookmark,
   FaEllipsisH
 } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
 
 import "./Home.css";
 
@@ -87,6 +88,7 @@ function Home() {
     useState(null);
   const [showLikesModal, setShowLikesModal] = useState(false);
   const [selectedLikes, setSelectedLikes] = useState([]);
+  const [stories, setStories] = useState([]);
 
   const menuRef = useRef(null);
 
@@ -157,6 +159,33 @@ function Home() {
     } finally {
 
       setLoadingPosts(false);
+
+    }
+
+  };
+
+  const fetchStories = async () => {
+
+    try {
+
+      const res = await axios.get(
+        "https://pingme-api-new.onrender.com/api/stories",
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+      setStories(res.data);
+
+    } catch (error) {
+
+      console.log(
+        "STORIES ERROR:",
+        error
+      );
 
     }
 
@@ -483,6 +512,12 @@ function Home() {
   useEffect(() => {
 
     fetchPosts();
+
+  }, []);
+
+  useEffect(() => {
+
+    fetchStories();
 
   }, []);
 
@@ -960,7 +995,43 @@ function Home() {
         )
       }
 
+      <div className="stories-container">
 
+        <div
+          className="story-item"
+          onClick={() =>
+            navigate("/create-story")
+          }
+        >
+          <div className="story-avatar add-story">
+            <FaPlus />
+          </div>
+
+          <span>Your Story</span>
+        </div>
+
+        {stories.map((story) => (
+
+          <div
+            key={story._id}
+            className="story-item"
+          >
+
+            <img
+              src={story.user.profilePic}
+              alt={story.user.name}
+              className="story-avatar-img"
+            />
+
+            <span>
+              {story.user.username}
+            </span>
+
+          </div>
+
+        ))}
+
+      </div>
 
       {/* Feed Start */}
       <div className="feed-container">

@@ -9,6 +9,8 @@ import Profile from "./pages/Profile";
 import CreatePost from "./pages/CreatePost";
 import Home from "./pages/Home";
 import Notifications from "./pages/Notifications";
+import CreateStory
+  from "./pages/CreateStory";
 
 function App() {
   return (
@@ -61,6 +63,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/create-story"
+          element={
+            <ProtectedRoute>
+              <CreateStory />
             </ProtectedRoute>
           }
         />

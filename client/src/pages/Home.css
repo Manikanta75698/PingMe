@@ -412,7 +412,7 @@
 @media (min-width: 1024px) {
 
   .home-container {
-    padding-top: 30px;
+    padding-top: 80px;
     padding-bottom: 30px;
     padding-left: 220px;
     background: var(--home-bg);
@@ -624,13 +624,6 @@
   color: white;
 }
 
-@media (min-width: 1024px) {
-
-  .home-header.hide {
-    transform: translateY(0);
-  }
-
-}
 
 
 .comment-btn span {
@@ -1126,4 +1119,80 @@
 
 .post-menu-btn:hover {
   color: var(--home-text);
+}
+
+.stories-container {
+  display: flex;
+  gap: 15px;
+
+  overflow-x: auto;
+
+  margin-bottom: 20px;
+
+  padding: 10px 0;
+}
+
+.stories-container::-webkit-scrollbar {
+  display: none;
+}
+
+.story-item {
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+
+  min-width: 80px;
+
+  cursor: pointer;
+}
+
+.story-avatar {
+  width: 75px;
+  height: 75px;
+
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background:
+    linear-gradient(45deg,
+      #ff3040,
+      #ffb300,
+      #0095ff);
+
+  color: white;
+
+  font-size: 24px;
+}
+
+.story-avatar-img {
+  width: 75px;
+  height: 75px;
+
+  border-radius: 50%;
+
+  object-fit: cover;
+
+  border: 3px solid #ff3040;
+}
+
+.story-item span {
+  margin-top: 6px;
+
+  font-size: 12px;
+
+  color: var(--home-text);
+}
+
+@media (min-width:1024px) {
+
+  .stories-container {
+    max-width: 680px;
+    margin: 0 auto 10px;
+    padding: 5px 0;
+  }
+
 }
