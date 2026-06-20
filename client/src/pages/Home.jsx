@@ -129,6 +129,11 @@ function Home() {
     useState(0);
   const [userStories, setUserStories] =
     useState([]);
+  const myStory = stories.find(
+    story =>
+      story.user &&
+      story.user._id === userId
+  );
   const storyMenuRef = useRef(null);
 
   useEffect(() => {
@@ -1225,17 +1230,74 @@ function Home() {
 
       <div className="stories-container">
 
-        <div
-          className="story-item"
-          onClick={() =>
-            fileInputRef.current.click()
-          }
-        >
-          <div className="story-avatar add-story">
-            <FaPlus />
+        <div className="story-item">
+
+          <div
+            className="story-avatar-wrapper"
+            onClick={() => {
+
+              if (myStory) {
+
+                const myStories =
+                  stories.filter(
+                    s =>
+                      s.user._id === userId
+                  );
+
+                setUserStories(myStories);
+
+                setSelectedStory(
+                  myStories[0]
+                );
+
+                setCurrentStoryIndex(0);
+
+              } else {
+
+                fileInputRef.current.click();
+
+              }
+
+            }}
+          >
+
+            {myStory ? (
+
+              <img
+                src={user.profilePic}
+                alt=""
+                className="story-avatar-img"
+              />
+
+            ) : (
+
+              <div className="story-avatar add-story">
+                <FaPlus />
+              </div>
+
+            )}
+
+            {myStory && (
+
+              <div
+                className="story-add-btn"
+                onClick={(e) => {
+
+                  e.stopPropagation();
+
+                  fileInputRef.current.click();
+
+                }}
+              >
+                +
+              </div>
+
+            )}
+
           </div>
 
           <span>Your Story</span>
+
         </div>
 
         {
@@ -1247,6 +1309,10 @@ function Home() {
                     s.user._id ===
                     story.user._id
                 )
+            )
+            .filter(
+              story =>
+                story.user._id !== userId
             )
             .map((story, index) => (
 
@@ -1352,6 +1418,12 @@ function Home() {
                   ]
                 );
 
+              } else {
+
+                setSelectedStory(null);
+
+                window.history.back();
+
               }
 
             }}
@@ -1378,7 +1450,10 @@ function Home() {
 
           </div>
 
-          <div className="story-top">
+          <div
+            className="story-top"
+            onClick={(e) => e.stopPropagation()}
+          >
 
             <div
               className="story-profile-link"
@@ -1416,6 +1491,7 @@ function Home() {
             <div
               className="story-menu"
               ref={storyMenuRef}
+              onClick={(e) => e.stopPropagation()}
             >
 
               <FaEllipsisH
@@ -1431,25 +1507,24 @@ function Home() {
                 }}
               />
 
-              {showStoryMenu &&
-                selectedStory.user._id === userId && (
+              {showStoryMenu && (
 
-                  <div className="story-dropdown">
+                <div className="story-dropdown">
 
-                    <button
-                      onClick={() => {
+                  <button
+                    onClick={() => {
 
-                        deleteStory();
-                        setShowStoryMenu(false);
+                      deleteStory();
+                      setShowStoryMenu(false);
 
-                      }}
-                    >
-                      Delete Story
-                    </button>
+                    }}
+                  >
+                    Delete Story
+                  </button>
 
-                  </div>
+                </div>
 
-                )}
+              )}
 
             </div>
 

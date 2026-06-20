@@ -1189,10 +1189,18 @@ body,
 
 .story-nav {
   position: absolute;
-  top: 0;
+  top: 60px;
   bottom: 0;
   width: 50%;
-  z-index: 20;
+  z-index: 5;
+}
+
+.story-top {
+  z-index: 999999;
+}
+
+.story-menu {
+  z-index: 999999;
 }
 
 .story-nav.left {
@@ -1645,4 +1653,37 @@ body,
     width: 100%;
   }
 
+}
+
+.story-avatar-wrapper {
+  position: relative;
+}
+
+.story-add-btn {
+  position: absolute;
+
+  bottom: 0;
+  right: 0;
+
+  width: 24px;
+  height: 24px;
+
+  border-radius: 50%;
+
+  background: #0095ff;
+
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 16px;
+  font-weight: bold;
+
+  border: 2px solid white;
+
+  cursor: pointer;
+
+  z-index: 10;
 }
