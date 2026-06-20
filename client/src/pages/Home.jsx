@@ -16,11 +16,14 @@ import {
   FaPlusSquare,
   FaCommentDots,
   FaUser,
-  FaHeart,
   FaComment,
   FaTimes,
   FaBell,
-  FaBookmark
+  FaHeart,
+  FaRegHeart,
+  FaRegComment,
+  FaBookmark,
+  FaRegBookmark
 } from "react-icons/fa";
 
 import "./Home.css";
@@ -1068,42 +1071,40 @@ function Home() {
                     <div className="left-actions">
 
                       <button
-                        className={`like-btn ${isLiked ? "liked" : ""}`}
+                        className="action-btn"
                         onClick={() =>
                           toggleLike(post._id, post.likes)
                         }
                       >
-                        <FaHeart />
+                        {isLiked ? (
+                          <FaHeart className="liked-heart" />
+                        ) : (
+                          <FaRegHeart />
+                        )}
                       </button>
 
                       <button
-                        className="comment-btn"
+                        className="action-btn"
                         onClick={() =>
                           document
                             .getElementById(`comment-${post._id}`)
                             ?.focus()
                         }
                       >
-                        <FaComment />
+                        <FaRegComment />
                       </button>
 
                     </div>
 
                     <button
-                      title={
-                        savedPosts.includes(post._id)
-                          ? "Saved"
-                          : "Save Post"
-                      }
-                      className={`save-btn ${savedPosts.includes(post._id)
-                        ? "saved"
-                        : ""
-                        }`}
+                      className="action-btn"
                       onClick={() =>
                         toggleSave(post._id)
                       }
                     >
-                      <FaBookmark />
+                      {savedPosts.includes(post._id)
+                        ? <FaBookmark className="saved-icon" />
+                        : <FaRegBookmark />}
                     </button>
 
                   </div>
@@ -1112,7 +1113,7 @@ function Home() {
                     className="likes-count"
                     onClick={() => openLikesModal(post)}
                   >
-                    ❤️ {post.likes.length} likes
+                    {post.likes.length} likes
                   </p>
 
                   {/* Caption */}
