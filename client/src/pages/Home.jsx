@@ -89,6 +89,11 @@ function Home() {
   const [showLikesModal, setShowLikesModal] = useState(false);
   const [selectedLikes, setSelectedLikes] = useState([]);
   const [stories, setStories] = useState([]);
+  const [selectedStory, setSelectedStory] =
+    useState(null);
+  const [currentStoryIndex,
+    setCurrentStoryIndex] =
+    useState(0);
 
   const menuRef = useRef(null);
 
@@ -455,6 +460,45 @@ function Home() {
 
   };
 
+  const deleteStory = async () => {
+
+    const confirmDelete =
+      window.confirm(
+        "Are you sure you want to delete this story?"
+      );
+
+    if (!confirmDelete) return;
+
+    try {
+
+      await axios.delete(
+
+        `https://pingme-api-new.onrender.com/api/stories/${selectedStory._id}`,
+
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+
+      );
+
+      setSelectedStory(null);
+
+      fetchStories();
+
+    } catch (error) {
+
+      console.log(
+        "DELETE STORY ERROR:",
+        error
+      );
+
+    }
+
+  };
+
   // Close menu when clicking outside
   useEffect(() => {
 
@@ -636,6 +680,45 @@ function Home() {
     };
 
   }, []);
+
+  useEffect(() => {
+
+    if (!selectedStory) return;
+
+    const timer =
+      setTimeout(() => {
+
+        if (
+          currentStoryIndex <
+          stories.length - 1
+        ) {
+
+          setCurrentStoryIndex(
+            currentStoryIndex + 1
+          );
+
+          setSelectedStory(
+            stories[
+            currentStoryIndex + 1
+            ]
+          );
+
+        } else {
+
+          setSelectedStory(null);
+
+        }
+
+      }, 5000);
+
+    return () =>
+      clearTimeout(timer);
+
+  }, [
+    selectedStory,
+    currentStoryIndex,
+    stories
+  ]);
 
 
 
@@ -1010,11 +1093,18 @@ function Home() {
           <span>Your Story</span>
         </div>
 
-        {stories.map((story) => (
+        {stories.map((story, index) => (
 
           <div
             key={story._id}
             className="story-item"
+            onClick={() => {
+
+              setSelectedStory(story);
+
+              setCurrentStoryIndex(index);
+
+            }}
           >
 
             <img
@@ -1030,6 +1120,132 @@ function Home() {
           </div>
 
         ))}
+
+        {selectedStory && (
+
+          <div className="story-modal">
+
+            <div
+              className="story-nav left"
+              onClick={() => {
+
+                if (currentStoryIndex > 0) {
+
+                  setCurrentStoryIndex(
+                    currentStoryIndex - 1
+                  );
+
+                  setSelectedStory(
+                    stories[currentStoryIndex - 1]
+                  );
+
+                }
+
+              }}
+            ></div>
+
+            <div
+              className="story-nav right"
+              onClick={() => {
+
+                if (
+                  currentStoryIndex <
+                  stories.length - 1
+                ) {
+
+                  setCurrentStoryIndex(
+                    currentStoryIndex + 1
+                  );
+
+                  setSelectedStory(
+                    stories[currentStoryIndex + 1]
+                  );
+
+                }
+
+              }}
+            ></div>
+
+            <div className="story-progress">
+              <div className="story-progress-fill"></div>
+            </div>
+
+            <div className="story-top">
+
+              {stories.length > 1 && (
+                <span className="story-count">
+                  {currentStoryIndex + 1} / {stories.length}
+                </span>
+              )}
+
+              <div
+                className="story-profile-link"
+                onClick={() => {
+
+                  setSelectedStory(null);
+
+                  navigate(
+                    `/profile/${selectedStory.user._id}`
+                  );
+
+                }}
+
+              >
+
+                <img
+                  src={selectedStory.user.profilePic}
+                  alt=""
+                  className="story-user-avatar"
+                />
+
+                <div className="story-user-info">
+
+                  <h4>
+                    {selectedStory.user.name}
+                  </h4>
+
+                  <span>
+                    @{selectedStory.user.username}
+                  </span>
+
+                </div>
+
+              </div>
+
+              <button
+                className="story-delete-btn"
+                onClick={deleteStory}
+              >
+                🗑
+              </button>
+
+              <button
+                className="story-close"
+                onClick={() =>
+                  setSelectedStory(null)
+                }
+              >
+                ✕
+              </button>
+
+            </div>
+
+            <div className="story-frame">
+
+              <img
+                src={selectedStory.image}
+                alt="story"
+                className="story-modal-image"
+              />
+
+            </div>
+
+          </div>
+
+
+
+        )}
+
 
       </div>
 

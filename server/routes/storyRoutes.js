@@ -11,6 +11,7 @@ const {
 const {
   createStory,
   getStories,
+  deleteStory,
 } = require(
   "../controllers/storyController"
 );
@@ -26,6 +27,12 @@ router.get(
   "/",
   protect,
   getStories
+);
+
+router.delete(
+  "/:id",
+  protect,
+  deleteStory
 );
 
 module.exports = router;
