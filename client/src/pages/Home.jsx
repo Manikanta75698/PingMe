@@ -23,7 +23,8 @@ import {
   FaRegHeart,
   FaRegComment,
   FaBookmark,
-  FaRegBookmark
+  FaRegBookmark,
+  FaEllipsisH
 } from "react-icons/fa";
 
 import "./Home.css";
@@ -31,6 +32,35 @@ import "./Home.css";
 
 function Home() {
 
+
+  const formatTimeAgo = (date) => {
+
+    const seconds =
+      Math.floor(
+        (new Date() - new Date(date))
+        / 1000
+      );
+
+    const minutes =
+      Math.floor(seconds / 60);
+
+    const hours =
+      Math.floor(minutes / 60);
+
+    const days =
+      Math.floor(hours / 24);
+
+    if (days > 0)
+      return `${days}d`;
+
+    if (hours > 0)
+      return `${hours}h`;
+
+    if (minutes > 0)
+      return `${minutes}m`;
+
+    return "Just now";
+  };
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -1013,39 +1043,53 @@ function Home() {
                   key={post._id}
                 >
 
-
                   {/* User */}
                   <div
                     className="post-user"
-                    onClick={() =>
-                      navigate(`/profile/${post.user._id}`)
-                    }
                   >
+                    <div
+                      className="post-user-left"
+                      onClick={() =>
+                        navigate(`/profile/${post.user._id}`)
+                      }
+                    >
+                      <img
+                        src={
+                          post.user.profilePic ||
+                          "/default-avatar.png"
+                        }
+                        alt={post.user.name}
+                        className="post-profile"
+                        onError={(e) => {
+                          e.target.src =
+                            "/default-avatar.png";
+                        }}
+                      />
 
-                    <img
-                      src={post.user.profilePic || "/default-avatar.png"}
-                      alt={post.user.name}
-                      className="post-profile"
-                      onError={(e) => {
-                        e.target.src = "/default-avatar.png";
-                      }}
-                    />
-
-                    <div>
-
-                      <h4>
-                        {post.user.name}
-                      </h4>
-
-                      <p>
-                        @{post.user.username}
-                      </p>
-
+                      <div>
+                        <h4>{post.user.name}</h4>
+                        <p>
+                          @{post.user.username}
+                        </p>
+                      </div>
                     </div>
 
+                    <div className="post-meta">
+
+                      <span className="post-time">
+                        {formatTimeAgo(
+                          post.createdAt
+                        )}
+                      </span>
+
+                      <button
+                        className="post-menu-btn"
+                      >
+                        <FaEllipsisH />
+                      </button>
+
+                    </div>
                   </div>
-
-
                   {/* Post Image */}
                   <div className="post-image-wrapper">
 
