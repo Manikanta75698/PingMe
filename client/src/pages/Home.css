@@ -1,4 +1,12 @@
-/* ================= Theme Variables ================= */
+html,
+body,
+#root {
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
 
 :root {
   /* Light */
@@ -1179,6 +1187,22 @@
   border: 3px solid #ff3040;
 }
 
+.story-nav {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  z-index: 20;
+}
+
+.story-nav.left {
+  left: 0;
+}
+
+.story-nav.right {
+  right: 0;
+}
+
 .story-item span {
   margin-top: 6px;
 
@@ -1212,35 +1236,33 @@
 
 
 .story-modal-image {
-
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  max-height: 90vh;
 
   object-fit: contain;
-
-  background: black;
-
 }
 
 .story-top {
   position: absolute;
-  top: 15px;
-  left: 50%;
-  transform: translateX(-50%);
 
-  width: 400px;
+  top: 10px;
+  left: 0;
+  right: 0;
 
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  z-index: 100001;
+  padding: 0 16px;
+
+  z-index: 15;
 }
 
 .story-menu {
-  margin-left: auto;
-  margin-right: 12px;
-  position: relative;
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  z-index: 20;
 }
 
 .story-user-avatar {
@@ -1294,16 +1316,21 @@
 
   position: absolute;
 
-  top: 0;
+  top: 8px;
 
-  left: 0;
+  left: 10px;
 
-  width: 100%;
+  right: 10px;
 
   height: 3px;
 
-  z-index: 10001;
+  background: rgba(255, 255, 255, .2);
 
+  border-radius: 20px;
+
+  overflow: hidden;
+
+  z-index: 30;
 }
 
 .story-progress-fill {
@@ -1315,6 +1342,34 @@
   animation:
     storyProgress 5s linear forwards;
 
+}
+
+.story-progress-wrapper {
+
+  position: absolute;
+
+  top: 8px;
+
+  left: 10px;
+
+  right: 10px;
+
+  display: flex;
+
+  gap: 4px;
+
+  z-index: 100;
+}
+
+.story-progress-inactive {
+
+  flex: 1;
+
+  height: 3px;
+
+  background: rgba(255, 255, 255, .25);
+
+  border-radius: 10px;
 }
 
 @keyframes storyProgress {
@@ -1349,8 +1404,7 @@
 }
 
 .story-user-info span {
-  color: #e5e7eb;
-
+  color: rgba(255, 255, 255, .75);
   font-size: 12px;
 
   opacity: 1;
@@ -1398,17 +1452,14 @@
 }
 
 .story-frame {
+  width: 100vw;
+  height: 100vh;
 
-  width: 400px;
-  height: 85vh;
-  position: relative;
-  z-index: 100000;
-  background: #111;
-  border-radius: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
   overflow: hidden;
-  box-shadow:
-    0 0 40px rgba(0, 0, 0, .5);
-
 }
 
 .story-count {
@@ -1492,5 +1543,106 @@
 .story-dropdown button:hover {
 
   background: #2d2d2d;
+
+}
+
+.story-upload-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .85);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 999999;
+}
+
+.story-upload-box {
+  width: 92%;
+  max-width: 420px;
+
+  background: var(--home-card);
+
+  padding: 15px;
+
+  border-radius: 20px;
+}
+
+.story-upload-box img {
+  width: 100%;
+  max-height: 500px;
+
+  object-fit: cover;
+
+  border-radius: 15px;
+}
+
+.story-upload-actions {
+  display: flex;
+  gap: 10px;
+
+  margin-top: 15px;
+}
+
+.cancel-story-btn,
+.upload-story-btn {
+  flex: 1;
+
+  border: none;
+
+  padding: 12px;
+
+  border-radius: 12px;
+
+  cursor: pointer;
+
+  font-weight: 600;
+}
+
+.cancel-story-btn {
+  background: #ff3040;
+  color: white;
+}
+
+.upload-story-btn {
+  background: #0095ff;
+  color: white;
+}
+
+.story-progress-active {
+  flex: 1;
+  height: 3px;
+  background: white;
+  border-radius: 20px;
+}
+
+
+.story-progress-current {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, .25);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.story-progress-current::after {
+  content: "";
+  display: block;
+  width: 0%;
+  height: 100%;
+  background: white;
+  animation: storyProgress 5s linear forwards;
+}
+
+@keyframes storyProgress {
+
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: 100%;
+  }
 
 }

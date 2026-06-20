@@ -92,3 +92,42 @@
 
   cursor: pointer;
 }
+
+.story-preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.story-preview-image {
+  width: 100%;
+  border-radius: 15px;
+  object-fit: cover;
+}
+
+.story-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.clear-story-btn {
+  flex: 1;
+
+  border: none;
+
+  background: #ff3040;
+
+  color: white;
+
+  padding: 12px;
+
+  border-radius: 12px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.story-btn {
+  flex: 1;
+}

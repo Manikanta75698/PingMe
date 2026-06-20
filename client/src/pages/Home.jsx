@@ -90,14 +90,19 @@ function Home() {
   const [showLikesModal, setShowLikesModal] = useState(false);
   const [selectedLikes, setSelectedLikes] = useState([]);
   const [stories, setStories] = useState([]);
-  const [selectedStory, setSelectedStory] =
-    useState(null);
   const [currentStoryIndex,
     setCurrentStoryIndex] =
     useState(0);
+  const [selectedStory, setSelectedStory] =
+    useState(null);
   const [showStoryMenu,
     setShowStoryMenu] =
     useState(false);
+  const fileInputRef = useRef(null);
+
+  const [storyImage, setStoryImage] = useState(null);
+  const [storyPreview, setStoryPreview] = useState("");
+  const [storyLoading, setStoryLoading] = useState(false);
 
   const menuRef = useRef(null);
 
@@ -122,6 +127,8 @@ function Home() {
 
   const [unreadCount, setUnreadCount] =
     useState(0);
+  const [userStories, setUserStories] =
+    useState([]);
   const storyMenuRef = useRef(null);
 
   useEffect(() => {
@@ -199,6 +206,75 @@ function Home() {
     } finally {
 
       setLoadingPosts(false);
+
+    }
+
+  };
+
+  const handleStorySelect = (e) => {
+
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    setStoryImage(file);
+
+    setStoryPreview(
+      URL.createObjectURL(file)
+    );
+
+  };
+
+  const clearStory = () => {
+
+    setStoryImage(null);
+
+    setStoryPreview("");
+
+  };
+
+  const uploadStory = async () => {
+
+    if (!storyImage) return;
+
+    try {
+
+      setStoryLoading(true);
+
+      const formData =
+        new FormData();
+
+      formData.append(
+        "image",
+        storyImage
+      );
+
+      await axios.post(
+        "https://pingme-api-new.onrender.com/api/stories/create",
+        formData,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+      setStoryImage(null);
+      setStoryPreview("");
+
+      fetchStories();
+
+    } catch (error) {
+
+      console.log(
+        "STORY ERROR:",
+        error
+      );
+
+    } finally {
+
+      setStoryLoading(false);
 
     }
 
@@ -720,40 +796,66 @@ function Home() {
 
     if (!selectedStory) return;
 
-    const timer =
-      setTimeout(() => {
+    const timer = setTimeout(() => {
 
-        if (
-          currentStoryIndex <
-          stories.length - 1
-        ) {
+      if (
+        currentStoryIndex <
+        userStories.length - 1
+      ) {
 
-          setCurrentStoryIndex(
-            currentStoryIndex + 1
-          );
+        setCurrentStoryIndex(
+          prev => prev + 1
+        );
 
-          setSelectedStory(
-            stories[
-            currentStoryIndex + 1
-            ]
-          );
+        setSelectedStory(
+          userStories[
+          currentStoryIndex + 1
+          ]
+        );
 
-        } else {
+      } else {
 
-          setSelectedStory(null);
+        setSelectedStory(null);
 
-        }
+      }
 
-      }, 5000);
+    }, 5000);
 
-    return () =>
-      clearTimeout(timer);
+    return () => clearTimeout(timer);
 
   }, [
     selectedStory,
     currentStoryIndex,
-    stories
+    userStories
   ]);
+
+  useEffect(() => {
+
+    const handleBack = () => {
+
+      if (selectedStory) {
+
+        setSelectedStory(null);
+
+      }
+
+    };
+
+    window.addEventListener(
+      "popstate",
+      handleBack
+    );
+
+    return () => {
+
+      window.removeEventListener(
+        "popstate",
+        handleBack
+      );
+
+    };
+
+  }, [selectedStory]);
 
 
 
@@ -1113,12 +1215,20 @@ function Home() {
         )
       }
 
+      <input
+        type="file"
+        accept="image/*"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        onChange={handleStorySelect}
+      />
+
       <div className="stories-container">
 
         <div
           className="story-item"
           onClick={() =>
-            navigate("/create-story")
+            fileInputRef.current.click()
           }
         >
           <div className="story-avatar add-story">
@@ -1128,198 +1238,243 @@ function Home() {
           <span>Your Story</span>
         </div>
 
-        {stories.map((story, index) => (
-
-          <div
-            key={story._id}
-            className="story-item"
-            onClick={() => {
-
-              setSelectedStory(story);
-
-              setCurrentStoryIndex(index);
-
-            }}
-          >
-
-            <img
-              src={story.user.profilePic}
-              alt={story.user.name}
-              className="story-avatar-img"
-            />
-
-            <span>
-              {story.user.username}
-            </span>
-
-          </div>
-
-        ))}
-
-        {selectedStory && (
-
-          <div
-            className="story-modal"
-            onClick={() => {
-
-              setSelectedStory(null);
-
-            }}
-          >
-
-            <div
-              className="story-nav left"
-              onClick={() => {
-
-                if (currentStoryIndex > 0) {
-
-                  setCurrentStoryIndex(
-                    currentStoryIndex - 1
-                  );
-
-                  setSelectedStory(
-                    stories[currentStoryIndex - 1]
-                  );
-
-                }
-
-              }}
-            ></div>
-
-            <div
-              className="story-nav right"
-              onClick={() => {
-
-                if (
-                  currentStoryIndex <
-                  stories.length - 1
-                ) {
-
-                  setCurrentStoryIndex(
-                    currentStoryIndex + 1
-                  );
-
-                  setSelectedStory(
-                    stories[currentStoryIndex + 1]
-                  );
-
-                }
-
-              }}
-            ></div>
-
-            <div className="story-progress">
-              <div className="story-progress-fill"></div>
-            </div>
-
-            <div className="story-top">
+        {
+          stories
+            .filter(
+              (story, index, self) =>
+                index === self.findIndex(
+                  s =>
+                    s.user._id ===
+                    story.user._id
+                )
+            )
+            .map((story, index) => (
 
               <div
-                className="story-profile-link"
+                key={story._id}
+                className="story-item"
                 onClick={() => {
 
-                  setSelectedStory(null);
+                  const storiesOfUser =
+                    stories.filter(
+                      s =>
+                        s.user._id ===
+                        story.user._id
+                    );
 
-                  navigate(
-                    `/profile/${selectedStory.user._id}`
+                  setUserStories(
+                    storiesOfUser
+                  );
+
+                  setSelectedStory(
+                    storiesOfUser[0]
+                  );
+
+                  setCurrentStoryIndex(0);
+
+                  window.history.pushState(
+                    { story: true },
+                    ""
                   );
 
                 }}
-
               >
-
                 <img
-                  src={selectedStory.user.profilePic}
-                  alt=""
-                  className="story-user-avatar"
+                  src={story.user.profilePic}
+                  alt={story.user.name}
+                  className="story-avatar-img"
                 />
 
-                <div className="story-user-info">
-
-                  <h4>
-                    {selectedStory.user.name}
-                  </h4>
-
-                  <span>
-                    @{selectedStory.user.username}
-                  </span>
-
-                </div>
+                <span>
+                  {story.user.username}
+                </span>
 
               </div>
-              <div
-                className="story-menu"
-                ref={storyMenuRef}
-              >
 
-                <FaEllipsisH
-                  className="story-menu-icon"
-                  onClick={(e) => {
+            ))}
 
-                    e.stopPropagation();
+      </div>
 
-                    setShowStoryMenu(
-                      prev => !prev
-                    );
+      {selectedStory && (
 
-                  }}
+        <div
+          className="story-modal"
+          onClick={() => {
+
+            setSelectedStory(null);
+
+            window.history.back();
+
+          }}
+        >
+
+          <div
+            className="story-nav left"
+            onClick={(e) => {
+
+              e.stopPropagation();
+
+              if (currentStoryIndex > 0) {
+
+                setCurrentStoryIndex(
+                  currentStoryIndex - 1
+                );
+
+                setSelectedStory(
+                  userStories[
+                  currentStoryIndex - 1
+                  ]
+                );
+
+              }
+
+            }}
+          ></div>
+
+          <div
+            className="story-nav right"
+            onClick={(e) => {
+
+              e.stopPropagation();
+
+              if (
+                currentStoryIndex <
+                userStories.length - 1
+              ) {
+
+                setCurrentStoryIndex(
+                  currentStoryIndex + 1
+                );
+
+                setSelectedStory(
+                  userStories[
+                  currentStoryIndex + 1
+                  ]
+                );
+
+              }
+
+            }}
+          ></div>
+
+          <div className="story-progress-wrapper">
+
+            {userStories.map(
+              (story, index) => (
+
+                <div
+                  key={`${story._id}-${currentStoryIndex}`}
+                  className={
+                    index === currentStoryIndex
+                      ? "story-progress-current"
+                      : index < currentStoryIndex
+                        ? "story-progress-active"
+                        : "story-progress-inactive"
+                  }
                 />
 
-                {showStoryMenu &&
-                  selectedStory.user._id === userId && (
+              )
+            )}
 
-                    <div className="story-dropdown">
+          </div>
 
-                      <button
-                        onClick={() => {
-
-                          deleteStory();
-                          setShowStoryMenu(false);
-
-                        }}
-                      >
-                        Delete Story
-                      </button>
-
-                    </div>
-
-                  )}
-
-              </div>
-              <button
-                className="story-close"
-                onClick={() =>
-                  setSelectedStory(null)
-                }
-              >
-                ✕
-              </button>
-
-            </div>
+          <div className="story-top">
 
             <div
-              className="story-frame"
-              onClick={(e) =>
-                e.stopPropagation()
-              }
+              className="story-profile-link"
+              onClick={() => {
+
+                setSelectedStory(null);
+
+                navigate(
+                  `/profile/${selectedStory.user._id}`
+                );
+
+              }}
+
             >
 
               <img
-                src={selectedStory.image}
-                alt="story"
-                className="story-modal-image"
+                src={selectedStory.user.profilePic}
+                alt=""
+                className="story-user-avatar"
               />
+
+              <div className="story-user-info">
+
+                <h4>
+                  {selectedStory.user.name}
+                </h4>
+
+                <span>
+                  @{selectedStory.user.username}
+                </span>
+
+              </div>
+
+            </div>
+            <div
+              className="story-menu"
+              ref={storyMenuRef}
+            >
+
+              <FaEllipsisH
+                className="story-menu-icon"
+                onClick={(e) => {
+
+                  e.stopPropagation();
+
+                  setShowStoryMenu(
+                    prev => !prev
+                  );
+
+                }}
+              />
+
+              {showStoryMenu &&
+                selectedStory.user._id === userId && (
+
+                  <div className="story-dropdown">
+
+                    <button
+                      onClick={() => {
+
+                        deleteStory();
+                        setShowStoryMenu(false);
+
+                      }}
+                    >
+                      Delete Story
+                    </button>
+
+                  </div>
+
+                )}
 
             </div>
 
           </div>
 
+          <div
+            className="story-frame"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
+          >
+
+            <img
+              src={selectedStory.image}
+              alt="story"
+              className="story-modal-image"
+            />
+
+          </div>
+        </div>
 
 
-        )}
 
 
-      </div>
+      )}
 
       {/* Feed Start */}
       <div className="feed-container">
@@ -1582,87 +1737,134 @@ function Home() {
 
       </div>
 
-      {selectedPost && (
-        <div
-          className="comments-modal"
-          onClick={() => setSelectedPost(null)}
-        >
+      {
+        selectedPost && (
           <div
-            className="comments-box"
-            onClick={(e) => e.stopPropagation()}
+            className="comments-modal"
+            onClick={() => setSelectedPost(null)}
           >
-            <h3>Comments</h3>
-
-            {selectedPost.comments.map((comment) => (
-              <p key={comment._id}>
-                <strong>{comment.user?.username}</strong>
-                {" "}
-                {comment.text}
-              </p>
-            ))}
-
-            <button
-              onClick={() => setSelectedPost(null)}
+            <div
+              className="comments-box"
+              onClick={(e) => e.stopPropagation()}
             >
-              Close
-            </button>
+              <h3>Comments</h3>
+
+              {selectedPost.comments.map((comment) => (
+                <p key={comment._id}>
+                  <strong>{comment.user?.username}</strong>
+                  {" "}
+                  {comment.text}
+                </p>
+              ))}
+
+              <button
+                onClick={() => setSelectedPost(null)}
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {showLikesModal && (
-        <div
-          className="comments-modal"
-          onClick={() => setShowLikesModal(false)}
-        >
+
+      {
+        storyPreview && (
+
+          <div className="story-upload-modal">
+
+            <div className="story-upload-box">
+
+              <img
+                src={storyPreview}
+                alt="preview"
+              />
+
+              <div className="story-upload-actions">
+
+                <button
+                  className="cancel-story-btn"
+                  onClick={clearStory}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="upload-story-btn"
+                  onClick={uploadStory}
+                >
+                  {
+                    storyLoading
+                      ? "Uploading..."
+                      : "Upload Story"
+                  }
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        )
+      }
+
+
+      {
+        showLikesModal && (
           <div
-            className="comments-box"
-            onClick={(e) => e.stopPropagation()}
+            className="comments-modal"
+            onClick={() => setShowLikesModal(false)}
           >
-            <h3>❤️ Likes</h3>
+            <div
+              className="comments-box"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3>❤️ Likes</h3>
 
-            {selectedLikes.length === 0 ? (
-              <p>No likes yet</p>
-            ) : (
-              selectedLikes
-                .filter(
-                  (user) => user && user.username
-                )
-                .map((user) => (
-                  <div
-                    key={user._id}
-                    className="search-user"
-                    onClick={() => {
-                      navigate(`/profile/${user._id}`);
-                      setShowLikesModal(false);
-                    }}
-                  >
-                    <img
-                      src={
-                        user.profilePic ||
-                        "/default-avatar.png"
-                      }
-                      alt={user.name}
-                    />
+              {selectedLikes.length === 0 ? (
+                <p>No likes yet</p>
+              ) : (
+                selectedLikes
+                  .filter(
+                    (user) => user && user.username
+                  )
+                  .map((user) => (
+                    <div
+                      key={user._id}
+                      className="search-user"
+                      onClick={() => {
+                        navigate(`/profile/${user._id}`);
+                        setShowLikesModal(false);
+                      }}
+                    >
+                      <img
+                        src={
+                          user.profilePic ||
+                          "/default-avatar.png"
+                        }
+                        alt={user.name}
+                      />
 
-                    <div>
-                      <h4>{user.name}</h4>
-                      <p>@{user.username}</p>
+                      <div>
+                        <h4>{user.name}</h4>
+                        <p>@{user.username}</p>
+                      </div>
                     </div>
-                  </div>
-                ))
-            )}
+                  ))
+              )}
 
-            <button
-              onClick={() =>
-                setShowLikesModal(false)
-              }
-            >
-              Close
-            </button>
+              <button
+                onClick={() =>
+                  setShowLikesModal(false)
+                }
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Bottom Navigation */}
       <div className="bottom-nav">
@@ -1684,7 +1886,7 @@ function Home() {
       </div>
 
 
-    </div>
+    </div >
 
   );
 

@@ -32,6 +32,14 @@ function CreateStory() {
 
   };
 
+  const clearStory = () => {
+
+    setImage(null);
+
+    setPreview("");
+
+  };
+
   const uploadStory =
     async () => {
 
@@ -84,36 +92,60 @@ function CreateStory() {
 
         <h2>Create Story</h2>
 
-        <label className="story-upload-label">
+        {!preview ? (
 
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImage}
-            className="story-input"
-          />
+          <label
+            className="story-upload-label"
+          >
 
-          {preview ? (
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImage}
+              className="story-input"
+            />
+
+            <div className="story-placeholder">
+              📸 Tap To Select Story
+            </div>
+
+          </label>
+
+        ) : (
+
+          <div className="story-preview-container">
+
             <img
               src={preview}
               alt="preview"
+              className="story-preview-image"
             />
-          ) : (
-            <div className="story-placeholder">
-              Click To Select Story
+
+            <div className="story-actions">
+
+              <button
+                className="clear-story-btn"
+                onClick={clearStory}
+              >
+                ❌ Clear
+              </button>
+
+              <button
+                className="story-btn"
+                onClick={uploadStory}
+              >
+                {
+                  loading
+                    ? "Uploading..."
+                    : "⬆ Upload Story"
+                }
+              </button>
+
             </div>
-          )}
 
-        </label>
+          </div>
 
-        <button
-          className="story-btn"
-          onClick={uploadStory}
-        >
-          {loading
-            ? "Uploading..."
-            : "Upload Story"}
-        </button>
+        )}
 
       </div>
 

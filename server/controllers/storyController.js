@@ -1,19 +1,49 @@
 const Story = require("../models/Story");
 
 const createStory = async (req, res) => {
+
   try {
-    const story = await Story.create({
-      user: req.user.id,
-      image: req.file.path,
-    });
+
+    const existingStory =
+      await Story.findOne({
+        user: req.user.id,
+      });
+
+    if (existingStory) {
+
+      existingStory.image =
+        req.file.path;
+
+      existingStory.createdAt =
+        new Date();
+
+      await existingStory.save();
+
+      return res.status(200).json(
+        existingStory
+      );
+
+    }
+
+    const story =
+      await Story.create({
+
+        user: req.user.id,
+
+        image: req.file.path,
+
+      });
 
     res.status(201).json(story);
 
   } catch (error) {
+
     res.status(500).json({
       message: error.message,
     });
+
   }
+
 };
 
 const getStories = async (
