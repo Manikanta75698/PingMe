@@ -1341,16 +1341,6 @@ body,
   z-index: 30;
 }
 
-.story-progress-fill {
-
-  height: 100%;
-
-  background: white;
-
-  animation:
-    storyProgress 5s linear forwards;
-
-}
 
 .story-progress-wrapper {
 
@@ -1625,22 +1615,12 @@ body,
   border-radius: 20px;
 }
 
-
 .story-progress-current {
   flex: 1;
   height: 3px;
   background: rgba(255, 255, 255, .25);
   border-radius: 20px;
   overflow: hidden;
-}
-
-.story-progress-current::after {
-  content: "";
-  display: block;
-  width: 0%;
-  height: 100%;
-  background: white;
-  animation: storyProgress 5s linear forwards;
 }
 
 @keyframes storyProgress {
@@ -1687,3 +1667,88 @@ body,
 
   z-index: 10;
 }
+
+.story-reply-box {
+  position: absolute;
+
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+
+  display: flex;
+  gap: 10px;
+
+  z-index: 100;
+}
+
+.story-reply-box input {
+  flex: 1;
+
+  height: 48px;
+
+  padding: 0 18px;
+
+  border-radius: 30px;
+
+  border: 1.5px solid rgba(255, 255, 255, .25);
+
+  background:
+    rgba(0, 0, 0, .35);
+
+  backdrop-filter: blur(12px);
+
+  color: white;
+
+  outline: none;
+
+  box-shadow:
+    0 0 15px rgba(255, 255, 255, .08);
+
+  transition: all .3s ease;
+}
+
+.story-reply-box input:focus {
+
+  border-color: #0095ff;
+
+  box-shadow:
+    0 0 20px rgba(0, 149, 255, .5);
+
+}
+
+
+.story-reply-box button {
+
+  width: 52px;
+  height: 48px;
+
+  border: none;
+
+  border-radius: 30px;
+
+  background:
+    linear-gradient(135deg,
+      #0095ff,
+      #0066ff);
+
+  color: white;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 0 18px rgba(0, 149, 255, .4);
+
+}
+
+.story-progress-fill {
+  height: 100%;
+
+  background: white;
+
+  border-radius: 20px;
+
+  transition: width 0.1s linear;
+}
+

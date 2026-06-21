@@ -103,6 +103,15 @@ function Home() {
   const [storyImage, setStoryImage] = useState(null);
   const [storyPreview, setStoryPreview] = useState("");
   const [storyLoading, setStoryLoading] = useState(false);
+  const [storyReply,
+    setStoryReply] =
+    useState("");
+  const [storyPaused,
+    setStoryPaused] =
+    useState(false);
+  const storyPausedRef = useRef(false);
+  const [progress, setProgress] =
+    useState(0);
 
   const menuRef = useRef(null);
 
@@ -129,6 +138,19 @@ function Home() {
     useState(0);
   const [userStories, setUserStories] =
     useState([]);
+
+  const sendStoryReply =
+    async () => {
+
+      if (!storyReply.trim())
+        return;
+
+      console.log(
+        "Reply:",
+        storyReply
+      );
+
+    };
   const myStory = stories.find(
     story =>
       story.user &&
@@ -799,37 +821,82 @@ function Home() {
 
   useEffect(() => {
 
-    if (!selectedStory) return;
+    if (!selectedStory)
+      return;
 
-    const timer = setTimeout(() => {
+    if (storyPaused)
+      return;
 
-      if (
-        currentStoryIndex <
-        userStories.length - 1
-      ) {
+    const interval =
+      setInterval(() => {
 
-        setCurrentStoryIndex(
-          prev => prev + 1
-        );
+        if (storyPausedRef.current)
+          return;
 
-        setSelectedStory(
-          userStories[
-          currentStoryIndex + 1
-          ]
-        );
+        setProgress(prev => {
 
-      } else {
+          if (prev >= 100) {
 
-        setSelectedStory(null);
+            return 100;
 
-      }
+          }
 
-    }, 5000);
+          return prev + 2;
 
-    return () => clearTimeout(timer);
+        });
+
+      }, 100);
+
+    return () =>
+      clearInterval(interval);
 
   }, [
     selectedStory,
+    storyPaused,
+    currentStoryIndex,
+    userStories
+  ]);
+
+  useEffect(() => {
+
+    if (selectedStory) {
+
+      setProgress(0);
+
+    }
+
+  }, [selectedStory]);
+
+  useEffect(() => {
+
+    if (progress < 100)
+      return;
+
+    if (
+      currentStoryIndex <
+      userStories.length - 1
+    ) {
+
+      setProgress(0);
+
+      setCurrentStoryIndex(
+        prev => prev + 1
+      );
+
+      setSelectedStory(
+        userStories[
+        currentStoryIndex + 1
+        ]
+      );
+
+    } else {
+
+      setSelectedStory(null);
+
+    }
+
+  }, [
+    progress,
     currentStoryIndex,
     userStories
   ]);
@@ -1408,6 +1475,7 @@ function Home() {
                 userStories.length - 1
               ) {
 
+
                 setCurrentStoryIndex(
                   currentStoryIndex + 1
                 );
@@ -1435,7 +1503,7 @@ function Home() {
               (story, index) => (
 
                 <div
-                  key={`${story._id}-${currentStoryIndex}`}
+                  key={story._id}
                   className={
                     index === currentStoryIndex
                       ? "story-progress-current"
@@ -1443,7 +1511,21 @@ function Home() {
                         ? "story-progress-active"
                         : "story-progress-inactive"
                   }
-                />
+                >
+
+                  {index === currentStoryIndex && (
+
+                    <div
+                      key={currentStoryIndex}
+                      className="story-progress-fill"
+                      style={{
+                        width: `${progress}%`
+                      }}
+                    />
+
+                  )}
+
+                </div>
 
               )
             )}
@@ -1542,6 +1624,46 @@ function Home() {
               alt="story"
               className="story-modal-image"
             />
+
+            <div
+              className="story-reply-box"
+              onClick={() => setStoryPaused(true)}
+            >
+
+              <input
+                type="text"
+                placeholder="Reply to story..."
+                value={storyReply}
+                onChange={(e) =>
+                  setStoryReply(
+                    e.target.value
+                  )
+                }
+                onFocus={() => {
+
+                  setStoryPaused(true);
+
+                }}
+                onBlur={() => {
+
+                  setStoryPaused(false);
+
+                }}
+              />
+          
+              <button
+                onClick={() => {
+
+                  setStoryPaused(false);
+
+                  sendStoryReply();
+
+                }}
+              >
+                Send
+              </button>
+
+            </div>
 
           </div>
         </div>
