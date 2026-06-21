@@ -17,6 +17,16 @@ const messageSchema = new mongoose.Schema(
       default: "",
     },
 
+    storyReply: {
+      type: Boolean,
+      default: false,
+    },
+
+    storyId: {
+      type: String,
+      default: "",
+    },
+
     image: {
       type: String,
       default: "",

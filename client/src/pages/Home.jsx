@@ -145,12 +145,41 @@ function Home() {
       if (!storyReply.trim())
         return;
 
-      console.log(
-        "Reply:",
-        storyReply
-      );
+      try {
+
+        await axios.post(
+          "https://pingme-api-new.onrender.com/api/messages",
+          {
+            sender: userId,
+            receiver:
+              selectedStory.user._id,
+
+            text: storyReply,
+
+            storyReply: true,
+
+            storyId:
+              selectedStory._id
+          }
+        );
+
+        setStoryReply("");
+
+        alert(
+          "Reply sent 💬"
+        );
+
+      } catch (error) {
+
+        console.log(
+          "STORY REPLY ERROR:",
+          error
+        );
+
+      }
 
     };
+
   const myStory = stories.find(
     story =>
       story.user &&
@@ -1650,7 +1679,7 @@ function Home() {
 
                 }}
               />
-          
+
               <button
                 onClick={() => {
 

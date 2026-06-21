@@ -5,13 +5,30 @@ const sendMessage = async (req, res) => {
     console.log("BODY:", req.body);
     console.log("FILE:", req.file);
 
-    const { sender, receiver, text } = req.body;
+    const {
+      sender,
+      receiver,
+      text,
+      storyReply,
+      storyId
+    } = req.body;
 
     const message = await Message.create({
       sender,
       receiver,
       text: text || "",
-      image: req.file ? req.file.path : "",
+
+      storyReply:
+        storyReply || false,
+
+      storyId:
+        storyId || "",
+
+      image:
+        req.file
+          ? req.file.path
+          : "",
+
       status: "delivered",
     });
 
