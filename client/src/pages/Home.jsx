@@ -98,6 +98,8 @@ function Home() {
   const [showStoryMenu,
     setShowStoryMenu] =
     useState(false);
+  const [chatUnreadCount, setChatUnreadCount] =
+    useState(0);
   const fileInputRef = useRef(null);
 
   const [storyImage, setStoryImage] = useState(null);
@@ -147,12 +149,11 @@ function Home() {
 
       try {
 
-        await axios.post(
+        const res = await axios.post(
           "https://pingme-api-new.onrender.com/api/messages",
           {
-            sender: userId,
-            receiver:
-              selectedStory.user._id,
+            sender: user.username,
+            receiver: selectedStory.user.username,
 
             text: storyReply,
 
@@ -161,6 +162,13 @@ function Home() {
             storyId:
               selectedStory._id
           }
+        );
+
+        console.log("EMITTING:", res.data);
+
+        socket.emit(
+          "private_message",
+          res.data
         );
 
         setStoryReply("");
@@ -212,6 +220,40 @@ function Home() {
       document.removeEventListener(
         "mousedown",
         handleOutsideClick
+      );
+
+    };
+
+  }, []);
+
+  useEffect(() => {
+
+    socket.on(
+      "receive_private_message",
+      (data) => {
+
+        console.log(
+          "HOME MESSAGE:",
+          data
+        );
+
+        if (
+          data.sender !== user.username
+        ) {
+
+          setChatUnreadCount(
+            prev => prev + 1
+          );
+
+        }
+
+      }
+    );
+
+    return () => {
+
+      socket.off(
+        "receive_private_message"
       );
 
     };
@@ -1050,15 +1092,20 @@ function Home() {
 
 
         <button
-          onClick={() =>
-            navigate("/chat")
-          }
+          className="desktop-message-btn"
+          onClick={() => {
+            navigate("/chat");
+            setChatUnreadCount(0);
+          }}
         >
-
           <FaCommentDots />
-
           Messages
 
+          {chatUnreadCount > 0 && (
+            <span className="desktop-chat-badge">
+              {chatUnreadCount}
+            </span>
+          )}
         </button>
 
 
@@ -2101,9 +2148,18 @@ function Home() {
           onClick={() => navigate("/create-post")}
         />
 
-        <FaCommentDots
+        <div
+          className="chat-nav-wrapper"
           onClick={() => navigate("/chat")}
-        />
+        >
+          <FaCommentDots />
+
+          {chatUnreadCount > 0 && (
+            <span className="chat-badge">
+              {chatUnreadCount}
+            </span>
+          )}
+        </div>
 
         <FaUser
           onClick={() => navigate(`/profile/${userId}`)}

@@ -1012,3 +1012,51 @@
   font-style: italic;
   font-size: 14px;
 }
+
+.story-reply-card {
+  background: rgba(255, 255, 255, 0.08);
+  border-left: 4px solid #8b5cf6;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 6px;
+}
+
+.story-reply-header {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: .8;
+  margin-bottom: 6px;
+}
+
+.story-reply-text {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.user-card {
+  position: relative;
+}
+
+.unread-badge {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  min-width: 22px;
+  height: 22px;
+
+  background: #ff3040;
+  color: white;
+
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 12px;
+  font-weight: bold;
+
+  z-index: 999;
+}

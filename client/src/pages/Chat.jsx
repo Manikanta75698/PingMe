@@ -33,7 +33,11 @@ function Chat() {
       "true"
     );
   const [unreadMessages, setUnreadMessages] =
-    useState({});
+    useState(
+      JSON.parse(
+        localStorage.getItem("unreadMessages") || "{}"
+      )
+    );
   const menuRef = useRef(null);
   const emojiRef = useRef(null);
   const deleteMenuRef = useRef(null);
@@ -283,11 +287,22 @@ function Chat() {
           if (selectedUserRef.current === data.sender) {
             markMessagesAsSeen(data.sender);
           } else {
-            setUnreadMessages((prev) => ({
-              ...prev,
-              [data.sender]:
-                (prev[data.sender] || 0) + 1,
-            }));
+          /*  setUnreadMessages((prev) => {
+
+              const updated = {
+                ...prev,
+                [data.sender]:
+                  (prev[data.sender] || 0) + 1,
+              };
+
+              localStorage.setItem(
+                "unreadMessages",
+                JSON.stringify(updated)
+              );
+
+              return updated;
+
+            });*/
           }
         }
       }
@@ -760,10 +775,20 @@ function Chat() {
 
                 markMessagesAsSeen(chatUser.username);
 
-                setUnreadMessages((prev) => ({
-                  ...prev,
-                  [chatUser.username]: 0,
-                }));
+                setUnreadMessages((prev) => {
+                  const updated = {
+                    ...prev,
+                    [chatUser.username]: 0,
+                  };
+
+                  localStorage.setItem(
+                    "unreadMessages",
+                    JSON.stringify(updated)
+                  );
+
+                  return updated;
+
+                });
 
               }}
             >
@@ -1022,7 +1047,17 @@ function Chat() {
                   </p>
                 ) : (
                   <>
-                    {msg.text && (
+                    {msg.storyReply ? (
+                      <div className="story-reply-card">
+                        <div className="story-reply-header">
+                          <span>📸 Story Reply</span>
+                        </div>
+
+                        <div className="story-reply-text">
+                          {msg.text}
+                        </div>
+                      </div>
+                    ) : (
                       <p>{msg.text}</p>
                     )}
 

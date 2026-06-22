@@ -88,6 +88,7 @@ io.on("connection", (socket) => {
 
   // Private message
   socket.on("private_message", (data) => {
+    console.log("PRIVATE MESSAGE RECEIVED:", data);
     const targetUser = onlineUsers.find(
       (user) => user.username === data.receiver
     );
