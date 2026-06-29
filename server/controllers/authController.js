@@ -608,6 +608,10 @@ const resetPassword = async (req, res) => {
       });
     }
 
+    console.log("OTP VALUE:", user.otp);
+    console.log("OTP TYPE:", typeof user.otp);
+    console.log("USER:", user);
+
     const isOtpValid = await bcrypt.compare(
       otp,
       user.otp
