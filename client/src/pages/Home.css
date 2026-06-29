@@ -128,8 +128,9 @@ body,
     0 8px 25px rgba(0, 0, 0, .08);
 
   transition:
-    transform .3s ease,
-    box-shadow .3s ease;
+    transform .25s,
+    box-shadow .25s,
+    background .25s;
 }
 
 .post-card:hover {
@@ -214,11 +215,9 @@ body,
 /* Post Image */
 .post-image {
   width: 100%;
-
-  border-radius: 16px;
-
+  height: auto;
+  max-height: 650px;
   object-fit: cover;
-
   display: block;
 
   transition:
@@ -652,6 +651,10 @@ body,
   gap: 10px;
 
   padding: 0 15px 15px;
+
+  position: sticky;
+  bottom: 0;
+  background: var(--home-card);
 }
 
 
@@ -786,6 +789,8 @@ body,
   box-shadow:
     0 0 40px rgba(0, 0, 0, .35);
 
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .search-header {
@@ -1134,6 +1139,7 @@ body,
   gap: 15px;
 
   overflow-x: auto;
+  scroll-snap-type: x mandatory;
 
   margin-bottom: 20px;
 
@@ -1153,6 +1159,8 @@ body,
   min-width: 80px;
 
   cursor: pointer;
+
+  scroll-snap-align: start;
 }
 
 .story-avatar {
@@ -1246,9 +1254,9 @@ body,
 .story-modal-image {
   width: 100%;
   max-width: 420px;
-  height: 100%;
+  height: auto;
   max-height: 100vh;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 12px;
 }
 
@@ -1827,8 +1835,8 @@ body,
   }
 
   .home-header {
-    height: 56px;
-    padding: 0 14px;
+    height: 60px;
+    padding: 0 12px;
   }
 
   .app-title {
@@ -1842,9 +1850,9 @@ body,
 
   .feed-container {
     width: 100%;
-    padding: 0 8px 80px;
-    margin: 12px auto;
-    gap: 14px;
+    max-width: 680px;
+    padding: 0 6px 80px;
+    margin: auto;
   }
 
   .post-card {
@@ -1905,6 +1913,12 @@ body,
   .bottom-nav {
     height: 64px;
     font-size: 24px;
+  }
+
+  .bottom-nav {
+
+    padding-bottom: env(safe-area-inset-bottom);
+
   }
 
 }
@@ -2006,7 +2020,7 @@ body,
 
   box-shadow: 0 15px 40px rgba(0, 0, 0, .25);
 
-  z-index: 999;
+  z-index: 99999;
 
   animation: postMenu .22s ease;
 

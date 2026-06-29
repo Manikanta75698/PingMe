@@ -61,6 +61,7 @@ function Chat() {
 
     navigate("/");
   };
+
   const toggleDarkMode = () => {
     const newMode = !darkMode;
 
@@ -157,10 +158,9 @@ function Chat() {
   };
 
   useEffect(() => {
-    if (messagesRef.current) {
-      messagesRef.current.scrollTop =
-        messagesRef.current.scrollHeight;
-    }
+    messagesRef.current?.lastElementChild?.scrollIntoView({
+      behavior: "smooth",
+    });
   }, [messages, selectedUser]);
 
   useEffect(() => {
@@ -287,22 +287,22 @@ function Chat() {
           if (selectedUserRef.current === data.sender) {
             markMessagesAsSeen(data.sender);
           } else {
-          /*  setUnreadMessages((prev) => {
-
-              const updated = {
-                ...prev,
-                [data.sender]:
-                  (prev[data.sender] || 0) + 1,
-              };
-
-              localStorage.setItem(
-                "unreadMessages",
-                JSON.stringify(updated)
-              );
-
-              return updated;
-
-            });*/
+            /*  setUnreadMessages((prev) => {
+  
+                const updated = {
+                  ...prev,
+                  [data.sender]:
+                    (prev[data.sender] || 0) + 1,
+                };
+  
+                localStorage.setItem(
+                  "unreadMessages",
+                  JSON.stringify(updated)
+                );
+  
+                return updated;
+  
+              });*/
           }
         }
       }
@@ -416,6 +416,14 @@ function Chat() {
     return () => clearTimeout(timer);
 
   }, [search]);
+
+  useEffect(() => {
+    return () => {
+      if (chatImagePreview) {
+        URL.revokeObjectURL(chatImagePreview);
+      }
+    };
+  }, [chatImagePreview]);
 
 
   const handleProfileUpload = async () => {
@@ -715,7 +723,7 @@ function Chat() {
                 >
 
                   <img
-                    src={user.profilePic || "/default-avatar.png"}
+                    src={searchUser.profilePic || "/default-avatar.png"}
                     alt="Profile"
                     onError={(e) => {
                       e.target.src = "/default-avatar.png";
@@ -882,6 +890,9 @@ function Chat() {
                       selectedUserData?.profilePic ||
                       "/default-avatar.png"
                     }
+                    onClick={() =>
+                      navigate(`/profile/${selectedUserData?._id}`)
+                    }
                     className="header-avatar"
                     alt="user"
                   />
@@ -931,9 +942,7 @@ function Chat() {
 
                 <button
                   className="menu-btn"
-                  onClick={() =>
-                    setShowMenu(!showMenu)
-                  }
+                  onClick={() => setShowMenu(prev => !prev)}
                 >
                   ⋮
                 </button>
@@ -1154,10 +1163,10 @@ function Chat() {
                 const file = e.target.files[0];
 
                 if (file) {
+                  const preview = URL.createObjectURL(file);
+
                   setChatImage(file);
-                  setChatImagePreview(
-                    URL.createObjectURL(file)
-                  );
+                  setChatImagePreview(preview);
                 }
               }}
             />
