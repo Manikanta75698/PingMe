@@ -405,11 +405,15 @@
 ========================= */
 
 .google-login {
-  margin-bottom: 25px;
+  width: 100%;
+  margin: 20px 0;
+  display: flex;
+  justify-content: center;
 }
 
 .google-login iframe {
-  border-radius: 16px !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 
@@ -632,9 +636,8 @@
   }
 
   .login-card h2 {
-
-    font-size: 28px;
-
+    font-size: 22px;
+    font-weight: 700;
   }
 
   .input-box input {
@@ -696,34 +699,83 @@
 
 }
 
-@media (max-width:480px){
+@media (max-width:768px) {
 
-  .login-wrapper{
-      width:95%;
-      padding:20px 0;
+  .login-page {
+    overflow-y: auto;
+    align-items: stretch;
   }
 
-  .login-left{
-      display:none;
+  .login-wrapper {
+    width: 100%;
+    min-height: 100dvh;
+    display: flex;
+    padding: 0;
   }
 
-  .login-card{
-      padding:18px;
-      border-radius:18px;
+  .login-left {
+    display: none;
   }
 
-  .login-card h2{
-      font-size:22px;
-      text-align:center;
+  .login-card {
+    width: 100%;
+    max-width: none;
+    min-height: 100dvh;
+
+    border: none;
+    border-radius: 0;
+
+    background: transparent;
+    backdrop-filter: none;
+    box-shadow: none;
+
+    padding: 24px 20px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
-  .login-subtitle{
-      text-align:center;
-      margin-bottom:20px;
+  .login-card h2 {
+    font-size: 24px;
+    text-align: center;
+    margin-bottom: 6px;
   }
 
-  .signup-text{
-      font-size:14px;
+  .login-subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: #8b8b8b;
+    margin-bottom: 24px;
+  }
+
+  .input-box input {
+    height: 46px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-size: 15px;
+  }
+
+  .signin-btn {
+    height: 46px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-size: 15px;
+  }
+
+  .forgot-link {
+    font-size: 13px;
+  }
+
+  .signup-text {
+    font-size: 13px;
+    margin-top: 20px;
+  }
+
+  .circle1,
+  .circle2,
+  .circle3 {
+    display: none;
   }
 
 }
