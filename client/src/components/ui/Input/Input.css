@@ -1,8 +1,13 @@
+/* =========================================
+            PINGME INPUT V3
+========================================= */
+
 .input-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
+  width: 100%;
 }
 
 .input-label {
@@ -13,85 +18,170 @@
 
 .input-wrapper {
   position: relative;
+  width: 100%;
 }
 
 .input {
   width: 100%;
-  height: 56px;
-  padding: 0 18px;
+  height: 52px;
   border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--card);
+  border-radius: 14px;
+  background: var(--surface, #fff);
   color: var(--text);
   font-size: 15px;
-  transition: all .3s ease;
+  padding: 0 16px;
+  transition: all .25s ease;
 }
 
-.has-left-icon {
-  padding-left: 50px;
-}
-
-.input-left-icon {
-  position: absolute;
-  left: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-secondary);
-  font-size: 17px;
-}
-
-.input-eye {
-  position: absolute;
-  right: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: var(--text-secondary);
-  font-size: 18px;
+.input::placeholder {
+  color: #94a3b8;
 }
 
 .input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, .15);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
+}
+
+.has-left-icon {
+  padding-left: 48px;
+}
+
+.input-left-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: #94a3b8;
+  pointer-events: none;
+  transition: .25s;
+}
+
+.input-wrapper:focus-within .input-left-icon {
+  color: var(--primary);
+}
+
+.input-eye {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 17px;
+  color: #94a3b8;
+  transition: .25s;
+}
+
+.input-eye:hover {
+  color: var(--primary);
 }
 
 .input-error {
   border-color: #ef4444;
 }
 
+.input-error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, .12);
+}
+
 .input-error-text {
+  font-size: 12px;
   color: #ef4444;
-  font-size: 13px;
+  margin-top: 4px;
 }
 
 .input-helper {
-  color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
 }
 
-.input-left-icon{
-  position:absolute;
-  left:18px;
-  top:50%;
-  transform:translateY(-50%);
-  font-size:18px;
-  color:#64748b;
+.input:disabled {
+  opacity: .6;
+  cursor: not-allowed;
 }
 
-.has-left-icon{
-  padding-left:52px !important;
+/* ===========================
+        DARK MODE
+=========================== */
+
+.dark .input,
+body.dark .input {
+  background: #1e293b;
+  color: #fff;
+  border-color: #334155;
 }
 
-.input-eye{
-  position:absolute;
-  right:18px;
-  top:50%;
-  transform:translateY(-50%);
-  font-size:18px;
-  cursor:pointer;
+.dark .input::placeholder,
+body.dark .input::placeholder {
+  color: #64748b;
 }
 
-.input.password{
-  padding-right:52px;
+.dark .input-label,
+body.dark .input-label {
+  color: #e2e8f0;
+}
+
+.dark .input-left-icon,
+body.dark .input-left-icon,
+.dark .input-eye,
+body.dark .input-eye {
+  color: #94a3b8;
+}
+
+.dark .input-wrapper:focus-within .input-left-icon,
+body.dark .input-wrapper:focus-within .input-left-icon {
+  color: #60a5fa;
+}
+
+/* ===========================
+        MOBILE
+=========================== */
+
+@media (max-width:768px) {
+
+  .input-group {
+    margin-bottom: 16px;
+    gap: 6px;
+  }
+
+  .input-label {
+    font-size: 13px;
+  }
+
+  .input {
+    height: 50px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+
+  .has-left-icon {
+    padding-left: 46px;
+  }
+
+  .input-left-icon {
+    left: 15px;
+    font-size: 15px;
+  }
+
+  .input-eye {
+    right: 15px;
+    font-size: 16px;
+  }
+
+}
+
+@media (max-width:420px) {
+
+  .input {
+    height: 48px;
+    font-size: 14px;
+  }
+
+  .input-label {
+    font-size: 12px;
+  }
+
 }
