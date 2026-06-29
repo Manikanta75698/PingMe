@@ -56,14 +56,12 @@ export default function Register() {
       setPassword("");
 
     } catch (error) {
-      console.log("FULL ERROR:", error);
-      console.log("RESPONSE:", error.response);
 
       toast.error(
         error.response?.data?.message ||
-        error.message ||
         "Registration failed"
       );
+
     } finally {
       setLoading(false);
     }

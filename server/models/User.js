@@ -100,10 +100,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
       sparse: true,
-      default: null,
     },
 
-    isVerified:{
+    isVerified: {
       type: Boolean,
       default: false,
     },
