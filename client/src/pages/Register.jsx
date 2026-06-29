@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import toast from "react-hot-toast";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -65,16 +66,81 @@ export default function Register() {
     }
   };
 
+  const handleGoogleRegister = async (
+    credentialResponse
+  ) => {
+    try {
+
+      const res = await axios.post(
+        "https://pingme-api-new.onrender.com/api/auth/google",
+        {
+          credential:
+            credentialResponse.credential,
+        }
+      );
+
+      localStorage.setItem(
+        "token",
+        res.data.token
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(res.data.user)
+      );
+
+      toast.success(
+        `Welcome ${res.data.user.name} 👋`
+      );
+
+      navigate("/home");
+
+    } catch (error) {
+
+      toast.error(
+        error.response?.data?.message ||
+        "Google Register Failed"
+      );
+
+    }
+  };
+
   return (
     <div className="register-page">
       <div className="register-card">
+        <div className="register-logo">
+          💬
+        </div>
         <h1 className="register-title">
-          Create Account
+          Create your account
         </h1>
 
         <p className="register-subtitle">
-          Join PingMe and start chatting
+          Join PingMe and start connecting
+          with friends around the world.
         </p>
+
+        <div className="google-login">
+
+          <GoogleLogin
+            onSuccess={handleGoogleRegister}
+            onError={() =>
+              toast.error("Google Register Failed")
+            }
+            theme="outline"
+            size="large"
+            width="100%"
+            text="continue_with"
+            shape="pill"
+          />
+
+        </div>
+
+        <div className="divider">
+          <span></span>
+          <p>OR CONTINUE WITH EMAIL</p>
+          <span></span>
+        </div>
 
         <form onSubmit={handleRegister}>
           <div className="input-group">
@@ -106,7 +172,9 @@ export default function Register() {
           </div>
 
           <div className="input-group">
+
             <label>Password</label>
+
             <div className="password-container">
 
               <input
@@ -114,9 +182,7 @@ export default function Register() {
                 autoComplete="new-password"
                 placeholder="Enter password"
                 value={password}
-                onChange={(e) =>
-                  setPassword(e.target.value)
-                }
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
 
@@ -130,6 +196,19 @@ export default function Register() {
               </span>
 
             </div>
+
+            <div className="password-strength">
+              {
+                password.length === 0
+                  ? ""
+                  : password.length < 8
+                    ? "🔴 Weak Password"
+                    : password.length < 12
+                      ? "🟡 Medium Password"
+                      : "🟢 Strong Password"
+              }
+            </div>
+
           </div>
 
           <button
@@ -139,11 +218,16 @@ export default function Register() {
           >
             {
               loading
-                ? "Creating Account..."
+                ? "Creating your account..."
                 : "Create Account"
             }
           </button>
+
         </form>
+
+        <p className="security-text">
+          🔒 Protected by PingMe Secure Authentication
+        </p>
 
         <p className="login-text">
           Already have an account?

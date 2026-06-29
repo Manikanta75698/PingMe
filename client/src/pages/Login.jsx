@@ -3,7 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { GoogleLogin } from "@react-oauth/google";
+
+import {
+  FaEye,
+  FaEyeSlash,
+  FaEnvelope,
+  FaLock,
+  FaComments
+} from "react-icons/fa";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -70,80 +78,172 @@ export default function Login() {
     }
   };
 
+  const handleGoogleLogin = async (credentialResponse) => {
+    try {
+
+      const res = await axios.post(
+        "https://pingme-api-new.onrender.com/api/auth/google",
+        {
+          credential: credentialResponse.credential,
+        }
+      );
+
+      localStorage.setItem(
+        "token",
+        res.data.token
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(res.data.user)
+      );
+
+      toast.success("Welcome to PingMe 🚀");
+
+      navigate("/home");
+
+    } catch (error) {
+
+      toast.error(
+        error.response?.data?.message ||
+        "Google Login Failed"
+      );
+
+    }
+  };
+
   return (
     <div className="login-page">
-      <div className="login-card">
 
-        <h1 className="login-title">
-          Welcome back
-        </h1>
+      <div className="bg-circle circle1"></div>
+      <div className="bg-circle circle2"></div>
+      <div className="bg-circle circle3"></div>
 
-        <p className="login-subtitle">
-          Sign in to PingMe
-        </p>
+      <div className="login-wrapper">
 
-        <form onSubmit={handleLogin}>
+        <div className="login-left">
 
-          <div className="input-group">
-            <label>Email address</label>
-
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
-              required
-            />
+          <div className="brand-icon">
+            <FaComments />
           </div>
 
-          <div className="input-group">
-            <label>Password</label>
+          <h1>PingMe</h1>
 
-            <div className="password-container">
+          <p>
+            Connect.
+            Chat.
+            Share.
+            Build memories with your friends
+            on PingMe.
+          </p>
 
-              <input
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) =>
-                  setPassword(e.target.value)
-                }
-                required
-              />
+        </div>
 
-              <span
-                className="eye-icon"
-                onClick={() =>
-                  setShowPassword(!showPassword)
-                }
-              >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </span>
+        <div className="login-card">
+
+          <h2>Welcome Back 👋</h2>
+
+          <p className="login-subtitle">
+            Sign in to continue
+          </p>
+
+          <GoogleLogin
+            onSuccess={handleGoogleLogin}
+            onError={() =>
+              toast.error("Google Login Failed")
+            }
+            theme="outline"
+            shape="pill"
+            size="large"
+            width="100%"
+            text="continue_with"
+          />
+
+          <div className="divider">
+            <span></span>
+            <p>OR</p>
+            <span></span>
+          </div>
+
+          <form onSubmit={handleLogin}>
+
+            <div className="input-group">
+
+              <label>Email</label>
+
+              <div className="input-box">
+
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+
+              </div>
 
             </div>
-          </div>
 
-          <button
-            type="submit"
-            className="signin-btn"
-            disabled={loading}
-          >
-            {loading ? "Signing In..." : "Sign In"}
-          </button>
+            <div className="input-group">
 
-        </form>
+              <label>Password</label>
 
-        <p className="signup-text">
-          Don't have an account?
+              <div className="input-box">
 
-          <Link to="/register">
-            {" "}Sign up
-          </Link>
-        </p>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+
+                <span
+                  className="eye-icon"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </span>
+
+              </div>
+
+            </div>
+
+            <Link
+              className="forgot-link"
+              to="/forgot-password"
+            >
+              Forgot Password?
+            </Link>
+
+            <button
+              className="signin-btn"
+              disabled={loading}
+            >
+              {
+                loading
+                  ? "Signing In..."
+                  : "Sign In"
+              }
+            </button>
+
+          </form>
+
+          <p className="signup-text">
+
+            Don't have an account?
+
+            <Link to="/register">
+              Sign Up
+            </Link>
+
+          </p>
+
+        </div>
 
       </div>
+
     </div>
   );
 }

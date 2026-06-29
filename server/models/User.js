@@ -78,20 +78,32 @@ const userSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return this.provider === "local";
+      },
       select: false,
       minlength: 8,
-      match: [
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/,
-        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
-      ],
     },
+
     profilePic: {
       type: String,
       default: null,
     },
 
-    isVerified: {
+    provider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      default: null,
+    },
+
+    isVerified:{
       type: Boolean,
       default: false,
     },

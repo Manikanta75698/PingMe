@@ -9,6 +9,8 @@ import Profile from "./pages/Profile";
 import CreatePost from "./pages/CreatePost";
 import Home from "./pages/Home";
 import Notifications from "./pages/Notifications";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 function App() {
   return (
@@ -64,6 +66,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
+        /> 
 
       </Routes>
     </BrowserRouter>

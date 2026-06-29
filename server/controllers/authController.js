@@ -19,6 +19,12 @@ const generateOTP = () => {
   ).toString();
 };
 
+const { OAuth2Client } = require("google-auth-library");
+
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID
+);
+
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -487,9 +493,280 @@ const resendOTP = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
+    }
+
+    const user = await User.findOne({ email })
+      .select("+otp +otpExpiry");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const otp = generateOTP();
+
+    const hashedOtp = await bcrypt.hash(
+      otp,
+      10
+    );
+
+    user.otp = hashedOtp;
+
+    user.otpExpiry = new Date(
+      Date.now() + 5 * 60 * 1000
+    );
+
+    await user.save();
+
+    const emailData =
+      new SibApiV3Sdk.SendSmtpEmail();
+
+    emailData.subject =
+      "PingMe Password Reset OTP 🔐";
+
+    emailData.htmlContent = `
+      <div style="font-family:Arial">
+        <h2>Password Reset</h2>
+
+        <p>Hello ${user.name},</p>
+
+        <p>Your OTP is:</p>
+
+        <h1>${otp}</h1>
+
+        <p>OTP valid for 5 minutes.</p>
+
+      </div>
+    `;
+
+    emailData.sender = {
+      name: "PingMe",
+      email: "kasireddymanikantha@gmail.com",
+    };
+
+    emailData.to = [
+      {
+        email: user.email,
+        name: user.name,
+      },
+    ];
+
+    await transEmailApi.sendTransacEmail(
+      emailData
+    );
+
+    res.status(200).json({
+      message: "OTP sent successfully",
+    });
+
+  } catch (error) {
+
+    console.log(
+      "FORGOT PASSWORD ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+
+    if (!email || !otp || !password) {
+      return res.status(400).json({
+        message: "All fields are required",
+      });
+    }
+
+    const user = await User.findOne({ email })
+      .select("+otp +otpExpiry +password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    if (!user.otpExpiry || user.otpExpiry < new Date()) {
+      return res.status(400).json({
+        message: "OTP has expired",
+      });
+    }
+
+    const isOtpValid = await bcrypt.compare(
+      otp,
+      user.otp
+    );
+
+    if (!isOtpValid) {
+      return res.status(400).json({
+        message: "Invalid OTP",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+
+    user.password = await bcrypt.hash(
+      password,
+      salt
+    );
+
+    user.otp = null;
+    user.otpExpiry = null;
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Password updated successfully 🎉",
+    });
+
+  } catch (error) {
+
+    console.log(
+      "RESET PASSWORD ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+
+  }
+};
+
+const googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        message: "Google credential is required",
+      });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    const {
+      sub,
+      email,
+      name,
+      picture,
+      email_verified,
+    } = payload;
+
+    if (!email_verified) {
+      return res.status(400).json({
+        message: "Google email not verified",
+      });
+    }
+
+    let user = await User.findOne({ email });
+
+    if (user) {
+
+      if (user.provider === "local") {
+        user.provider = "google";
+      }
+
+      if (!user.googleId) {
+        user.googleId = sub;
+      }
+
+      if (!user.profilePic && picture) {
+        user.profilePic = picture;
+      }
+
+      user.isVerified = true;
+
+      await user.save();
+    }
+
+    // New Google user create
+    if (!user) {
+
+
+      const baseUsername = email
+        .split("@")[0]
+        .toLowerCase();
+
+      let username = baseUsername;
+
+      let count = 1;
+
+      while (await User.findOne({ username })) {
+        username = `${baseUsername}${count++}`;
+      }
+
+      user = await User.create({
+        name,
+        email,
+        username,
+        profilePic: picture,
+        provider: "google",
+        googleId: sub,
+        isVerified: true,
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    res.status(200).json({
+      message: "Google Login Successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        profilePic: user.profilePic,
+      },
+    });
+
+  } catch (error) {
+
+    console.log(
+      "GOOGLE LOGIN ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Google Login Failed",
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   verifyOTP,
   resendOTP,
+  forgotPassword,
+  resetPassword,
+  googleLogin,
 };
