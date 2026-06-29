@@ -86,7 +86,7 @@ export default function ResetPassword() {
         "https://pingme-api-new.onrender.com/api/auth/reset-password",
         {
           email,
-          otp,
+          otp: otp.join(""),
           password,
         }
       );
