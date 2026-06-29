@@ -1220,7 +1220,11 @@ function Home() {
 
               </button>
 
-
+              <button
+                onClick={() => navigate("/settings")}
+              >
+                ⚙️ Settings
+              </button>
 
               <button
                 onClick={handleLogout}

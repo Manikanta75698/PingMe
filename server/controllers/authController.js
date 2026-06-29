@@ -769,6 +769,63 @@ const googleLogin = async (req, res) => {
   }
 };
 
+const updateProfile = async (req, res) => {
+  try {
+
+    const { name, username, bio } = req.body;
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    if (name) user.name = name;
+
+    if (username) {
+
+      const existing = await User.findOne({
+        username,
+        _id: { $ne: user._id },
+      });
+
+      if (existing) {
+        return res.status(400).json({
+          message: "Username already taken",
+        });
+      }
+
+      user.username = username.toLowerCase();
+
+    }
+
+    if (bio !== undefined) {
+      user.bio = bio;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user,
+    });
+
+  } catch (error) {
+
+    console.log(
+      "UPDATE PROFILE ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -777,4 +834,5 @@ module.exports = {
   forgotPassword,
   resetPassword,
   googleLogin,
+  updateProfile,
 };

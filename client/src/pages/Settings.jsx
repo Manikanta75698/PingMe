@@ -1,6 +1,128 @@
 import "./Settings.css";
+import { useState, useRef } from "react";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 export default function Settings() {
+
+  const user = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  );
+
+  const [name, setName] = useState(
+    user.name || ""
+  );
+
+  const [username, setUsername] = useState(
+    user.username || ""
+  );
+
+  const [bio, setBio] = useState(
+    user.bio || ""
+  );
+
+  const [email] = useState(
+    user.email || ""
+  );
+
+  const [loading, setLoading] = useState(false);
+
+  const fileInputRef = useRef(null);
+
+  const saveProfile = async () => {
+
+    try {
+
+      setLoading(true);
+
+      const res = await axios.put(
+        "https://pingme-api-new.onrender.com/api/users/update",
+        {
+          name,
+          username,
+          bio,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(res.data.user)
+      );
+
+      toast.success(res.data.message);
+
+    } catch (error) {
+
+      toast.error(
+        error.response?.data?.message ||
+        "Profile update failed"
+      );
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  };
+
+  const changePhoto = async (e) => {
+
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    try {
+
+      const formData = new FormData();
+
+      formData.append(
+        "profilePic",
+        file
+      );
+
+      const res = await axios.put(
+        "https://pingme-api-new.onrender.com/api/users/upload",
+        formData,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      const updatedUser = {
+        ...user,
+        profilePic: res.data.profilePic,
+      };
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(updatedUser)
+      );
+
+      toast.success(
+        "Profile picture updated"
+      );
+
+      window.location.reload();
+
+    } catch (error) {
+
+      toast.error("Upload failed");
+
+    }
+
+  };
 
   return (
 
@@ -48,7 +170,7 @@ export default function Settings() {
 
       <main className="settings-content">
 
-        <div className="settings-card">
+        <Card className="settings-card">
 
           <h1>
             Account Settings
@@ -61,42 +183,50 @@ export default function Settings() {
           <div className="profile-area">
 
             <img
-              src="/avatar.png"
+              src={
+                user.profilePic ||
+                "/avatar.png"
+              }
               alt="Profile"
               className="profile-image"
             />
 
-            <button>
-              Change Photo
-            </button>
+            <>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  fileInputRef.current.click()
+                }
+              >
+                Change Photo
+              </Button>
+
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                ref={fileInputRef}
+                onChange={changePhoto}
+              />
+            </>
 
           </div>
 
-          <div className="form-group">
+          <Input
+            label="Full Name"
+            value={name}
+            onChange={(e) =>
+              setName(e.target.value)
+            }
+          />
 
-            <label>
-              Full Name
-            </label>
-
-            <input
-              type="text"
-              placeholder="Your Name"
-            />
-
-          </div>
-
-          <div className="form-group">
-
-            <label>
-              Username
-            </label>
-
-            <input
-              type="text"
-              placeholder="@username"
-            />
-
-          </div>
+          <Input
+            label="Username"
+            value={username}
+            onChange={(e) =>
+              setUsername(e.target.value)
+            }
+          />
 
           <div className="form-group">
 
@@ -105,30 +235,32 @@ export default function Settings() {
             </label>
 
             <textarea
-              rows="4"
+              rows={4}
+              value={bio}
               placeholder="Tell something about yourself..."
+              onChange={(e) =>
+                setBio(e.target.value)
+              }
             />
 
           </div>
 
-          <div className="form-group">
+          <Input
+            label="Email"
+            value={email}
+            disabled
+          />
 
-            <label>
-              Email
-            </label>
+          <Button
+            fullWidth
+            className="save-btn"
+            loading={loading}
+            onClick={saveProfile}
+          >
+            {loading ? "Saving..." : "Save Changes"}
+          </Button>
 
-            <input
-              type="email"
-              placeholder="email@example.com"
-            />
-
-          </div>
-
-          <button className="save-btn">
-            Save Changes
-          </button>
-
-        </div>
+        </Card>
 
       </main>
 

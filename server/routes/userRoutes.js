@@ -27,14 +27,6 @@ router.put(
 );
 
 
-// Update Profile Details
-router.put(
-  "/update",
-  protect,
-  updateProfile
-);
-
-
 // Follow User
 router.put(
   "/follow/:id",
@@ -82,6 +74,12 @@ router.get(
   "/:id",
   protect,
   getUserProfile
+);
+
+router.put(
+  "/update-profile",
+  protect,
+  updateProfile
 );
 
 
