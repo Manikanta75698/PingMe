@@ -153,7 +153,7 @@ function Home() {
           "https://pingme-api-new.onrender.com/api/messages",
           {
             sender: user.username,
-            receiver: selectedStory.user.username,
+            receiver: selectedStory?.user?.username,
 
             text: storyReply,
 
@@ -1383,8 +1383,7 @@ function Home() {
 
                 const myStories =
                   stories.filter(
-                    s =>
-                      s.user._id === userId
+                    s => s?.user?._id === userId
                   );
 
                 setUserStories(myStories);
@@ -1445,17 +1444,16 @@ function Home() {
 
         {
           stories
+            .filter(story => story?.user?._id)
             .filter(
               (story, index, self) =>
-                index === self.findIndex(
-                  s =>
-                    s.user._id ===
-                    story.user._id
+                index ===
+                self.findIndex(
+                  s => s?.user?._id === story?.user?._id
                 )
             )
             .filter(
-              story =>
-                story.user._id !== userId
+              story => story?.user?._id !== userId
             )
             .map((story, index) => (
 
@@ -1467,8 +1465,7 @@ function Home() {
                   const storiesOfUser =
                     stories.filter(
                       s =>
-                        s.user._id ===
-                        story.user._id
+                        s?.user?._id === story?.user?._id
                     );
 
                   setUserStories(
@@ -1620,7 +1617,7 @@ function Home() {
                 setSelectedStory(null);
 
                 navigate(
-                  `/profile/${selectedStory.user._id}`
+                  `/profile/${selectedStory?.user?._id}`
                 );
 
               }}
@@ -1628,21 +1625,14 @@ function Home() {
             >
 
               <img
-                src={selectedStory.user.profilePic}
+                src={selectedStory?.user?.profilePic}
                 alt=""
                 className="story-user-avatar"
               />
 
               <div className="story-user-info">
-
-                <h4>
-                  {selectedStory.user.name}
-                </h4>
-
-                <span>
-                  @{selectedStory.user.username}
-                </span>
-
+                <h4>{selectedStory?.user?.name}</h4>
+                <span>@{selectedStory?.user?.username}</span>
               </div>
 
             </div>
@@ -1816,6 +1806,8 @@ function Home() {
 
             posts.map((post) => {
 
+              if (!post?.user) return null;
+
               const isLiked =
                 userId &&
                 post.likes.some(
@@ -1836,9 +1828,13 @@ function Home() {
                   >
                     <div
                       className="post-user-left"
-                      onClick={() =>
-                        navigate(`/profile/${post.user._id}`)
-                      }
+                      onClick={() => {
+
+                        if (!post?.user?._id) return;
+
+                        navigate(`/profile/${post.user._id}`);
+
+                      }}
                     >
                       <img
                         src={
