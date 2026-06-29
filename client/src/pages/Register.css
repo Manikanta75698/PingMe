@@ -760,78 +760,6 @@
    MOBILE SMALL
 =================================== */
 
-@media(max-width:576px) {
-
-  .register-page {
-
-    padding: 18px;
-
-  }
-
-  .register-card {
-
-    padding: 20px;
-
-    border-radius: 18px;
-
-  }
-
-  .register-title {
-
-    font-size: 26px;
-
-  }
-
-  .register-subtitle {
-
-    font-size: 14px;
-    margin-top: 8px;
-
-  }
-
-  .register-icon {
-
-    width: 56px;
-
-    height: 56px;
-
-    font-size: 26px;
-
-  }
-
-  .input-group input {
-
-    height: 52px;
-
-    font-size: 16px;
-
-  }
-
-  .signup-btn {
-
-    height: 52px;
-
-    font-size: 16px;
-
-  }
-
-  .login-text {
-
-    font-size: 14px;
-
-  }
-
-  .security-text {
-
-    font-size: 12px;
-
-  }
-
-}
-
-/* ===================================
-   DARK MODE
-=================================== */
 
 body.dark .register-page {
 
@@ -988,35 +916,198 @@ body.dark .divider span {
 
 }
 
-@media(max-width:400px) {
+@media (max-width:768px){
 
-  .register-page {
-    padding: 12px;
+  .register-page{
+    min-height:100dvh;
+    overflow-y:auto;
+    align-items:center;
+    justify-content:center;
+    background:#fff;
+    padding:20px;
   }
 
-  .register-card {
-    padding: 16px;
-    border-radius: 16px;
+  .register-page::before,
+  .register-page::after{
+    display:none;
   }
 
-  .register-title {
-    font-size: 22px;
+  .register-left{
+    display:none;
   }
 
-  .register-subtitle {
-    font-size: 13px;
+  .register-right{
+    width:100%;
+    padding:0;
+    display:flex;
+    justify-content:center;
   }
 
-  .divider {
-    margin: 20px 0;
+  .register-card{
+
+    width:100%;
+    max-width:420px;
+
+    padding:0;
+
+    background:transparent;
+
+    border:none;
+
+    border-radius:0;
+
+    box-shadow:none;
+
+    backdrop-filter:none;
+
+    overflow:visible;
+
   }
 
-  .login-text {
-    font-size: 13px;
+  .register-card::after{
+    display:none;
   }
 
-  .security-text {
-    font-size: 11px;
+  .register-icon{
+
+    width:58px;
+    height:58px;
+
+    font-size:26px;
+
+    margin:0 auto 16px;
+
+    border-radius:16px;
+
+  }
+
+  .register-title{
+
+    font-size:24px;
+
+    text-align:center;
+
+    margin-top:0;
+
+  }
+
+  .register-subtitle{
+
+    font-size:13px;
+
+    text-align:center;
+
+    margin:8px 0 22px;
+
+  }
+
+  .google-login{
+
+    margin:18px 0;
+
+    width:100%;
+  }
+
+  .google-login>div{
+
+    width:100%!important;
+
+  }
+
+  .google-login iframe{
+
+    width:100%!important;
+
+  }
+
+  .divider{
+
+    margin:18px 0;
+
+  }
+
+  .divider p{
+
+    font-size:11px;
+
+  }
+
+  .register-card form{
+
+    gap:14px;
+
+  }
+
+  .input-group{
+
+    gap:6px;
+
+  }
+
+  .input-group label{
+
+    font-size:13px;
+
+  }
+
+  .input-group input{
+
+    height:50px;
+
+    border-radius:12px;
+
+    font-size:14px;
+
+    padding:0 16px;
+
+  }
+
+  .password-container input{
+
+    padding-right:48px;
+
+  }
+
+  .eye-icon{
+
+    right:16px;
+
+    font-size:16px;
+
+  }
+
+  .password-strength{
+
+    font-size:12px;
+
+  }
+
+  .signup-btn{
+
+    height:50px;
+
+    border-radius:12px;
+
+    font-size:15px;
+
+    margin-top:8px;
+
+  }
+
+  .security-text{
+
+    font-size:12px;
+
+    margin-top:18px;
+
+  }
+
+  .login-text{
+
+    font-size:13px;
+
+    margin-top:16px;
+
   }
 
 }

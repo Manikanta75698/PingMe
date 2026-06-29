@@ -156,8 +156,7 @@ export default function Register() {
                 toast.error("Google Register Failed")
               }
               theme="outline"
-              size="large"
-              width="360"
+              size="large" 
               text="continue_with"
               shape="pill"
             />
