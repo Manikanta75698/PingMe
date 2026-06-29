@@ -14,6 +14,7 @@ const {
   savePost,
   getSavedPosts,
   deletePost,
+  editPost,
 } = require("../controllers/postController");
 
 router.post(
@@ -57,6 +58,12 @@ router.get(
   "/saved",
   protect,
   getSavedPosts
+);
+
+router.put(
+  "/:id",
+  protect,
+  editPost
 );
 
 router.delete(

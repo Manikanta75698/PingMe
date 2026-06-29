@@ -5,6 +5,7 @@ import {
   useNavigate,
   useLocation,
 } from "react-router-dom";
+import toast from "react-hot-toast";
 
 import {
   FaSearch,
@@ -82,6 +83,8 @@ function Home() {
   const [lastScroll, setLastScroll] = useState(0);
 
   const [showMenu, setShowMenu] = useState(false);
+  const [activePostMenu, setActivePostMenu] = useState(null);
+  const postMenuRef = useRef(null);
   const [commentText, setCommentText] = useState({});
   const [savedPosts, setSavedPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
@@ -114,6 +117,14 @@ function Home() {
   const storyPausedRef = useRef(false);
   const [progress, setProgress] =
     useState(0);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePostId, setDeletePostId] = useState(null);
+
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const [editPostId, setEditPostId] = useState(null);
+
+  const [editCaption, setEditCaption] = useState("");
 
   const menuRef = useRef(null);
 
@@ -669,14 +680,15 @@ function Home() {
 
   };
 
+  const openDeleteModal = (postId) => {
+
+    setDeletePostId(postId);
+
+    setShowDeleteModal(true);
+
+  };
+
   const deleteStory = async () => {
-
-    const confirmDelete =
-      window.confirm(
-        "Are you sure you want to delete this story?"
-      );
-
-    if (!confirmDelete) return;
 
     try {
 
@@ -708,6 +720,182 @@ function Home() {
 
   };
 
+  const deletePost = async (postId) => {
+
+    openDeleteModal(postId);
+
+  };
+
+  const confirmDeletePost = async () => {
+
+    try {
+
+      await axios.delete(
+
+        `https://pingme-api-new.onrender.com/api/posts/${deletePostId}`,
+
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+
+      );
+
+      setPosts(prev =>
+        prev.filter(
+          post => post._id !== deletePostId
+        )
+      );
+
+      toast.success(
+        "Post deleted 🗑️"
+      );
+
+    } catch {
+
+      toast.error(
+        "Delete failed"
+      );
+
+    }
+
+    setShowDeleteModal(false);
+
+    setDeletePostId(null);
+
+    setActivePostMenu(null);
+
+  };
+
+  const editPost = async (req, res) => {
+
+    try {
+
+      const { caption } = req.body;
+
+      const post = await Post.findById(req.params.id);
+
+      if (!post) {
+
+        return res.status(404).json({
+          message: "Post not found",
+        });
+
+      }
+
+      if (
+        post.user.toString() !==
+        req.user._id.toString()
+      ) {
+
+        return res.status(403).json({
+          message: "Not authorized",
+        });
+
+      }
+
+      post.caption = caption.trim();
+
+      await post.save();
+
+      res.status(200).json({
+        message: "Post updated successfully",
+        post,
+      });
+
+    } catch (error) {
+
+      console.log("EDIT POST ERROR:", error);
+
+      res.status(500).json({
+        message: "Something went wrong",
+      });
+
+    }
+
+  };
+
+  const openEditModal = (post) => {
+
+    setEditPostId(post._id);
+
+    setEditCaption(post.caption);
+
+    setShowEditModal(true);
+
+    setActivePostMenu(null);
+
+  };
+
+  const confirmEditPost = async () => {
+
+    if (!editCaption.trim()) {
+
+      toast.error("Caption cannot be empty");
+
+      return;
+
+    }
+
+    try {
+
+      const res = await axios.put(
+
+        `https://pingme-api-new.onrender.com/api/posts/${editPostId}`,
+
+        {
+          caption: editCaption
+        },
+
+        {
+          headers: {
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+
+      );
+
+      setPosts(prev =>
+
+        prev.map(post =>
+
+          post._id === editPostId
+
+            ? {
+              ...post,
+              caption: res.data.post.caption
+            }
+
+            : post
+
+        )
+
+      );
+
+      toast.success("Post updated successfully ✏️");
+
+      setShowEditModal(false);
+
+      setEditPostId(null);
+
+      setEditCaption("");
+
+    } catch (error) {
+
+      console.log(
+        "EDIT POST ERROR:",
+        error
+      );
+
+      toast.error("Update failed");
+
+    }
+
+  };
+
   // Close menu when clicking outside
   useEffect(() => {
 
@@ -724,11 +912,11 @@ function Home() {
 
     };
 
-
     document.addEventListener(
       "mousedown",
       handleClickOutside
     );
+
 
 
     return () => {
@@ -740,6 +928,34 @@ function Home() {
 
     };
 
+
+  }, []);
+
+  useEffect(() => {
+
+    const handleOutside = (e) => {
+
+      if (
+        postMenuRef.current &&
+        !postMenuRef.current.contains(e.target)
+      ) {
+
+        setActivePostMenu(null);
+
+      }
+
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleOutside
+    );
+
+    return () =>
+      document.removeEventListener(
+        "mousedown",
+        handleOutside
+      );
 
   }, []);
 
@@ -1869,11 +2085,129 @@ function Home() {
                         )}
                       </span>
 
-                      <button
-                        className="post-menu-btn"
+                      <div
+                        className="post-menu-wrapper"
+                        ref={postMenuRef}
                       >
-                        <FaEllipsisH />
-                      </button>
+
+                        <button
+                          className="post-menu-btn"
+                          onClick={() =>
+                            setActivePostMenu(
+                              activePostMenu === post._id
+                                ? null
+                                : post._id
+                            )
+                          }
+                        >
+                          <FaEllipsisH />
+                        </button>
+
+                        {activePostMenu === post._id && (
+
+                          <div className="post-dropdown">
+
+                            {String(post.user._id) === String(userId) ? (
+
+                              <>
+
+                                <button
+                                  onClick={() => openEditModal(post)}
+                                >
+                                  ✏️ Edit Post
+                                </button>
+
+                                <button
+                                  onClick={() =>
+                                    deletePost(post._id)
+                                  }
+                                >
+                                  🗑 Delete Post
+                                </button>
+
+                                <button
+                                  onClick={() => {
+
+                                    navigator.clipboard.writeText(
+                                      post.caption || ""
+                                    );
+
+                                    setActivePostMenu(null);
+
+                                    toast("Caption copied 📋");
+
+                                  }}
+                                >
+                                  📋 Copy Caption
+                                </button>
+
+                                <button
+                                  onClick={async () => {
+
+                                    try {
+
+                                      if (navigator.share) {
+
+                                        await navigator.share({
+
+                                          title: "PingMe",
+
+                                          text: post.caption,
+
+                                          url: post.image,
+
+                                        });
+
+                                      } else {
+
+                                        navigator.clipboard.writeText(
+                                          post.image
+                                        );
+
+                                        alert("Post link copied 🔗");
+
+                                      }
+
+                                    } catch (error) {
+
+                                      console.log(error);
+
+                                    }
+
+                                    setActivePostMenu(null);
+
+                                  }}
+                                >
+                                  🔗 Share
+                                </button>
+
+                              </>
+
+                            ) : (
+
+                              <>
+
+                                <button>
+                                  🚩 Report
+                                </button>
+
+                                <button>
+                                  📋 Copy Caption
+                                </button>
+
+                                <button>
+                                  🔗 Share
+                                </button>
+
+                              </>
+
+                            )}
+
+                          </div>
+
+                        )}
+
+                      </div>
 
                     </div>
                   </div>
@@ -2167,7 +2501,81 @@ function Home() {
 
       </div>
 
+      {showEditModal && (
 
+        <div className="delete-modal">
+
+          <div className="delete-box">
+
+            <h3>Edit Caption</h3>
+
+            <textarea
+              value={editCaption}
+              onChange={(e) =>
+                setEditCaption(e.target.value)
+              }
+              rows={4}
+            />
+
+            <div className="delete-actions">
+
+              <button
+                className="cancel-btn"
+                onClick={() =>
+                  setShowEditModal(false)
+                }
+              >
+                Cancel
+              </button>
+
+              <button
+                className="delete-btn"
+                onClick={confirmEditPost}
+              >
+                Save
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {showDeleteModal && (
+
+        <div className="delete-modal">
+
+          <div className="delete-box">
+
+            <h3>Delete Post?</h3>
+
+            <p>This action cannot be undone.</p>
+
+            <div className="delete-actions">
+
+              <button
+                className="cancel-btn"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="delete-btn"
+                onClick={confirmDeletePost}
+              >
+                Delete
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
     </div >
 
   );

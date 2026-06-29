@@ -307,22 +307,22 @@ const getPosts = async (req, res) => {
         createdAt: -1,
       });
 
-res.status(200).json({
-  posts,
-});
+    res.status(200).json({
+      posts,
+    });
 
   } catch (error) {
 
-  console.log(
-    "GET POSTS ERROR:",
-    error
-  );
+    console.log(
+      "GET POSTS ERROR:",
+      error
+    );
 
-  res.status(500).json({
-    message: "Something went wrong",
-  });
+    res.status(500).json({
+      message: "Something went wrong",
+    });
 
-}
+  }
 };
 
 const getUserPosts = async (req, res) => {
@@ -469,6 +469,54 @@ const getSavedPosts = async (req, res) => {
   }
 };
 
+const editPost = async (req, res) => {
+
+  try {
+
+    const { caption } = req.body;
+
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+
+      return res.status(404).json({
+        message: "Post not found",
+      });
+
+    }
+
+    if (
+      post.user.toString() !==
+      req.user._id.toString()
+    ) {
+
+      return res.status(403).json({
+        message: "Not authorized",
+      });
+
+    }
+
+    post.caption = caption.trim();
+
+    await post.save();
+
+    res.status(200).json({
+      message: "Post updated successfully",
+      post,
+    });
+
+  } catch (error) {
+
+    console.log("EDIT POST ERROR:", error);
+
+    res.status(500).json({
+      message: "Something went wrong",
+    });
+
+  }
+
+};
+
 module.exports = {
   createPost,
   likePost,
@@ -479,4 +527,5 @@ module.exports = {
   savePost,
   getSavedPosts,
   deletePost,
+  editPost,
 };
