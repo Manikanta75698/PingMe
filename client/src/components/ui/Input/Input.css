@@ -143,16 +143,16 @@ body.dark .input-wrapper:focus-within .input-left-icon {
 @media (max-width:768px) {
 
   .input-group {
-    margin-bottom: 16px;
+    margin-bottom: 10px;
     gap: 6px;
   }
 
   .input-label {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .input {
-    height: 50px;
+    height: 44px;
     font-size: 14px;
     border-radius: 12px;
   }
