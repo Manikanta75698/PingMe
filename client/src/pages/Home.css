@@ -1244,10 +1244,12 @@ body,
 
 
 .story-modal-image {
-  max-width: 100%;
-  max-height: 90vh;
-
-  object-fit: contain;
+  width: 100%;
+  max-width: 420px;
+  height: 100%;
+  max-height: 100vh;
+  object-fit: cover;
+  border-radius: 12px;
 }
 
 .story-top {
@@ -1450,12 +1452,11 @@ body,
 }
 
 .story-frame {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-
   overflow: hidden;
 }
 
@@ -1816,4 +1817,161 @@ body,
 
   font-size: 12px;
   font-weight: 700;
+}
+
+@media (max-width:768px) {
+
+  .home-container {
+    padding-top: 65px;
+    padding-bottom: 75px;
+  }
+
+  .home-header {
+    height: 56px;
+    padding: 0 14px;
+  }
+
+  .app-title {
+    font-size: 24px;
+  }
+
+  .icon-btn,
+  .notification-btn {
+    font-size: 20px;
+  }
+
+  .feed-container {
+    width: 100%;
+    padding: 0 8px 80px;
+    margin: 12px auto;
+    gap: 14px;
+  }
+
+  .post-card {
+    border-radius: 16px;
+  }
+
+  .post-user {
+    padding: 12px;
+  }
+
+  .post-profile {
+    width: 44px;
+    height: 44px;
+  }
+
+  .post-user h4 {
+    font-size: 14px;
+  }
+
+  .post-user p {
+    font-size: 12px;
+  }
+
+  .post-actions {
+    padding: 10px 12px;
+  }
+
+  .action-btn {
+    font-size: 22px;
+  }
+
+  .post-caption {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .likes-count {
+    padding: 0 12px;
+  }
+
+  .comments-list {
+    padding: 0 12px 12px;
+  }
+
+  .comment-input-container {
+    padding: 0 12px 12px;
+  }
+
+  .comment-input-container input {
+    height: 42px;
+    font-size: 15px;
+  }
+
+  .comment-input-container button {
+    padding: 10px 14px;
+  }
+
+  .bottom-nav {
+    height: 64px;
+    font-size: 24px;
+  }
+
+}
+
+@media (max-width:480px) {
+
+  .stories-container {
+    padding: 8px;
+    gap: 12px;
+  }
+
+  .story-item {
+    min-width: 70px;
+  }
+
+  .story-avatar,
+  .story-avatar-img {
+    width: 62px;
+    height: 62px;
+  }
+
+  .story-item span {
+    font-size: 11px;
+  }
+
+  .story-add-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+  }
+
+  .search-box {
+    width: 96%;
+    border-radius: 16px;
+  }
+
+  .search-header {
+    padding: 10px;
+  }
+
+  .search-header input {
+    height: 42px;
+  }
+
+  .comments-box {
+    width: 95%;
+    padding: 16px;
+  }
+
+  .story-upload-box {
+    width: 96%;
+  }
+
+  .story-reply-box {
+    left: 12px;
+    right: 12px;
+    bottom: 14px;
+  }
+
+  .story-reply-box input {
+    height: 44px;
+    font-size: 14px;
+  }
+
+  .story-reply-box button {
+    width: 48px;
+    height: 44px;
+  }
+
 }

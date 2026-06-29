@@ -147,17 +147,16 @@ export default function Login() {
             Sign in to continue
           </p>
 
-          <GoogleLogin
-            onSuccess={handleGoogleLogin}
-            onError={() =>
-              toast.error("Google Login Failed")
-            }
-            theme="outline"
-            shape="pill"
-            size="large"
-            width="360"
-            text="continue_with"
-          />
+          <div className="google-login-wrapper">
+            <GoogleLogin
+              onSuccess={handleGoogleLogin}
+              onError={() => toast.error("Google Login Failed")}
+              theme="outline"
+              shape="pill"
+              size="large"
+              text="continue_with"
+            />
+          </div>
 
           <div className="divider">
             <span></span>

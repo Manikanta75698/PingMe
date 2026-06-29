@@ -695,3 +695,35 @@
   background: transparent;
 
 }
+
+@media (max-width:480px){
+
+  .login-wrapper{
+      width:95%;
+      padding:20px 0;
+  }
+
+  .login-left{
+      display:none;
+  }
+
+  .login-card{
+      padding:18px;
+      border-radius:18px;
+  }
+
+  .login-card h2{
+      font-size:22px;
+      text-align:center;
+  }
+
+  .login-subtitle{
+      text-align:center;
+      margin-bottom:20px;
+  }
+
+  .signup-text{
+      font-size:14px;
+  }
+
+}
