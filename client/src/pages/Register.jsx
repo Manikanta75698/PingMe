@@ -2,9 +2,13 @@ import "./Register.css";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { GoogleLogin } from "@react-oauth/google";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+
+
 
 export default function Register() {
   const navigate = useNavigate();
@@ -20,7 +24,6 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async (e) => {
@@ -107,132 +110,125 @@ export default function Register() {
 
   return (
     <div className="register-page">
-      <div className="register-card">
-        <div className="register-logo">
+
+      {/* LEFT SIDE */}
+
+      <div className="register-left">
+
+        <div className="brand-logo">
           💬
         </div>
-        <h1 className="register-title">
-          Create your account
+
+        <h1 className="brand-title">
+          Ping<span>Me</span>
         </h1>
 
-        <p className="register-subtitle">
-          Join PingMe and start connecting
-          with friends around the world.
+        <p className="brand-caption">
+          Connect. Chat. Share.
+          <br />
+          Build memories with your friends
+          <br />
+          on PingMe.
         </p>
 
-        <div className="google-login">
+      </div>
 
-          <GoogleLogin
-            onSuccess={handleGoogleRegister}
-            onError={() =>
-              toast.error("Google Register Failed")
-            }
-            theme="outline"
-            size="large"
-            width="100%"
-            text="continue_with"
-            shape="pill"
-          />
+      {/* RIGHT SIDE */}
 
-        </div>
+      <div className="register-right">
 
-        <div className="divider">
-          <span></span>
-          <p>OR CONTINUE WITH EMAIL</p>
-          <span></span>
-        </div>
+        <Card className="register-card">
+          <div className="register-icon">
+            👤
+          </div>
+          <h2 className="register-title">
+            Create Account
+          </h2>
 
-        <form onSubmit={handleRegister}>
-          <div className="input-group">
-            <label>Full Name</label>
-            <input
-              type="text"
-              autoComplete="name"
-              placeholder="Enter your name"
-              value={name}
-              onChange={(e) =>
-                setName(e.target.value)
+          <p className="register-subtitle">
+            Create your account and start chatting
+            with your friends instantly.
+          </p>
+
+          <div className="google-login">
+
+            <GoogleLogin
+              onSuccess={handleGoogleRegister}
+              onError={() =>
+                toast.error("Google Register Failed")
               }
-              required
+              theme="outline"
+              size="large"
+              width="360"
+              text="continue_with"
+              shape="pill"
             />
+
           </div>
 
-          <div className="input-group">
-            <label>Email Address</label>
-            <input
+          <div className="divider">
+            <span></span>
+            <p>OR CONTINUE WITH EMAIL</p>
+            <span></span>
+          </div>
+
+          <form onSubmit={handleRegister}>
+
+            <Input
+              label="Full Name"
+              placeholder="Enter your full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+
+            <Input
+              label="Email"
               type="email"
-              autoComplete="email"
               placeholder="Enter your email"
               value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
-          </div>
 
-          <div className="input-group">
-
-            <label>Password</label>
-
-            <div className="password-container">
-
-              <input
-                type={showPassword ? "text" : "password"}
-                autoComplete="new-password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-
-              <span
-                className="eye-icon"
-                onClick={() =>
-                  setShowPassword(!showPassword)
-                }
-              >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </span>
-
-            </div>
+            <Input
+              label="Password"
+              type="password"
+              placeholder="Create a password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
             <div className="password-strength">
-              {
-                password.length === 0
-                  ? ""
-                  : password.length < 8
-                    ? "🔴 Weak Password"
-                    : password.length < 12
-                      ? "🟡 Medium Password"
-                      : "🟢 Strong Password"
-              }
+              {password.length === 0
+                ? ""
+                : password.length < 8
+                  ? "🔴 Weak Password"
+                  : password.length < 12
+                    ? "🟡 Medium Password"
+                    : "🟢 Strong Password"}
             </div>
 
-          </div>
+            <Button
+              type="submit"
+              fullWidth
+              loading={loading}
+            >
+              {loading ? "Creating Account..." : "Create Account"}
+            </Button>
 
-          <button
-            type="submit"
-            className="signup-btn"
-            disabled={loading}
-          >
-            {
-              loading
-                ? "Creating your account..."
-                : "Create Account"
-            }
-          </button>
+          </form>
 
-        </form>
+          <p className="security-text">
+            🔒 Protected by PingMe Secure Authentication
+          </p>
 
-        <p className="security-text">
-          🔒 Protected by PingMe Secure Authentication
-        </p>
-
-        <p className="login-text">
-          Already have an account?
-          <Link to="/"> Sign In</Link>
-        </p>
+          <p className="login-text">
+            Already have an account?
+            <Link to="/"> Sign In</Link>
+          </p>
+        </Card>
       </div>
     </div>
   );

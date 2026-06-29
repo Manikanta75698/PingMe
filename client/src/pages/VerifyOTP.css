@@ -1,306 +1,615 @@
-/* =========================
-   Verify Theme Variables
-========================= */
+/* ===========================
+   GOOGLE FONT
+=========================== */
 
-:root {
-  --verify-bg: linear-gradient(135deg, #f8fafc, #e2e8f0);
-  --verify-card: rgba(255, 255, 255, 0.85);
-  --verify-text: #111827;
-  --verify-secondary: #64748b;
-  --verify-border: rgba(0, 0, 0, 0.08);
-  --verify-input: #ffffff;
-  --verify-shadow: rgba(0, 0, 0, 0.12);
-}
-
-.dark {
-  --verify-bg: linear-gradient(135deg, #020617, #0f172a);
-  --verify-card: rgba(15, 23, 42, 0.85);
-  --verify-text: #ffffff;
-  --verify-secondary: #94a3b8;
-  --verify-border: rgba(255, 255, 255, 0.08);
-  --verify-input: #1e293b;
-  --verify-shadow: rgba(0, 0, 0, 0.5);
-}
-
-
-/* =========================
-   Page
-========================= */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap");
 
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
 }
+
+/* ===========================
+   PAGE
+=========================== */
 
 .verify-page {
+
   min-height: 100vh;
-  background: var(--verify-bg);
 
   display: flex;
+
+  background: #f8fbff;
+
+  position: relative;
+
+  overflow: hidden;
+
+}
+
+/* ===========================
+   BACKGROUND BLOBS
+=========================== */
+
+.verify-page::before {
+
+  content: "";
+
+  position: absolute;
+
+  width: 600px;
+  height: 600px;
+
+  border-radius: 50%;
+
+  background: radial-gradient(circle,
+      rgba(96, 165, 250, .25),
+      transparent 70%);
+
+  left: -220px;
+  top: -180px;
+
+}
+
+.verify-page::after {
+
+  content: "";
+
+  position: absolute;
+
+  width: 650px;
+  height: 650px;
+
+  border-radius: 50%;
+
+  background: radial-gradient(circle,
+      rgba(168, 85, 247, .22),
+      transparent 70%);
+
+  right: -250px;
+  top: -120px;
+
+}
+
+/* ===========================
+   LEFT SIDE
+=========================== */
+
+.verify-left {
+
+  width: 50%;
+
+  display: flex;
+
+  flex-direction: column;
+
   justify-content: center;
+
   align-items: center;
 
-  padding: 20px;
+  padding: 60px;
+
+  position: relative;
+
+  z-index: 2;
+
 }
 
+/* ===========================
+   LOGO
+=========================== */
 
-/* =========================
-   Verify Card
-========================= */
+.brand-logo {
 
-.verify-card {
-  width: 100%;
-  max-width: 430px;
+  width: 110px;
 
-  background: var(--verify-card);
+  height: 110px;
 
-  backdrop-filter: blur(25px);
+  border-radius: 28px;
 
-  border: 1px solid var(--verify-border);
+  display: flex;
 
-  border-radius: 25px;
+  align-items: center;
 
-  padding: 45px 35px;
+  justify-content: center;
 
-  text-align: center;
+  font-size: 54px;
+
+  color: #fff;
+
+  background: linear-gradient(135deg,
+      #2563eb,
+      #8b5cf6);
 
   box-shadow:
-    0 15px 45px var(--verify-shadow);
+    0 18px 45px rgba(37, 99, 235, .28);
 
-  animation: fadeUp 0.6s ease;
 }
 
+/* ===========================
+   TITLE
+=========================== */
 
-/* =========================
-   Icon
-========================= */
+.brand-title {
 
-.verify-icon {
-  font-size: 55px;
+  margin-top: 28px;
 
-  margin-bottom: 15px;
+  font-size: 76px;
 
-  animation: bounce 2s infinite;
-}
-
-
-/* =========================
-   Title & Text
-========================= */
-
-.verify-title {
-  font-size: 30px;
   font-weight: 800;
 
-  background: linear-gradient(90deg,
-      #0095ff,
-      #00e5ff);
+  color: #0f172a;
+
+  letter-spacing: -2px;
+
+}
+
+.brand-title span {
+
+  background: linear-gradient(135deg,
+      #3b82f6,
+      #8b5cf6);
 
   -webkit-background-clip: text;
+
   -webkit-text-fill-color: transparent;
 
-  margin-bottom: 12px;
 }
 
+/* ===========================
+   CAPTION
+=========================== */
 
-.verify-text {
-  color: var(--verify-secondary);
+.brand-caption {
 
-  font-size: 15px;
-
-  line-height: 1.6;
-
-  margin-bottom: 30px;
-}
-
-
-/* =========================
-   OTP Input
-========================= */
-
-.otp-input {
-  width: 100%;
-  height: 60px;
-
-  background: var(--verify-input);
-
-  color: var(--verify-text);
-
-  border: 1px solid var(--verify-border);
-
-  border-radius: 15px;
-
-  padding: 0 18px;
-
-  font-size: 22px;
+  margin-top: 28px;
 
   text-align: center;
 
-  letter-spacing: 10px;
+  line-height: 1.8;
+
+  color: #64748b;
+
+  font-size: 30px;
+
+  font-weight: 500;
+
+}
+
+/* ===========================
+   RIGHT SIDE
+=========================== */
+
+.verify-right {
+
+  width: 50%;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  padding: 40px;
+
+  position: relative;
+
+  z-index: 2;
+
+}
+
+/* ===========================
+   CARD
+=========================== */
+
+.verify-card {
+
+  width: 100%;
+
+  max-width: 650px;
+
+  background: #fff;
+
+  border-radius: 38px;
+
+  padding: 55px;
+
+  box-shadow:
+    0 25px 70px rgba(15, 23, 42, .08);
+
+  border: 1px solid #edf2f7;
+
+}
+
+/* ===========================
+   ICON
+=========================== */
+
+.verify-icon {
+
+  width: 82px;
+
+  height: 82px;
+
+  margin: 0 auto 22px;
+
+  border-radius: 24px;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  font-size: 36px;
+
+  background: linear-gradient(135deg,
+      var(--primary),
+      var(--secondary));
+
+  color: #fff;
+
+  box-shadow: var(--shadow-lg);
+
+}
+
+/* ===========================
+   TITLE
+=========================== */
+
+.verify-card h2 {
+
+  margin-top: 26px;
+
+  text-align: center;
+
+  font-size: 50px;
+
+  color: #0f172a;
+
+  font-weight: 800;
+
+}
+
+/* ===========================
+   TEXT
+=========================== */
+
+.verify-text {
+
+  margin-top: 18px;
+
+  text-align: center;
+
+  font-size: 24px;
+
+  line-height: 1.8;
+
+  color: #64748b;
+
+}
+
+.verify-email {
+
+  display: inline-block;
+
+  margin-top: 10px;
+
+  font-weight: 700;
+
+  color: var(--primary);
+
+  word-break: break-word;
+
+}
+
+/* ===========================
+   OTP CONTAINER
+=========================== */
+
+.otp-container {
+
+  display: flex;
+
+  justify-content: center;
+
+  gap: 14px;
+
+  margin: 30px 0;
+
+}
+
+/* ===========================
+   OTP BOX
+=========================== */
+
+.otp-box {
+
+  width: 58px;
+
+  height: 64px;
+
+  border-radius: 18px;
+
+  border: 2px solid rgba(148, 163, 184, .25);
+
+  background: rgba(255, 255, 255, .75);
+
+  text-align: center;
+
+  font-size: 24px;
+
+  font-weight: 700;
+
+  color: var(--text);
+
+  transition: .25s;
+
+}
+
+.dark .otp-box {
+
+  background: rgba(30, 41, 59, .85);
+
+  color: #fff;
+
+}
+
+.otp-box:focus {
 
   outline: none;
 
-  transition: 0.3s;
+  border-color: var(--primary);
+
+  box-shadow: 0 0 0 5px rgba(59, 130, 246, .15);
+
+  transform: translateY(-2px);
+
 }
 
+.otp-box:focus {
 
-.otp-input:focus {
-  border-color: #0095ff;
+  border-color: #2563eb;
 
   box-shadow:
-    0 0 18px rgba(0, 149, 255, 0.4);
+    0 0 0 6px rgba(37, 99, 235, .12);
 
-  transform: scale(1.02);
 }
 
+.otp-box:hover {
 
-.otp-input::placeholder {
-  color: var(--verify-secondary);
+  border-color: #3b82f6;
+
 }
 
-
-/* =========================
-   Verify Button
-========================= */
+/* ===========================
+   VERIFY BUTTON
+=========================== */
 
 .verify-btn {
+
   width: 100%;
 
-  height: 58px;
-
-  margin-top: 25px;
+  height: 72px;
 
   border: none;
 
-  border-radius: 15px;
-
-  background: linear-gradient(135deg,
-      #0095ff,
-      #2563eb);
-
-  color: white;
-
-  font-size: 17px;
-
-  font-weight: 700;
+  border-radius: 22px;
 
   cursor: pointer;
 
-  transition: 0.3s;
+  color: #fff;
+
+  font-size: 24px;
+
+  font-weight: 700;
+
+  background: linear-gradient(90deg,
+      #2563eb,
+      #7c3aed);
+
+  transition: .35s;
+
+  box-shadow:
+    0 18px 35px rgba(37, 99, 235, .22);
+
 }
 
-
 .verify-btn:hover {
+
   transform: translateY(-3px);
 
   box-shadow:
-    0 12px 30px rgba(0, 149, 255, 0.5);
+    0 25px 45px rgba(37, 99, 235, .30);
+
 }
 
+.verify-btn:active {
 
-/* Disabled Button */
+  transform: scale(.98);
+
+}
 
 .verify-btn:disabled {
-  opacity: 0.7;
+
+  opacity: .7;
 
   cursor: not-allowed;
 
-  transform: none;
-
-  box-shadow: none;
 }
 
+/* ===========================
+   DIVIDER
+=========================== */
 
-/* =========================
-   Animations
-========================= */
+.divider {
 
-@keyframes fadeUp {
+  display: flex;
 
-  from {
-    opacity: 0;
+  align-items: center;
 
-    transform: translateY(35px);
-  }
+  gap: 18px;
 
-  to {
-    opacity: 1;
-
-    transform: translateY(0);
-  }
+  margin: 38px 0;
 
 }
 
+.divider span {
 
-@keyframes bounce {
+  flex: 1;
 
-  0%,
-  100% {
-    transform: translateY(0);
-  }
+  height: 1px;
 
-  50% {
-    transform: translateY(-8px);
-  }
+  background: #e5e7eb;
 
 }
 
+.divider p {
 
-/* =========================
-   Mobile Responsive
-========================= */
+  font-size: 19px;
 
-@media (max-width: 480px) {
+  color: #64748b;
 
-  .verify-card {
-    padding: 35px 22px;
-
-    border-radius: 22px;
-  }
-
-
-  .verify-title {
-    font-size: 26px;
-  }
-
-
-  .verify-text {
-    font-size: 14px;
-  }
-
-
-  .otp-input {
-    height: 55px;
-
-    font-size: 20px;
-
-    letter-spacing: 7px;
-  }
+  white-space: nowrap;
 
 }
 
-.verify-text strong {
-  color: #0095ff;
-  font-weight: 700;
-}
-
-.resend-text {
-  margin-top: 15px;
-  color: #666;
-  font-size: 14px;
-}
+/* ===========================
+   RESEND BUTTON
+=========================== */
 
 .resend-btn {
-  background: none;
-  border: none;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  gap: 12px;
+
+  margin: auto;
+
+  width: 280px;
+
+  height: 62px;
+
+  border-radius: 40px;
+
+  border: 2px solid #dbe7ff;
+
+  background: #fff;
+
   color: #2563eb;
-  font-size: 15px;
+
+  font-size: 22px;
+
   font-weight: 600;
+
   cursor: pointer;
-  margin-top: 8px;
-  transition: 0.3s;
+
+  transition: .3s;
+
 }
 
 .resend-btn:hover {
-  color: #1d4ed8;
-  text-decoration: underline;
+
+  background: #2563eb;
+
+  color: #fff;
+
+  border-color: #2563eb;
+
+}
+
+/* ===========================
+   SECURITY
+=========================== */
+
+.security-text {
+
+  margin-top: 26px;
+
+  text-align: center;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+
+}
+
+@media (max-width: 992px) {
+
+  .verify-page {
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .verify-left {
+    display: none;
+  }
+
+  .verify-right {
+    width: 100%;
+    padding: 0;
+  }
+
+  .verify-card {
+    width: 100%;
+    max-width: 480px;
+    padding: 32px 24px;
+  }
+
+  .verify-card h2 {
+    font-size: 30px;
+  }
+
+  .verify-text {
+    font-size: 16px;
+    word-break: break-word;
+  }
+
+  .otp-container {
+    gap: 10px;
+  }
+
+  .otp-box {
+    width: 46px;
+    height: 56px;
+    font-size: 22px;
+  }
+
+  .verify-btn {
+    height: 56px;
+    font-size: 18px;
+  }
+
+  .resend-btn {
+    width: 100%;
+    max-width: 260px;
+    font-size: 16px;
+    height: 52px;
+  }
+}
+
+@media(max-width:768px) {
+
+  .otp-container {
+
+    gap: 8px;
+
+  }
+
+  .otp-box {
+
+    width: 46px;
+
+    height: 54px;
+
+    font-size: 20px;
+
+  }
+
 }

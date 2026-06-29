@@ -3,12 +3,14 @@ import { createRoot } from "react-dom/client";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "react-hot-toast";
 import "./index.css";
-import App from "./App.jsx";
 
-console.log(
-  "Google Client ID:",
-  import.meta.env.VITE_GOOGLE_CLIENT_ID
-);
+import "./styles/variables.css";
+import "./styles/globals.css";
+import "./styles/theme.css";
+import "./styles/animations.css";
+import "./styles/components.css";
+
+import App from "./App.jsx";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

@@ -586,14 +586,8 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
   try {
 
-    console.log("REQ BODY:", req.body);
-    console.log("OTP VALUE:", req.body.otp);
-    console.log("OTP TYPE:", typeof req.body.otp);
-
     const { email, otp, password } = req.body;
 
-    console.log("DESTRUCTURED OTP:", otp);
-    console.log("DESTRUCTURED OTP TYPE:", typeof otp);
 
     if (!email || !otp || !password) {
       return res.status(400).json({

@@ -1,0 +1,152 @@
+/* ==========================================
+   GOOGLE FONT
+========================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap");
+
+/* ==========================================
+   RESET
+========================================== */
+
+*,
+*::before,
+*::after{
+
+  margin:0;
+
+  padding:0;
+
+  box-sizing:border-box;
+
+}
+
+/* ==========================================
+   HTML
+========================================== */
+
+html{
+
+  scroll-behavior:smooth;
+
+}
+
+/* ==========================================
+   BODY
+========================================== */
+
+body{
+
+  font-family:"Poppins",sans-serif;
+
+  background:var(--bg);
+
+  color:var(--text);
+
+  overflow-x:hidden;
+
+  transition:
+
+  background var(--transition),
+
+  color var(--transition);
+
+}
+
+/* ==========================================
+   ROOT
+========================================== */
+
+#root{
+
+  min-height:100vh;
+
+}
+
+/* ==========================================
+   LINKS
+========================================== */
+
+a{
+
+  text-decoration:none;
+
+  color:inherit;
+
+}
+
+/* ==========================================
+   LIST
+========================================== */
+
+ul,
+ol{
+
+  list-style:none;
+
+}
+
+/* ==========================================
+   IMAGE
+========================================== */
+
+img{
+
+  display:block;
+
+  max-width:100%;
+
+}
+
+/* ==========================================
+   BUTTON
+========================================== */
+
+button{
+
+  font-family:inherit;
+
+  border:none;
+
+  outline:none;
+
+  cursor:pointer;
+
+}
+
+/* ==========================================
+   INPUT
+========================================== */
+
+input,
+textarea,
+select{
+
+  font-family:inherit;
+
+  outline:none;
+
+}
+
+/* ==========================================
+   SCROLLBAR
+========================================== */
+
+::-webkit-scrollbar{
+
+  width:8px;
+
+}
+
+::-webkit-scrollbar-thumb{
+
+  background:var(--primary);
+
+  border-radius:999px;
+
+}
+
+::-webkit-scrollbar-track{
+
+  background:transparent;
+
+}

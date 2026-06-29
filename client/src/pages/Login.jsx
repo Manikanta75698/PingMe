@@ -4,14 +4,15 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { GoogleLogin } from "@react-oauth/google";
-
+import Input from "../components/ui/Input";
 import {
-  FaEye,
-  FaEyeSlash,
+  FaComments,
   FaEnvelope,
-  FaLock,
-  FaComments
+  FaLock
 } from "react-icons/fa";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+
 
 export default function Login() {
   const navigate = useNavigate();
@@ -28,7 +29,6 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
@@ -139,7 +139,7 @@ export default function Login() {
 
         </div>
 
-        <div className="login-card">
+        <Card className="login-card">
 
           <h2>Welcome Back 👋</h2>
 
@@ -167,48 +167,25 @@ export default function Login() {
 
           <form onSubmit={handleLogin}>
 
-            <div className="input-group">
+            <Input
+              label="Email"
+              type="email"
+              leftIcon={<FaEnvelope />}
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
 
-              <label>Email</label>
-
-              <div className="input-box">
-
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-
-              </div>
-
-            </div>
-
-            <div className="input-group">
-
-              <label>Password</label>
-
-              <div className="input-box">
-
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-
-                <span
-                  className="eye-icon"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </span>
-
-              </div>
-
-            </div>
+            <Input
+              label="Password"
+              type="password"
+              leftIcon={<FaLock />}
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
             <Link
               className="forgot-link"
@@ -217,16 +194,13 @@ export default function Login() {
               Forgot Password?
             </Link>
 
-            <button
-              className="signin-btn"
-              disabled={loading}
+            <Button
+              type="submit"
+              fullWidth
+              loading={loading}
             >
-              {
-                loading
-                  ? "Signing In..."
-                  : "Sign In"
-              }
-            </button>
+              {loading ? "Signing In..." : "Sign In"}
+            </Button>
 
           </form>
 
@@ -240,7 +214,7 @@ export default function Login() {
 
           </p>
 
-        </div>
+        </Card>
 
       </div>
 

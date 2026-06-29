@@ -1,0 +1,360 @@
+/* ==========================================
+   PINGME BUTTON
+========================================== */
+
+.btn {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 10px;
+
+  border: none;
+
+  border-radius: var(--radius-lg);
+
+  cursor: pointer;
+
+  font-family: inherit;
+
+  font-weight: 600;
+
+  transition:
+    background .25s ease,
+    color .25s ease,
+    transform .2s ease,
+    box-shadow .25s ease;
+
+  user-select: none;
+
+  position: relative;
+
+  overflow: hidden;
+
+  white-space: nowrap;
+
+}
+
+/* ==========================================
+   FULL WIDTH
+========================================== */
+
+.btn-full {
+
+  width: 100%;
+
+}
+
+/* ==========================================
+   SIZES
+========================================== */
+
+.btn-sm {
+
+  height: 42px;
+
+  padding: 0 18px;
+
+  font-size: 14px;
+
+}
+
+.btn-md {
+
+  height: 52px;
+
+  padding: 0 24px;
+
+  font-size: 15px;
+
+}
+
+.btn-lg {
+
+  height: 60px;
+
+  padding: 0 30px;
+
+  font-size: 16px;
+
+}
+
+/* ==========================================
+   ICON
+========================================== */
+
+.btn-icon {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+}
+
+.btn-text {
+
+  display: flex;
+
+  align-items: center;
+
+}
+
+/* ==========================================
+   PRIMARY
+========================================== */
+
+.btn-primary {
+
+  background: var(--primary);
+
+  color: #fff;
+
+  box-shadow: var(--shadow-md);
+
+}
+
+.btn-primary:hover {
+
+  background: var(--primary-hover);
+
+  transform: translateY(-2px);
+
+  box-shadow: var(--shadow-lg);
+
+}
+
+.btn-primary:active {
+
+  transform: scale(.98);
+
+}
+
+/* ==========================================
+   SECONDARY
+========================================== */
+
+.btn-secondary {
+
+  background: var(--secondary);
+
+  color: #fff;
+
+  box-shadow: var(--shadow-md);
+
+}
+
+.btn-secondary:hover {
+
+  background: var(--secondary-hover);
+
+  transform: translateY(-2px);
+
+  box-shadow: var(--shadow-lg);
+
+}
+
+.btn-secondary:active {
+
+  transform: scale(.98);
+
+}
+
+/* ==========================================
+   OUTLINE
+========================================== */
+
+.btn-outline {
+
+  background: transparent;
+
+  color: var(--primary);
+
+  border: 2px solid var(--primary);
+
+}
+
+.btn-outline:hover {
+
+  background: var(--primary);
+
+  color: #fff;
+
+  transform: translateY(-2px);
+
+}
+
+/* ==========================================
+   DANGER
+========================================== */
+
+.btn-danger {
+
+  background: var(--danger);
+
+  color: #fff;
+
+  box-shadow: var(--shadow-md);
+
+}
+
+.btn-danger:hover {
+
+  filter: brightness(.95);
+
+  transform: translateY(-2px);
+
+  box-shadow: var(--shadow-lg);
+
+}
+
+/* ==========================================
+   GHOST
+========================================== */
+
+.btn-ghost {
+
+  background: transparent;
+
+  color: var(--text);
+
+}
+
+.btn-ghost:hover {
+
+  background: rgba(148, 163, 184, .12);
+
+}
+
+/* ==========================================
+   DISABLED
+========================================== */
+
+.btn:disabled {
+
+  opacity: .6;
+
+  cursor: not-allowed;
+
+  transform: none !important;
+
+  box-shadow: none !important;
+
+  filter: grayscale(.15);
+
+}
+
+/* ==========================================
+   LOADING
+========================================== */
+
+.btn-loading {
+
+  pointer-events: none;
+
+  opacity: .9;
+
+}
+
+/* ==========================================
+   FOCUS (Accessibility)
+========================================== */
+
+.btn:focus-visible {
+
+  outline: 3px solid rgba(37, 99, 235, .25);
+
+  outline-offset: 3px;
+
+}
+
+/* ==========================================
+   HOVER ANIMATION
+========================================== */
+
+.btn:hover {
+
+  transition:
+    background .25s ease,
+    color .25s ease,
+    transform .2s ease,
+    box-shadow .25s ease;
+
+}
+
+/* ==========================================
+   ACTIVE
+========================================== */
+
+.btn:active {
+
+  transform: scale(.98);
+
+}
+
+/* ==========================================
+   RESPONSIVE
+========================================== */
+
+@media(max-width:768px) {
+
+  .btn-lg {
+
+    height: 56px;
+
+    font-size: 15px;
+
+    padding: 0 24px;
+
+  }
+
+  .btn-md {
+
+    height: 48px;
+
+    padding: 0 20px;
+
+  }
+
+}
+
+.btn-spinner {
+
+  width: 18px;
+  height: 18px;
+
+  display: inline-block;
+
+  flex-shrink: 0;
+
+  border: 2px solid rgba(255, 255, 255, .35);
+
+  border-top-color: #fff;
+
+  border-radius: 50%;
+
+  animation: spin .7s linear infinite;
+
+}
+
+@keyframes spin {
+
+  to {
+
+    transform: rotate(360deg);
+
+  }
+
+}
+
+.btn:focus-visible {
+
+  outline: 3px solid rgba(59, 130, 246, .35);
+
+  outline-offset: 4px;
+
+}

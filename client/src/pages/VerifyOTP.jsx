@@ -1,17 +1,27 @@
 import "./VerifyOTP.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 
-const VerifyOTP = () => {
-  const [otp, setOtp] = useState("");
-  const [loading, setLoading] = useState(false);
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import { FaComments } from "react-icons/fa";
+
+export default function VerifyOTP() {
 
   const navigate = useNavigate();
   const location = useLocation();
 
   const email = location.state?.email;
+
+  const inputRefs = useRef([]);
+
+  const [otp, setOtp] = useState(Array(6).fill(""));
+  const [loading, setLoading] = useState(false);
+
+  const [timer, setTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
 
@@ -25,14 +35,121 @@ const VerifyOTP = () => {
 
   }, [email, navigate]);
 
+  useEffect(() => {
+
+    if (timer <= 0) {
+
+      setCanResend(true);
+
+      return;
+
+    }
+
+    const interval = setInterval(() => {
+
+      setTimer((prev) => prev - 1);
+
+    }, 1000);
+
+    return () => clearInterval(interval);
+
+  }, [timer]);
+
+  const handleOtpChange = (
+    value,
+    index
+  ) => {
+
+    if (!/^\d?$/.test(value)) return;
+
+    const newOtp = [...otp];
+
+    newOtp[index] = value;
+
+    setOtp(newOtp);
+
+    if (value && index < 5) {
+
+      inputRefs.current[index + 1]?.focus();
+
+    }
+
+  };
+
+  const handleKeyDown = (
+    e,
+    index
+  ) => {
+
+    if (
+      e.key === "Backspace" &&
+      !otp[index] &&
+      index > 0
+    ) {
+
+      inputRefs.current[index - 1]?.focus();
+
+    }
+
+    if (
+      e.key === "ArrowLeft" &&
+      index > 0
+    ) {
+
+      inputRefs.current[index - 1]?.focus();
+
+    }
+
+    if (
+      e.key === "ArrowRight" &&
+      index < 5
+    ) {
+
+      inputRefs.current[index + 1]?.focus();
+
+    }
+
+  };
+
+  const handlePaste = (e) => {
+
+    e.preventDefault();
+
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, 6);
+
+    const newOtp = [...otp];
+
+    pasted.split("").forEach(
+      (digit, index) => {
+
+        newOtp[index] = digit;
+
+      }
+    );
+
+    setOtp(newOtp);
+
+    inputRefs.current[5]?.focus();
+
+  };
+
   const handleVerify = async (e) => {
+
     e.preventDefault();
 
     if (loading) return;
 
-    if (!otp) {
-      toast.error("Please enter OTP");
+    const finalOtp = otp.join("");
+
+    if (finalOtp.length !== 6) {
+
+      toast.error("Please enter all 6 digits");
+
       return;
+
     }
 
     setLoading(true);
@@ -43,7 +160,7 @@ const VerifyOTP = () => {
         "https://pingme-api-new.onrender.com/api/auth/verify-otp",
         {
           email,
-          otp,
+          otp: finalOtp,
         }
       );
 
@@ -52,7 +169,6 @@ const VerifyOTP = () => {
       navigate("/");
 
     } catch (error) {
-
 
       toast.error(
         error.response?.data?.message ||
@@ -64,10 +180,15 @@ const VerifyOTP = () => {
       setLoading(false);
 
     }
+
   };
 
   const handleResendOTP = async () => {
+
+    if (!canResend) return;
+
     try {
+
       const response = await axios.post(
         "https://pingme-api-new.onrender.com/api/auth/resend-otp",
         {
@@ -77,72 +198,171 @@ const VerifyOTP = () => {
 
       toast.success(response.data.message);
 
+      setTimer(60);
+
+      setCanResend(false);
+
     } catch (error) {
+
       toast.error(
         error.response?.data?.message ||
         "Failed to resend OTP"
       );
+
     }
+
   };
 
   return (
-    <div className="verify-page">
-      <div className="verify-card">
 
-        <div className="verify-icon">
-          🔐
+    <div className="verify-page">
+
+      <div className="verify-left">
+
+        <div className="brand-logo">
+          <FaComments />
         </div>
 
-        <h2 className="verify-title">
-          Verify Your Email
-        </h2>
+        <h1 className="brand-title">
+          Ping<span>Me</span>
+        </h1>
 
-        <p className="verify-text">
-          Enter the 6-digit OTP sent to
+        <p className="brand-caption">
+          Connect.
+          Chat.
+          Share.
           <br />
-          <strong>{email}</strong>
+          Build memories with your friends.
         </p>
 
-        <form onSubmit={handleVerify}>
+      </div>
 
-          <input
-            className="otp-input"
-            type="text"
-            autoFocus
-            placeholder="------"
-            value={otp}
-            maxLength="6"
-            autoComplete="one-time-code"
-            onChange={(e) =>
-              setOtp(e.target.value.replace(/\D/g, ""))
-            }
-            required
-          />
+      <div className="verify-right">
 
-          <button
-            className="verify-btn"
-            type="submit"
-            disabled={loading}
-          >
-            {loading ? "Verifying..." : "Verify OTP"}
-          </button>
+        <Card className="verify-card">
 
-          <p className="resend-text">
-            Didn't receive OTP?
+          <div className="verify-icon">
+            🔐
+          </div>
+
+          <h2>
+            Verify Your Email
+          </h2>
+
+          <p className="verify-text">
+
+            Enter the verification code sent to
+
+            <br />
+
+            <span className="verify-email">
+              {email}
+            </span>
+
           </p>
 
-        </form>
+          <form onSubmit={handleVerify}>
 
-        <button
-          type="button"
-          onClick={handleResendOTP}
-          className="resend-btn"
-        >
-          Resend OTP
-        </button>
+            <div
+              className="otp-container"
+              onPaste={handlePaste}
+            >
+
+              {otp.map((digit, index) => (
+
+                <input
+
+                  key={index}
+
+                  ref={(el) =>
+                    inputRefs.current[index] = el
+                  }
+
+                  className="otp-box"
+
+                  type="text"
+
+                  maxLength={1}
+
+                  inputMode="numeric"
+
+                  value={digit}
+
+                  autoFocus={index === 0}
+
+                  onChange={(e) =>
+                    handleOtpChange(
+                      e.target.value,
+                      index
+                    )
+                  }
+
+                  onKeyDown={(e) =>
+                    handleKeyDown(
+                      e,
+                      index
+                    )
+                  }
+
+                />
+
+              ))}
+
+            </div>
+
+            <Button
+              type="submit"
+              fullWidth
+              loading={loading}
+            >
+              {loading
+                ? "Verifying..."
+                : "Verify OTP"}
+            </Button>
+
+          </form>
+
+          <div className="divider">
+
+            <span></span>
+
+            <p>
+
+              Didn't receive OTP?
+
+            </p>
+
+            <span></span>
+
+          </div>
+
+          <Button
+            variant="ghost"
+            fullWidth
+            type="button"
+            onClick={handleResendOTP}
+            disabled={!canResend}
+          >
+
+            {
+              canResend
+                ? "🔄 Resend OTP"
+                : `Resend in 00:${String(timer).padStart(2, "0")}`
+            }
+
+          </Button>
+
+          <p className="security-text">
+
+            🔒 Protected by PingMe Secure Authentication
+
+          </p>
+
+        </Card>
+
       </div>
-    </div>
-  );
-};
 
-export default VerifyOTP;
+    </div>
+
+  );
+}
