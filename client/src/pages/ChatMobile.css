@@ -1,0 +1,386 @@
+@media (max-width:768px) {
+
+  .chat-container {
+    flex-direction: row;
+    height: 100vh;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+  }
+
+  .chat-area {
+    width: 100%;
+  }
+
+  .mobile-hide {
+    display: none;
+  }
+
+  .mobile-hide-chat {
+    display: none;
+  }
+
+}
+
+/* ===== Mobile Header ===== */
+
+.message-header {
+
+  padding: 16px;
+
+  margin-bottom: 12px;
+
+}
+
+.message-header h2 {
+
+  font-size: 24px;
+
+}
+
+.mini-profile {
+
+  width: 44px;
+
+  height: 44px;
+
+}
+
+/* ===== Search ===== */
+
+.search-user {
+
+  margin-bottom: 16px;
+
+}
+
+.search-user input {
+
+  height: 46px;
+
+  font-size: 14px;
+
+}
+
+/* ===== Chat List ===== */
+
+.user-card {
+
+  padding: 12px;
+
+  margin-bottom: 10px;
+
+  border-radius: 16px;
+
+}
+
+.user-avatar {
+
+  width: 50px;
+
+  height: 50px;
+
+}
+
+.user-details h4 {
+
+  font-size: 15px;
+
+}
+
+.user-details p {
+
+  font-size: 12px;
+
+}
+
+/* ===== Mobile Chat ===== */
+
+.chat-header {
+
+  height: 64px;
+
+  padding: 0 14px;
+
+}
+
+.chat-user-top {
+
+  gap: 10px;
+
+}
+
+.back-btn {
+
+  width: 36px;
+
+  height: 36px;
+
+  font-size: 22px;
+
+  margin-right: 4px;
+
+}
+
+.header-avatar {
+
+  width: 42px;
+
+  height: 42px;
+
+}
+
+.chat-user-info h3 {
+
+  font-size: 16px;
+
+}
+
+.chat-user-info p {
+
+  font-size: 12px;
+
+}
+
+.header-actions {
+
+  gap: 6px;
+
+}
+
+.action-btn,
+.menu-btn {
+
+  width: 36px;
+
+  height: 36px;
+
+  font-size: 18px;
+
+}
+
+/* ===== Mobile Messages ===== */
+
+.messages {
+
+  padding: 12px;
+
+  gap: 10px;
+
+}
+
+.message {
+
+  max-width: 85%;
+
+  padding: 10px 14px;
+
+  font-size: 14px;
+
+  border-radius: 16px;
+
+}
+
+.chat-message-image {
+
+  max-width: 220px;
+
+  border-radius: 12px;
+
+}
+
+.message-time {
+
+  font-size: 10px;
+
+  margin-top: 6px;
+
+}
+
+/* ===== Mobile Input ===== */
+
+.chat-input-container {
+
+  padding: 10px;
+
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+
+}
+
+.chat-input {
+
+  padding: 8px 12px;
+
+  border-radius: 999px;
+
+  gap: 8px;
+
+}
+
+.chat-input input[type="text"] {
+
+  font-size: 14px;
+
+}
+
+.emoji-btn,
+.image-btn,
+.send-btn {
+
+  width: 38px;
+
+  height: 38px;
+
+  font-size: 18px;
+
+  flex-shrink: 0;
+
+}
+
+.send-btn {
+
+  border-radius: 50%;
+
+}
+
+/* ===== Emoji Picker ===== */
+
+.emoji-picker {
+
+  position: fixed;
+
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  bottom: 75px;
+
+  width: 95%;
+
+  max-width: 360px;
+
+  height: 320px;
+
+  overflow: hidden;
+
+  border-radius: 18px;
+
+  background: #fff;
+
+  box-shadow: 0 20px 40px rgba(0, 0, 0, .25);
+
+  z-index: 9999;
+
+}
+
+.emoji-picker .EmojiPickerReact {
+
+  width: 100% !important;
+
+  height: 320px !important;
+
+  border: none !important;
+
+  box-shadow: none !important;
+
+}
+
+/* ===== Empty Chat ===== */
+
+.empty-chat {
+
+  padding: 24px;
+
+  text-align: center;
+
+}
+
+.empty-chat h2 {
+
+  font-size: 24px;
+
+  margin-bottom: 10px;
+
+}
+
+.empty-chat p {
+
+  font-size: 14px;
+
+  line-height: 1.5;
+
+}
+
+/* ===== Search Results ===== */
+
+.search-results {
+
+  max-height: 300px;
+
+  overflow-y: auto;
+
+  border-radius: 14px;
+
+}
+
+.search-user-card {
+
+  padding: 10px;
+
+  gap: 10px;
+
+}
+
+.search-user-card img {
+
+  width: 44px;
+
+  height: 44px;
+
+  border-radius: 50%;
+
+}
+
+.search-user-card h4 {
+
+  font-size: 15px;
+
+}
+
+.search-user-card p {
+
+  font-size: 13px;
+
+}
+
+/* ===== Delete Menu ===== */
+
+.delete-menu {
+
+  width: 170px;
+
+  right: 6px;
+
+  top: 34px;
+
+}
+
+.delete-menu button {
+
+  font-size: 13px;
+
+  padding: 10px;
+
+}
+
+/* ===== Animation ===== */
+
+.user-card,
+.message,
+.chat-input {
+
+  transition: all .25s ease;
+
+}

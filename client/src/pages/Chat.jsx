@@ -5,12 +5,25 @@ import axios from "axios";
 import socket from "../socket";
 import EmojiPicker from "emoji-picker-react";
 import toast from "react-hot-toast";
+import { IoArrowBack, IoCall, IoVideocam, IoSend } from "react-icons/io5";
+import { BsEmojiSmile, BsThreeDotsVertical } from "react-icons/bs";
+import { HiOutlinePaperClip } from "react-icons/hi2";
 
 function Chat() {
   const navigate = useNavigate();
   const user = JSON.parse(
     localStorage.getItem("user") || "null"
   );
+  <button
+    className="back-btn"
+    onClick={() => {
+      setShowChat(false);
+      setSelectedUser(null);
+      localStorage.removeItem("selectedUser");
+    }}
+  >
+    <IoArrowBack />
+  </button>
   const [selectedUser, setSelectedUser] = useState(null);
   const selectedUserRef = useRef(selectedUser);
   const [typingUser, setTypingUser] =
@@ -288,20 +301,20 @@ function Chat() {
             markMessagesAsSeen(data.sender);
           } else {
             /*  setUnreadMessages((prev) => {
-  
+   
                 const updated = {
                   ...prev,
                   [data.sender]:
                     (prev[data.sender] || 0) + 1,
                 };
-  
+   
                 localStorage.setItem(
                   "unreadMessages",
                   JSON.stringify(updated)
                 );
-  
+   
                 return updated;
-  
+   
               });*/
           }
         }
@@ -623,6 +636,10 @@ function Chat() {
     }
   };
 
+  const onlineSet = new Set(
+    onlineUsers.map(u => u.username)
+  );
+
   const selectedUserData =
     allUsers.find(
       user =>
@@ -661,6 +678,10 @@ function Chat() {
         msg.receiver === selectedUser) ||
       (msg.sender === selectedUser &&
         msg.receiver === user.username)
+  );
+
+  const visibleMessages = filteredMessages.filter(
+    (msg) => !msg.deletedFor?.includes(user.username)
   );
 
   return (
@@ -761,10 +782,10 @@ function Chat() {
 
         {allUsers.map((chatUser) => {
 
-          const isOnline = onlineUsers.some(
-            (onlineUser) =>
-              onlineUser.username === chatUser.username
-          );
+          const isOnline =
+            onlineSet.has(
+              chatUser.username
+            );
 
           return (
 
@@ -867,22 +888,25 @@ function Chat() {
       <div className={`chat-area ${!showChat ? "mobile-hide-chat" : ""}`}>
 
         <div className="chat-header">
-          <div className="chat-title">
 
-            <button
-              className="back-btn"
-              onClick={() => {
-                setShowChat(false);
-                setSelectedUser(null);
-                localStorage.removeItem("selectedUser");
-              }}
-            >
-              ←
-            </button>
+          <div className="chat-title">
 
             <div className="chat-user-info">
 
               <div className="chat-user-top">
+
+                {selectedUser && (
+                  <button
+                    className="back-btn"
+                    onClick={() => {
+                      setShowChat(false);
+                      setSelectedUser(null);
+                      localStorage.removeItem("selectedUser");
+                    }}
+                  >
+                    <IoArrowBack />
+                  </button>
+                )}
 
                 {selectedUser && (
                   <img
@@ -906,10 +930,7 @@ function Chat() {
 
                   <p>
                     {selectedUser
-                      ? onlineUsers.some(
-                        (u) =>
-                          u.username === selectedUser
-                      )
+                      ? onlineSet.has(selectedUser)
                         ? "🟢 Online"
                         : `⚫ ${formatLastSeen(selectedUserData?.lastSeen)}`
                       : "Select someone to start chatting"}
@@ -929,11 +950,11 @@ function Chat() {
               {selectedUser && (
                 <>
                   <button className="action-btn">
-                    📞
+                    <IoCall />
                   </button>
 
                   <button className="action-btn">
-                    🎥
+                    <IoVideocam />
                   </button>
                 </>
               )}
@@ -944,7 +965,7 @@ function Chat() {
                   className="menu-btn"
                   onClick={() => setShowMenu(prev => !prev)}
                 >
-                  ⋮
+                  <BsThreeDotsVertical />
                 </button>
 
                 {showMenu && (
@@ -995,13 +1016,19 @@ function Chat() {
           </div>
         </div>
 
-        <div className="messages" ref={messagesRef}>
-          {filteredMessages
-            .filter(
-              (msg) =>
-                !msg.deletedFor?.includes(user.username)
-            )
-            .map((msg) => (
+        {!selectedUser ? (
+
+          <div className="empty-chat">
+            <h2>Welcome to PingMe 👋</h2>
+            <p>Select a conversation to start chatting.</p>
+          </div>
+
+        ) : (
+
+          <div className="messages" ref={messagesRef}>
+
+            {visibleMessages.map((msg) => (
+
               <div
                 key={msg._id}
                 className={
@@ -1101,7 +1128,10 @@ function Chat() {
                 </small>
               </div>
             ))}
-        </div>
+
+          </div>
+
+        )}
 
         {typingUser && (
           <p
@@ -1120,29 +1150,6 @@ function Chat() {
           ref={emojiRef}
         >
 
-          {showEmojiPicker && (
-            <div className="emoji-picker">
-              <EmojiPicker onEmojiClick={handleEmojiClick} />
-            </div>
-          )}
-          {chatImagePreview && (
-            <div className="chat-image-preview">
-              <img
-                src={chatImagePreview}
-                alt="Preview"
-                className="preview-image"
-              />
-
-              <button
-                onClick={() => {
-                  setChatImage(null);
-                  setChatImagePreview("");
-                }}
-              >
-                ❌
-              </button>
-            </div>
-          )}
 
           <div className="chat-input">
 
@@ -1152,8 +1159,33 @@ function Chat() {
                 setShowEmojiPicker(!showEmojiPicker)
               }
             >
-              😊
+              <BsEmojiSmile />
             </button>
+
+            {showEmojiPicker && (
+              <div className="emoji-picker">
+                <EmojiPicker onEmojiClick={handleEmojiClick} />
+              </div>
+            )}
+            {chatImagePreview && (
+              <div className="chat-image-preview">
+                <img
+                  src={chatImagePreview}
+                  alt="Preview"
+                  className="preview-image"
+                />
+
+                <button
+                  onClick={() => {
+                    setChatImage(null);
+                    setChatImagePreview("");
+                  }}
+                >
+                  ❌
+                </button>
+              </div>
+            )}
+
             <input
               type="file"
               accept="image/*"
@@ -1175,7 +1207,7 @@ function Chat() {
               htmlFor="chat-image-input"
               className="image-btn"
             >
-              📎
+              <HiOutlinePaperClip />
             </label>
 
             <input
@@ -1203,7 +1235,7 @@ function Chat() {
               className="send-btn"
               onClick={handleSend}
             >
-              ➤
+              <IoSend />
             </button>
 
           </div>
@@ -1212,5 +1244,4 @@ function Chat() {
     </div>
   );
 }
-
 export default Chat;
