@@ -1,54 +1,43 @@
-/* ===================================
-      PINGME LOGIN V2
-=================================== */
+/* =====================================
+          PINGME LOGIN V3
+===================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap");
 
 :root {
 
-  --primary: #3b82f6;
-  --secondary: #06b6d4;
+  --primary: #2563eb;
+  --primary2: #3b82f6;
+  --accent: #06b6d4;
 
-  --bg1: #f8fbff;
-  --bg2: #eef5ff;
-
-  --card: rgba(255, 255, 255, .72);
+  --bg: #f8fafc;
+  --surface: #ffffff;
 
   --text: #0f172a;
-  --text2: #64748b;
+  --text-light: #64748b;
 
-  --border: rgba(255, 255, 255, .55);
+  --border: #e2e8f0;
 
   --shadow:
-    0 25px 60px rgba(0, 0, 0, .12);
+    0 10px 40px rgba(15, 23, 42, .08);
 
 }
 
-.dark {
-
-  --bg1: #020617;
-  --bg2: #0f172a;
-
-  --card: rgba(15, 23, 42, .72);
-
-  --text: #fff;
-  --text2: #94a3b8;
-
-  --border: rgba(255, 255, 255, .08);
-
-  --shadow:
-    0 25px 60px rgba(0, 0, 0, .45);
-
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
 }
 
-/* ========================= */
+body {
+  background: var(--bg);
+}
 
 .login-page {
 
   min-height: 100vh;
 
-  overflow: hidden;
-
-  position: relative;
-
   display: flex;
 
   justify-content: center;
@@ -56,104 +45,54 @@
   align-items: center;
 
   background:
+
     linear-gradient(135deg,
-      var(--bg1),
-      var(--bg2));
+      #eff6ff,
+      #ffffff);
 
 }
-
-/* ========================= */
-
-.bg-circle {
-
-  position: absolute;
-
-  border-radius: 50%;
-
-  filter: blur(90px);
-
-  opacity: .55;
-
-  animation:
-    floatBlob 15s ease-in-out infinite;
-
-}
-
-.circle1 {
-
-  width: 360px;
-  height: 360px;
-
-  background: #3b82f6;
-
-  top: -120px;
-  left: -120px;
-
-}
-
-.circle2 {
-
-  width: 300px;
-  height: 300px;
-
-  background: #06b6d4;
-
-  right: -90px;
-  bottom: -90px;
-
-}
-
-.circle3 {
-
-  width: 220px;
-  height: 220px;
-
-  background: #9333ea;
-
-  top: 40%;
-
-  left: 45%;
-
-}
-
-/* ========================= */
 
 .login-wrapper {
 
-  width: min(1180px, 92%);
+  width: 100%;
+
+  max-width: 1200px;
 
   display: grid;
 
   grid-template-columns:
-    1fr 520px;
 
-  gap: 80px;
+    1.2fr 460px;
+
+  gap: 70px;
+
+  padding: 40px;
 
   align-items: center;
 
-  z-index: 2;
-
 }
 
-/* ========================= */
+/* ===============================
+      LEFT SIDE
+================================ */
 
 .login-left {
 
-  color: var(--text);
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
 
 }
 
 .brand-icon {
 
-  width: 90px;
-  height: 90px;
+  width: 82px;
 
-  border-radius: 28px;
+  height: 82px;
 
-  background:
-    linear-gradient(135deg,
-      var(--primary),
-      var(--secondary));
+  border-radius: 24px;
 
   display: flex;
 
@@ -161,82 +100,127 @@
 
   align-items: center;
 
-  font-size: 38px;
+  background:
+
+    linear-gradient(135deg,
+      var(--primary),
+      var(--accent));
 
   color: #fff;
 
-  margin-bottom: 30px;
+  font-size: 34px;
+
+  margin-bottom: 28px;
 
   box-shadow:
-    0 20px 45px rgba(59, 130, 246, .35);
+
+    0 15px 35px rgba(37, 99, 235, .28);
 
 }
 
 .login-left h1 {
 
-  font-size: 68px;
+  font-size: 64px;
 
   font-weight: 800;
 
+  color: var(--text);
+
   line-height: 1;
 
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 
 }
 
 .login-left p {
 
-  font-size: 20px;
-
-  line-height: 1.9;
-
   max-width: 520px;
 
-  color: var(--text2);
+  color: var(--text-light);
+
+  line-height: 1.8;
+
+  font-size: 19px;
 
 }
 
-/* ========================= */
+/* ===============================
+        CARD
+================================ */
 
 .login-card {
 
-  backdrop-filter:
-    blur(30px);
+  width: 100%;
 
-  background: var(--card);
+  background: #fff;
 
-  border: 1px solid var(--border);
+  border-radius: 28px;
 
-  border-radius: 34px;
-
-  padding: 42px;
+  padding: 36px;
 
   box-shadow: var(--shadow);
 
-  animation:
-    cardIn .7s ease;
+  border: 1px solid var(--border);
 
 }
 
 .login-card h2 {
 
-  font-size: 34px;
+  font-size: 32px;
+
+  text-align: center;
 
   color: var(--text);
-
-  margin-bottom: 8px;
 
 }
 
 .login-subtitle {
 
-  color: var(--text2);
+  margin-top: 8px;
 
-  margin-bottom: 30px;
+  text-align: center;
+
+  color: var(--text-light);
+
+  font-size: 14px;
+
+  margin-bottom: 28px;
 
 }
 
-/* ========================= */
+/* ===============================
+        GOOGLE BUTTON
+================================ */
+
+.google-login {
+
+  width: 100%;
+
+  display: flex;
+
+  justify-content: center;
+
+  margin-bottom: 24px;
+
+}
+
+.google-login>div {
+
+  width: 100% !important;
+
+}
+
+.google-login iframe {
+
+  width: 100% !important;
+
+  border-radius: 14px !important;
+
+}
+
+/* ===============================
+         DIVIDER
+================================ */
 
 .divider {
 
@@ -244,9 +228,9 @@
 
   align-items: center;
 
-  gap: 15px;
+  gap: 14px;
 
-  margin: 28px 0;
+  margin: 24px 0;
 
 }
 
@@ -256,26 +240,41 @@
 
   height: 1px;
 
-  background:
-    rgba(148, 163, 184, .35);
+  background: #e2e8f0;
 
 }
 
 .divider p {
 
-  color: var(--text2);
+  font-size: 12px;
 
-  font-size: 13px;
+  color: #94a3b8;
 
-  letter-spacing: 2px;
+  font-weight: 600;
+
+  letter-spacing: 1px;
 
 }
 
-/* ========================= */
+/* ===============================
+         FORM
+================================ */
+
+.login-card form {
+
+  display: flex;
+
+  flex-direction: column;
+
+}
+
+/* ===============================
+       INPUT GROUP
+================================ */
 
 .input-group {
 
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 
 }
 
@@ -283,15 +282,19 @@
 
   display: block;
 
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 
-  font-size: 14px;
+  font-size: 13px;
+
+  font-weight: 600;
 
   color: var(--text);
 
-  font-weight: 700;
-
 }
+
+/* ===============================
+        INPUT BOX
+================================ */
 
 .input-box {
 
@@ -303,16 +306,17 @@
 
   position: absolute;
 
-  left: 18px;
+  left: 16px;
 
   top: 50%;
 
-  transform:
-    translateY(-50%);
+  transform: translateY(-50%);
 
-  color: #3b82f6;
+  color: #94a3b8;
 
-  font-size: 17px;
+  font-size: 16px;
+
+  transition: .25s;
 
 }
 
@@ -320,31 +324,27 @@
 
   width: 100%;
 
-  height: 60px;
+  height: 52px;
 
-  padding-left: 55px;
+  border: 1px solid var(--border);
 
-  padding-right: 55px;
+  border-radius: 14px;
 
-  border-radius: 18px;
-
-  border: 1px solid rgba(148, 163, 184, .25);
-
-  background:
-    rgba(255, 255, 255, .55);
+  padding: 0 18px 0 48px;
 
   font-size: 15px;
 
-  transition: .35s;
+  color: var(--text);
+
+  background: #fff;
+
+  transition: .25s;
 
 }
 
-.dark .input-box input {
+.input-box input::placeholder {
 
-  background:
-    rgba(30, 41, 59, .8);
-
-  color: #fff;
+  color: #94a3b8;
 
 }
 
@@ -352,154 +352,114 @@
 
   outline: none;
 
-  border-color: #3b82f6;
+  border-color: var(--primary);
 
   box-shadow:
-    0 0 0 4px rgba(59, 130, 246, .15);
+
+    0 0 0 4px rgba(37, 99, 235, .10);
 
 }
 
-/* =========================
-   Forgot Password
-========================= */
+
+/* ===============================
+      FORGOT PASSWORD
+================================ */
 
 .forgot-link {
+
   display: inline-block;
-  margin-bottom: 25px;
+
+  margin: 4px 0 22px;
+
+  font-size: 13px;
+
   color: var(--primary);
-  font-size: 14px;
+
   font-weight: 600;
+
   text-decoration: none;
-  transition: .3s;
+
 }
 
 .forgot-link:hover {
-  color: #2563eb;
-  transform: translateX(4px);
+
+  text-decoration: underline;
+
 }
 
-
-/* =========================
-   Eye Icon
-========================= */
-
-.eye-icon {
-  position: absolute;
-  right: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #64748b;
-  cursor: pointer;
-  font-size: 18px;
-  transition: .3s;
-}
-
-.eye-icon:hover {
-  color: var(--primary);
-  transform: translateY(-50%) scale(1.15);
-}
-
-
-/* =========================
-   Google Button
-========================= */
-
-.google-login {
-  width: 100%;
-  margin: 20px 0;
-  display: flex;
-  justify-content: center;
-}
-
-.google-login iframe {
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-
-/* =========================
-   Sign In Button
-========================= */
+/* ===============================
+       SIGN IN BUTTON
+================================ */
 
 .signin-btn {
 
   width: 100%;
-  height: 60px;
+
+  height: 52px;
 
   border: none;
 
-  border-radius: 18px;
+  border-radius: 14px;
 
-  cursor: pointer;
+  background:
+
+    linear-gradient(135deg,
+      var(--primary),
+      var(--accent));
 
   color: #fff;
 
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 15px;
 
-  background:
-    linear-gradient(135deg,
-      #3b82f6,
-      #06b6d4);
+  font-weight: 600;
 
-  transition: .35s;
+  cursor: pointer;
 
-  box-shadow:
-    0 18px 35px rgba(59, 130, 246, .35);
+  transition: .25s;
 
 }
 
 .signin-btn:hover {
 
-  transform:
-    translateY(-3px);
+  transform: translateY(-2px);
 
   box-shadow:
-    0 25px 45px rgba(59, 130, 246, .45);
+
+    0 12px 30px rgba(37, 99, 235, .25);
 
 }
 
 .signin-btn:active {
 
-  transform:
-    scale(.98);
+  transform: scale(.98);
 
 }
 
-.signin-btn:disabled {
-
-  opacity: .7;
-
-  cursor: not-allowed;
-
-}
-
-
-/* =========================
-   Bottom Text
-========================= */
+/* ===============================
+      SIGNUP TEXT
+================================ */
 
 .signup-text {
 
-  margin-top: 28px;
+  margin-top: 22px;
 
   text-align: center;
 
-  color: var(--text2);
+  font-size: 14px;
 
-  font-size: 15px;
+  color: var(--text-light);
 
 }
 
 .signup-text a {
 
+  margin-left: 5px;
+
   color: var(--primary);
 
-  margin-left: 6px;
+  text-decoration: none;
 
   font-weight: 700;
-
-  text-decoration: none;
 
 }
 
@@ -509,164 +469,27 @@
 
 }
 
+/* =====================================
+        RESPONSIVE DESIGN
+===================================== */
 
-/* =========================
-   Animations
-========================= */
+/* ---------- Tablet ---------- */
 
-@keyframes floatBlob {
-
-  0% {
-
-    transform:
-      translate(0, 0) scale(1);
-
-  }
-
-  25% {
-
-    transform:
-      translate(40px, -25px) scale(1.1);
-
-  }
-
-  50% {
-
-    transform:
-      translate(-30px, 35px) scale(.95);
-
-  }
-
-  75% {
-
-    transform:
-      translate(30px, 15px) scale(1.05);
-
-  }
-
-  100% {
-
-    transform:
-      translate(0, 0) scale(1);
-
-  }
-
-}
-
-@keyframes cardIn {
-
-  from {
-
-    opacity: 0;
-
-    transform:
-      translateY(40px) scale(.95);
-
-  }
-
-  to {
-
-    opacity: 1;
-
-    transform:
-      translateY(0) scale(1);
-
-  }
-
-}
-
-
-/* =========================
-   Responsive
-========================= */
-
-@media(max-width:1000px) {
+@media (max-width:1024px) {
 
   .login-wrapper {
 
     grid-template-columns: 1fr;
 
-    gap: 45px;
+    gap: 40px;
+
+    max-width: 520px;
+
+    padding: 30px;
 
   }
 
   .login-left {
-
-    text-align: center;
-
-  }
-
-  .login-left p {
-
-    margin: auto;
-
-  }
-
-  .brand-icon {
-
-    margin: 0 auto 30px;
-
-  }
-
-}
-
-
-@media(max-width:650px) {
-
-  .login-card {
-
-    padding: 28px;
-
-    border-radius: 28px;
-
-  }
-
-  .login-left h1 {
-
-    font-size: 48px;
-
-  }
-
-  .login-left p {
-
-    font-size: 16px;
-
-    line-height: 1.8;
-
-  }
-
-  .login-card h2 {
-    font-size: 22px;
-    font-weight: 700;
-  }
-
-  .input-box input {
-
-    height: 56px;
-
-  }
-
-  .signin-btn {
-
-    height: 56px;
-
-  }
-
-  .circle1 {
-
-    width: 240px;
-    height: 240px;
-
-  }
-
-  .circle2 {
-
-    width: 220px;
-    height: 220px;
-
-  }
-
-  .circle3 {
 
     display: none;
 
@@ -674,121 +497,464 @@
 
 }
 
-
-/* =========================
-   Scrollbar
-========================= */
-
-::-webkit-scrollbar {
-
-  width: 8px;
-
-}
-
-::-webkit-scrollbar-thumb {
-
-  background: #3b82f6;
-
-  border-radius: 20px;
-
-}
-
-::-webkit-scrollbar-track {
-
-  background: transparent;
-
-}
+/* ---------- Mobile ---------- */
 
 @media (max-width:768px) {
 
-  .login-page{
-    min-height:100dvh;
-    overflow-y:auto;
-    align-items:center;
-    justify-content:center;
-    background:#fff;
+  body {
+
+    background: #fff;
+
   }
 
-  .bg-circle{
-    display:none;
+  .login-page {
+
+    min-height: 100dvh;
+
+    background: #fff;
+
+    display: block;
+
   }
 
-  .login-wrapper{
-    width:100%;
-    max-width:420px;
-    display:block;
-    padding:20px;
+  .login-wrapper {
+
+    width: 100%;
+
+    max-width: 100%;
+
+    padding: 24px;
+
+    display: block;
+
   }
 
-  .login-left{
-    display:none;
+  .login-card {
+
+    width: 100%;
+
+    max-width: 420px;
+
+    margin: auto;
+
+    border: none;
+
+    border-radius: 0;
+
+    box-shadow: none;
+
+    padding: 0;
+
+    background: #fff;
+
   }
 
-  .login-card{
-    width:100%;
-    max-width:100%;
-    padding:0;
-    border:none;
-    border-radius:0;
+  .login-card h2 {
+
+    font-size: 26px;
+
+    margin-top: 14px;
+
+  }
+
+  .login-subtitle {
+
+    font-size: 13px;
+
+    margin-bottom: 24px;
+
+  }
+
+  .google-login {
+
+    margin-bottom: 20px;
+
+  }
+
+  .divider {
+
+    margin: 20px 0;
+
+  }
+
+  .input-group {
+
+    margin-bottom: 16px;
+
+  }
+
+  .input-group label {
+
+    font-size: 12px;
+
+  }
+
+  .input-box input {
+
+    height: 50px;
+
+    border-radius: 12px;
+
+    font-size: 14px;
+
+  }
+
+  .signin-btn {
+
+    height: 50px;
+
+    border-radius: 12px;
+
+    font-size: 15px;
+
+    margin-top: 8px;
+
+  }
+
+  .forgot-link {
+
+    font-size: 12px;
+
+  }
+
+  .signup-text {
+
+    font-size: 13px;
+
+    margin-top: 24px;
+
+  }
+
+}
+
+
+/* ---------- Small Phones ---------- */
+
+@media (max-width:420px) {
+
+  .login-wrapper {
+
+    padding: 18px;
+
+  }
+
+  .login-card h2 {
+
+    font-size: 23px;
+
+  }
+
+  .login-subtitle {
+
+    font-size: 12px;
+
+  }
+
+  .input-box input {
+
+    height: 48px;
+
+    font-size: 14px;
+
+    padding-left: 46px;
+
+  }
+
+  .signin-btn {
+
+    height: 48px;
+
+    font-size: 14px;
+
+  }
+
+  .signup-text {
+
+    font-size: 12px;
+
+  }
+
+}
+
+/* =====================================
+            DARK MODE
+===================================== */
+
+.dark{
+
+    --bg:#020617;
+
+    --surface:#0f172a;
+
+    --text:#f8fafc;
+
+    --text-light:#94a3b8;
+
+    --border:#334155;
+
+}
+
+.dark body{
+
+    background:#020617;
+
+}
+
+.dark .login-page{
+
+    background:
+    linear-gradient(
+        135deg,
+        #020617,
+        #0f172a,
+        #111827
+    );
+
+}
+
+.dark .login-card{
+
+    background:#0f172a;
+
+    border:1px solid #1e293b;
+
+}
+
+.dark .login-card h2{
+
+    color:#fff;
+
+}
+
+.dark .login-subtitle{
+
+    color:#94a3b8;
+
+}
+
+.dark .input-group label{
+
+    color:#e2e8f0;
+
+}
+
+.dark .input-box input{
+
+    background:#1e293b;
+
+    color:#fff;
+
+    border:1px solid #334155;
+
+}
+
+.dark .input-box input::placeholder{
+
+    color:#64748b;
+
+}
+
+.dark .divider span{
+
+    background:#334155;
+
+}
+
+.dark .divider p{
+
+    color:#94a3b8;
+
+}
+
+.dark .signup-text{
+
+    color:#94a3b8;
+
+}
+
+.dark .forgot-link{
+
+    color:#60a5fa;
+
+}
+
+/* =====================================
+            ANIMATIONS
+===================================== */
+
+.login-card{
+
+    animation:fadeUp .5s ease;
+
+}
+
+@keyframes fadeUp{
+
+    from{
+
+        opacity:0;
+
+        transform:
+        translateY(30px);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:
+        translateY(0);
+
+    }
+
+}
+
+.brand-icon{
+
+    animation:pop .5s ease;
+
+}
+
+@keyframes pop{
+
+    from{
+
+        transform:
+        scale(.8);
+
+        opacity:0;
+
+    }
+
+    to{
+
+        transform:
+        scale(1);
+
+        opacity:1;
+
+    }
+
+}
+
+/* =====================================
+            INPUT EFFECTS
+===================================== */
+
+.input-box{
+
+    transition:.25s;
+
+}
+
+.input-box:hover input{
+
+    border-color:#93c5fd;
+
+}
+
+.input-box:focus-within .input-icon{
+
+    color:var(--primary);
+
+}
+
+.signin-btn{
+
+    position:relative;
+
+    overflow:hidden;
+
+}
+
+.signin-btn::before{
+
+    content:"";
+
+    position:absolute;
+
+    top:0;
+
+    left:-120%;
+
+    width:120%;
+
+    height:100%;
+
+    background:
+
+    linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,.28),
+        transparent
+    );
+
+    transition:.7s;
+
+}
+
+.signin-btn:hover::before{
+
+    left:120%;
+
+}
+
+/* =====================================
+        GOOGLE BUTTON FIX
+===================================== */
+
+.google-login iframe{
+
+    border-radius:12px!important;
+
+}
+
+.google-login > div{
+
+    max-width:100%!important;
+
+}
+
+/* =====================================
+            SCROLLBAR
+===================================== */
+
+::-webkit-scrollbar{
+
+    width:8px;
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:#3b82f6;
+
+    border-radius:20px;
+
+}
+
+::-webkit-scrollbar-track{
+
     background:transparent;
-    box-shadow:none;
-    backdrop-filter:none;
-  }
 
-  .login-card h2{
-    font-size:24px;
-    font-weight:700;
-    text-align:center;
-    margin-bottom:6px;
-  }
+}
 
-  .login-subtitle{
-    text-align:center;
-    font-size:13px;
-    margin-bottom:24px;
-  }
+/* =====================================
+        SAFE AREA (iPhone)
+===================================== */
 
-  .divider{
-    margin:20px 0;
-  }
+@supports (padding:max(0px)){
 
-  .input-group{
-    margin-bottom:16px;
-  }
+    .login-page{
 
-  .input-group label{
-    font-size:13px;
-  }
+        padding-left:max(20px,env(safe-area-inset-left));
 
-  .input-box input{
-    height:50px;
-    font-size:14px;
-    border-radius:12px;
-    padding-left:48px;
-  }
+        padding-right:max(20px,env(safe-area-inset-right));
 
-  .input-icon{
-    left:16px;
-    font-size:15px;
-  }
+        padding-bottom:max(20px,env(safe-area-inset-bottom));
 
-  .signin-btn{
-    height:50px;
-    border-radius:12px;
-    font-size:15px;
-  }
-
-  .forgot-link{
-    font-size:13px;
-  }
-
-  .signup-text{
-    margin-top:22px;
-    font-size:13px;
-  }
-
-  .google-login{
-    margin:18px 0;
-  }
+    }
 
 }
