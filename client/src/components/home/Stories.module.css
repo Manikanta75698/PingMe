@@ -1,59 +1,92 @@
+/* =========================================
+   📖 STORIES CONTAINER (Horizontal Scroll)
+========================================= */
 .container {
   display: flex;
-  gap: 18px;
+  gap: 16px;
+  padding: 12px 0;
   overflow-x: auto;
-  padding: 20px 0;
-
+  scroll-behavior: smooth;
+  /* Scrollbar hide cheyadaniki */
+  -ms-overflow-style: none;
   scrollbar-width: none;
+  margin-bottom: 8px;
 }
 
+/* Chrome/Safari lo scrollbar kanipinchakunda */
 .container::-webkit-scrollbar {
   display: none;
 }
 
+/* =========================================
+   🧑‍🤝‍🧑 INDIVIDUAL STORY ITEM
+========================================= */
 .story {
   display: flex;
   flex-direction: column;
   align-items: center;
-
-  min-width: 90px;
-
+  gap: 6px;
   cursor: pointer;
+  min-width: max-content;
+  /* Name cut avvakunda */
 }
 
+/* 🚀 Magic Instagram Gradient Ring */
 .imageWrapper {
-  width: 78px;
-  height: 78px;
-
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  padding: 2px;
+  /* Ring thickness */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
 
-  padding: 3px;
-
-  background: linear-gradient(
-    45deg,
-    #ff006e,
-    #ffbe0b,
-    #8338ec
-  );
+/* Click chesinappudu chinna bounce effect */
+.story:active .imageWrapper {
+  transform: scale(0.92);
 }
 
 .imageWrapper img {
   width: 100%;
   height: 100%;
-
   border-radius: 50%;
-
   object-fit: cover;
-
-  border: 3px solid #0f172a;
+  /* 🚀 Idhi Ring ki Image ki madhyalo unna gap isthundi */
+  border: 2px solid var(--background);
+  background-color: var(--surface);
 }
 
+/* Story Name Text */
 .story p {
-  color: white;
-
-  margin-top: 8px;
-
-  font-size: 13px;
-
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  margin: 0;
+  max-width: 66px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Pedda peru unte '...' vasthundi */
   text-align: center;
+}
+
+
+/* =========================================
+   📱 MOBILE ADJUSTMENTS
+========================================= */
+@media (max-width: 768px) {
+  .container {
+    gap: 12px;
+    padding: 8px 16px 4px 16px; 
+    margin-bottom: 0 !important; 
+    border-bottom: 1px solid var(--border); 
+  }
+
+  .imageWrapper {
+    width: 60px;
+    height: 60px;
+  }
 }

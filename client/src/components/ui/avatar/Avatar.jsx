@@ -8,12 +8,12 @@ const Avatar = ({
   online = false,
   story = false,
   onClick,
+  className = "", // 🚀 Kotha prop add chesam
 }) => {
   return (
     <div
-      className={`${styles.wrapper} ${
-        story ? styles.story : ""
-      }`}
+      // 🚀 Parent nunchi vache className ni kuda kaluputhunnam
+      className={`${styles.wrapper} ${story ? styles.story : ""} ${className}`}
       onClick={onClick}
     >
       <img
