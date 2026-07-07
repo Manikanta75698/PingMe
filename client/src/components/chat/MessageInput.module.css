@@ -1,0 +1,71 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 12px;
+
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 50%;
+
+  background: transparent;
+  color: var(--text-muted);
+
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.icon:hover {
+  background: var(--surface-light);
+  color: var(--text-primary);
+}
+
+.input {
+  flex: 1;
+
+  height: 44px;
+
+  padding: 0 18px;
+
+  border: none;
+  border-radius: 999px;
+
+  background: var(--surface-light);
+  color: var(--text-primary);
+
+  outline: none;
+}
+
+.send {
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 50%;
+
+  background: var(--primary);
+  color: white;
+
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.send:hover {
+  background: var(--primary-hover);
+}

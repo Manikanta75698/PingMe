@@ -1,0 +1,19 @@
+.socialButton {
+  width: 100%;
+  height: 56px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: .25s;
+}
+
+.socialButton:hover {
+  background: #f8fafc;
+}

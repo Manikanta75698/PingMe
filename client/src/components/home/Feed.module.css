@@ -1,0 +1,56 @@
+.feed{
+
+    width:100%;
+
+    max-width:650px;
+
+    margin:30px auto;
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:24px;
+
+}
+
+@media(max-width:768px){
+
+.feed{
+
+max-width:100%;
+
+padding:0 15px;
+
+}
+
+}
+
+.state {
+  width: 100%;
+  padding: 48px 20px;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.state p {
+  margin: 0 0 14px;
+}
+
+.state button {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.state button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

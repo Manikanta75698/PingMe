@@ -1,0 +1,10 @@
+.profilePage {
+  min-height: 100vh;
+  background: var(--background);
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 30px 20px;
+}

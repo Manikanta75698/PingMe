@@ -1,0 +1,33 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  font-family: "Inter", sans-serif;
+  font-weight: var(--fw-extra-bold);
+  user-select: none;
+}
+
+.ping {
+  color: var(--text-primary);
+}
+
+.me {
+  color: var(--primary);
+}
+
+/* Sizes */
+
+.sm {
+  font-size: 24px;
+}
+
+.md {
+  font-size: 32px;
+}
+
+.lg {
+  font-size: 42px;
+}
+
+.xl {
+  font-size: 56px;
+}

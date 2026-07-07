@@ -1,0 +1,856 @@
+/* =========================
+   POST CARD
+========================= */
+
+.card {
+  position: relative;
+
+  width: 100%;
+  margin-bottom: 24px;
+
+  overflow: visible;
+
+  border: 1px solid var(--border);
+  border-radius: 16px;
+
+  background: var(--surface);
+  color: var(--text-primary);
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+.header {
+  position: relative;
+  z-index: 5;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-width: 0;
+  padding: 16px;
+}
+
+
+/* =========================
+   CLICKABLE USER INFO
+========================= */
+
+.userInfo {
+  display: flex;
+
+  min-width: 0;
+
+  align-items: center;
+  gap: 12px;
+
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+  color: inherit;
+
+  font: inherit;
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    opacity 0.18s ease;
+}
+
+.userInfo>div {
+  min-width: 0;
+}
+
+.userInfo:disabled {
+  cursor: default;
+}
+
+.userInfo:not(:disabled):hover h3 {
+  text-decoration: underline;
+}
+
+.userInfo:not(:disabled):hover .avatar {
+  opacity: 0.88;
+}
+
+.userInfo:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+
+/* =========================
+   AVATAR
+========================= */
+
+.avatar {
+  width: 48px;
+  height: 48px;
+
+  flex-shrink: 0;
+
+  border: 1px solid var(--border);
+  border-radius: 50%;
+
+  background: var(--surface);
+
+  object-fit: cover;
+
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.userInfo:not(:disabled):hover .avatar {
+  transform: scale(1.02);
+}
+
+
+/* =========================
+   USER NAME
+========================= */
+
+.userInfo h3 {
+  margin: 0;
+
+  overflow: hidden;
+
+  color: var(--text-primary);
+
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* =========================
+   USERNAME
+========================= */
+
+.userInfo p {
+  margin: 3px 0 0;
+
+  overflow: hidden;
+
+  color: var(--text-secondary);
+
+  font-size: 14px;
+  line-height: 1.3;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* =========================
+   POST IMAGE
+========================= */
+
+.image {
+  display: block;
+
+  width: 100%;
+  height: auto;
+
+  max-height: 620px;
+
+  object-fit: contain;
+
+  background: #050505;
+}
+
+
+/* =========================
+   ACTIONS
+========================= */
+
+.actions {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 14px 16px;
+}
+
+.leftActions {
+  display: flex;
+
+  align-items: center;
+  gap: 16px;
+}
+
+
+/* =========================
+   ACTION ICONS
+========================= */
+
+.icon {
+  flex-shrink: 0;
+
+  color: var(--text-primary);
+
+  cursor: pointer;
+
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    color 0.18s ease;
+}
+
+.icon:hover {
+  transform: scale(1.08);
+}
+
+.icon:active {
+  transform: scale(0.94);
+}
+
+
+/* =========================
+   CONTENT
+========================= */
+
+.content {
+  padding:
+    0 16px 16px;
+}
+
+
+/* =========================
+   LIKES
+========================= */
+
+.likes {
+  margin: 0;
+
+  color: var(--text-primary);
+
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+
+/* =========================
+   CAPTION
+========================= */
+
+.caption {
+  margin:
+    8px 0 0;
+
+  color: var(--text-primary);
+
+  font-size: 14px;
+  line-height: 1.55;
+
+  overflow-wrap: anywhere;
+}
+
+.caption strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+
+/* =========================
+   THREE DOT MENU WRAPPER
+========================= */
+
+.menuWrapper {
+  position: relative;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================
+   THREE DOT BUTTON
+========================= */
+
+.menuButton {
+  display: inline-flex;
+
+  width: 38px;
+  height: 38px;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid transparent;
+  border-radius: 50%;
+
+  background: transparent;
+  color: var(--text-primary);
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.15s ease;
+}
+
+.menuButton:hover {
+  border-color: var(--border);
+
+  background:
+    var(--surface-hover,
+      var(--border));
+}
+
+.menuButton:active {
+  transform: scale(0.94);
+}
+
+.menuButton:focus-visible {
+  outline:
+    2px solid var(--primary);
+
+  outline-offset: 2px;
+}
+
+.menuButton:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================
+   DROPDOWN MENU
+========================= */
+
+.menu {
+  position: absolute;
+  z-index: 50;
+
+  top: calc(100% + 8px);
+  right: 0;
+
+  width: 180px;
+
+  padding: 6px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 12px;
+
+  background: var(--surface);
+  color: var(--text-primary);
+
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.14);
+
+  animation:
+    menuOpen 0.16s ease-out;
+}
+
+@keyframes menuOpen {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-4px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0) scale(1);
+  }
+}
+
+
+/* =========================
+   DELETE MENU BUTTON
+========================= */
+
+.deleteButton {
+  display: flex;
+
+  width: 100%;
+
+  align-items: center;
+  gap: 10px;
+
+  padding:
+    10px 12px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: transparent;
+
+  color:
+    var(--danger,
+      #ef4444);
+
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.deleteButton:hover {
+  background:
+    color-mix(in srgb,
+      var(--danger, #ef4444) 12%,
+      transparent);
+}
+
+.deleteButton:focus-visible {
+  outline:
+    2px solid var(--danger,
+      #ef4444);
+
+  outline-offset: 1px;
+}
+
+.deleteButton:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================
+   DELETE CONFIRM OVERLAY
+========================= */
+
+.confirmOverlay {
+  position: fixed;
+  z-index: 1000;
+
+  inset: 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background:
+    rgba(0, 0, 0, 0.55);
+
+  backdrop-filter:
+    blur(4px);
+
+  -webkit-backdrop-filter:
+    blur(4px);
+}
+
+
+/* =========================
+   DELETE CONFIRM MODAL
+========================= */
+
+.confirmModal {
+  width: 100%;
+  max-width: 400px;
+
+  padding: 24px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 18px;
+
+  background: var(--surface);
+  color: var(--text-primary);
+
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.22);
+
+  text-align: center;
+
+  animation:
+    confirmOpen 0.18s ease-out;
+}
+
+@keyframes confirmOpen {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(8px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0) scale(1);
+  }
+}
+
+
+/* =========================
+   DELETE ICON
+========================= */
+
+.confirmIcon {
+  display: inline-flex;
+
+  width: 52px;
+  height: 52px;
+
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 14px;
+
+  border-radius: 50%;
+
+  background:
+    color-mix(in srgb,
+      var(--danger, #ef4444) 12%,
+      transparent);
+
+  color:
+    var(--danger,
+      #ef4444);
+}
+
+
+/* =========================
+   CONFIRM TITLE
+========================= */
+
+.confirmModal h3 {
+  margin: 0;
+
+  color: var(--text-primary);
+
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+
+/* =========================
+   CONFIRM TEXT
+========================= */
+
+.confirmModal p {
+  margin:
+    10px 0 0;
+
+  color: var(--text-secondary);
+
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+/* =========================
+   CONFIRM ACTIONS
+========================= */
+
+.confirmActions {
+  display: flex;
+
+  gap: 10px;
+
+  margin-top: 22px;
+}
+
+
+/* =========================
+   CONFIRM BUTTONS
+========================= */
+
+.cancelDelete,
+.confirmDelete {
+  flex: 1;
+
+  min-height: 42px;
+
+  padding:
+    10px 14px;
+
+  border-radius: 10px;
+
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.15s ease;
+}
+
+
+/* =========================
+   CANCEL BUTTON
+========================= */
+
+.cancelDelete {
+  border:
+    1px solid var(--border);
+
+  background: transparent;
+
+  color: var(--text-primary);
+}
+
+.cancelDelete:hover {
+  background:
+    var(--surface-hover,
+      var(--border));
+}
+
+
+/* =========================
+   CONFIRM DELETE BUTTON
+========================= */
+
+.confirmDelete {
+  border:
+    1px solid var(--danger,
+      #ef4444);
+
+  background:
+    var(--danger,
+      #ef4444);
+
+  color: #ffffff;
+}
+
+.confirmDelete:hover {
+  opacity: 0.9;
+}
+
+
+/* =========================
+   BUTTON ACTIVE
+========================= */
+
+.cancelDelete:active,
+.confirmDelete:active {
+  transform: scale(0.98);
+}
+
+
+/* =========================
+   BUTTON DISABLED
+========================= */
+
+.cancelDelete:disabled,
+.confirmDelete:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+
+  transform: none;
+}
+
+
+/* =========================
+   TABLET
+========================= */
+
+@media (max-width: 768px) {
+  .card {
+    margin-bottom: 20px;
+
+    border-radius: 14px;
+  }
+
+  .header {
+    padding: 14px;
+  }
+
+  .actions {
+    padding:
+      13px 14px;
+  }
+
+  .content {
+    padding:
+      0 14px 15px;
+  }
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 640px) {
+  .card {
+    margin-bottom: 16px;
+
+    border-radius: 12px;
+  }
+
+  .header {
+    padding: 12px;
+  }
+
+  .userInfo {
+    gap: 10px;
+  }
+
+  .avatar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .userInfo h3 {
+    font-size: 15px;
+  }
+
+  .userInfo p {
+    font-size: 13px;
+  }
+
+  .actions {
+    padding: 12px;
+  }
+
+  .leftActions {
+    gap: 15px;
+  }
+
+  .content {
+    padding:
+      0 12px 14px;
+  }
+
+  .menu {
+    width: 165px;
+  }
+
+  .confirmOverlay {
+    padding: 16px;
+  }
+
+  .confirmModal {
+    padding: 20px;
+
+    border-radius: 16px;
+  }
+}
+
+
+/* =========================
+   SMALL MOBILE
+========================= */
+
+@media (max-width: 480px) {
+  .confirmActions {
+    flex-direction: column-reverse;
+  }
+
+  .cancelDelete,
+  .confirmDelete {
+    width: 100%;
+  }
+}
+
+
+/* =========================
+   REDUCED MOTION
+========================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .card,
+  .avatar,
+  .icon,
+  .menuButton,
+  .deleteButton,
+  .cancelDelete,
+  .confirmDelete {
+    transition: none;
+  }
+
+  .menu,
+  .confirmModal {
+    animation: none;
+  }
+}
+
+
+.userText {
+  min-width: 0;
+}
+
+.userText h3 {
+  margin: 0;
+
+  color: var(--text-primary);
+
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.userMeta {
+  display: flex;
+  align-items: center;
+
+  min-width: 0;
+  gap: 5px;
+
+  margin-top: 3px;
+
+  color: var(--text-secondary);
+
+  font-size: 12.5px;
+  line-height: 1.3;
+}
+
+.userMeta span:first-child {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metaDot {
+  flex-shrink: 0;
+}
+
+.userMeta time {
+  flex-shrink: 0;
+
+  color: var(--text-secondary);
+
+  cursor: default;
+}

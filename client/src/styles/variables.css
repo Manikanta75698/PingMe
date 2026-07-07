@@ -1,0 +1,81 @@
+:root {
+
+  /* ========= Brand ========= */
+
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --secondary: #7c3aed;
+
+  /* ========= Background ========= */
+
+  --background: #0f172a;
+  --surface: #111827;
+  --surface-light: #1f2937;
+
+  /* ========= Text ========= */
+
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  /* ========= Border ========= */
+
+  --border: #263244;
+
+  /* ========= Status ========= */
+
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+
+  /* ========= Radius ========= */
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  /* ========= Shadow ========= */
+
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+/* ===========================
+        LIGHT THEME
+=========================== */
+
+[data-theme="light"] {
+
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-light: #f1f5f9;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+
+  --border: #dbe4ee;
+
+  --shadow: 0 10px 25px rgba(15,23,42,.08);
+
+}
+
+/* ===========================
+         DARK THEME
+=========================== */
+
+[data-theme="dark"] {
+
+  --background: #0f172a;
+  --surface: #111827;
+  --surface-light: #1f2937;
+
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --border: #263244;
+
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+
+}

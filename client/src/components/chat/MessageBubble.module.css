@@ -1,0 +1,120 @@
+/* =========================
+   WRAPPERS
+========================= */
+
+.ownWrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.otherWrapper {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 8px;
+}
+
+/* =========================
+   BUBBLES (BASE)
+========================= */
+
+.bubble {
+  max-width: 70%;
+  padding: 10px 14px;
+
+  font-size: 14px;
+  line-height: 1.5;
+
+  word-wrap: break-word;
+  white-space: pre-wrap;
+
+  border-radius: 18px;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  transition: all 0.2s ease;
+}
+
+/* =========================
+   OWN MESSAGE
+========================= */
+
+.ownBubble {
+  background: var(--primary);
+  color: white;
+
+  border-bottom-right-radius: 4px;
+}
+
+/* =========================
+   OTHER MESSAGE
+========================= */
+
+.otherBubble {
+  background: var(--surface-light);
+  color: var(--text-primary);
+
+  border-bottom-left-radius: 4px;
+}
+
+/* =========================
+   IMAGE MESSAGE
+========================= */
+
+.image {
+  width: 240px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* =========================
+   TEXT
+========================= */
+
+.text {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* =========================
+   FOOTER (TIME + STATUS)
+========================= */
+
+.footer {
+  margin-top: 6px;
+
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+.time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* =========================
+   STATUS (ticks)
+========================= */
+
+.status {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.bubble {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

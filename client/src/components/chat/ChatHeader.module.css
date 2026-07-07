@@ -1,0 +1,61 @@
+.header {
+  height: 72px;
+  padding: 0 24px;
+  border-bottom: 1px solid #273449;
+  background: #111827;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatarWrapper {
+  position: relative;
+}
+
+.avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.onlineDot {
+  width: 10px;
+  height: 10px;
+  background: #22c55e;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  color: white;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.status {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.empty {
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+}

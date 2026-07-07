@@ -1,0 +1,672 @@
+.composer {
+  width: 100%;
+
+  overflow: hidden;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 18px;
+
+  background: var(--surface);
+  color: var(--text-primary);
+
+  box-shadow:
+    0 8px 28px
+    rgba(15, 23, 42, 0.08);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.composer:focus-within {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--primary) 45%,
+      var(--border)
+    );
+
+  box-shadow:
+    0 12px 36px
+      rgba(15, 23, 42, 0.1),
+    0 0 0 3px
+      color-mix(
+        in srgb,
+        var(--primary) 10%,
+        transparent
+      );
+}
+
+
+/* =========================
+   TOP ROW
+========================= */
+
+.topRow {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 14px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 50%;
+
+  background:
+    var(--surface-secondary);
+
+  object-fit: cover;
+}
+
+
+/* =========================
+   PROMPT
+========================= */
+
+.promptButton {
+  display: flex;
+
+  flex: 1;
+
+  min-width: 0;
+  min-height: 44px;
+
+  align-items: center;
+
+  padding:
+    0 16px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 999px;
+
+  background:
+    var(--surface-secondary);
+
+  color:
+    var(--text-secondary);
+
+  font: inherit;
+  font-size: 14px;
+
+  text-align: left;
+
+  cursor: text;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.promptButton:hover {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--primary) 25%,
+      var(--border)
+    );
+
+  background:
+    color-mix(
+      in srgb,
+      var(--surface-secondary) 92%,
+      var(--primary)
+    );
+}
+
+.promptButton span {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* =========================
+   QUICK IMAGE BUTTON
+========================= */
+
+.quickImageButton {
+  display: inline-flex;
+
+  width: 42px;
+  height: 42px;
+
+  flex-shrink: 0;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 50%;
+
+  background:
+    color-mix(
+      in srgb,
+      var(--primary) 11%,
+      transparent
+    );
+
+  color: var(--primary);
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.quickImageButton:hover {
+  background:
+    color-mix(
+      in srgb,
+      var(--primary) 18%,
+      transparent
+    );
+
+  transform:
+    translateY(-1px);
+}
+
+.quickImageButton:active {
+  transform: scale(0.94);
+}
+
+
+/* =========================
+   EXPANDED AREA
+========================= */
+
+.expandedArea {
+  padding:
+    0 14px 14px;
+
+  border-top:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--border) 65%,
+      transparent
+    );
+
+  animation:
+    composerOpen
+    0.2s ease-out;
+}
+
+@keyframes composerOpen {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+
+/* =========================
+   TEXTAREA
+========================= */
+
+.caption {
+  display: block;
+
+  width: 100%;
+
+  min-height: 92px;
+
+  margin-top: 12px;
+
+  padding:
+    12px 4px;
+
+  resize: vertical;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+
+  color: var(--text-primary);
+
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.caption::placeholder {
+  color: var(--text-secondary);
+}
+
+.caption:disabled {
+  opacity: 0.65;
+}
+
+
+/* =========================
+   CAPTION META
+========================= */
+
+.captionMeta {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-bottom: 10px;
+
+  color: var(--text-secondary);
+
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+
+/* =========================
+   PREVIEW
+========================= */
+
+.previewWrapper {
+  position: relative;
+
+  width: 100%;
+
+  max-height: 460px;
+
+  overflow: hidden;
+
+  margin-top: 10px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 14px;
+
+  background: #050505;
+}
+
+.preview {
+  display: block;
+
+  width: 100%;
+  height: auto;
+
+  max-height: 460px;
+
+  object-fit: contain;
+
+  margin: 0 auto;
+}
+
+.removeImageButton {
+  position: absolute;
+
+  top: 10px;
+  right: 10px;
+
+  display: inline-flex;
+
+  width: 36px;
+  height: 36px;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.18);
+
+  border-radius: 50%;
+
+  background:
+    rgba(15, 23, 42, 0.78);
+
+  color: #ffffff;
+
+  cursor: pointer;
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter:
+    blur(8px);
+
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.removeImageButton:hover {
+  background:
+    rgba(15, 23, 42, 0.95);
+
+  transform: scale(1.04);
+}
+
+
+/* =========================
+   ERROR
+========================= */
+
+.error {
+  margin:
+    10px 2px 0;
+
+  color: #ef4444;
+
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+
+/* =========================
+   FOOTER
+========================= */
+
+.footer {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-top: 12px;
+
+  padding-top: 12px;
+
+  border-top:
+    1px solid var(--border);
+}
+
+.footerLeft {
+  display: flex;
+
+  min-width: 0;
+
+  align-items: center;
+}
+
+
+/* =========================
+   ADD IMAGE
+========================= */
+
+.addImageButton {
+  display: inline-flex;
+
+  min-height: 40px;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding:
+    0 12px;
+
+  border: 0;
+  border-radius: 10px;
+
+  background:
+    color-mix(
+      in srgb,
+      var(--primary) 9%,
+      transparent
+    );
+
+  color: var(--primary);
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease;
+}
+
+.addImageButton:hover {
+  background:
+    color-mix(
+      in srgb,
+      var(--primary) 16%,
+      transparent
+    );
+}
+
+
+/* =========================
+   FOOTER ACTIONS
+========================= */
+
+.footerActions {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+}
+
+.cancelButton,
+.postButton {
+  display: inline-flex;
+
+  min-height: 40px;
+
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+  border-radius: 10px;
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    opacity 0.2s ease,
+    background 0.2s ease;
+}
+
+.cancelButton {
+  padding:
+    0 14px;
+
+  background:
+    var(--surface-secondary);
+
+  color:
+    var(--text-secondary);
+}
+
+.cancelButton:hover {
+  color:
+    var(--text-primary);
+}
+
+.postButton {
+  gap: 7px;
+
+  min-width: 92px;
+
+  padding:
+    0 16px;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--primary),
+      #4f46e5
+    );
+
+  color: #ffffff;
+
+  box-shadow:
+    0 7px 18px
+    color-mix(
+      in srgb,
+      var(--primary) 22%,
+      transparent
+    );
+}
+
+.postButton:hover:not(:disabled) {
+  transform:
+    translateY(-1px);
+}
+
+.postButton:active:not(:disabled) {
+  transform:
+    scale(0.97);
+}
+
+
+/* =========================
+   DISABLED
+========================= */
+
+.quickImageButton:disabled,
+.addImageButton:disabled,
+.cancelButton:disabled,
+.postButton:disabled,
+.removeImageButton:disabled {
+  opacity: 0.45;
+
+  cursor: not-allowed;
+
+  transform: none;
+}
+
+
+/* =========================
+   KEYBOARD ACCESSIBILITY
+========================= */
+
+.promptButton:focus-visible,
+.quickImageButton:focus-visible,
+.addImageButton:focus-visible,
+.cancelButton:focus-visible,
+.postButton:focus-visible,
+.removeImageButton:focus-visible {
+  outline:
+    2px solid var(--primary);
+
+  outline-offset: 2px;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 560px) {
+  .composer {
+    border-radius: 14px;
+  }
+
+  .topRow {
+    gap: 9px;
+
+    padding: 11px;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .promptButton {
+    min-height: 40px;
+
+    padding:
+      0 13px;
+
+    font-size: 13px;
+  }
+
+  .quickImageButton {
+    width: 40px;
+    height: 40px;
+  }
+
+  .expandedArea {
+    padding:
+      0 11px 11px;
+  }
+
+  .footer {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+  .footerLeft {
+    width: 100%;
+  }
+
+  .addImageButton {
+    width: 100%;
+
+    justify-content: center;
+  }
+
+  .footerActions {
+    width: 100%;
+  }
+
+  .cancelButton,
+  .postButton {
+    flex: 1;
+  }
+}
+
+
+/* =========================
+   REDUCED MOTION
+========================= */
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  .expandedArea {
+    animation: none;
+  }
+
+  .composer,
+  .quickImageButton,
+  .removeImageButton,
+  .cancelButton,
+  .postButton {
+    transition: none;
+  }
+}

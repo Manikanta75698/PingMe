@@ -1,0 +1,141 @@
+.container {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+.heading {
+  margin: 28px 0 26px;
+  text-align: center;
+}
+
+.heading h1 {
+  margin: 0 0 10px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.heading p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0.72;
+}
+
+.email {
+  display: block;
+  margin-top: 8px;
+  color: #60a5fa;
+  font-size: 14px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.otpBoxes {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.otpBoxes input {
+  width: 100%;
+  min-width: 0;
+  height: 54px;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.otpBoxes input:focus {
+  border-color: #3b82f6;
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.16);
+  transform: translateY(-1px);
+}
+
+.otpBoxes input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 0 0 14px;
+  color: #f87171;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.success {
+  margin: 0 0 14px;
+  color: #4ade80;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.resend {
+  margin: 20px 0 0;
+  font-size: 14px;
+  text-align: center;
+  opacity: 0.82;
+}
+
+.resend button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #60a5fa;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.resend button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.footer {
+  margin: 18px 0 0;
+  text-align: center;
+}
+
+.footer a {
+  color: #60a5fa;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .otpBoxes {
+    gap: 7px;
+  }
+
+  .otpBoxes input {
+    height: 48px;
+    border-radius: 10px;
+    font-size: 20px;
+  }
+
+  .heading h1 {
+    font-size: 24px;
+  }
+}

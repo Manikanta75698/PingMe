@@ -1,0 +1,50 @@
+.results{
+    position:absolute;
+    top:60px;
+    width:100%;
+    background:#1f2937;
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.3);
+    z-index:999;
+}
+
+.user{
+    display:flex;
+    gap:12px;
+    padding:14px;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.user:hover{
+    background:#374151;
+}
+
+.user img{
+    width:45px;
+    height:45px;
+    border-radius:50%;
+    object-fit:cover;
+}
+
+.user h4{
+    color:white;
+    margin:0;
+}
+
+.user p{
+    color:#9ca3af;
+    margin:2px 0 0;
+}
+
+.empty{
+    position:absolute;
+    top:60px;
+    width:100%;
+    padding:20px;
+    text-align:center;
+    background:#1f2937;
+    border-radius:16px;
+    color:#9ca3af;
+}

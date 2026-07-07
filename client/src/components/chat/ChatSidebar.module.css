@@ -1,0 +1,80 @@
+/* ChatSidebar.module.css */
+
+.sidebar {
+  height: 100%;
+  background: #111827;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 20px;
+  border-bottom: 1px solid #273449;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.userList {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.userItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+
+.userItem:hover {
+  background: #1f2937;
+}
+
+.active {
+  background: #2563eb;
+}
+
+.avatarWrapper {
+  position: relative;
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.onlineDot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: #22c55e;
+  border: 2px solid #111827;
+  border-radius: 50%;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.username {
+  font-size: 13px;
+  color: #9ca3af;
+}

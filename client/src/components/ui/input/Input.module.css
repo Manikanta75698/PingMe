@@ -1,0 +1,99 @@
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.inputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  height: 54px;
+
+  padding: 0 18px;
+  padding-right: 52px;
+
+  border: 1px solid var(--border);
+  border-radius: 16px;
+
+  background: var(--surface);
+  color: var(--text-primary);
+
+  outline: none;
+
+  transition: all .25s ease;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(79,70,229,.15);
+}
+
+.eyeButton {
+  position: absolute;
+
+  top: 50%;
+  right: 16px;
+
+  transform: translateY(-50%);
+
+  width: 34px;
+  height: 34px;
+
+  border: none;
+  background: transparent;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+
+  color: var(--text-secondary);
+
+  transition: .25s;
+}
+
+.eyeButton:hover {
+  color: var(--primary);
+}
+
+.errorInput {
+  border-color: var(--danger);
+}
+
+.error {
+  margin-top: 6px;
+
+  color: var(--danger);
+
+  font-size: 13px;
+}
+
+.input:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+@media (max-width:768px) {
+
+  .input {
+    height: 50px;
+    font-size: 15px;
+  }
+
+}

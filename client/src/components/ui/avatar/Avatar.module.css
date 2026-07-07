@@ -1,0 +1,77 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.avatar {
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+  background: #1f2937;
+}
+
+/* Sizes */
+
+.small {
+  width: 36px;
+  height: 36px;
+}
+
+.medium {
+  width: 48px;
+  height: 48px;
+}
+
+.large {
+  width: 64px;
+  height: 64px;
+}
+
+.xlarge {
+  width: 110px;
+  height: 110px;
+}
+
+/* Story Ring */
+
+.story .avatar {
+  padding: 3px;
+  border: 3px solid #ff3d81;
+}
+
+/* Online Indicator */
+
+.online {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+
+  width: 12px;
+  height: 12px;
+
+  border-radius: 50%;
+  background: var(--success);
+
+  border: 2px solid var(--background);
+}
+
+/* Mobile */
+
+@media (max-width:768px){
+
+.large{
+
+width:56px;
+height:56px;
+
+}
+
+.xlarge{
+
+width:90px;
+height:90px;
+
+}
+
+}

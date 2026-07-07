@@ -1,0 +1,25 @@
+.chatPage {
+  display: flex;
+  height: calc(100vh - 70px);
+  background: #0f172a;
+}
+
+.sidebar {
+  width: 340px;
+  min-width: 340px;
+  border-right: 1px solid #273449;
+  background: #111827;
+}
+
+.chatArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #0f172a;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
