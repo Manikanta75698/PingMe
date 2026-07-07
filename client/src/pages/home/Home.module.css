@@ -1,12 +1,30 @@
 .home {
   min-height: 100vh;
-  background: #0f172a;
-  color: #ffffff;
+  background-color: var(--background);
+  color: var(--text-primary);
+
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .container {
+  max-width: 600px;
   width: 100%;
-  max-width: 650px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* =========================================
+   📱 MOBILE RESPONSIVENESS (Add at the very bottom)
+========================================= */
+
+@media (max-width: 768px) {
+  .container {
+    padding: 12px 8px;
+    /* Phone lo side spaces thagginchali */
+    gap: 16px;
+    /* Components madhya gap tagginchali */
+  }
 }

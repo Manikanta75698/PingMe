@@ -1,123 +1,161 @@
-.header{
-    height:72px;
-    width:100%;
-    background:#111827;
-
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    padding:0 30px;
-
-    position:sticky;
-    top:0;
-    z-index:999;
-
-    border-bottom:1px solid #222;
+/* Glassmorphism Magic for Top Bar */
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background-color: var(--glass-bg);
+    /* Blur color from variables */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    /* Safari support */
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
 }
 
-.logo{
-
-    font-size:30px;
-    font-weight:800;
-
-    color:#4F8CFF;
-
-    letter-spacing:1px;
-
+/* Premium Logo Styling */
+.logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary);
+    /* Blue/Purple brand color */
+    letter-spacing: -0.5px;
+    cursor: pointer;
 }
 
-.search{
-
-    flex:1;
-
-    display:flex;
-
-    justify-content:center;
-
+/* Search Bar Container */
+.search {
+    position: relative;
+    flex: 0 1 400px;
+    /* Limits width nicely */
+    margin: 0 20px;
 }
 
-.search input{
-
-    width:420px;
-
-    padding:12px 20px;
-
-    border:none;
-
-    outline:none;
-
-    border-radius:50px;
-
-    background:#1f2937;
-
-    color:white;
-
-    font-size:15px;
-
+/* Modern Pill-Shaped Search Input */
+.search input {
+    width: 100%;
+    padding: 10px 20px;
+    border-radius: var(--radius-xl);
+    /* Pill shape */
+    background-color: var(--surface);
+    /* Changes based on theme */
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.3s ease;
 }
 
-.search input::placeholder{
-
-    color:#8b8b8b;
-
+/* Glow effect when user types */
+.search input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    /* Soft primary glow */
+    background-color: var(--background);
 }
 
-.right{
-
-    display:flex;
-
-    align-items:center;
-
-    gap:18px;
-
+.search input::placeholder {
+    color: var(--text-muted);
 }
 
-.icon{
-
-    background:none;
-
-    border:none;
-
-    color:white;
-
-    cursor:pointer;
-
-    font-size:22px;
-
-    transition:.3s;
-
+/* Right side Icons & Profile */
+.right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.icon:hover{
-
-    transform:scale(1.15);
-
+/* Hover effects for icons */
+.icon {
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.avatar{
-
-    width:44px;
-
-    height:44px;
-
-    border-radius:50%;
-
-    object-fit:cover;
-
-    border:2px solid #4F8CFF;
-
-    cursor:pointer;
-
+.icon:hover {
+    background-color: var(--surface-light);
+    /* Slight highlight on hover */
+    transform: scale(1.05);
+    /* Chinna popup effect */
 }
 
+/* Profile Avatar Wrapper */
 .profile {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  transition: transform 0.25s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    margin-left: 8px;
+    transition: transform 0.2s ease;
 }
 
 .profile:hover {
-  transform: scale(1.08);
+    transform: scale(1.05);
+}
+
+.avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+    background-color: var(--surface);
+}
+
+/* =========================================
+   📱 MOBILE RESPONSIVENESS (Add at the very bottom)
+========================================= */
+
+@media (max-width: 768px) {
+    .header {
+        padding: 10px 12px;
+        /* Side padding thaggincham */
+    }
+
+    .logo {
+        font-size: 1.3rem;
+        /* Logo size shrink */
+    }
+
+    .search {
+        flex: 1;
+        /* Fixed 400px kakunda, unna space theeskuntundi */
+        margin: 0 10px;
+    }
+
+    .search input {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+
+    .icon {
+        font-size: 1.2rem;
+        padding: 6px;
+    }
+
+    .avatar {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+/* For Extra Small Phones (iPhone SE, etc.) */
+@media (max-width: 480px) {
+    .logo {
+        display: none;
+        /* Space lekapothe Logo hide ayyi, search bar ki space isthundi */
+    }
+
+    .search {
+        margin-left: 0;
+    }
 }
