@@ -1,8 +1,7 @@
 import axios from "axios";
 
-// 💡 PRODUCTION TIP: Environment variables block trigger local networks mapping clear config handles
-const API_URL = "http://10.106.37.188:5000/api";
-// Note: Android Emulator use chesthunte computer backend endpoint key: 10.0.2.2
+const API_URL = "https://pingme-m8y1.onrender.com/api";
+
 
 const api = axios.create({
   baseURL: API_URL,
@@ -34,7 +33,6 @@ api.interceptors.response.use(
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      // 💡 PLAY STORE FIX: Browser standalone redirect badulu native global triggers context state update triggers change clear control modalethali
       if (window.navigationTriggerCustomRoute) {
         window.navigationTriggerCustomRoute("/");
       } else {

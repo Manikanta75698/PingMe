@@ -1,5 +1,5 @@
 import styles from "./Header.module.css";
-import Avatar from "../ui/Avatar/Avatar";
+import Avatar from "../ui/avatar/Avatar";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
