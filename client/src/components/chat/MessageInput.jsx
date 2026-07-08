@@ -4,74 +4,126 @@ import styles from "./MessageInput.module.css";
 
 import { sendMessage } from "../../services/chatService";
 import { useChat } from "../../context/ChatContext";
+import { useAuth } from "../../context/AuthContext";
 
 import {
-  FiSmile,
-  FiPaperclip,
-  FiImage,
-  FiSend,
-} from "react-icons/fi";
+  Smile,
+  ImagePlus,
+  SendHorizontal,
+  Mic,
+} from "lucide-react";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
 
   const imageRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  const { user } = useAuth();
 
   const {
     selectedChat,
-    messages,
     setMessages,
   } = useChat();
 
   const handleSend = async () => {
-    if (!text.trim() || !selectedChat) return;
+    if (!text.trim() || !selectedChat || loading) return;
+
+    const currentText = text.trim();
+
+    const tempId = `temp-${Date.now()}`;
+
+    // Instant message
+    const tempMessage = {
+      _id: tempId,
+      text: currentText,
+      image: "",
+      sender: {
+        _id: user._id,
+      },
+      receiver: selectedChat._id,
+      createdAt: new Date().toISOString(),
+      status: "sending",
+    };
+
+    // Show instantly
+    setMessages((prev) => [...prev, tempMessage]);
+
+    // Clear input instantly
+    setText("");
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "44px";
+    }
+
+    setLoading(true);
 
     try {
-      setLoading(true);
-
       const response = await sendMessage({
         receiver: selectedChat._id,
-        text,
+        text: currentText,
       });
 
-      setMessages((prev) => [
-        ...prev,
-        response.data.data,
-      ]);
+      const realMessage = response.data.data;
 
-      setText("");
-
+      // Replace temp message
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === tempId ? realMessage : msg
+        )
+      );
     } catch (error) {
       console.error(error);
 
+      // Remove temp message if API failed
+      setMessages((prev) =>
+        prev.filter((msg) => msg._id !== tempId)
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  const handleChange = (e) => {
+    setText(e.target.value);
+
+    const textarea = textareaRef.current;
+
+    if (!textarea) return;
+
+    textarea.style.height = "0px";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  };
+
   const handleEnter = (e) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
       handleSend();
     }
   };
 
   return (
     <div className={styles.container}>
-
-      <button className={styles.icon}>
-        <FiSmile />
-      </button>
-
-      <button className={styles.icon}>
-        <FiPaperclip />
+      <button
+        className={styles.icon}
+        type="button"
+      >
+        <Smile
+          size={22}
+          strokeWidth={2}
+        />
       </button>
 
       <button
         className={styles.icon}
-        onClick={() => imageRef.current.click()}
+        type="button"
+        onClick={() => imageRef.current?.click()}
       >
-        <FiImage />
+        <ImagePlus
+          size={22}
+          strokeWidth={2}
+        />
       </button>
 
       <input
@@ -80,25 +132,41 @@ const MessageInput = () => {
         ref={imageRef}
       />
 
-      <input
-        type="text"
-        placeholder="Type a message..."
-        className={styles.input}
-        value={text}
-        onChange={(e) =>
-          setText(e.target.value)
-        }
-        onKeyDown={handleEnter}
-      />
+      <div className={styles.inputWrapper}>
+        <textarea
+          ref={textareaRef}
+          rows={1}
+          placeholder="Message..."
+          className={styles.input}
+          value={text}
+          onChange={handleChange}
+          onKeyDown={handleEnter}
+        />
+      </div>
 
-      <button
-        className={styles.send}
-        onClick={handleSend}
-        disabled={loading}
-      >
-        <FiSend />
-      </button>
-
+      {text.trim() ? (
+        <button
+          type="button"
+          className={styles.send}
+          onClick={handleSend}
+          disabled={loading}
+        >
+          <SendHorizontal
+            size={20}
+            strokeWidth={2.5}
+          />
+        </button>
+      ) : (
+        <button
+          type="button"
+          className={styles.icon}
+        >
+          <Mic
+            size={22}
+            strokeWidth={2}
+          />
+        </button>
+      )}
     </div>
   );
 };

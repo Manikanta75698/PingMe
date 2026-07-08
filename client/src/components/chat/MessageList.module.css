@@ -1,33 +1,106 @@
+/* =========================
+   MESSAGE LIST
+========================= */
+
 .container {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 
-  padding: 16px;
+  gap: 4px;
+
+  flex: 1;
+
   overflow-y: auto;
+  overflow-x: hidden;
 
-  height: 100%;
+  padding: 16px 18px;
+
   scroll-behavior: smooth;
+
+  -webkit-overflow-scrolling: touch;
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
 
+.container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.container::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.container::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+
 .empty {
-  height: 100%;
+  flex: 1;
+
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
 
-  color: var(--text-secondary);
+  padding: 24px;
+
   text-align: center;
 }
 
 .empty p {
+  margin: 0;
+
+  color: var(--text-primary);
+
   font-size: 16px;
   font-weight: 600;
 }
 
 .empty span {
-  font-size: 13px;
-  margin-top: 4px;
-  color: var(--text-muted);
+  margin-top: 6px;
+
+  color: var(--text-secondary);
+
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
+    gap: 3px;
+  }
+
+  .empty p {
+    font-size: 15px;
+  }
+
+  .empty span {
+    font-size: 13px;
+  }
+}
+
+/* =========================
+   SMALL MOBILE
+========================= */
+
+@media (max-width: 480px) {
+  .container {
+    padding:
+      10px 10px calc(10px + env(safe-area-inset-bottom));
+  }
 }

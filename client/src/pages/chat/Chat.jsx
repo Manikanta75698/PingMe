@@ -64,12 +64,21 @@ const Chat = () => {
   return (
     <div className={styles.chatPage}>
 
-      <aside className={styles.sidebar}>
+      <div
+        className={`
+        ${styles.sidebar}
+        ${selectedChat ? styles.hideSidebar : ""}
+      `}
+      >
         <ChatSidebar />
-      </aside>
+      </div>
 
-      <main className={styles.chatArea}>
-
+      <div
+        className={`
+        ${styles.chatArea}
+        ${!selectedChat ? styles.hideChat : ""}
+      `}
+      >
         <ChatHeader />
 
         <div className={styles.messages}>
@@ -77,8 +86,7 @@ const Chat = () => {
         </div>
 
         <MessageInput />
-
-      </main>
+      </div>
 
     </div>
   );

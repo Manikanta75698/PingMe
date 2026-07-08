@@ -13,6 +13,13 @@ import CreatePost from "./CreatePost";
 const Sidebar = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const openChat = () => {
+    console.log("clicked");
+    alert("clicked");
+    navigate("/chat");
+  };
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
 
@@ -40,7 +47,10 @@ const Sidebar = () => {
             {/* ... (Nee paatha searchBox code) ... */}
           </div>
 
-          <button className={styles.navItem}>
+          <button
+            className={styles.navItem}
+            onClick={openChat}
+          >
             <MessageCircle className={styles.icon} />
             <span className={styles.text}>Messages</span>
           </button>

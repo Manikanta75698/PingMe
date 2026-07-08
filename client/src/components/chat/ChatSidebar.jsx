@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import DefaultAvatar from "../../assets/default-avatar.png";
 
@@ -9,6 +9,7 @@ import { useChat } from "../../context/ChatContext";
 
 const ChatSidebar = () => {
   const [users, setUsers] = useState([]);
+  const [search, setSearch] = useState("");
 
   const { userId } = useParams();
 
@@ -43,18 +44,41 @@ const ChatSidebar = () => {
     }
   };
 
+  const filteredUsers = useMemo(() => {
+    if (!search.trim()) return users;
+
+    const value = search.toLowerCase();
+
+    return users.filter((user) => {
+      return (
+        user.name.toLowerCase().includes(value) ||
+        user.username.toLowerCase().includes(value)
+      );
+    });
+  }, [users, search]);
+
   return (
     <div className={styles.sidebar}>
 
       <div className={styles.header}>
+
         <h1 className={styles.title}>
           Chats
         </h1>
+
+        <input
+          type="text"
+          placeholder="Search chats..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className={styles.searchInput}
+        />
+
       </div>
 
       <div className={styles.userList}>
 
-        {users.map((user) => {
+        {filteredUsers.map((user) => {
 
           const isOnline =
             onlineUsers.includes(user._id);

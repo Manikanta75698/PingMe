@@ -11,6 +11,9 @@ import CreatePost from "./CreatePost";
 const Header = ({ scrollY }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const openChat = () => {
+    navigate("/chat");
+  };
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -113,7 +116,10 @@ const Header = ({ scrollY }) => {
             )}
           </div>
 
-          <button className={styles.navItem}>
+          <button
+            className={styles.navItem}
+            onClick={openChat}
+          >
             <MessageCircle className={styles.icon} />
             <span className={styles.text}>Messages</span>
           </button>

@@ -9,18 +9,21 @@ const MessageBubble = ({ message, isOwn }) => {
   return (
     <div
       className={
-        isOwn ? styles.ownWrapper : styles.otherWrapper
+        isOwn
+          ? styles.ownWrapper
+          : styles.otherWrapper
       }
     >
       <div
-        className={
-          isOwn ? styles.ownBubble : styles.otherBubble
-        }
+        className={`${styles.bubble} ${isOwn
+          ? styles.ownBubble
+          : styles.otherBubble
+          }`}
       >
         {message.image && (
           <img
             src={message.image}
-            alt="Message"
+            alt=""
             className={styles.image}
           />
         )}
@@ -31,17 +34,19 @@ const MessageBubble = ({ message, isOwn }) => {
           </p>
         )}
 
-        <div className={styles.footer}>
-          <span className={styles.time}>
-            {time}
-          </span>
+        <div className={styles.meta}>
+          <span>{time}</span>
 
           {isOwn && (
             <span className={styles.status}>
+              {message.status === "sending" && "🕒"}
+
               {message.status === "sent" && "✓"}
+
               {message.status === "delivered" && "✓✓"}
+
               {message.status === "seen" && (
-                <span style={{ color: "#3b82f6" }}>✓✓</span>
+                <span className={styles.seen}>✓✓</span>
               )}
             </span>
           )}

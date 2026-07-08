@@ -9,6 +9,30 @@
   justify-content: space-between;
 }
 
+.backButton {
+  display: none;
+
+  width: 42px;
+  height: 42px;
+
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 50%;
+
+  background: transparent;
+  color: #fff;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+}
+
+.backButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .left {
   display: flex;
   align-items: center;
@@ -58,4 +82,30 @@
   color: white;
   font-size: 18px;
   font-weight: 600;
+}
+
+@media (max-width: 768px) {
+
+  .header {
+    height: 64px;
+    padding: 0 14px;
+  }
+
+  .backButton {
+    display: flex;
+  }
+
+  .avatar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .name {
+    font-size: 16px;
+  }
+
+  .status {
+    font-size: 12px;
+  }
+
 }

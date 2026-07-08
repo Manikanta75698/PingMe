@@ -1,11 +1,15 @@
+import { ArrowLeft } from "lucide-react";
 import styles from "./ChatHeader.module.css";
 import DefaultAvatar from "../../assets/default-avatar.png";
 import { useChat } from "../../context/ChatContext";
 
 const ChatHeader = () => {
+
   const {
     selectedChat,
     onlineUsers,
+    typingUser,
+    setSelectedChat,
   } = useChat();
 
   if (!selectedChat) {
@@ -26,6 +30,13 @@ const ChatHeader = () => {
     <div className={styles.header}>
 
       <div className={styles.left}>
+
+        <button
+          className={styles.backButton}
+          onClick={() => setSelectedChat(null)}
+        >
+          <ArrowLeft size={24} />
+        </button>
 
         <div className={styles.avatarWrapper}>
 

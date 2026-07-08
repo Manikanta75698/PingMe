@@ -1,25 +1,109 @@
 .chatPage {
   display: flex;
-  height: calc(100vh - 70px);
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+
   background: #0f172a;
 }
+
+/* ======================
+   SIDEBAR
+====================== */
 
 .sidebar {
   width: 340px;
   min-width: 340px;
-  border-right: 1px solid #273449;
+  height: 100%;
+
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+
   background: #111827;
+
+  overflow: hidden;
 }
+
+/* ======================
+   CHAT AREA
+====================== */
 
 .chatArea {
   flex: 1;
+
   display: flex;
   flex-direction: column;
+
+  height: 100%;
+
   background: #0f172a;
 }
 
+/* ======================
+   MESSAGE LIST
+====================== */
+
 .messages {
   flex: 1;
+
   overflow-y: auto;
+
   padding: 20px;
+
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+
+.messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .15);
+  border-radius: 999px;
+}
+
+.messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ======================
+   MOBILE
+====================== */
+
+@media (max-width:768px) {
+
+  .chatPage {
+    position: relative;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+  }
+
+  .chatArea {
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    background: #0f172a;
+  }
+
+  .hideSidebar {
+    display: none;
+  }
+
+  .hideChat {
+    display: none;
+  }
+
+  .messages {
+    padding: 16px;
+  }
+
 }
