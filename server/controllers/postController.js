@@ -74,7 +74,11 @@ const likePost = async (req, res) => {
       });
     }
 
-    if (post.likes.includes(req.user._id)) {
+    if (
+      post.likes.some(
+        (id) => id.toString() === req.user._id.toString()
+      )
+    ) {
       return res.status(400).json({
         success: false,
         message: "Already liked",
@@ -96,9 +100,9 @@ const likePost = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Post liked",
       likes: post.likes.length,
-    });
+      liked: true
+    })
 
   } catch (error) {
     console.error("Like Post Error:", error);
@@ -121,17 +125,22 @@ const unlikePost = async (req, res) => {
       });
     }
 
-    post.likes = post.likes.filter(
-      (id) => id.toString() !== req.user._id.toString()
+    const alreadyLiked = post.likes.some(
+      (id) => id.toString() === req.user._id.toString()
     );
 
-    await post.save();
+    if (!alreadyLiked) {
+      return res.status(400).json({
+        success: false,
+        message: "Post not liked yet",
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      message: "Post unliked",
       likes: post.likes.length,
-    });
+      liked: false
+    })
   } catch (error) {
     console.error("Unlike Post Error:", error);
 
@@ -477,6 +486,7 @@ const getUserPosts = async (req, res) => {
       user: user._id,
     })
       .populate("user", "name username profilePic")
+      .populate("comments.user", "name username profilePic")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({

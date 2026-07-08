@@ -377,6 +377,11 @@
         display: none;
     }
 
+    .showSearchInput {
+        display: block;
+        width: 100%;
+    }
+
     .searchResultsWrapper {
         bottom: 100%;
         top: auto;

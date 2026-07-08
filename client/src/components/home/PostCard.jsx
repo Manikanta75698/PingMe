@@ -1,7 +1,8 @@
-import {
+import React, {
   useEffect,
   useRef,
   useState,
+  useMemo,
 } from "react";
 
 import { useNavigate } from "react-router-dom";
@@ -145,8 +146,8 @@ const PostCard = ({
   onDeleted,
 }) => {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] =
-    useState(getStoredUser);
+
+  const currentUser = useMemo(() => getStoredUser(), []);
 
   const user = post?.user || {};
 
@@ -255,6 +256,15 @@ const PostCard = ({
     setShowComments,
   ] = useState(false);
 
+  const [showHeart, setShowHeart] = useState(false);
+
+  const [imagePop, setImagePop] = useState(false);
+
+  const tapTimeout = useRef(null);
+
+  const imageTimeout = useRef(null);
+  const heartTimeout = useRef(null);
+
 
   const menuRef = useRef(null);
 
@@ -332,56 +342,81 @@ const PostCard = ({
   // LIKE / UNLIKE
   // =========================
   const handleLike = async () => {
-    if (
-      likeLoading ||
-      !postId ||
-      !currentUserId
-    ) {
-      return;
-    }
+    if (likeLoading || !postId || !currentUserId) return;
+
+    const wasLiked = isLiked;
+
+    // Optimistic UI
+    setIsLiked(!wasLiked);
+    setLikesCount((prev) =>
+      wasLiked ? Math.max(0, prev - 1) : prev + 1
+    );
 
     try {
       setLikeLoading(true);
 
-      if (isLiked) {
-        const response =
-          await unlikePost(postId);
-
-        setIsLiked(false);
-
-        setLikesCount(
-          typeof response?.likes ===
-            "number"
-            ? response.likes
-            : (prev) =>
-              Math.max(
-                0,
-                prev - 1
-              )
-        );
+      if (wasLiked) {
+        await unlikePost(postId);
       } else {
-        const response =
-          await likePost(postId);
-
-        setIsLiked(true);
-
-        setLikesCount(
-          typeof response?.likes ===
-            "number"
-            ? response.likes
-            : (prev) => prev + 1
-        );
+        await likePost(postId);
       }
     } catch (error) {
-      console.error(
-        "Like Error:",
-        error.response?.data ||
-        error.message
+      // Rollback
+      setIsLiked(wasLiked);
+      setLikesCount((prev) =>
+        wasLiked ? prev + 1 : Math.max(0, prev - 1)
       );
+
+      console.error(error);
     } finally {
       setLikeLoading(false);
     }
   };
+
+  const handleImageClick = () => {
+    if (tapTimeout.current) {
+      clearTimeout(tapTimeout.current);
+      tapTimeout.current = null;
+
+      if (!isLiked && !likeLoading) {
+        handleLike();
+      }
+
+      setImagePop(false);
+      setShowHeart(false);
+
+      requestAnimationFrame(() => {
+        setImagePop(true);
+        setShowHeart(true);
+      });
+
+      clearTimeout(imageTimeout.current);
+      clearTimeout(heartTimeout.current);
+
+      imageTimeout.current = setTimeout(() => {
+        setImagePop(false);
+      }, 220);
+
+      heartTimeout.current = setTimeout(() => {
+        setShowHeart(false);
+        setImagePop(false);
+      }, 520);
+
+      return;
+    }
+
+    tapTimeout.current = setTimeout(() => {
+      tapTimeout.current = null;
+    }, 250);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(tapTimeout.current);
+      clearTimeout(imageTimeout.current);
+      clearTimeout(heartTimeout.current);
+    };
+  }, []);
 
   // =========================
   // SAVE / UNSAVE
@@ -453,8 +488,6 @@ const PostCard = ({
         ...currentUser,
         savedPosts: nextSavedPosts,
       };
-
-      setCurrentUser(updatedUser);
 
       localStorage.setItem(
         "user",
@@ -654,12 +687,34 @@ const PostCard = ({
             IMAGE
         ====================== */}
         {post.image && (
-          <img
-            src={post.image}
-            alt={post.caption || "Post"}
-            className={styles.image}
-            loading="lazy"
-          />
+          <div
+            className={styles.imageWrapper}
+            onClick={handleImageClick}
+          >
+            {showHeart && (
+              <div className={styles.bigHeart}>
+                <span className={styles.heartRipple}></span>
+
+                <Heart
+                  size={110}
+                  fill="#ff3040"
+                  color="#ff3040"
+                  strokeWidth={0}
+                />
+              </div>
+            )}
+
+            <img
+              src={post.image}
+              alt={post.caption || "Post"}
+              className={`${styles.image} ${imagePop ? styles.imagePop : ""}`}
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
+              draggable={false}
+            />
+
+          </div>
         )}
 
         {/* =====================
@@ -871,4 +926,4 @@ const PostCard = ({
   );
 };
 
-export default PostCard;
+export default React.memo(PostCard);

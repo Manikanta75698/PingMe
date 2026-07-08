@@ -14,6 +14,7 @@ const Header = ({ scrollY }) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   // 🚀 Scroll to Hide State
   const [showTopHeader, setShowTopHeader] = useState(true);
@@ -92,13 +93,17 @@ const Header = ({ scrollY }) => {
 
           <div className={styles.searchContainer}>
             <div className={styles.searchBox}>
-              <Search className={styles.icon} />
+              <Search
+                className={styles.icon}
+                onClick={() => setShowSearch(true)}
+              />
               <input
                 type="text"
                 placeholder="Search users..."
                 value={query}
                 onChange={handleSearch}
-                className={styles.searchInput}
+                className={`${styles.searchInput} ${showSearch ? styles.showSearchInput : ""
+                  }`}
               />
             </div>
             {query && (
