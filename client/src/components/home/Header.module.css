@@ -251,12 +251,12 @@
         top: 0;
         left: 0;
         width: 100%;
-        height: 70px;    
+        height: 58px;
         background-color: var(--surface);
         border-bottom: 1px solid var(--border);
         align-items: center;
         justify-content: space-between;
-        padding: 18px 20px;
+        padding: 16px 18px;
         z-index: 100;
         transition: transform 0.3s ease-in-out;
     }
@@ -283,9 +283,9 @@
 
     /* 🚀 Avatar Wrapper & Image Perfect Fit */
     .topHeaderProfileIcon {
-        width: 28px !important;
-        height: 28px !important;
-        min-width: 28px !important;
+        width: 34px !important;
+        height: 34px !important;
+        min-width: 34px !important;
         border-radius: 50% !important;
         border: 1px solid var(--border) !important;
         margin: 0 !important;

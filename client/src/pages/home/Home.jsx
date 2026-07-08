@@ -6,16 +6,21 @@ import Feed from "../../components/home/Feed";
 
 const Home = () => {
   const feedRef = useRef();
-
   const [scrollPos, setScrollPos] = useState(0);
 
   useEffect(() => {
+    
     const handlePostRefresh = () => {
       feedRef.current?.refreshFeed();
     };
 
     window.addEventListener("postCreated", handlePostRefresh);
-    return () => window.removeEventListener("postCreated", handlePostRefresh);
+
+    return () =>
+      window.removeEventListener(
+        "postCreated",
+        handlePostRefresh
+      );
   }, []);
 
   const handleScroll = (e) => {
@@ -23,15 +28,17 @@ const Home = () => {
   };
 
   return (
-    <div id="main-container" className={styles.home} onScroll={handleScroll}>
-
+    <div
+      id="main-container"
+      className={styles.home}
+      onScroll={handleScroll}
+    >
       <Header scrollY={scrollPos} />
 
       <div className={styles.container}>
         <Stories />
         <Feed ref={feedRef} />
       </div>
-
     </div>
   );
 };

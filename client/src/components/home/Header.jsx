@@ -6,9 +6,9 @@ import { useAuth } from "../../context/AuthContext";
 import Avatar from "../ui/avatar/Avatar";
 import { searchUsers } from "../../services/authService";
 import SearchResults from "../search/SearchResults";
-import CreatePost from "./CreatePost"; 
+import CreatePost from "./CreatePost";
 
-const Header = () => {
+const Header = ({ scrollY }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -17,45 +17,30 @@ const Header = () => {
 
   // 🚀 Scroll to Hide State
   const [showTopHeader, setShowTopHeader] = useState(true);
-  
 
   const lastScrollY = useRef(0);
 
   useEffect(() => {
-    const container = document.getElementById('main-container') || window;
+    if (Math.abs(scrollY - lastScrollY.current) < 8) return;
 
-    const handleScroll = () => {
-      const currentScrollY = container === window ? window.scrollY : container.scrollTop;
-
-      if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
-        setShowTopHeader(false);
-      } else if (currentScrollY < lastScrollY.current) {
-        setShowTopHeader(true);
-      }
-      lastScrollY.current = currentScrollY;
-    };
-
-    if (container === window) {
-       window.addEventListener("scroll", handleScroll, { passive: true });
+    if (scrollY > lastScrollY.current && scrollY > 60) {
+      setShowTopHeader(false);
     } else {
-       container.addEventListener("scroll", handleScroll, { passive: true });
+      setShowTopHeader(true);
     }
-    
-    return () => {
-       if (container === window) window.removeEventListener("scroll", handleScroll);
-       else container.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
+
+    lastScrollY.current = scrollY;
+  }, [scrollY]);
 
   const handleSearch = async (e) => {
     const value = e.target.value;
     setQuery(value);
-    
+
     if (!value.trim()) {
       setResults([]);
       return;
     }
-    
+
     try {
       const response = await searchUsers(value);
       if (response.success) {
