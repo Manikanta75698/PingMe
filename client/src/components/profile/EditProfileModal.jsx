@@ -22,8 +22,6 @@ const EditProfileModal = ({
     name: user?.name || "",
     username: user?.username || "",
     bio: user?.bio || "",
-    website: user?.website || "",
-    location: user?.location || "",
   });
 
   const [loading, setLoading] =
@@ -124,7 +122,7 @@ const EditProfileModal = ({
         console.error(
           "USERNAME CHECK ERROR:",
           error.response?.data ||
-            error.message
+          error.message
         );
 
         setUsernameStatus({
@@ -185,7 +183,7 @@ const EditProfileModal = ({
     ) {
       return alert(
         usernameStatus.message ||
-          "Please choose an available username"
+        "Please choose an available username"
       );
     }
 
@@ -196,8 +194,6 @@ const EditProfileModal = ({
         name: cleanName,
         username: cleanUsername,
         bio: formData.bio.trim(),
-        website: formData.website.trim(),
-        location: formData.location.trim(),
       });
 
       localStorage.setItem(
@@ -212,7 +208,7 @@ const EditProfileModal = ({
 
       alert(
         response?.message ||
-          "Profile updated successfully"
+        "Profile updated successfully"
       );
 
       onClose();
@@ -239,7 +235,7 @@ const EditProfileModal = ({
 
       alert(
         errorData?.message ||
-          "Profile Update Failed"
+        "Profile Update Failed"
       );
     } finally {
       setLoading(false);
@@ -321,10 +317,10 @@ const EditProfileModal = ({
                   usernameStatus.checking
                     ? styles.usernameChecking
                     : usernameStatus.available ===
-                        true
+                      true
                       ? styles.usernameAvailable
                       : usernameStatus.available ===
-                          false
+                        false
                         ? styles.usernameTaken
                         : styles.usernameNeutral
                 }
@@ -332,10 +328,10 @@ const EditProfileModal = ({
                 {usernameStatus.checking
                   ? "Checking..."
                   : usernameStatus.available ===
-                      true
+                    true
                     ? `✓ ${usernameStatus.message}`
                     : usernameStatus.available ===
-                        false
+                      false
                       ? `✕ ${usernameStatus.message}`
                       : usernameStatus.message}
               </p>
@@ -363,41 +359,6 @@ const EditProfileModal = ({
             </span>
           </div>
 
-          <div className={styles.field}>
-            <label htmlFor="edit-website">
-              Website
-            </label>
-
-            <input
-              id="edit-website"
-              type="url"
-              name="website"
-              placeholder="https://example.com"
-              value={formData.website}
-              onChange={handleChange}
-              maxLength={200}
-              disabled={loading}
-              autoComplete="url"
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="edit-location">
-              Location
-            </label>
-
-            <input
-              id="edit-location"
-              type="text"
-              name="location"
-              placeholder="Location"
-              value={formData.location}
-              onChange={handleChange}
-              maxLength={100}
-              disabled={loading}
-            />
-          </div>
-
           <div className={styles.buttons}>
             <button
               type="button"
@@ -415,7 +376,7 @@ const EditProfileModal = ({
                 loading ||
                 usernameStatus.checking ||
                 usernameStatus.available ===
-                  false
+                false
               }
             >
               {loading

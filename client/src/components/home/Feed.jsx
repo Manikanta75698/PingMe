@@ -43,12 +43,12 @@ const Feed = forwardRef((props, ref) => {
         console.error(
           "LOAD POSTS ERROR:",
           error.response?.data ||
-            error.message
+          error.message
         );
 
         setError(
           error.response?.data?.message ||
-            "Unable to load posts"
+          "Unable to load posts"
         );
       } finally {
         setLoading(false);

@@ -2,19 +2,19 @@
   min-height: 100vh;
   background-color: var(--background);
   color: var(--text-primary);
-  margin-left: 250px; 
-  height: 100vh; 
-  overflow-y: scroll; 
+  margin-left: 250px;
+  height: 100vh;
+  overflow-y: scroll;
 }
 
 .container {
-  max-width: 600px; 
+  max-width: 600px;
   width: 100%;
-  margin: 0 auto; 
+  margin: 0 auto;
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
-  gap: 24px; 
+  gap: 24px;
 }
 
 /* =========================================
@@ -22,16 +22,16 @@
 ========================================= */
 @media (max-width: 768px) {
   .home {
-    margin-left: 0; 
-    padding-top: 46px; 
+    margin-left: 0;
+    padding-top: 46px;
     padding-bottom: 50px;
-    scrollbar-width: none; 
+    scrollbar-width: none;
   }
-  
+
   .home::-webkit-scrollbar {
     display: none;
   }
-  
+
   .container {
     padding: 0;
     gap: 0 !important;

@@ -690,42 +690,42 @@
 ========================= */
 
 .postButton {
-  display: block;
+    display: block;
 
-  width: 100%;
-  padding: 0;
+    width: 100%;
+    padding: 0;
 
-  overflow: hidden;
+    overflow: hidden;
 
-  border: 0;
-  border-radius: 14px;
+    border: 0;
+    border-radius: 14px;
 
-  background: transparent;
+    background: transparent;
 
-  cursor: pointer;
+    cursor: pointer;
 }
 
 .postButton:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 3px;
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
 }
 
 .postButton .postImage {
-  display: block;
+    display: block;
 
-  width: 100%;
-  height: 260px;
+    width: 100%;
+    height: 260px;
 
-  object-fit: cover;
+    object-fit: cover;
 
-  transition:
-    transform 0.25s ease,
-    filter 0.25s ease;
+    transition:
+        transform 0.25s ease,
+        filter 0.25s ease;
 }
 
 .postButton:hover .postImage {
-  transform: scale(1.035);
-  filter: brightness(0.86);
+    transform: scale(1.035);
+    filter: brightness(0.86);
 }
 
 

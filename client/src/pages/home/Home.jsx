@@ -6,7 +6,7 @@ import Feed from "../../components/home/Feed";
 
 const Home = () => {
   const feedRef = useRef();
-  
+
   const [scrollPos, setScrollPos] = useState(0);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ const Home = () => {
         <Stories />
         <Feed ref={feedRef} />
       </div>
-      
+
     </div>
   );
 };

@@ -1,7 +1,10 @@
 import {
   useEffect,
   useState,
+  useRef,
 } from "react";
+
+import { Camera, SquarePen } from "lucide-react";
 
 import EditProfileModal from "./EditProfileModal";
 
@@ -9,12 +12,10 @@ import DefaultAvatar from "../../assets/default-avatar.png";
 
 import {
   getProfile,
+  uploadProfilePicture,
 } from "../../services/authService";
 
 import styles from "./ProfileHeader.module.css";
-
-const DEFAULT_COVER =
-  "https://images.unsplash.com/photo-1503264116251-35a269479413?w=1600";
 
 const getStoredUser = () => {
   try {
@@ -47,6 +48,11 @@ const ProfileHeader = () => {
 
   const [error, setError] =
     useState("");
+
+  const [uploading, setUploading] =
+    useState(false);
+
+  const fileInputRef = useRef(null);
 
   // =========================
   // FETCH FRESH PROFILE
@@ -83,7 +89,7 @@ const ProfileHeader = () => {
         console.error(
           "GET PROFILE ERROR:",
           error.response?.data ||
-            error.message
+          error.message
         );
 
         // Keep cached user visible
@@ -91,7 +97,7 @@ const ProfileHeader = () => {
         if (!user) {
           setError(
             error.response?.data?.message ||
-              "Unable to load profile"
+            "Unable to load profile"
           );
         }
       } finally {
@@ -136,6 +142,71 @@ const ProfileHeader = () => {
     );
   };
 
+  const handleProfilePictureChange = async (
+    e
+  ) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      return alert("Please select an image.");
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return alert(
+        "Image must be below 5MB."
+      );
+    }
+
+    try {
+      setUploading(true);
+
+      const formData = new FormData();
+
+      formData.append(
+        "profilePic",
+        file
+      );
+
+      const response =
+        await uploadProfilePicture(
+          formData
+        );
+
+      const updatedUser = {
+        ...user,
+        ...response.user,
+      };
+
+      setUser(updatedUser);
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(updatedUser)
+      );
+
+      alert(
+        "Profile picture updated successfully."
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      alert(
+        error.response?.data?.message ||
+        "Upload failed."
+      );
+
+    } finally {
+      setUploading(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   // =========================
   // INITIAL LOADING
   // =========================
@@ -177,42 +248,48 @@ const ProfileHeader = () => {
 
   return (
     <div className={styles.profileCard}>
-      {/* =====================
-          COVER PHOTO
-      ====================== */}
-      <div className={styles.cover}>
-        <img
-          src={
-            user.coverPhoto ||
-            DEFAULT_COVER
-          }
-          alt={`${user.name || "User"} cover`}
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src =
-              DEFAULT_COVER;
-          }}
-        />
-      </div>
 
       {/* =====================
           PROFILE INFO
       ====================== */}
       <div className={styles.profileInfo}>
-        <img
-          src={
-            user.profilePic ||
-            DefaultAvatar
-          }
-          alt={user.name || "User"}
-          className={styles.avatar}
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src =
-              DefaultAvatar;
-          }}
-        />
+        <div className={styles.avatarWrapper}>
 
+          <img
+            src={
+              user.profilePic ||
+              DefaultAvatar
+            }
+            alt={user.name || "Profile"}
+            className={styles.avatar}
+            onError={(e) => {
+              e.currentTarget.src =
+                DefaultAvatar;
+            }}
+          />
+
+          <button
+            type="button"
+            className={styles.cameraBtn}
+            onClick={() =>
+              fileInputRef.current.click()
+            }
+            disabled={uploading}
+          >
+            {uploading ? "..." : <Camera size={14} />}
+          </button>
+
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            hidden
+            onChange={
+              handleProfilePictureChange
+            }
+          />
+
+        </div>
         <div className={styles.details}>
           <h2>
             {user.name || "PingMe User"}
@@ -226,23 +303,6 @@ const ProfileHeader = () => {
             {user.bio ||
               "Welcome to PingMe 🚀"}
           </p>
-
-          {/* =====================
-              META
-          ====================== */}
-          <div className={styles.meta}>
-            <span>
-              📍{" "}
-              {user.location ||
-                "Unknown"}
-            </span>
-
-            <span>
-              🌐{" "}
-              {user.website ||
-                "pingme.app"}
-            </span>
-          </div>
 
           {/* =====================
               STATS
@@ -281,11 +341,10 @@ const ProfileHeader = () => {
           <button
             type="button"
             className={styles.editBtn}
-            onClick={() =>
-              setShowModal(true)
-            }
+            onClick={() => setShowModal(true)}
           >
-            Edit Profile
+            <SquarePen size={16} />
+            <span>Edit Profile</span>
           </button>
         </div>
       </div>
