@@ -1,7 +1,14 @@
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:5000", {
+const SOCKET_URL =
+  import.meta.env.MODE === "development"
+    ? "http://localhost:5000"
+    : "https://pingme-m8y1.onrender.com";
+
+const socket = io(SOCKET_URL, {
   autoConnect: false,
+  transports: ["websocket", "polling"],
+  withCredentials: true,
 });
 
 socket.on("connect", () => {
@@ -13,11 +20,7 @@ socket.on("disconnect", (reason) => {
 });
 
 socket.on("connect_error", (err) => {
-  console.log("GLOBAL CONNECT ERROR:", err.message);
-});
-
-socket.onAny((event, ...args) => {
-  console.log("SOCKET EVENT =>", event, args);
+  console.error("CONNECT ERROR:", err.message);
 });
 
 export default socket;
