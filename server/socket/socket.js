@@ -19,23 +19,24 @@ const socketHandler = (io) => {
     // JOIN USER (SAFE)
     // =========================
     socket.on("join", (userId) => {
-      try {
-        if (!userId) return;
+  console.log("JOIN EVENT:", userId);
 
-        users.set(userId, socket.id);
-        setSocketId(userId, socket.id);
+  if (!userId) return;
 
-        io.emit("online-users", [...users.keys()]);
+  users.set(userId.toString(), socket.id);
+  setSocketId(userId, socket.id);
 
-      } catch (err) {
-        console.log("JOIN ERROR:", err);
-      }
-    });
+  console.log("ONLINE USERS:", [...users.keys()]);
+
+  io.emit("online-users", [...users.keys()]);
+});
 
     // =========================
     // MESSAGE DELIVERED
     // =========================
     socket.on("messageDelivered", async ({ messageId }) => {
+      console.log("DELIVERED EVENT:", messageId);
+
       try {
         if (!messageId) return;
 
@@ -47,7 +48,14 @@ const socketHandler = (io) => {
 
         if (!message) return;
 
-        const senderSocket = getSocketId(message.sender?.toString());
+        const senderSocket = getSocketId(message.sender.toString());
+
+        console.log(
+          "Sender:",
+          message.sender.toString(),
+          "Socket:",
+          senderSocket
+        );
 
         if (senderSocket) {
           io.to(senderSocket).emit("messageStatusUpdate", {
@@ -55,7 +63,6 @@ const socketHandler = (io) => {
             status: "delivered",
           });
         }
-
       } catch (err) {
         console.log("Delivered Error:", err);
       }
