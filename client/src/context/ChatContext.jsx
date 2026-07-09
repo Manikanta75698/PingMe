@@ -27,15 +27,30 @@ export const ChatProvider = ({ children }) => {
       socket.connect();
     }
 
-    socket.emit("join", user._id);
+    const handleConnect = () => {
+      console.log("SOCKET CONNECTED:", socket.id);
+      console.log("USER:", user);
+
+      socket.emit("join", user.id);
+
+      console.log("JOIN EMITTED");
+    };
 
     const handleOnlineUsers = (users) => {
+      console.log("ONLINE USERS:", users);
       setOnlineUsers(users);
     };
 
+    socket.on("connect", handleConnect);
     socket.on("online-users", handleOnlineUsers);
 
+    // Socket already connected ayithe immediate join
+    if (socket.connected) {
+      handleConnect();
+    }
+
     return () => {
+      socket.off("connect", handleConnect);
       socket.off("online-users", handleOnlineUsers);
     };
   }, []);
@@ -45,9 +60,35 @@ export const ChatProvider = ({ children }) => {
   // =========================
   useEffect(() => {
     const handleMessage = (message) => {
+      const currentUser = JSON.parse(localStorage.getItem("user"));
+
+      const receiverId =
+        typeof message.receiver === "object"
+          ? message.receiver._id
+          : message.receiver;
+
+      console.log("========= NEW MESSAGE =========");
+      console.log("Current User:", currentUser.id);
+      console.log("Receiver:", receiverId);
+      console.log("Message:", message);
+
+      // Message delivered
+      if (
+        receiverId === currentUser.id &&
+        message.status === "sent"
+      ) {
+        socket.emit("messageDelivered", {
+          messageId: message._id,
+        });
+      }
+
       setMessages((prev) => {
-        const exists = prev.find((m) => m._id === message._id);
+        const exists = prev.some(
+          (m) => m._id === message._id
+        );
+
         if (exists) return prev;
+
         return [...prev, message];
       });
     };
@@ -75,6 +116,27 @@ export const ChatProvider = ({ children }) => {
 
     return () => {
       socket.off("typing", handleTyping);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleStatus = ({ messageId, status }) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === messageId
+            ? {
+              ...msg,
+              status,
+            }
+            : msg
+        )
+      );
+    };
+
+    socket.on("messageStatusUpdate", handleStatus);
+
+    return () => {
+      socket.off("messageStatusUpdate", handleStatus);
     };
   }, []);
 

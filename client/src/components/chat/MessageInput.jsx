@@ -14,13 +14,13 @@ import {
 } from "lucide-react";
 
 const MessageInput = () => {
+  const { user } = useAuth();
+
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
 
   const imageRef = useRef(null);
   const textareaRef = useRef(null);
-
-  const { user } = useAuth();
 
   const {
     selectedChat,
@@ -36,15 +36,23 @@ const MessageInput = () => {
 
     // Instant message
     const tempMessage = {
-      _id: tempId,
+      _id: Date.now().toString(),
       text: currentText,
-      image: "",
+
       sender: {
-        _id: user._id,
+        _id: user.id,
+        name: user.name,
+        username: user.username,
+        profilePic: user.profilePic,
       },
+
       receiver: selectedChat._id,
+
       createdAt: new Date().toISOString(),
+
       status: "sending",
+
+      image: "",
     };
 
     // Show instantly
@@ -64,6 +72,7 @@ const MessageInput = () => {
         receiver: selectedChat._id,
         text: currentText,
       });
+
 
       const realMessage = response.data.data;
 
