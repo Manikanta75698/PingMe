@@ -3,9 +3,15 @@ import {
   useContext,
   useEffect,
   useState,
+  useCallback,
 } from "react";
 
 import socket from "../socket/socket";
+
+import {
+  getReceivedRequests,
+  getSentRequests,
+} from "../services/chatRequestService";
 
 const ChatContext = createContext();
 
@@ -15,9 +21,26 @@ export const ChatProvider = ({ children }) => {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [typingUser, setTypingUser] = useState(null);
 
-  // =========================
-  // SOCKET CONNECT + ONLINE USERS
-  // =========================
+  const [receivedRequests, setReceivedRequests] = useState([]);
+  const [sentRequests, setSentRequests] = useState([]);
+
+  const loadRequests = useCallback(async () => {
+    try {
+      const received = await getReceivedRequests();
+      const sent = await getSentRequests();
+
+      setReceivedRequests(received.data.requests);
+      setSentRequests(sent.data.requests);
+    } catch (error) {
+      console.log(error);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRequests();
+  }, [loadRequests]);
+
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
 
@@ -55,9 +78,6 @@ export const ChatProvider = ({ children }) => {
     };
   }, []);
 
-  // =========================
-  // NEW MESSAGE HANDLER
-  // =========================
   useEffect(() => {
     const handleMessage = (message) => {
       console.log("🔥 newMessage RECEIVED", message);
@@ -130,18 +150,35 @@ export const ChatProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-  const handleDelete = (messageId) => {
-    setMessages((prev) =>
-      prev.filter((msg) => msg._id !== messageId)
-    );
-  };
+    const handleDelete = (messageId) => {
+      setMessages((prev) =>
+        prev.filter((msg) => msg._id !== messageId)
+      );
+    };
 
-  socket.on("messageDeleted", handleDelete);
+    socket.on("messageDeleted", handleDelete);
 
-  return () => {
-    socket.off("messageDeleted", handleDelete);
-  };
-}, []);
+    return () => {
+      socket.off("messageDeleted", handleDelete);
+    };
+  }, []);
+
+
+  useEffect(() => {
+    const handleNewRequest = () => loadRequests();
+    const handleAccepted = () => loadRequests();
+    const handleDeclined = () => loadRequests();
+
+    socket.on("newChatRequest", handleNewRequest);
+    socket.on("chatRequestAccepted", handleAccepted);
+    socket.on("chatRequestDeclined", handleDeclined);
+
+    return () => {
+      socket.off("newChatRequest", handleNewRequest);
+      socket.off("chatRequestAccepted", handleAccepted);
+      socket.off("chatRequestDeclined", handleDeclined);
+    };
+  }, [loadRequests]);
 
 
   return (
@@ -158,6 +195,14 @@ export const ChatProvider = ({ children }) => {
 
         typingUser,
         setTypingUser,
+
+        receivedRequests,
+        setReceivedRequests,
+
+        sentRequests,
+        setSentRequests,
+
+        loadRequests,
 
         socket,
       }}

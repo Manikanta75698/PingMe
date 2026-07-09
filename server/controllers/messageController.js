@@ -1,5 +1,7 @@
 const Message = require("../models/Message");
 
+const ChatRequest = require("../models/ChatRequest");
+
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 
@@ -23,6 +25,27 @@ const sendMessage = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Receiver is required",
+      });
+    }
+
+    const chatAllowed = await ChatRequest.findOne({
+      status: "accepted",
+      $or: [
+        {
+          sender: req.user._id,
+          receiver,
+        },
+        {
+          sender: receiver,
+          receiver: req.user._id,
+        },
+      ],
+    });
+
+    if (!chatAllowed) {
+      return res.status(403).json({
+        success: false,
+        message: "Chat request not accepted",
       });
     }
 
@@ -89,6 +112,27 @@ const sendMessage = async (req, res) => {
 const getMessages = async (req, res) => {
   try {
     const { userId } = req.params;
+
+    const chatAllowed = await ChatRequest.findOne({
+      status: "accepted",
+      $or: [
+        {
+          sender: req.user._id,
+          receiver: userId,
+        },
+        {
+          sender: userId,
+          receiver: req.user._id,
+        },
+      ],
+    });
+
+    if (!chatAllowed) {
+      return res.status(403).json({
+        success: false,
+        message: "Chat request not accepted",
+      });
+    }
 
     const messages = await Message.find({
       $or: [

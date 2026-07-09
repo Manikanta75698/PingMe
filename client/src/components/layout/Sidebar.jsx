@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Home, Search, Heart, MessageCircle, SquarePlus, X } from "lucide-react";
 import styles from "./Sidebar.module.css";
 import { useAuth } from "../../context/AuthContext";
+import { useChat } from "../../context/ChatContext";
 import Avatar from "../ui/avatar/Avatar";
 import { searchUsers } from "../../services/authService";
 import SearchResults from "../search/SearchResults";
@@ -12,6 +13,9 @@ import CreatePost from "./CreatePost";
 
 const Sidebar = () => {
   const { user } = useAuth();
+  const {
+    receivedRequests,
+  } = useChat();
   const navigate = useNavigate();
 
   const openChat = () => {
@@ -55,9 +59,43 @@ const Sidebar = () => {
             <span className={styles.text}>Messages</span>
           </button>
 
-          <button className={styles.navItem}>
-            <Heart className={styles.icon} />
-            <span className={styles.text}>Notifications</span>
+          <button
+            className={styles.navItem}
+            onClick={() => navigate("/activity")}
+          >
+            <div
+              style={{
+                position: "relative",
+              }}
+            >
+              <Heart className={styles.icon} />
+
+              {receivedRequests.length > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "-6px",
+                    right: "-8px",
+                    background: "red",
+                    color: "white",
+                    borderRadius: "50%",
+                    minWidth: "18px",
+                    height: "18px",
+                    fontSize: "11px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: "600",
+                  }}
+                >
+                  {receivedRequests.length}
+                </span>
+              )}
+            </div>
+
+            <span className={styles.text}>
+              Activity
+            </span>
           </button>
 
           {/* 🚀 Kotha Create Post Button */}

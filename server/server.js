@@ -19,6 +19,7 @@ const messageRoutes = require("./routes/messageRoutes");
 const { setIO } = require("./socket/socketInstance");
 const userRoutes = require("./routes/userRoutes");
 const startDeleteExpiredMessages = require("./cron/deleteExpiredMessages");
+const chatRequestRoutes = require("./routes/chatRequestRoutes");
 
 connectDB();
 
@@ -28,12 +29,11 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 
-// 💡 PRODUCTION CORS CONFIGURATION LIST SYSTEM
 const allowedOrigins = [
-  "http://localhost:5173", // Local Vite Web App Dev
-  "http://localhost",      // Capacitor Android Device Engine System Default Web Wrapper Domain Base
-  "capacitor://localhost", // Capacitor Native iOS Runtime Domain Target Setup Base
-  process.env.CLIENT_PRODUCTION_URL // Live Server App Custom Domain URL Integration String System Variable
+  "http://localhost:5173",
+  "http://localhost",
+  "capacitor://localhost",
+  process.env.CLIENT_PRODUCTION_URL
 ].filter(Boolean);
 
 const corsOptions = {
@@ -60,7 +60,9 @@ app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/stories", storyRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/chat-requests", chatRequestRoutes);
 app.use("/api/users", userRoutes);
+
 
 // Test Route
 app.get("/", (req, res) => {

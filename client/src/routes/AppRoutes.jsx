@@ -12,10 +12,14 @@ import ResetOtp from "../pages/auth/reset-otp/ResetOtp";
 import ResetPassword from "../pages/auth/reset-password";
 
 import Home from "../pages/home/Home";
+
+
 import Chat from "../pages/chat/Chat";
+import Activity from "../pages/activity/Activity";
 
 import Profile from "../pages/profile/Profile";
 import UserProfile from "../pages/profile/UserProfile";
+
 
 const AppRoutes = () => {
   return (
@@ -74,9 +78,7 @@ const AppRoutes = () => {
         element={<Home />}
       />
 
-      {/* =====================
-          CHAT ROUTES
-      ====================== */}
+
       <Route
         path="/chat"
         element={<Chat />}
@@ -93,6 +95,11 @@ const AppRoutes = () => {
       <Route
         path="/profile"
         element={<Profile />}
+      />
+
+      <Route
+        path="/activity"
+        element={<Activity />}
       />
 
       {/* =====================

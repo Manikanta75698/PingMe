@@ -4,7 +4,6 @@ import DefaultAvatar from "../../assets/default-avatar.png";
 
 import styles from "./ChatSidebar.module.css";
 
-import { getUsers } from "../../services/userService";
 import { useChat } from "../../context/ChatContext";
 
 const ChatSidebar = () => {
@@ -17,32 +16,66 @@ const ChatSidebar = () => {
     selectedChat,
     setSelectedChat,
     onlineUsers,
+    sentRequests,
+    receivedRequests,
   } = useChat();
 
   useEffect(() => {
-    loadUsers();
-  }, [userId]);
 
-  const loadUsers = async () => {
-    try {
-      const { data } = await getUsers();
+    const currentUser = JSON.parse(
+      localStorage.getItem("user")
+    );
 
-      setUsers(data.users);
+    if (!currentUser) return;
 
-      if (userId) {
-        const user = data.users.find(
-          (u) => u._id === userId
-        );
+    const accepted = [
+      ...sentRequests.filter(
+        (r) => r.status === "accepted"
+      ),
+      ...receivedRequests.filter(
+        (r) => r.status === "accepted"
+      ),
+    ];
 
-        if (user) {
-          setSelectedChat(user);
-        }
+    const chatUsers = accepted.map((request) => {
+
+      if (
+        request.sender._id ===
+        (currentUser.id || currentUser._id)
+      ) {
+        return request.receiver;
       }
 
-    } catch (error) {
-      console.error(error);
+      return request.sender;
+    });
+
+    const uniqueUsers = chatUsers.filter(
+      (user, index, self) =>
+        index ===
+        self.findIndex(
+          (u) => u._id === user._id
+        )
+    );
+
+    setUsers(uniqueUsers);
+
+    if (userId) {
+
+      const selected = chatUsers.find(
+        (u) => u._id === userId
+      );
+
+      if (selected) {
+        setSelectedChat(selected);
+      }
     }
-  };
+
+  }, [
+    sentRequests,
+    receivedRequests,
+    userId,
+    setSelectedChat,
+  ]);
 
   const filteredUsers = useMemo(() => {
     if (!search.trim()) return users;

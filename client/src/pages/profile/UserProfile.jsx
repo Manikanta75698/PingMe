@@ -19,6 +19,11 @@ import {
   unfollowUser,
 } from "../../services/authService";
 
+import { sendChatRequest } from "../../services/chatRequestService";
+
+
+import { useChat } from "../../context/ChatContext";
+
 import {
   getUserPosts,
 } from "../../services/postService";
@@ -67,8 +72,16 @@ const normalizeId = (value) => {
   return String(value);
 };
 
+
 const UserProfile = () => {
+
   const navigate = useNavigate();
+
+  const {
+    sentRequests,
+    receivedRequests,
+    loadRequests,
+  } = useChat();
 
   const { username } = useParams();
 
@@ -96,6 +109,9 @@ const UserProfile = () => {
     setFollowLoading,
   ] = useState(false);
 
+  const [requestLoading, setRequestLoading] =
+    useState(false);
+
   const [error, setError] =
     useState("");
 
@@ -103,6 +119,8 @@ const UserProfile = () => {
     selectedPost,
     setSelectedPost,
   ] = useState(null);
+
+  const [requestStatus, setRequestStatus] = useState(null);
 
   const currentUserId = normalizeId(
     currentUser?.id ||
@@ -118,6 +136,24 @@ const UserProfile = () => {
     Boolean(currentUserId) &&
     Boolean(profileUserId) &&
     currentUserId === profileUserId;
+
+  const pendingRequest = sentRequests.find(
+    (req) =>
+      req.receiver?._id === profileUserId &&
+      req.status === "pending"
+  );
+
+  const chatAccepted =
+    sentRequests.find(
+      (req) =>
+        req.receiver?._id === profileUserId &&
+        req.status === "accepted"
+    ) ||
+    receivedRequests.find(
+      (req) =>
+        req.sender?._id === profileUserId &&
+        req.status === "accepted"
+    );
 
   // =========================
   // FETCH PROFILE + POSTS
@@ -205,7 +241,7 @@ const UserProfile = () => {
 
   useEffect(() => {
     fetchUser();
-  }, [fetchUser]);
+  }, [fetchUser, sentRequests]);
 
   // =========================
   // FOLLOW / UNFOLLOW
@@ -311,6 +347,33 @@ const UserProfile = () => {
   // =========================
   // MESSAGE USER
   // =========================
+
+  const handleSendRequest = async () => {
+    try {
+      setRequestLoading(true);
+
+      const res = await sendChatRequest({
+        receiver: profileUserId,
+      });
+
+      console.log(res.data);
+
+      await loadRequests();
+
+    } catch (error) {
+      console.log("FULL ERROR:", error);
+
+      console.log("BACKEND:", error.response?.data);
+
+      alert(
+        error.response?.data?.message ||
+        error.message
+      );
+    } finally {
+      setRequestLoading(false);
+    }
+  };
+
   const handleMessage = () => {
     if (!profileUserId) return;
 
@@ -476,15 +539,31 @@ const UserProfile = () => {
                   : "Follow"}
             </button>
 
-            <button
-              type="button"
-              className={
-                styles.messageBtn
-              }
-              onClick={handleMessage}
-            >
-              Message
-            </button>
+            {chatAccepted ? (
+              <button
+                className={styles.messageBtn}
+                onClick={handleMessage}
+              >
+                Message
+              </button>
+            ) : pendingRequest ? (
+              <button
+                className={styles.messageBtn}
+                disabled
+              >
+                Pending
+              </button>
+            ) : (
+              <button
+                className={styles.messageBtn}
+                onClick={handleSendRequest}
+                disabled={requestLoading}
+              >
+                {requestLoading
+                  ? "Sending..."
+                  : "Send Request"}
+              </button>
+            )}
           </div>
         )}
 
