@@ -143,17 +143,6 @@ export const ChatProvider = ({ children }) => {
   };
 }, []);
 
-useEffect(() => {
-  socket.on("messageDeleted", (id) => {
-    setMessages((prev) =>
-      prev.filter((m) => m._id !== id)
-    );
-  });
-
-  return () => {
-    socket.off("messageDeleted");
-  };
-}, []);
 
   return (
     <ChatContext.Provider

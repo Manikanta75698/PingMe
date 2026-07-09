@@ -40,7 +40,7 @@
 
 .ownBubble {
   background: var(--primary);
-  color: #fff;
+  color: white;
 
   border-bottom-right-radius: 8px;
 }
@@ -106,13 +106,13 @@
 
 .status {
   font-size: 12px;
-  color: var(--text-secondary);
+   color: rgba(255,255,255,.85);
 }
 
 .seen {
   font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-weight: 600;
+   color: rgba(255,255,255,.95);
 }
 
 /* =========================

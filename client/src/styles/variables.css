@@ -1,87 +1,48 @@
-/* ===========================
-    BASE & LIGHT THEME (Default)
-=========================== */
 :root {
   color-scheme: light dark;
 
-  /* existing variables */
-}
-
-:root {
-  /* ========= Brand (Same for both) ========= */
+  /* Brand */
   --primary: #4f46e5;
   --primary-hover: #4338ca;
   --secondary: #7c3aed;
 
-  /* ========= Status (Same for both) ========= */
+  /* Status */
   --success: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;
 
-  /* ========= Radius (Same for both) ========= */
+  /* Radius */
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-xl: 28px;
 
-  /* ========= Background (LIGHT) ========= */
+  /* Light */
   --background: #f8fafc;
   --surface: #ffffff;
   --surface-light: #f1f5f9;
 
-  /* ========= Text (LIGHT) ========= */
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #64748b;
 
-  /* ========= Border & Shadow (LIGHT) ========= */
   --border: #dbe4ee;
-  --shadow: 0 10px 25px rgba(15,23,42,.08);
+
+  --shadow: 0 10px 25px rgba(15, 23, 42, .08);
 }
 
-/* ===========================
-    SYSTEM DARK THEME
-=========================== */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* ========= Background (DARK) ========= */
     --background: #0f172a;
     --surface: #111827;
     --surface-light: #1f2937;
 
-    /* ========= Text (DARK) ========= */
     --text-primary: #ffffff;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
 
-    /* ========= Border & Shadow (DARK) ========= */
     --border: #263244;
-    --shadow: 0 10px 30px rgba(0,0,0,.35);
+
+    --shadow: 0 10px 30px rgba(0, 0, 0, .35);
   }
-}
-
-/* ===========================
-   MANUAL TOGGLE (Optional Fallback)
-=========================== */
-/* Repu poddunna nuvvu manual ga Dark/Light button pedithe idhi work avthundi */
-[data-theme="light"] {
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --surface-light: #f1f5f9;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --border: #dbe4ee;
-  --shadow: 0 10px 25px rgba(15,23,42,.08);
-}
-
-[data-theme="dark"] {
-  --background: #0f172a;
-  --surface: #111827;
-  --surface-light: #1f2937;
-  --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --border: #263244;
-  --shadow: 0 10px 30px rgba(0,0,0,.35);
 }

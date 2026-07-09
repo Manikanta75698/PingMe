@@ -102,13 +102,14 @@ const Chat = () => {
         ${!selectedChat ? styles.hideChat : ""}
       `}
       >
-        <ChatHeader />
+        {selectedChat && <ChatHeader />}
 
         <div className={styles.messages}>
-          <MessageList />
+
+          {selectedChat && <MessageList />}
         </div>
 
-        <MessageInput />
+        {selectedChat && <MessageInput />}
       </div>
 
     </div>

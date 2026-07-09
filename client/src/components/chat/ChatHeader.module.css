@@ -1,12 +1,13 @@
 .header {
   height: 72px;
   padding: 0 24px;
-  border-bottom: 1px solid #273449;
-  background: #111827;
 
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .backButton {
@@ -22,15 +23,14 @@
   border-radius: 50%;
 
   background: transparent;
-  color: #fff;
+  color: var(--text-primary);
 
   cursor: pointer;
-
-  transition: background 0.2s ease;
+  transition: background .2s ease;
 }
 
 .backButton:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-light);
 }
 
 .left {
@@ -46,6 +46,7 @@
 .avatar {
   width: 50px;
   height: 50px;
+
   border-radius: 50%;
   object-fit: cover;
 }
@@ -53,7 +54,8 @@
 .onlineDot {
   width: 10px;
   height: 10px;
-  background: #22c55e;
+
+  background: var(--success);
   border-radius: 50%;
   border: 2px solid var(--surface);
 
@@ -68,23 +70,23 @@
 }
 
 .name {
-  color: white;
+  color: var(--text-primary);
   font-size: 17px;
   font-weight: 600;
 }
 
 .status {
-  color: #9ca3af;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .empty {
-  color: white;
+  color: var(--text-primary);
   font-size: 18px;
   font-weight: 600;
 }
 
-@media (max-width: 768px) {
+@media (max-width:768px) {
 
   .header {
     height: 64px;

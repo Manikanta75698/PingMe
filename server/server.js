@@ -11,8 +11,6 @@ const socketHandler = require("./socket/socket");
 
 const connectDB = require("./config/db");
 
-require("./cron/deleteMessages");
-
 const authRoutes = require("./routes/authRoutes");
 const postRoutes = require("./routes/postRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
@@ -20,10 +18,10 @@ const storyRoutes = require("./routes/storyRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const { setIO } = require("./socket/socketInstance");
 const userRoutes = require("./routes/userRoutes");
+const startDeleteExpiredMessages = require("./cron/deleteExpiredMessages");
 
 connectDB();
 
-require("./cron/messageCleanup");
 
 
 
