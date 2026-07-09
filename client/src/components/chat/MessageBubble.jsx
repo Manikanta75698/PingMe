@@ -1,5 +1,11 @@
 import styles from "./MessageBubble.module.css";
 
+import {
+  Clock3,
+  Check,
+  CheckCheck,
+} from "lucide-react";
+
 const MessageBubble = ({ message, isOwn }) => {
   const time = new Date(message.createdAt).toLocaleTimeString([], {
     hour: "2-digit",
@@ -39,15 +45,17 @@ const MessageBubble = ({ message, isOwn }) => {
 
           {isOwn && (
             <span className={styles.status}>
-              {message.status === "sending" && "🕒"}
-
-              {message.status === "sent" && "✓"}
-
-              {message.status === "delivered" && "✓✓"}
-
-              {message.status === "seen" && (
-                <span className={styles.seen}>✓✓</span>
-              )}
+              {
+                message.status === "sending" ? (
+                  <Clock3 size={14} />
+                ) : message.status === "sent" ? (
+                  <Check size={14} />
+                ) : message.status === "delivered" ? (
+                  <CheckCheck size={14} />
+                ) : (
+                  <span className={styles.seen}>Seen</span>
+                )
+              }
             </span>
           )}
         </div>

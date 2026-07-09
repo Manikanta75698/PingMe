@@ -1,14 +1,18 @@
 const dotenv = require("dotenv");
-dotenv.config(); // <-- MUST BE FIRST
+dotenv.config();
 
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const http = require("http");
 const { Server } = require("socket.io");
+
 const socketHandler = require("./socket/socket");
 
 const connectDB = require("./config/db");
+
+require("./cron/deleteMessages");
+
 const authRoutes = require("./routes/authRoutes");
 const postRoutes = require("./routes/postRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
@@ -18,6 +22,10 @@ const { setIO } = require("./socket/socketInstance");
 const userRoutes = require("./routes/userRoutes");
 
 connectDB();
+
+require("./cron/messageCleanup");
+
+
 
 const app = express();
 const server = http.createServer(app);

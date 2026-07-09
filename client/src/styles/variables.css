@@ -2,6 +2,12 @@
     BASE & LIGHT THEME (Default)
 =========================== */
 :root {
+  color-scheme: light dark;
+
+  /* existing variables */
+}
+
+:root {
   /* ========= Brand (Same for both) ========= */
   --primary: #4f46e5;
   --primary-hover: #4338ca;

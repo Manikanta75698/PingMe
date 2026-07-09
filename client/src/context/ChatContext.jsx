@@ -91,9 +91,7 @@ export const ChatProvider = ({ children }) => {
     };
   }, []);
 
-  // =========================
-  // TYPING INDICATOR
-  // =========================
+
   useEffect(() => {
     const handleTyping = (data) => {
       setTypingUser(data.userId);
@@ -112,13 +110,13 @@ export const ChatProvider = ({ children }) => {
 
   useEffect(() => {
     const handleStatus = ({ messageId, status }) => {
+
+      console.log("STATUS UPDATE:", messageId, status);
+
       setMessages((prev) =>
         prev.map((msg) =>
           msg._id === messageId
-            ? {
-              ...msg,
-              status,
-            }
+            ? { ...msg, status }
             : msg
         )
       );
@@ -130,6 +128,32 @@ export const ChatProvider = ({ children }) => {
       socket.off("messageStatusUpdate", handleStatus);
     };
   }, []);
+
+  useEffect(() => {
+  const handleDelete = (messageId) => {
+    setMessages((prev) =>
+      prev.filter((msg) => msg._id !== messageId)
+    );
+  };
+
+  socket.on("messageDeleted", handleDelete);
+
+  return () => {
+    socket.off("messageDeleted", handleDelete);
+  };
+}, []);
+
+useEffect(() => {
+  socket.on("messageDeleted", (id) => {
+    setMessages((prev) =>
+      prev.filter((m) => m._id !== id)
+    );
+  });
+
+  return () => {
+    socket.off("messageDeleted");
+  };
+}, []);
 
   return (
     <ChatContext.Provider

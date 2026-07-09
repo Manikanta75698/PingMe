@@ -7,45 +7,40 @@ import {
 
 const ThemeContext = createContext();
 
-const getSystemTheme = () => {
-  const savedTheme = localStorage.getItem("theme");
-
-  if (savedTheme) return savedTheme;
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-};
-
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(getSystemTheme);
+  const mediaQuery = window.matchMedia(
+    "(prefers-color-scheme: dark)"
+  );
+
+  const [theme, setTheme] = useState(
+    mediaQuery.matches ? "dark" : "light"
+  );
 
   useEffect(() => {
+    const updateTheme = (e) => {
+      setTheme(e.matches ? "dark" : "light");
+    };
+
     document.documentElement.setAttribute(
       "data-theme",
       theme
     );
 
-    localStorage.setItem("theme", theme);
+    mediaQuery.addEventListener("change", updateTheme);
+
+    return () => {
+      mediaQuery.removeEventListener(
+        "change",
+        updateTheme
+      );
+    };
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme((prev) =>
-      prev === "dark" ? "light" : "dark"
-    );
-  };
-
   return (
-    <ThemeContext.Provider
-      value={{
-        theme,
-        toggleTheme,
-      }}
-    >
+    <ThemeContext.Provider value={{ theme }}>
       {children}
     </ThemeContext.Provider>
   );
 };
 
-export const useTheme = () =>
-  useContext(ThemeContext);
+export const useTheme = () => useContext(ThemeContext);

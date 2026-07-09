@@ -8,7 +8,11 @@ import { useAuth } from "../../context/AuthContext";
 import MessageBubble from "./MessageBubble";
 
 const MessageList = () => {
-  const { messages } = useChat();
+  const {
+    messages,
+    socket,
+  } = useChat();
+
   const { user } = useAuth();
 
   const bottomRef = useRef(null);
@@ -24,6 +28,29 @@ const MessageList = () => {
       behavior: "smooth",
     });
   }, [messages]);
+
+  useEffect(() => {
+    if (!messages.length) return;
+
+    messages.forEach((message) => {
+      const receiverId =
+        typeof message.receiver === "object"
+          ? message.receiver._id
+          : message.receiver;
+
+      if (
+        receiverId === currentUserId &&
+        message.status !== "seen"
+      ) {
+        console.log("EMIT SEEN:", message._id);
+
+        socket.emit("messageSeen", {
+          messageId: message._id,
+        });
+      }
+    });
+
+  }, [messages, socket, currentUserId]);
 
   if (!messages.length) {
     return (
