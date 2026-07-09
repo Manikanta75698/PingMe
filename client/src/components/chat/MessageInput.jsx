@@ -19,6 +19,8 @@ const MessageInput = () => {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [selectedImage, setSelectedImage] = useState(null);
+
   const imageRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -28,7 +30,8 @@ const MessageInput = () => {
   } = useChat();
 
   const handleSend = async () => {
-    if (!text.trim() || !selectedChat || loading) return;
+    if ((!text.trim() && !selectedImage) || !selectedChat || loading)
+      return;
 
     const currentText = text.trim();
 
@@ -46,7 +49,9 @@ const MessageInput = () => {
       receiver: selectedChat._id,
       createdAt: new Date().toISOString(),
       status: "sent",
-      image: "",
+      image: selectedImage
+        ? URL.createObjectURL(selectedImage)
+        : "",
     };
 
     // Show instantly
@@ -62,10 +67,17 @@ const MessageInput = () => {
     setLoading(true);
 
     try {
-      const response = await sendMessage({
-        receiver: selectedChat._id,
-        text: currentText,
-      });
+
+      const formData = new FormData();
+
+      formData.append("receiver", selectedChat._id);
+      formData.append("text", currentText);
+
+      if (selectedImage) {
+        formData.append("image", selectedImage);
+      }
+
+      const response = await sendMessage(formData);
 
 
       const realMessage = response.data.data;
@@ -85,6 +97,12 @@ const MessageInput = () => {
       );
     } finally {
       setLoading(false);
+
+      setSelectedImage(null);
+
+      if (imageRef.current) {
+        imageRef.current.value = "";
+      }
     }
   };
 
@@ -133,7 +151,35 @@ const MessageInput = () => {
         type="file"
         hidden
         ref={imageRef}
+        accept="image/*"
+        onChange={(e) => {
+          if (e.target.files.length) {
+            setSelectedImage(e.target.files[0]);
+          }
+        }}
       />
+
+      {selectedImage && (
+        <div className={styles.preview}>
+          <img
+            src={URL.createObjectURL(selectedImage)}
+            alt="preview"
+          />
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedImage(null);
+
+              if (imageRef.current) {
+                imageRef.current.value = "";
+              }
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className={styles.inputWrapper}>
         <textarea
@@ -147,7 +193,7 @@ const MessageInput = () => {
         />
       </div>
 
-      {text.trim() ? (
+      {(text.trim() || selectedImage) ? (
         <button
           type="button"
           className={styles.send}

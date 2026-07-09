@@ -1,5 +1,7 @@
 const Message = require("../models/Message");
 
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
 
 const {
   getIO,
@@ -9,6 +11,7 @@ const {
 
 const sendMessage = async (req, res) => {
   console.log("🚀 sendMessage API HIT");
+
   try {
     const {
       receiver,
@@ -23,10 +26,35 @@ const sendMessage = async (req, res) => {
       });
     }
 
+    let image = "";
+
+    if (req.file) {
+      const uploadFromBuffer = () =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: "pingme/messages",
+            },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result);
+            }
+          );
+
+          streamifier
+            .createReadStream(req.file.buffer)
+            .pipe(stream);
+        });
+
+      const uploaded = await uploadFromBuffer();
+      image = uploaded.secure_url;
+    }
+
     const message = await Message.create({
       sender: req.user._id,
       receiver,
       text: text || "",
+      image,
       replyTo: replyTo || null,
     });
 
@@ -35,23 +63,14 @@ const sendMessage = async (req, res) => {
       "name username profilePic"
     );
 
-    // 🔥 Real-time emit
     const io = getIO();
-
     const receiverSocket = getSocketId(receiver);
 
-    console.log("========== SEND ==========");
-    console.log("Receiver:", receiver);
-    console.log("Receiver Socket:", receiverSocket);
-
     if (receiverSocket) {
-      console.log("EMITTING newMessage");
       io.to(receiverSocket).emit("newMessage", message);
-    } else {
-      console.log("❌ Receiver socket not found");
     }
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Message sent successfully",
       data: message,
@@ -60,7 +79,7 @@ const sendMessage = async (req, res) => {
   } catch (error) {
     console.error(error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
