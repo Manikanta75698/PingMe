@@ -14,15 +14,7 @@ const messageSchema = new mongoose.Schema(
       required: true,
     },
 
-    text: {
-      type: String,
-      default: "",
-    },
-
-    image: {
-      type: String,
-      default: "",
-    },
+    text: String,
 
     status: {
       type: String,
@@ -35,10 +27,17 @@ const messageSchema = new mongoose.Schema(
       ref: "Message",
       default: null,
     },
+
+    image: String,
   },
   {
     timestamps: true,
   }
+);
+
+messageSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 86400 }
 );
 
 module.exports = mongoose.model("Message", messageSchema);

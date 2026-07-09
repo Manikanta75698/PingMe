@@ -34,24 +34,18 @@ const MessageInput = () => {
 
     const tempId = `temp-${Date.now()}`;
 
-    // Instant message
     const tempMessage = {
-      _id: Date.now().toString(),
+      _id: tempId,
       text: currentText,
-
       sender: {
         _id: user.id,
         name: user.name,
         username: user.username,
         profilePic: user.profilePic,
       },
-
       receiver: selectedChat._id,
-
       createdAt: new Date().toISOString(),
-
-      status: "sending",
-
+      status: "sent",
       image: "",
     };
 

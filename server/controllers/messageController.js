@@ -8,6 +8,7 @@ const {
 
 
 const sendMessage = async (req, res) => {
+  console.log("🚀 sendMessage API HIT");
   try {
     const {
       receiver,
@@ -39,8 +40,15 @@ const sendMessage = async (req, res) => {
 
     const receiverSocket = getSocketId(receiver);
 
+    console.log("========== SEND ==========");
+    console.log("Receiver:", receiver);
+    console.log("Receiver Socket:", receiverSocket);
+
     if (receiverSocket) {
+      console.log("EMITTING newMessage");
       io.to(receiverSocket).emit("newMessage", message);
+    } else {
+      console.log("❌ Receiver socket not found");
     }
 
     res.status(201).json({

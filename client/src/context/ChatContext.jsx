@@ -60,6 +60,7 @@ export const ChatProvider = ({ children }) => {
   // =========================
   useEffect(() => {
     const handleMessage = (message) => {
+      console.log("🔥 newMessage RECEIVED", message);
       const currentUser = JSON.parse(localStorage.getItem("user"));
 
       const receiverId =
@@ -67,27 +68,17 @@ export const ChatProvider = ({ children }) => {
           ? message.receiver._id
           : message.receiver;
 
-      console.log("========= NEW MESSAGE =========");
-      console.log("Current User:", currentUser.id);
-      console.log("Receiver:", receiverId);
-      console.log("Message:", message);
-
-      // Message delivered
-      if (
-        receiverId === currentUser.id &&
-        message.status === "sent"
-      ) {
+      // Delivered acknowledgement
+      if (receiverId === (currentUser.id || currentUser._id)) {
         socket.emit("messageDelivered", {
           messageId: message._id,
         });
       }
 
       setMessages((prev) => {
-        const exists = prev.some(
-          (m) => m._id === message._id
-        );
-
-        if (exists) return prev;
+        if (prev.some((m) => m._id === message._id)) {
+          return prev;
+        }
 
         return [...prev, message];
       });
