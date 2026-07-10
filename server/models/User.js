@@ -30,6 +30,12 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    provider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+
     // Profile
     profilePic: {
       type: String,

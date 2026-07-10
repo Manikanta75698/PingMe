@@ -10,6 +10,8 @@ const sendOtpEmail = require("../utils/sendOtpEmail");
 const sendPasswordResetOtpEmail = require(
   "../utils/sendPasswordResetOtpEmail"
 );
+const bcrypt = require("bcryptjs");
+
 const {
   normalizeUsername,
   validateUsername,
@@ -909,6 +911,57 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const setPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: "Password is required",
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (user.password) {
+      return res.status(400).json({
+        success: false,
+        message: "Password already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    user.password = hashedPassword;
+
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: "Password set successfully",
+
+      user: {
+        provider: user.provider,
+        hasPassword: true,
+      },
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -926,10 +979,23 @@ const loginUser = async (req, res) => {
       email: cleanEmail,
     });
 
+
     if (!user) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
+      });
+    }
+
+    // Google account without password
+    if (
+      user.provider === "google" &&
+      !user.password
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "This account was created with Google. Please sign in with Google first or set a password from your profile.",
       });
     }
 
@@ -970,6 +1036,9 @@ const loginUser = async (req, res) => {
         profilePic: user.profilePic,
         savedPosts: user.savedPosts || [],
         isVerified: user.isVerified,
+
+        provider: user.provider,
+        hasPassword: Boolean(user.password),
       },
     });
   } catch (error) {
@@ -1026,8 +1095,12 @@ const googleLogin = async (req, res) => {
         email,
         username,
         profilePic: picture,
+        provider: "google",
         isVerified: true,
       });
+    } else if (user.provider !== "google") {
+      user.provider = "google";
+      await user.save();
     }
 
     const token = generateToken(user._id);
@@ -1044,7 +1117,10 @@ const googleLogin = async (req, res) => {
         profilePic: user.profilePic,
         savedPosts: user.savedPosts,
         isVerified: user.isVerified,
-      },
+
+        provider: user.provider,
+        hasPassword: Boolean(user.password),
+      }
     });
 
   } catch (error) {
@@ -1713,4 +1789,5 @@ module.exports = {
   getUserProfile,
   searchUsers,
   checkUsernameAvailability,
+  setPassword,
 };
