@@ -16,16 +16,21 @@ import { useNavigate } from "react-router-dom";
 
 import SetPasswordModal from "../../components/profile/SetPasswordModal";
 
+import ChangePasswordModal from "../../components/profile/ChangePasswordModal";
+
 import styles from "./Settings.module.css";
 
 const Settings = () => {
   const navigate = useNavigate();
 
-  const user = JSON.parse(
-    localStorage.getItem("user")
+  const [user, setUser] = useState(
+    JSON.parse(localStorage.getItem("user"))
   );
 
   const [showPasswordModal, setShowPasswordModal] =
+    useState(false);
+
+  const [showChangePasswordModal, setShowChangePasswordModal] =
     useState(false);
 
   const [showLogoutModal, setShowLogoutModal] =
@@ -62,16 +67,28 @@ const Settings = () => {
         <div className={styles.section}>
           <h2>Account</h2>
 
-          {showSetPassword && (
+          {!user?.hasPassword ? (
             <button
               className={styles.item}
-              onClick={() =>
-                setShowPasswordModal(true)
-              }
+              onClick={() => setShowPasswordModal(true)}
             >
               <div className={styles.left}>
                 <Lock size={18} />
                 <span>Create Password</span>
+              </div>
+
+              <ChevronRight size={18} />
+            </button>
+          ) : (
+            <button
+              className={styles.item}
+              onClick={() =>
+                setShowChangePasswordModal(true)
+              }
+            >
+              <div className={styles.left}>
+                <Lock size={18} />
+                <span>Change Password</span>
               </div>
 
               <ChevronRight size={18} />
@@ -149,11 +166,12 @@ const Settings = () => {
             setShowPasswordModal(false)
           }
           onSuccess={() => {
-
             const updatedUser = {
               ...user,
               hasPassword: true,
             };
+
+            setUser(updatedUser);
 
             localStorage.setItem(
               "user",
@@ -161,8 +179,18 @@ const Settings = () => {
             );
 
             setShowPasswordModal(false);
-
           }}
+        />
+      )}
+
+      {showChangePasswordModal && (
+        <ChangePasswordModal
+          onClose={() =>
+            setShowChangePasswordModal(false)
+          }
+          onSuccess={() =>
+            setShowChangePasswordModal(false)
+          }
         />
       )}
 

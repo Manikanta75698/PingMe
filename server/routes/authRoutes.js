@@ -29,6 +29,7 @@ const {
   searchUsers,
   checkUsernameAvailability,
   setPassword,
+  changePassword,
 } = require("../controllers/authController");
 
 // =========================
@@ -130,6 +131,8 @@ router.put(
   protect,
   unfollowUser
 );
+
+router.put("/change-password", protect, changePassword);
 
 router.post("/set-password", protect, setPassword);
 
