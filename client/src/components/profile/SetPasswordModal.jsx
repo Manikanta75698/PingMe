@@ -1,5 +1,9 @@
 import { useState } from "react";
+import { Eye, EyeOff, X } from "lucide-react";
+
 import { setPassword } from "../../services/authService";
+
+import styles from "./SetPasswordModal.module.css";
 
 const SetPasswordModal = ({
   onClose,
@@ -8,6 +12,12 @@ const SetPasswordModal = ({
   const [password, setPasswordValue] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [showPassword, setShowPassword] =
+    useState(false);
+
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
 
   const handleSubmit = async () => {
     if (!password || !confirmPassword) {
@@ -44,33 +54,114 @@ const SetPasswordModal = ({
   };
 
   return (
-    <div>
-      <h2>Set Password</h2>
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
 
-      <input
-        type="password"
-        placeholder="New Password"
-        value={password}
-        onChange={(e) => setPasswordValue(e.target.value)}
-      />
+        <button
+          className={styles.closeBtn}
+          onClick={onClose}
+        >
+          <X size={20} />
+        </button>
 
-      <input
-        type="password"
-        placeholder="Confirm Password"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-      />
+        <h2 className={styles.title}>
+          Set Password
+        </h2>
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-      >
-        {loading ? "Saving..." : "Save Password"}
-      </button>
+        <p className={styles.subtitle}>
+          Create a password so you can log in using
+          your email and password in addition to
+          Google.
+        </p>
 
-      <button onClick={onClose}>
-        Cancel
-      </button>
+        <div className={styles.inputGroup}>
+          <label>New Password</label>
+
+          <div className={styles.passwordWrapper}>
+            <input
+              type={
+                showPassword
+                  ? "text"
+                  : "password"
+              }
+              placeholder="Enter new password"
+              value={password}
+              onChange={(e) =>
+                setPasswordValue(e.target.value)
+              }
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowPassword(!showPassword)
+              }
+            >
+              {showPassword ? (
+                <EyeOff size={18} />
+              ) : (
+                <Eye size={18} />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label>Confirm Password</label>
+
+          <div className={styles.passwordWrapper}>
+            <input
+              type={
+                showConfirmPassword
+                  ? "text"
+                  : "password"
+              }
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(e) =>
+                setConfirmPassword(
+                  e.target.value
+                )
+              }
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowConfirmPassword(
+                  !showConfirmPassword
+                )
+              }
+            >
+              {showConfirmPassword ? (
+                <EyeOff size={18} />
+              ) : (
+                <Eye size={18} />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.actions}>
+          <button
+            className={styles.cancelBtn}
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+
+          <button
+            className={styles.saveBtn}
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading
+              ? "Saving..."
+              : "Save Password"}
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 };

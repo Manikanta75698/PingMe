@@ -13,6 +13,7 @@ import ResetPassword from "../pages/auth/reset-password";
 
 import Home from "../pages/home/Home";
 
+import Settings from "../pages/settings/Settings";
 
 import Chat from "../pages/chat/Chat";
 import Activity from "../pages/activity/Activity";
@@ -95,6 +96,11 @@ const AppRoutes = () => {
       <Route
         path="/profile"
         element={<Profile />}
+      />
+
+      <Route
+        path="/settings"
+        element={<Settings />}
       />
 
       <Route

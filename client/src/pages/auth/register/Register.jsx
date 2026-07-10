@@ -13,6 +13,8 @@ import Logo from "../../../components/ui/logo";
 import Input from "../../../components/ui/input";
 import Button from "../../../components/ui/button";
 
+import GoogleLoginButton from "../../../components/auth/GoogleLoginButton";
+
 import styles from "./Register.module.css";
 
 import {
@@ -114,7 +116,7 @@ const Register = () => {
         console.error(
           "USERNAME CHECK ERROR:",
           error.response?.data ||
-            error.message
+          error.message
         );
 
         setUsernameStatus({
@@ -176,7 +178,7 @@ const Register = () => {
     ) {
       return alert(
         usernameStatus.message ||
-          "Please choose an available username"
+        "Please choose an available username"
       );
     }
 
@@ -242,7 +244,7 @@ const Register = () => {
 
       alert(
         response?.message ||
-          "Account created successfully"
+        "Account created successfully"
       );
 
       navigate("/");
@@ -250,7 +252,7 @@ const Register = () => {
       console.error(
         "REGISTER ERROR:",
         error.response?.data ||
-          error.message
+        error.message
       );
 
       const errorData =
@@ -270,7 +272,7 @@ const Register = () => {
 
       alert(
         errorData?.message ||
-          "Register Failed"
+        "Register Failed"
       );
     } finally {
       setLoading(false);
@@ -325,10 +327,10 @@ const Register = () => {
                   usernameStatus.checking
                     ? styles.usernameChecking
                     : usernameStatus.available ===
-                        true
+                      true
                       ? styles.usernameAvailable
                       : usernameStatus.available ===
-                          false
+                        false
                         ? styles.usernameTaken
                         : styles.usernameNeutral
                 }
@@ -336,10 +338,10 @@ const Register = () => {
                 {usernameStatus.checking
                   ? "Checking..."
                   : usernameStatus.available ===
-                      true
+                    true
                     ? `✓ ${usernameStatus.message}`
                     : usernameStatus.available ===
-                        false
+                      false
                       ? `✕ ${usernameStatus.message}`
                       : usernameStatus.message}
               </p>
@@ -386,7 +388,7 @@ const Register = () => {
               loading ||
               usernameStatus.checking ||
               usernameStatus.available ===
-                false
+              false
             }
           >
             {loading
@@ -399,12 +401,9 @@ const Register = () => {
           <span>OR</span>
         </div>
 
-        <button
-          type="button"
-          className={styles.googleBtn}
-        >
-          Continue with Google
-        </button>
+        <div className={styles.googleLogin}>
+          <GoogleLoginButton />
+        </div>
 
         <p className={styles.footer}>
           Already have an account?{" "}

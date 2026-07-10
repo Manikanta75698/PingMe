@@ -1,0 +1,198 @@
+.page {
+  min-height: 100vh;
+  background: var(--background);
+  padding: 40px 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  width: 100%;
+  max-width: 700px;
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.card h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: var(--text-primary);
+}
+
+.section {
+  margin-top: 10px;
+}
+
+.section h2 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: var(--text-secondary);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: all .25s ease;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.item:hover {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.06);
+}
+
+@media (max-width:768px) {
+  .page {
+    padding: 20px 12px 90px;
+  }
+
+  .card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .card h1 {
+    font-size: 26px;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 30px;
+}
+
+.backBtn {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: .25s;
+}
+
+.backBtn:hover {
+  background: rgba(37, 99, 235, .08);
+}
+
+.logoutSection {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.logoutBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.logoutBtn:hover {
+  background: #dc2626;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.logoutModal {
+  width: 340px;
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 24px;
+  text-align: center;
+}
+
+.logoutModal h2 {
+  margin-bottom: 10px;
+}
+
+.logoutModal p {
+  color: var(--text-secondary);
+  margin-bottom: 22px;
+}
+
+.modalButtons {
+  display: flex;
+  gap: 12px;
+}
+
+.cancelBtn,
+.confirmLogoutBtn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.cancelBtn {
+  background: var(--background);
+}
+
+.confirmLogoutBtn {
+  background: #ef4444;
+  color: #fff;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.itemDisabled {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-radius: 12px;
+  color: #6b7280;
+  background: #fafafa;
+}
+
+.itemDisabled small {
+  font-size: 12px;
+  color: #9ca3af;
+}

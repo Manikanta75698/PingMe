@@ -199,3 +199,31 @@
 .avatar:hover {
     transform: scale(1.02);
 }
+
+.settingsBtn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+
+  width: 42px;
+  height: 42px;
+
+  border: none;
+  border-radius: 50%;
+
+  background: var(--surface);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+
+  color: var(--text-primary);
+
+  transition: 0.2s;
+}
+
+.settingsBtn:hover {
+  background: var(--surface-hover);
+}

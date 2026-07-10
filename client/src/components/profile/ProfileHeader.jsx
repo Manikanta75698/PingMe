@@ -4,9 +4,16 @@ import {
   useRef,
 } from "react";
 
+import {
+  Camera,
+  SquarePen,
+  Settings
+} from "lucide-react";
+
+import { useNavigate } from "react-router-dom";
+
 import SetPasswordModal from "./SetPasswordModal";
 
-import { Camera, SquarePen } from "lucide-react";
 
 import EditProfileModal from "./EditProfileModal";
 
@@ -38,6 +45,9 @@ const getStoredUser = () => {
 };
 
 const ProfileHeader = () => {
+
+  const navigate = useNavigate();
+
   const [user, setUser] = useState(
     getStoredUser
   );
@@ -45,8 +55,6 @@ const ProfileHeader = () => {
   const [showModal, setShowModal] =
     useState(false);
 
-  const [showPasswordModal, setShowPasswordModal] =
-    useState(false);
 
   const [loading, setLoading] =
     useState(true);
@@ -222,6 +230,7 @@ const ProfileHeader = () => {
   if (loading && !user) {
     return (
       <div className={styles.profileCard}>
+
         <div className={styles.empty}>
           Loading profile...
         </div>
@@ -258,9 +267,13 @@ const ProfileHeader = () => {
   return (
     <div className={styles.profileCard}>
 
-      {/* =====================
-          PROFILE INFO
-      ====================== */}
+      <button
+        type="button"
+        className={styles.settingsBtn}
+        onClick={() => navigate("/settings")}
+      >
+        <Settings size={20} />
+      </button>
       <div className={styles.profileInfo}>
         <div className={styles.avatarWrapper}>
 
@@ -356,15 +369,6 @@ const ProfileHeader = () => {
             <span>Edit Profile</span>
           </button>
 
-          {showSetPassword && (
-            <button
-              type="button"
-              className={styles.editBtn}
-              onClick={() => setShowPasswordModal(true)}
-            >
-              Set Password
-            </button>
-          )}
         </div>
       </div>
 
@@ -383,28 +387,6 @@ const ProfileHeader = () => {
         />
       )}
 
-      {showPasswordModal && (
-        <SetPasswordModal
-          onClose={() =>
-            setShowPasswordModal(false)
-          }
-          onSuccess={() => {
-            const updatedUser = {
-              ...user,
-              hasPassword: true,
-            };
-
-            setUser(updatedUser);
-
-            localStorage.setItem(
-              "user",
-              JSON.stringify(updatedUser)
-            );
-
-            setShowPasswordModal(false);
-          }}
-        />
-      )}
     </div>
   );
 };
