@@ -86,6 +86,14 @@ export const resetPassword = async (data) => {
   return response.data;
 };
 
+export const setPassword = async (data) => {
+  const response = await api.post(
+    "/auth/set-password",
+    data
+  );
+
+  return response.data;
+};
 // =========================
 // GOOGLE LOGIN
 // =========================

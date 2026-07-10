@@ -4,6 +4,8 @@ import {
   useRef,
 } from "react";
 
+import SetPasswordModal from "./SetPasswordModal";
+
 import { Camera, SquarePen } from "lucide-react";
 
 import EditProfileModal from "./EditProfileModal";
@@ -43,6 +45,9 @@ const ProfileHeader = () => {
   const [showModal, setShowModal] =
     useState(false);
 
+  const [showPasswordModal, setShowPasswordModal] =
+    useState(false);
+
   const [loading, setLoading] =
     useState(true);
 
@@ -53,6 +58,10 @@ const ProfileHeader = () => {
     useState(false);
 
   const fileInputRef = useRef(null);
+
+  const showSetPassword =
+    user?.provider === "google" &&
+    !user?.hasPassword;
 
   // =========================
   // FETCH FRESH PROFILE
@@ -346,6 +355,16 @@ const ProfileHeader = () => {
             <SquarePen size={16} />
             <span>Edit Profile</span>
           </button>
+
+          {showSetPassword && (
+            <button
+              type="button"
+              className={styles.editBtn}
+              onClick={() => setShowPasswordModal(true)}
+            >
+              Set Password
+            </button>
+          )}
         </div>
       </div>
 
@@ -361,6 +380,29 @@ const ProfileHeader = () => {
           onUpdated={
             handleProfileUpdated
           }
+        />
+      )}
+
+      {showPasswordModal && (
+        <SetPasswordModal
+          onClose={() =>
+            setShowPasswordModal(false)
+          }
+          onSuccess={() => {
+            const updatedUser = {
+              ...user,
+              hasPassword: true,
+            };
+
+            setUser(updatedUser);
+
+            localStorage.setItem(
+              "user",
+              JSON.stringify(updatedUser)
+            );
+
+            setShowPasswordModal(false);
+          }}
         />
       )}
     </div>
