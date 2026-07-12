@@ -14,16 +14,17 @@ import styles from "./ChatRequests.module.css";
 const ChatRequests = () => {
   const {
     receivedRequests,
+    setReceivedRequests,
     loadRequests,
   } = useChat();
 
   const [loadingId, setLoadingId] =
     useState(null);
 
-  const requests = Array.isArray(
-    receivedRequests
-  )
-    ? receivedRequests
+  const requests = Array.isArray(receivedRequests)
+    ? receivedRequests.filter(
+      (request) => request.status === "pending"
+    )
     : [];
 
   const handleAccept = async (id) => {
@@ -35,6 +36,11 @@ const ChatRequests = () => {
       await acceptChatRequest(id);
       await loadRequests();
     } catch (error) {
+      console.error(
+        "Accept request error:",
+        error.response?.data || error.message
+      );
+
       alert(
         error.response?.data?.message ||
         "Unable to accept request"
@@ -53,6 +59,11 @@ const ChatRequests = () => {
       await declineChatRequest(id);
       await loadRequests();
     } catch (error) {
+      console.error(
+        "Decline request error:",
+        error.response?.data || error.message
+      );
+
       alert(
         error.response?.data?.message ||
         "Unable to decline request"

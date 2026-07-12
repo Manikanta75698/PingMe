@@ -95,25 +95,39 @@ const sendRequest = async (req, res) => {
 // ==========================
 // RECEIVED REQUESTS
 // ==========================
-const getReceivedRequests = async (req, res) => {
+const getReceivedRequests = async (
+  req,
+  res
+) => {
   try {
-
     const requests = await ChatRequest.find({
       receiver: req.user._id,
-    }).populate(
-      "sender",
-      "name username profilePic"
-    );
+    })
+      .populate(
+        "sender",
+        "name username profilePic"
+      )
+      .populate(
+        "receiver",
+        "name username profilePic"
+      )
+      .sort({ updatedAt: -1 });
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       requests,
     });
-
   } catch (error) {
+    console.error(
+      "Get Received Requests Error:",
+      error
+    );
+
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message ||
+        "Unable to get received requests",
     });
   }
 };
@@ -123,23 +137,34 @@ const getReceivedRequests = async (req, res) => {
 // ==========================
 const getSentRequests = async (req, res) => {
   try {
-
     const requests = await ChatRequest.find({
       sender: req.user._id,
-    }).populate(
-      "receiver",
-      "name username profilePic"
-    );
+    })
+      .populate(
+        "sender",
+        "name username profilePic"
+      )
+      .populate(
+        "receiver",
+        "name username profilePic"
+      )
+      .sort({ updatedAt: -1 });
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       requests,
     });
-
   } catch (error) {
+    console.error(
+      "Get Sent Requests Error:",
+      error
+    );
+
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message ||
+        "Unable to get sent requests",
     });
   }
 };

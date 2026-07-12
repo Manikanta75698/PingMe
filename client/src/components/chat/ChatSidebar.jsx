@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import DefaultAvatar from "../../assets/default-avatar.png";
 
+import DefaultAvatar from "../../assets/default-avatar.png";
 import styles from "./ChatSidebar.module.css";
 
 import { useChat } from "../../context/ChatContext";
+
+const getUserId = (user) => {
+  return user?._id || user?.id || "";
+};
 
 const ChatSidebar = () => {
   const [users, setUsers] = useState([]);
@@ -21,55 +25,60 @@ const ChatSidebar = () => {
   } = useChat();
 
   useEffect(() => {
+    const safeSentRequests = Array.isArray(sentRequests)
+      ? sentRequests
+      : [];
 
-    const currentUser = JSON.parse(
-      localStorage.getItem("user")
-    );
+    const safeReceivedRequests = Array.isArray(receivedRequests)
+      ? receivedRequests
+      : [];
 
-    if (!currentUser) return;
+    // Current user request sender అయితే receiver chat user
+    const sentChatUsers = safeSentRequests
+      .filter((request) => request.status === "accepted")
+      .map((request) => request.receiver);
 
-    const accepted = [
-      ...sentRequests.filter(
-        (r) => r.status === "accepted"
-      ),
-      ...receivedRequests.filter(
-        (r) => r.status === "accepted"
-      ),
-    ];
+    // Current user request receiver అయితే sender chat user
+    const receivedChatUsers = safeReceivedRequests
+      .filter((request) => request.status === "accepted")
+      .map((request) => request.sender);
 
-    const chatUsers = accepted.map((request) => {
-
-      if (
-        request.sender._id ===
-        (currentUser.id || currentUser._id)
-      ) {
-        return request.receiver;
-      }
-
-      return request.sender;
+    const allChatUsers = [
+      ...sentChatUsers,
+      ...receivedChatUsers,
+    ].filter((chatUser) => {
+      return (
+        chatUser &&
+        typeof chatUser === "object" &&
+        getUserId(chatUser)
+      );
     });
 
-    const uniqueUsers = chatUsers.filter(
-      (user, index, self) =>
-        index ===
-        self.findIndex(
-          (u) => u._id === user._id
-        )
+    // Duplicate users remove
+    const uniqueChatUsers = Array.from(
+      new Map(
+        allChatUsers.map((chatUser) => [
+          String(getUserId(chatUser)),
+          chatUser,
+        ])
+      ).values()
     );
 
-    setUsers(uniqueUsers);
+    console.log("CHAT USERS:", uniqueChatUsers);
 
+    setUsers(uniqueChatUsers);
+
+    // /chat/:userId route open అయితే correct user select
     if (userId) {
-
-      const selected = chatUsers.find(
-        (u) => u._id === userId
+      const selectedUser = uniqueChatUsers.find(
+        (chatUser) =>
+          String(getUserId(chatUser)) === String(userId)
       );
 
-      if (selected) {
-        setSelectedChat(selected);
+      if (selectedUser) {
+        setSelectedChat(selectedUser);
       }
     }
-
   }, [
     sentRequests,
     receivedRequests,
@@ -78,91 +87,113 @@ const ChatSidebar = () => {
   ]);
 
   const filteredUsers = useMemo(() => {
-    if (!search.trim()) return users;
+    const searchValue = search.trim().toLowerCase();
 
-    const value = search.toLowerCase();
+    if (!searchValue) {
+      return users;
+    }
 
-    return users.filter((user) => {
+    return users.filter((chatUser) => {
+      const name = chatUser?.name || "";
+      const username = chatUser?.username || "";
+
       return (
-        user.name.toLowerCase().includes(value) ||
-        user.username.toLowerCase().includes(value)
+        name.toLowerCase().includes(searchValue) ||
+        username.toLowerCase().includes(searchValue)
       );
     });
   }, [users, search]);
 
   return (
     <div className={styles.sidebar}>
-
       <div className={styles.header}>
-
-        <h1 className={styles.title}>
-          Chats
-        </h1>
+        <h1 className={styles.title}>Chats</h1>
 
         <input
           type="text"
           placeholder="Search chats..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
           className={styles.searchInput}
         />
-
       </div>
 
       <div className={styles.userList}>
+        {filteredUsers.length === 0 ? (
+          <p className={styles.emptyText}>
+            No accepted chats yet.
+          </p>
+        ) : (
+          filteredUsers.map((chatUser) => {
+            const chatUserId = getUserId(chatUser);
 
-        {filteredUsers.map((user) => {
+            const isOnline = Array.isArray(onlineUsers)
+              ? onlineUsers.some((onlineUser) => {
+                const onlineUserId =
+                  typeof onlineUser === "object"
+                    ? getUserId(onlineUser)
+                    : onlineUser;
 
-          const isOnline =
-            onlineUsers.includes(user._id);
+                return (
+                  String(onlineUserId) ===
+                  String(chatUserId)
+                );
+              })
+              : false;
 
-          return (
-            <div
-              key={user._id}
-              onClick={() => setSelectedChat(user)}
-              className={`${styles.userItem} ${selectedChat?._id === user._id
-                ? styles.active
-                : ""
-                }`}
-            >
+            const isSelected =
+              String(getUserId(selectedChat)) ===
+              String(chatUserId);
 
-              <div className={styles.avatarWrapper}>
-
-                <img
-                  src={user.profilePic || DefaultAvatar}
-                  alt={user.name}
-                  className={styles.avatar}
-                  onError={(e) => {
-                    e.target.src = DefaultAvatar;
-                  }}
-                />
-
-                {isOnline && (
-                  <span
-                    className={styles.onlineDot}
+            return (
+              <button
+                type="button"
+                key={chatUserId}
+                onClick={() => setSelectedChat(chatUser)}
+                className={`${styles.userItem} ${isSelected ? styles.active : ""
+                  }`}
+              >
+                <div className={styles.avatarWrapper}>
+                  <img
+                    src={
+                      chatUser?.profilePic ||
+                      DefaultAvatar
+                    }
+                    alt={
+                      chatUser?.name ||
+                      "PingMe user"
+                    }
+                    className={styles.avatar}
+                    onError={(event) => {
+                      event.currentTarget.src =
+                        DefaultAvatar;
+                    }}
                   />
-                )}
 
-              </div>
+                  {isOnline && (
+                    <span
+                      className={styles.onlineDot}
+                    />
+                  )}
+                </div>
 
-              <div className={styles.userInfo}>
+                <div className={styles.userInfo}>
+                  <h2 className={styles.name}>
+                    {chatUser?.name ||
+                      "PingMe User"}
+                  </h2>
 
-                <h2 className={styles.name}>
-                  {user.name}
-                </h2>
-
-                <p className={styles.username}>
-                  @{user.username}
-                </p>
-
-              </div>
-
-            </div>
-          );
-        })}
-
+                  <p className={styles.username}>
+                    @
+                    {chatUser?.username ||
+                      "user"}
+                  </p>
+                </div>
+              </button>
+            );
+          })
+        )}
       </div>
-
     </div>
   );
 };

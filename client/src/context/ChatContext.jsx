@@ -26,13 +26,27 @@ export const ChatProvider = ({ children }) => {
 
   const loadRequests = useCallback(async () => {
     try {
-      const received = await getReceivedRequests();
-      const sent = await getSentRequests();
+      const [received, sent] = await Promise.all([
+        getReceivedRequests(),
+        getSentRequests(),
+      ]);
 
-      setReceivedRequests(received.data.requests);
-      setSentRequests(sent.data.requests);
+      setReceivedRequests(
+        Array.isArray(received?.data?.requests)
+          ? received.data.requests
+          : []
+      );
+
+      setSentRequests(
+        Array.isArray(sent?.data?.requests)
+          ? sent.data.requests
+          : []
+      );
     } catch (error) {
-      console.log(error);
+      console.error(
+        "LOAD CHAT REQUESTS ERROR:",
+        error.response?.data || error.message
+      );
     }
   }, []);
 
@@ -46,54 +60,116 @@ export const ChatProvider = ({ children }) => {
 
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
+    const token = localStorage.getItem("token");
 
-    if (!user) return;
+    let currentUser = null;
 
-    if (!socket.connected) {
-      socket.connect();
+    try {
+      currentUser = JSON.parse(
+        localStorage.getItem("user")
+      );
+    } catch (error) {
+      console.error(
+        "Unable to read stored user:",
+        error
+      );
     }
 
+    const currentUserId =
+      currentUser?._id || currentUser?.id;
+
+    if (!token || !currentUserId) {
+      console.error(
+        "Socket connection skipped: token or user ID missing"
+      );
+      return;
+    }
+
+    const normalizedUserId =
+      String(currentUserId);
+
     const handleConnect = () => {
-      console.log("SOCKET CONNECTED:", socket.id);
-      console.log("USER:", user);
+      console.log(
+        "SOCKET CONNECTED:",
+        socket.id
+      );
 
-      socket.emit("join", user.id);
+      console.log(
+        "JOINING USER:",
+        normalizedUserId
+      );
 
-      console.log("JOIN EMITTED");
+      socket.emit(
+        "join",
+        normalizedUserId
+      );
     };
 
     const handleOnlineUsers = (users) => {
-      console.log("ONLINE USERS:", users);
-      setOnlineUsers(users);
+      const normalizedUsers =
+        Array.isArray(users)
+          ? users.map((id) => String(id))
+          : [];
+
+      console.log(
+        "ONLINE USERS:",
+        normalizedUsers
+      );
+
+      setOnlineUsers(normalizedUsers);
     };
 
+    // First listeners register cheyyali
     socket.on("connect", handleConnect);
-    socket.on("online-users", handleOnlineUsers);
 
-    // Socket already connected ayithe immediate join
+    // Backend event name exact same undali
+    socket.on(
+      "onlineUsers",
+      handleOnlineUsers
+    );
+
+    // Tarvata socket connect/join
     if (socket.connected) {
       handleConnect();
+    } else {
+      socket.connect();
     }
 
     return () => {
-      socket.off("connect", handleConnect);
-      socket.off("online-users", handleOnlineUsers);
+      socket.off(
+        "connect",
+        handleConnect
+      );
+
+      socket.off(
+        "onlineUsers",
+        handleOnlineUsers
+      );
     };
   }, []);
 
+
   useEffect(() => {
+
     const handleMessage = (message) => {
       console.log("🔥 newMessage RECEIVED", message);
       const currentUser = JSON.parse(localStorage.getItem("user"));
 
       const receiverId =
         typeof message.receiver === "object"
-          ? message.receiver._id
+          ? message.receiver?._id ||
+          message.receiver?.id
           : message.receiver;
 
       // Delivered acknowledgement
-      if (receiverId === (currentUser.id || currentUser._id)) {
+      const currentUserId =
+        currentUser?._id || currentUser?.id;
+
+      if (
+        receiverId &&
+        currentUserId &&
+        String(receiverId) === String(currentUserId)
+      ) {
         socket.emit("messageDelivered", {
           messageId: message._id,
         });

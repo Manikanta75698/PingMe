@@ -28,16 +28,19 @@ const sendMessage = async (req, res) => {
       });
     }
 
+    const receiverId = String(receiver);
+    const senderId = String(req.user._id);
+
     const chatAllowed = await ChatRequest.findOne({
       status: "accepted",
       $or: [
         {
-          sender: req.user._id,
-          receiver,
+          sender: senderId,
+          receiver: receiverId,
         },
         {
-          sender: receiver,
-          receiver: req.user._id,
+          sender: receiverId,
+          receiver: senderId,
         },
       ],
     });
@@ -74,8 +77,8 @@ const sendMessage = async (req, res) => {
     }
 
     const message = await Message.create({
-      sender: req.user._id,
-      receiver,
+      sender: senderId,
+      receiver: receiverId,
       text: text || "",
       image,
       replyTo: replyTo || null,
@@ -87,7 +90,9 @@ const sendMessage = async (req, res) => {
     );
 
     const io = getIO();
-    const receiverSocket = getSocketId(receiver);
+    const receiverSocket = getSocketId(receiverId);
+
+    console.log("RECEIVER SOCKET:", receiverSocket);
 
     if (receiverSocket) {
       io.to(receiverSocket).emit("newMessage", message);

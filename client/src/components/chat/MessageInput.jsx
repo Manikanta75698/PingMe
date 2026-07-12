@@ -30,34 +30,67 @@ const MessageInput = () => {
   } = useChat();
 
   const handleSend = async () => {
-    if ((!text.trim() && !selectedImage) || !selectedChat || loading)
+    if ((!text.trim() && !selectedImage) || !selectedChat || loading) {
       return;
+    }
+
+    const currentUserId =
+      user?._id || user?.id;
+
+    const receiverId =
+      selectedChat?._id || selectedChat?.id;
+
+    if (!currentUserId) {
+      console.error(
+        "MESSAGE SEND FAILED: Current user ID missing",
+        user
+      );
+
+      alert("Current user information is missing");
+      return;
+    }
+
+    if (!receiverId) {
+      console.error(
+        "MESSAGE SEND FAILED: Receiver ID missing",
+        selectedChat
+      );
+
+      alert("Unable to identify the selected user");
+      return;
+    }
 
     const currentText = text.trim();
-
     const tempId = `temp-${Date.now()}`;
 
     const tempMessage = {
       _id: tempId,
       text: currentText,
+
       sender: {
-        _id: user.id,
-        name: user.name,
-        username: user.username,
-        profilePic: user.profilePic,
+        _id: currentUserId,
+        name: user?.name,
+        username: user?.username,
+        profilePic: user?.profilePic,
       },
-      receiver: selectedChat._id,
+
+      receiver: receiverId,
+
       createdAt: new Date().toISOString(),
       status: "sent",
+
       image: selectedImage
         ? URL.createObjectURL(selectedImage)
         : "",
     };
 
-    // Show instantly
-    setMessages((prev) => [...prev, tempMessage]);
+    // Message ni UI lo immediate ga show chestundi
+    setMessages((prev) => [
+      ...prev,
+      tempMessage,
+    ]);
 
-    // Clear input instantly
+    // Input clear
     setText("");
 
     if (textareaRef.current) {
@@ -67,37 +100,72 @@ const MessageInput = () => {
     setLoading(true);
 
     try {
-
       const formData = new FormData();
 
-      formData.append("receiver", selectedChat._id);
-      formData.append("text", currentText);
+      formData.append(
+        "receiver",
+        receiverId
+      );
+
+      formData.append(
+        "text",
+        currentText
+      );
 
       if (selectedImage) {
-        formData.append("image", selectedImage);
+        formData.append(
+          "image",
+          selectedImage
+        );
       }
 
-      const response = await sendMessage(formData);
+      console.log("SENDING MESSAGE:", {
+        currentUserId,
+        receiverId,
+        text: currentText,
+      });
 
+      const response =
+        await sendMessage(formData);
 
-      const realMessage = response.data.data;
+      const realMessage =
+        response?.data?.data;
 
-      // Replace temp message
+      if (!realMessage) {
+        throw new Error(
+          "Invalid message response from server"
+        );
+      }
+
+      // Temporary message ni actual backend message tho replace chestundi
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg._id === tempId ? realMessage : msg
+        prev.map((message) =>
+          message._id === tempId
+            ? realMessage
+            : message
         )
       );
     } catch (error) {
-      console.error(error);
+      console.error(
+        "SEND MESSAGE ERROR:",
+        error.response?.data ||
+        error.message
+      );
 
-      // Remove temp message if API failed
+      // API fail ayithe temporary message remove
       setMessages((prev) =>
-        prev.filter((msg) => msg._id !== tempId)
+        prev.filter(
+          (message) =>
+            message._id !== tempId
+        )
+      );
+
+      alert(
+        error.response?.data?.message ||
+        "Unable to send message"
       );
     } finally {
       setLoading(false);
-
       setSelectedImage(null);
 
       if (imageRef.current) {

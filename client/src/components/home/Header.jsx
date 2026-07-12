@@ -13,6 +13,11 @@ const Header = ({ scrollY }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { receivedRequests } = useChat();
+  const pendingRequestCount = Array.isArray(receivedRequests)
+    ? receivedRequests.filter(
+      (request) => request.status === "pending"
+    ).length
+    : 0;
   const openChat = () => {
     navigate("/chat");
   };
@@ -126,25 +131,11 @@ const Header = ({ scrollY }) => {
             <span className={styles.text}>Messages</span>
           </button>
 
-          <button
-            type="button"
-            className={styles.navItem}
-            onClick={() => navigate("/activity")}
-          >
-            <div className={styles.iconWrapper}>
-              <Heart className={styles.icon} />
-
-              {receivedRequests.length > 0 && (
-                <span className={styles.badge}>
-                  {receivedRequests.length}
-                </span>
-              )}
-            </div>
-
-            <span className={styles.text}>
-              Notifications
+          {pendingRequestCount > 0 && (
+            <span className={styles.badge}>
+              {pendingRequestCount}
             </span>
-          </button>
+          )}
 
           {/* Desktop Only Buttons */}
           <button className={`${styles.navItem} ${styles.desktopOnly}`} onClick={() => setIsCreateOpen(true)}>
