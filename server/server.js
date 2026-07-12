@@ -16,7 +16,7 @@ const postRoutes = require("./routes/postRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const storyRoutes = require("./routes/storyRoutes");
 const messageRoutes = require("./routes/messageRoutes");
-const { setIO } = require("./socket/socketInstance");
+
 const userRoutes = require("./routes/userRoutes");
 const startDeleteExpiredMessages = require("./cron/deleteExpiredMessages");
 const chatRequestRoutes = require("./routes/chatRequestRoutes");
@@ -24,28 +24,58 @@ const chatRequestRoutes = require("./routes/chatRequestRoutes");
 connectDB();
 
 
-
-
 const app = express();
 const server = http.createServer(app);
+
+const normalizeOrigin = (value) =>
+  value ? value.replace(/\/+$/, "") : "";
 
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost",
   "capacitor://localhost",
-  process.env.CLIENT_PRODUCTION_URL
+  normalizeOrigin(process.env.CLIENT_PRODUCTION_URL),
 ].filter(Boolean);
 
+const isAllowedOrigin = (origin) => {
+  if (!origin || origin === "null") {
+    return true;
+  }
+
+  return allowedOrigins.includes(
+    normalizeOrigin(origin)
+  );
+};
+
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Standard target systems dynamic loop validation headers arrays processing
-    if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin === 'null') {
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
-    } else {
-      callback(new Error("🚫 Security Block: Request Origin Domain Not Allowed by PingMe CORS Layer."));
+      return;
     }
+
+    console.error(
+      "CORS BLOCKED ORIGIN:",
+      origin
+    );
+
+    callback(
+      new Error(
+        `Origin not allowed: ${origin}`
+      )
+    );
   },
-  credentials: true, // Required for cookies/sessions parsing through headers matrix layer structure
+
+  credentials: true,
+
+  methods: [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+  ],
 };
 
 // Middleware Pipeline
@@ -77,12 +107,40 @@ const PORT = process.env.PORT || 5000;
 // Socket.io Config Connection Secure Lock Setup
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
-    credentials: true
+    origin(origin, callback) {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      console.error(
+        "SOCKET CORS BLOCKED:",
+        origin
+      );
+
+      callback(
+        new Error(
+          `Socket origin not allowed: ${origin}`
+        )
+      );
+    },
+
+    credentials: true,
+
+    methods: ["GET", "POST"],
   },
+
+  connectionStateRecovery: {
+    maxDisconnectionDuration:
+      2 * 60 * 1000,
+
+    skipMiddlewares: true,
+  },
+
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
-setIO(io);
 socketHandler(io);
 
 server.listen(PORT, () => {

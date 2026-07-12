@@ -41,11 +41,11 @@
 .title {
   margin: 0;
 
+  color: var(--text-primary);
+
   font-size: 24px;
   font-weight: 700;
   line-height: 1.2;
-
-  color: var(--text-primary);
 }
 
 /* =========================
@@ -192,12 +192,19 @@
 }
 
 .active .name,
-.active .username {
+.active .preview,
+.active .time {
   color: var(--on-primary, #ffffff);
 }
 
-.active .username {
-  opacity: 0.8;
+.active .preview,
+.active .time {
+  opacity: 0.82;
+}
+
+.active .unreadBadge {
+  background: var(--on-primary, #ffffff);
+  color: var(--primary);
 }
 
 /* =========================
@@ -250,10 +257,23 @@
 
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
+}
+
+.userTopRow,
+.previewRow {
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .name {
+  flex: 1;
+  min-width: 0;
+
   margin: 0;
 
   color: var(--text-primary);
@@ -267,7 +287,22 @@
   text-overflow: ellipsis;
 }
 
-.username {
+.time {
+  flex: 0 0 auto;
+
+  color: var(--text-secondary);
+
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+.preview {
+  flex: 1;
+  min-width: 0;
+
   margin: 0;
 
   color: var(--text-secondary);
@@ -278,6 +313,28 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.unreadBadge {
+  flex: 0 0 auto;
+
+  min-width: 20px;
+  height: 20px;
+
+  padding: 0 6px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 999px;
+
+  background: var(--primary);
+  color: var(--on-primary, #ffffff);
+
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 /* =========================
@@ -330,8 +387,18 @@
     font-size: 15px;
   }
 
-  .username {
+  .preview {
     font-size: 12.5px;
+  }
+
+  .time {
+    font-size: 10.5px;
+  }
+
+  .unreadBadge {
+    min-width: 19px;
+    height: 19px;
+    padding: 0 5px;
   }
 }
 

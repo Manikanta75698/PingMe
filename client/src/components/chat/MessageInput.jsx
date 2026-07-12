@@ -1,8 +1,16 @@
-import { useEffect, useState, useRef } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import styles from "./MessageInput.module.css";
 
-import { sendMessage } from "../../services/chatService";
+import {
+  sendMessage,
+} from "../../services/chatService";
+
 import { useChat } from "../../context/ChatContext";
 import { useAuth } from "../../context/AuthContext";
 
@@ -11,139 +19,120 @@ import {
   ImagePlus,
   SendHorizontal,
   Mic,
+  X,
 } from "lucide-react";
+
+const getUserId = (value) => {
+  if (!value) return "";
+
+  if (typeof value === "object") {
+    return String(
+      value?._id || value?.id || ""
+    );
+  }
+
+  return String(value);
+};
 
 const MessageInput = () => {
   const { user } = useAuth();
 
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [
+    selectedImage,
+    setSelectedImage,
+  ] = useState(null);
 
   const imageRef = useRef(null);
   const textareaRef = useRef(null);
 
   const {
     selectedChat,
-    messages,
     setMessages,
     socket,
+    loadChatSummaries,
   } = useChat();
 
+  const previewUrl = useMemo(() => {
+    if (!selectedImage) return "";
+
+    return URL.createObjectURL(
+      selectedImage
+    );
+  }, [selectedImage]);
+
   useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(
+          previewUrl
+        );
+      }
+    };
+  }, [previewUrl]);
+
+  const resetImage = () => {
+    setSelectedImage(null);
+
+    if (imageRef.current) {
+      imageRef.current.value = "";
+    }
+  };
+
+  const resetTextareaHeight = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height =
+        "44px";
+    }
+  };
+
+  const handleSend = async () => {
+    const currentText = text.trim();
+
     if (
+      (!currentText &&
+        !selectedImage) ||
       !selectedChat ||
-      !Array.isArray(messages) ||
-      document.visibilityState !== "visible"
+      loading
     ) {
       return;
     }
 
     const currentUserId =
-      user?._id || user?.id;
-
-    const selectedChatId =
-      selectedChat?._id || selectedChat?.id;
-
-    if (!currentUserId || !selectedChatId) {
-      return;
-    }
-
-    const unreadMessageIds = messages
-      .filter((message) => {
-        const senderId =
-          typeof message?.sender === "object"
-            ? message.sender?._id ||
-            message.sender?.id
-            : message?.sender;
-
-        const receiverId =
-          typeof message?.receiver === "object"
-            ? message.receiver?._id ||
-            message.receiver?.id
-            : message?.receiver;
-
-        const isReceivedMessage =
-          String(senderId) ===
-          String(selectedChatId) &&
-          String(receiverId) ===
-          String(currentUserId);
-
-        return (
-          message?._id &&
-          !String(message._id).startsWith("temp-") &&
-          isReceivedMessage &&
-          message.status !== "read"
-        );
-      })
-      .map((message) => String(message._id));
-
-    if (unreadMessageIds.length === 0) {
-      return;
-    }
-
-    unreadMessageIds.forEach((messageId) => {
-      socket.emit("messageRead", {
-        messageId,
-      });
-    });
-
-    // Receiver UI lo repeated emit raakunda local status update
-    setMessages((previousMessages) =>
-      previousMessages.map((message) =>
-        unreadMessageIds.includes(
-          String(message?._id)
-        )
-          ? {
-            ...message,
-            status: "read",
-          }
-          : message
-      )
-    );
-  }, [
-    messages,
-    selectedChat,
-    user?._id,
-    user?.id,
-    socket,
-    setMessages,
-  ]);
-
-  const handleSend = async () => {
-    if ((!text.trim() && !selectedImage) || !selectedChat || loading) {
-      return;
-    }
-
-    const currentUserId =
-      user?._id || user?.id;
+      getUserId(user);
 
     const receiverId =
-      selectedChat?._id || selectedChat?.id;
+      getUserId(selectedChat);
 
     if (!currentUserId) {
       console.error(
-        "MESSAGE SEND FAILED: Current user ID missing",
-        user
+        "MESSAGE SEND FAILED: Current user ID missing"
       );
 
-      alert("Current user information is missing");
+      alert(
+        "Current user information is missing"
+      );
+
       return;
     }
 
     if (!receiverId) {
       console.error(
-        "MESSAGE SEND FAILED: Receiver ID missing",
-        selectedChat
+        "MESSAGE SEND FAILED: Receiver ID missing"
       );
 
-      alert("Unable to identify the selected user");
+      alert(
+        "Unable to identify the selected user"
+      );
+
       return;
     }
 
-    const currentText = text.trim();
-    const tempId = `temp-${Date.now()}`;
+    const tempId =
+      `temp-${Date.now()}`;
 
     const tempMessage = {
       _id: tempId,
@@ -153,36 +142,32 @@ const MessageInput = () => {
         _id: currentUserId,
         name: user?.name,
         username: user?.username,
-        profilePic: user?.profilePic,
+        profilePic:
+          user?.profilePic,
       },
 
       receiver: receiverId,
 
-      createdAt: new Date().toISOString(),
-      status: "sent",
+      createdAt:
+        new Date().toISOString(),
 
-      image: selectedImage
-        ? URL.createObjectURL(selectedImage)
-        : "",
+      status: "sending",
+
+      image: previewUrl,
     };
 
-    // Message ni UI lo immediate ga show chestundi
-    setMessages((prev) => [
-      ...prev,
+    setMessages((previous) => [
+      ...previous,
       tempMessage,
     ]);
 
-    // Input clear
     setText("");
-
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "44px";
-    }
-
+    resetTextareaHeight();
     setLoading(true);
 
     try {
-      const formData = new FormData();
+      const formData =
+        new FormData();
 
       formData.append(
         "receiver",
@@ -201,12 +186,6 @@ const MessageInput = () => {
         );
       }
 
-      console.log("SENDING MESSAGE:", {
-        currentUserId,
-        receiverId,
-        text: currentText,
-      });
-
       const response =
         await sendMessage(formData);
 
@@ -219,14 +198,15 @@ const MessageInput = () => {
         );
       }
 
-      // Temporary message ni actual backend message tho replace chestundi
-      setMessages((prev) =>
-        prev.map((message) =>
-          message._id === tempId
+      setMessages((previous) =>
+        previous.map((message) =>
+          message?._id === tempId
             ? realMessage
             : message
         )
       );
+
+      await loadChatSummaries();
     } catch (error) {
       console.error(
         "SEND MESSAGE ERROR:",
@@ -234,51 +214,82 @@ const MessageInput = () => {
         error.message
       );
 
-      // API fail ayithe temporary message remove
-      setMessages((prev) =>
-        prev.filter(
+      setMessages((previous) =>
+        previous.filter(
           (message) =>
-            message._id !== tempId
+            message?._id !== tempId
         )
       );
 
+      setText(currentText);
+
       alert(
-        error.response?.data?.message ||
+        error.response?.data
+          ?.message ||
         "Unable to send message"
       );
     } finally {
       setLoading(false);
-      setSelectedImage(null);
-
-      if (imageRef.current) {
-        imageRef.current.value = "";
-      }
+      resetImage();
     }
   };
 
-  const handleChange = (e) => {
-    setText(e.target.value);
+  const handleChange = (event) => {
+    setText(event.target.value);
 
-    const textarea = textareaRef.current;
+    const textarea =
+      textareaRef.current;
 
     if (!textarea) return;
 
-    textarea.style.height = "0px";
-    textarea.style.height = `${textarea.scrollHeight}px`;
+    textarea.style.height =
+      "44px";
+
+    textarea.style.height =
+      `${Math.min(
+        textarea.scrollHeight,
+        140
+      )}px`;
   };
 
-  const handleEnter = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
+  const handleEnter = (event) => {
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey
+    ) {
+      event.preventDefault();
       handleSend();
     }
   };
 
+  const handleTyping = () => {
+    const receiverId =
+      getUserId(selectedChat);
+
+    const currentUserId =
+      getUserId(user);
+
+    if (
+      !receiverId ||
+      !currentUserId
+    ) {
+      return;
+    }
+
+    socket.emit("typing", {
+      receiverId,
+      userId: currentUserId,
+    });
+  };
+
   return (
-    <div className={styles.container}>
+    <div
+      className={styles.container}
+    >
       <button
         className={styles.icon}
         type="button"
+        aria-label="Choose emoji"
       >
         <Smile
           size={22}
@@ -289,7 +300,10 @@ const MessageInput = () => {
       <button
         className={styles.icon}
         type="button"
-        onClick={() => imageRef.current?.click()}
+        aria-label="Attach image"
+        onClick={() =>
+          imageRef.current?.click()
+        }
       >
         <ImagePlus
           size={22}
@@ -301,54 +315,84 @@ const MessageInput = () => {
         type="file"
         hidden
         ref={imageRef}
-        accept="image/*"
-        onChange={(e) => {
-          if (e.target.files.length) {
-            setSelectedImage(e.target.files[0]);
+        accept="image/jpeg,image/png,image/webp"
+        onChange={(event) => {
+          const file =
+            event.target.files?.[0];
+
+          if (!file) return;
+
+          if (
+            !file.type.startsWith(
+              "image/"
+            )
+          ) {
+            alert(
+              "Please select a valid image"
+            );
+
+            event.target.value = "";
+            return;
           }
+
+          setSelectedImage(file);
         }}
       />
 
-      {selectedImage && (
-        <div className={styles.preview}>
-          <img
-            src={URL.createObjectURL(selectedImage)}
-            alt="preview"
-          />
-
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedImage(null);
-
-              if (imageRef.current) {
-                imageRef.current.value = "";
-              }
-            }}
+      {selectedImage &&
+        previewUrl && (
+          <div
+            className={
+              styles.preview
+            }
           >
-            ✕
-          </button>
-        </div>
-      )}
+            <img
+              src={previewUrl}
+              alt="Selected attachment"
+            />
 
-      <div className={styles.inputWrapper}>
+            <button
+              type="button"
+              aria-label="Remove image"
+              onClick={resetImage}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+      <div
+        className={
+          styles.inputWrapper
+        }
+      >
         <textarea
           ref={textareaRef}
           rows={1}
           placeholder="Message..."
           className={styles.input}
           value={text}
+          disabled={
+            loading ||
+            !selectedChat
+          }
           onChange={handleChange}
+          onInput={handleTyping}
           onKeyDown={handleEnter}
         />
       </div>
 
-      {(text.trim() || selectedImage) ? (
+      {text.trim() ||
+        selectedImage ? (
         <button
           type="button"
           className={styles.send}
           onClick={handleSend}
-          disabled={loading}
+          disabled={
+            loading ||
+            !selectedChat
+          }
+          aria-label="Send message"
         >
           <SendHorizontal
             size={20}
@@ -359,6 +403,8 @@ const MessageInput = () => {
         <button
           type="button"
           className={styles.icon}
+          aria-label="Record voice message"
+          disabled={!selectedChat}
         >
           <Mic
             size={22}

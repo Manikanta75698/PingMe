@@ -5,3 +5,6 @@ export const getConversation = (userId) =>
 
 export const sendMessage = (data) =>
   api.post("/messages/send", data);
+
+export const getChatSummaries = () =>
+  api.get("/messages/summaries");

@@ -1,200 +1,560 @@
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 
 import DefaultAvatar from "../../assets/default-avatar.png";
 import styles from "./ChatSidebar.module.css";
 
 import { useChat } from "../../context/ChatContext";
 
-const getUserId = (user) => {
-  return user?._id || user?.id || "";
+const normalizeId = (value) => {
+  if (!value) return "";
+
+  if (typeof value === "object") {
+    return String(
+      value?._id || value?.id || ""
+    );
+  }
+
+  return String(value);
+};
+
+const formatMessageTime = (dateValue) => {
+  if (!dateValue) return "";
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const now = new Date();
+
+  const isToday =
+    date.toDateString() ===
+    now.toDateString();
+
+  if (isToday) {
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  const yesterday = new Date(now);
+
+  yesterday.setDate(
+    now.getDate() - 1
+  );
+
+  const isYesterday =
+    date.toDateString() ===
+    yesterday.toDateString();
+
+  if (isYesterday) {
+    return "Yesterday";
+  }
+
+  return date.toLocaleDateString([], {
+    day: "numeric",
+    month: "short",
+  });
+};
+
+const getMessagePreview = (
+  lastMessage,
+  currentUserId
+) => {
+  if (!lastMessage) {
+    return "Start a conversation";
+  }
+
+  const senderId = normalizeId(
+    lastMessage.sender
+  );
+
+  const prefix =
+    senderId === currentUserId
+      ? "You: "
+      : "";
+
+  if (lastMessage.text?.trim()) {
+    return `${prefix}${lastMessage.text.trim()}`;
+  }
+
+  if (lastMessage.image) {
+    return `${prefix}Photo`;
+  }
+
+  return "Start a conversation";
 };
 
 const ChatSidebar = () => {
-  const [users, setUsers] = useState([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] =
+    useState("");
 
   const { userId } = useParams();
+  const navigate = useNavigate();
 
   const {
     selectedChat,
     setSelectedChat,
+
     onlineUsers,
+
     sentRequests,
     receivedRequests,
+
+    chatSummaries,
+    summariesLoading,
+
+    setChatSummaries,
   } = useChat();
 
-  useEffect(() => {
-    const safeSentRequests = Array.isArray(sentRequests)
-      ? sentRequests
-      : [];
+  const currentUserId = useMemo(() => {
+    try {
+      const storedUser = JSON.parse(
+        localStorage.getItem("user")
+      );
 
-    const safeReceivedRequests = Array.isArray(receivedRequests)
-      ? receivedRequests
-      : [];
+      return normalizeId(storedUser);
+    } catch (error) {
+      console.error(
+        "Unable to read stored user:",
+        error
+      );
 
-    // Current user request sender అయితే receiver chat user
-    const sentChatUsers = safeSentRequests
-      .filter((request) => request.status === "accepted")
-      .map((request) => request.receiver);
+      return "";
+    }
+  }, []);
 
-    // Current user request receiver అయితే sender chat user
-    const receivedChatUsers = safeReceivedRequests
-      .filter((request) => request.status === "accepted")
-      .map((request) => request.sender);
+  /*
+   * Accepted request users are kept as fallback.
+   * This makes sure newly accepted chats appear
+   * even before the first message is sent.
+   */
+  const acceptedUsers = useMemo(() => {
+    const safeSentRequests =
+      Array.isArray(sentRequests)
+        ? sentRequests
+        : [];
 
-    const allChatUsers = [
-      ...sentChatUsers,
-      ...receivedChatUsers,
-    ].filter((chatUser) => {
-      return (
+    const safeReceivedRequests =
+      Array.isArray(receivedRequests)
+        ? receivedRequests
+        : [];
+
+    const sentUsers = safeSentRequests
+      .filter(
+        (request) =>
+          request?.status === "accepted"
+      )
+      .map(
+        (request) =>
+          request?.receiver
+      );
+
+    const receivedUsers =
+      safeReceivedRequests
+        .filter(
+          (request) =>
+            request?.status === "accepted"
+        )
+        .map(
+          (request) =>
+            request?.sender
+        );
+
+    const validUsers = [
+      ...sentUsers,
+      ...receivedUsers,
+    ].filter(
+      (chatUser) =>
         chatUser &&
         typeof chatUser === "object" &&
-        getUserId(chatUser)
-      );
-    });
+        normalizeId(chatUser)
+    );
 
-    // Duplicate users remove
-    const uniqueChatUsers = Array.from(
+    return Array.from(
       new Map(
-        allChatUsers.map((chatUser) => [
-          String(getUserId(chatUser)),
+        validUsers.map((chatUser) => [
+          normalizeId(chatUser),
           chatUser,
         ])
       ).values()
     );
-
-    console.log("CHAT USERS:", uniqueChatUsers);
-
-    setUsers(uniqueChatUsers);
-
-    // /chat/:userId route open అయితే correct user select
-    if (userId) {
-      const selectedUser = uniqueChatUsers.find(
-        (chatUser) =>
-          String(getUserId(chatUser)) === String(userId)
-      );
-
-      if (selectedUser) {
-        setSelectedChat(selectedUser);
-      }
-    }
   }, [
     sentRequests,
     receivedRequests,
+  ]);
+
+  /*
+   * Merge summary data with accepted users.
+   * Summary data contains:
+   * lastMessage + unreadCount.
+   */
+  const chats = useMemo(() => {
+    const summaries =
+      Array.isArray(chatSummaries)
+        ? chatSummaries
+        : [];
+
+    const summaryMap = new Map();
+
+    summaries.forEach((summary) => {
+      const summaryUser =
+        summary?.user;
+
+      const summaryUserId =
+        normalizeId(summaryUser);
+
+      if (!summaryUserId) return;
+
+      summaryMap.set(
+        summaryUserId,
+        summary
+      );
+    });
+
+    acceptedUsers.forEach((chatUser) => {
+      const chatUserId =
+        normalizeId(chatUser);
+
+      if (
+        chatUserId &&
+        !summaryMap.has(chatUserId)
+      ) {
+        summaryMap.set(chatUserId, {
+          user: chatUser,
+          lastMessage: null,
+          unreadCount: 0,
+        });
+      }
+    });
+
+    return Array.from(
+      summaryMap.values()
+    ).sort((first, second) => {
+      const firstDate =
+        first?.lastMessage?.createdAt
+          ? new Date(
+              first.lastMessage.createdAt
+            ).getTime()
+          : 0;
+
+      const secondDate =
+        second?.lastMessage?.createdAt
+          ? new Date(
+              second.lastMessage.createdAt
+            ).getTime()
+          : 0;
+
+      return secondDate - firstDate;
+    });
+  }, [
+    chatSummaries,
+    acceptedUsers,
+  ]);
+
+  /*
+   * Route /chat/:userId open ayithe
+   * correct user automatically select avuthadu.
+   */
+  useEffect(() => {
+    if (!userId) return;
+
+    const matchingChat = chats.find(
+      (summary) =>
+        normalizeId(summary?.user) ===
+        String(userId)
+    );
+
+    if (matchingChat?.user) {
+      setSelectedChat(
+        matchingChat.user
+      );
+    }
+  }, [
+    chats,
     userId,
     setSelectedChat,
   ]);
 
-  const filteredUsers = useMemo(() => {
-    const searchValue = search.trim().toLowerCase();
+  const filteredChats = useMemo(() => {
+    const searchValue =
+      search.trim().toLowerCase();
 
     if (!searchValue) {
-      return users;
+      return chats;
     }
 
-    return users.filter((chatUser) => {
-      const name = chatUser?.name || "";
-      const username = chatUser?.username || "";
+    return chats.filter((summary) => {
+      const chatUser =
+        summary?.user;
+
+      const name = String(
+        chatUser?.name || ""
+      ).toLowerCase();
+
+      const username = String(
+        chatUser?.username || ""
+      ).toLowerCase();
+
+      const lastMessage = String(
+        summary?.lastMessage?.text || ""
+      ).toLowerCase();
 
       return (
-        name.toLowerCase().includes(searchValue) ||
-        username.toLowerCase().includes(searchValue)
+        name.includes(searchValue) ||
+        username.includes(searchValue) ||
+        lastMessage.includes(searchValue)
       );
     });
-  }, [users, search]);
+  }, [chats, search]);
+
+  const handleSelectChat = (
+    summary
+  ) => {
+    const chatUser = summary?.user;
+
+    const chatUserId =
+      normalizeId(chatUser);
+
+    if (!chatUserId) return;
+
+    setSelectedChat(chatUser);
+
+    /*
+     * Open chesina chat unread badge
+     * immediate ga local UI lo reset avuthundi.
+     */
+    setChatSummaries((previous) =>
+      previous.map((item) =>
+        normalizeId(item?.user) ===
+        chatUserId
+          ? {
+              ...item,
+              unreadCount: 0,
+            }
+          : item
+      )
+    );
+
+    navigate(`/chat/${chatUserId}`);
+  };
 
   return (
-    <div className={styles.sidebar}>
+    <aside className={styles.sidebar}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Chats</h1>
+        <h1 className={styles.title}>
+          Chats
+        </h1>
 
         <input
-          type="text"
+          type="search"
           placeholder="Search chats..."
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          className={styles.searchInput}
+          onChange={(event) =>
+            setSearch(
+              event.target.value
+            )
+          }
+          className={
+            styles.searchInput
+          }
+          aria-label="Search chats"
         />
       </div>
 
       <div className={styles.userList}>
-        {filteredUsers.length === 0 ? (
-          <p className={styles.emptyText}>
-            No accepted chats yet.
+        {summariesLoading &&
+        chats.length === 0 ? (
+          <p
+            className={
+              styles.emptyText
+            }
+          >
+            Loading chats...
+          </p>
+        ) : filteredChats.length ===
+          0 ? (
+          <p
+            className={
+              styles.emptyText
+            }
+          >
+            {search.trim()
+              ? "No matching chats."
+              : "No accepted chats yet."}
           </p>
         ) : (
-          filteredUsers.map((chatUser) => {
-            const chatUserId = getUserId(chatUser);
+          filteredChats.map(
+            (summary) => {
+              const chatUser =
+                summary?.user;
 
-            const isOnline = Array.isArray(onlineUsers)
-              ? onlineUsers.some((onlineUser) => {
-                const onlineUserId =
-                  typeof onlineUser === "object"
-                    ? getUserId(onlineUser)
-                    : onlineUser;
+              const chatUserId =
+                normalizeId(chatUser);
 
-                return (
-                  String(onlineUserId) ===
-                  String(chatUserId)
+              const unreadCount =
+                Number(
+                  summary?.unreadCount
+                ) || 0;
+
+              const isOnline =
+                Array.isArray(
+                  onlineUsers
+                ) &&
+                onlineUsers.some(
+                  (onlineUser) =>
+                    normalizeId(
+                      onlineUser
+                    ) === chatUserId
                 );
-              })
-              : false;
 
-            const isSelected =
-              String(getUserId(selectedChat)) ===
-              String(chatUserId);
+              const isSelected =
+                normalizeId(
+                  selectedChat
+                ) === chatUserId;
 
-            return (
-              <button
-                type="button"
-                key={chatUserId}
-                onClick={() => setSelectedChat(chatUser)}
-                className={`${styles.userItem} ${isSelected ? styles.active : ""
+              const preview =
+                getMessagePreview(
+                  summary?.lastMessage,
+                  currentUserId
+                );
+
+              const time =
+                formatMessageTime(
+                  summary?.lastMessage
+                    ?.createdAt
+                );
+
+              const displayName =
+                chatUser?.name ||
+                chatUser?.username ||
+                "User";
+
+              return (
+                <button
+                  type="button"
+                  key={chatUserId}
+                  onClick={() =>
+                    handleSelectChat(
+                      summary
+                    )
+                  }
+                  className={`${
+                    styles.userItem
+                  } ${
+                    isSelected
+                      ? styles.active
+                      : ""
                   }`}
-              >
-                <div className={styles.avatarWrapper}>
-                  <img
-                    src={
-                      chatUser?.profilePic ||
-                      DefaultAvatar
+                >
+                  <div
+                    className={
+                      styles.avatarWrapper
                     }
-                    alt={
-                      chatUser?.name ||
-                      "PingMe user"
-                    }
-                    className={styles.avatar}
-                    onError={(event) => {
-                      event.currentTarget.src =
-                        DefaultAvatar;
-                    }}
-                  />
-
-                  {isOnline && (
-                    <span
-                      className={styles.onlineDot}
+                  >
+                    <img
+                      src={
+                        chatUser
+                          ?.profilePic ||
+                        DefaultAvatar
+                      }
+                      alt={displayName}
+                      className={
+                        styles.avatar
+                      }
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        event.currentTarget.src =
+                          DefaultAvatar;
+                      }}
                     />
-                  )}
-                </div>
 
-                <div className={styles.userInfo}>
-                  <h2 className={styles.name}>
-                    {chatUser?.name ||
-                      "PingMe User"}
-                  </h2>
+                    {isOnline && (
+                      <span
+                        className={
+                          styles.onlineDot
+                        }
+                        aria-label="Online"
+                      />
+                    )}
+                  </div>
 
-                  <p className={styles.username}>
-                    @
-                    {chatUser?.username ||
-                      "user"}
-                  </p>
-                </div>
-              </button>
-            );
-          })
+                  <div
+                    className={
+                      styles.userInfo
+                    }
+                  >
+                    <div
+                      className={
+                        styles.userTopRow
+                      }
+                    >
+                      <h2
+                        className={
+                          styles.name
+                        }
+                      >
+                        {displayName}
+                      </h2>
+
+                      {time && (
+                        <time
+                          className={
+                            styles.time
+                          }
+                        >
+                          {time}
+                        </time>
+                      )}
+                    </div>
+
+                    <div
+                      className={
+                        styles.previewRow
+                      }
+                    >
+                      <p
+                        className={
+                          styles.preview
+                        }
+                      >
+                        {preview}
+                      </p>
+
+                      {unreadCount >
+                        0 && (
+                        <span
+                          className={
+                            styles.unreadBadge
+                          }
+                        >
+                          {unreadCount >
+                          99
+                            ? "99+"
+                            : unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            }
+          )
         )}
       </div>
-    </div>
+    </aside>
   );
 };
 

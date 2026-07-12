@@ -7,7 +7,6 @@ const streamifier = require("streamifier");
 
 const {
   getIO,
-  getSocketId,
 } = require("../socket/socketInstance");
 
 
@@ -90,13 +89,12 @@ const sendMessage = async (req, res) => {
     );
 
     const io = getIO();
-    const receiverSocket = getSocketId(receiverId);
+    io.to(receiverId).emit("newMessage", message);
 
-    console.log("RECEIVER SOCKET:", receiverSocket);
-
-    if (receiverSocket) {
-      io.to(receiverSocket).emit("newMessage", message);
-    }
+    console.log(
+      "NEW MESSAGE EMITTED TO USER ROOM:",
+      receiverId
+    );
 
     return res.status(201).json({
       success: true,
@@ -177,7 +175,109 @@ const getMessages = async (req, res) => {
   }
 };
 
+const getChatSummaries = async (req, res) => {
+  try {
+    const currentUserId = String(req.user._id);
+
+    const acceptedRequests = await ChatRequest.find({
+      status: "accepted",
+      $or: [
+        { sender: currentUserId },
+        { receiver: currentUserId },
+      ],
+    })
+      .populate(
+        "sender",
+        "name username profilePic"
+      )
+      .populate(
+        "receiver",
+        "name username profilePic"
+      )
+      .lean();
+
+    const summaries = await Promise.all(
+      acceptedRequests.map(async (request) => {
+        const senderId = String(
+          request.sender?._id || request.sender
+        );
+
+        const otherUser =
+          senderId === currentUserId
+            ? request.receiver
+            : request.sender;
+
+        const otherUserId = String(
+          otherUser?._id || otherUser
+        );
+
+        const lastMessage = await Message.findOne({
+          $or: [
+            {
+              sender: currentUserId,
+              receiver: otherUserId,
+            },
+            {
+              sender: otherUserId,
+              receiver: currentUserId,
+            },
+          ],
+        })
+          .sort({ createdAt: -1 })
+          .select(
+            "text image sender receiver status createdAt"
+          )
+          .lean();
+
+        const unreadCount = await Message.countDocuments({
+          sender: otherUserId,
+          receiver: currentUserId,
+          status: {
+            $ne: "read",
+          },
+        });
+
+        return {
+          user: otherUser,
+          lastMessage,
+          unreadCount,
+        };
+      })
+    );
+
+    summaries.sort((first, second) => {
+      const firstTime = first.lastMessage?.createdAt
+        ? new Date(first.lastMessage.createdAt).getTime()
+        : 0;
+
+      const secondTime = second.lastMessage?.createdAt
+        ? new Date(second.lastMessage.createdAt).getTime()
+        : 0;
+
+      return secondTime - firstTime;
+    });
+
+    return res.status(200).json({
+      success: true,
+      chats: summaries,
+    });
+  } catch (error) {
+    console.error(
+      "Get Chat Summaries Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message ||
+        "Unable to load chat summaries",
+    });
+  }
+};
+
 module.exports = {
   sendMessage,
   getMessages,
+  getChatSummaries,
 };

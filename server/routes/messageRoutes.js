@@ -9,6 +9,7 @@ const { upload } = require("../middleware/uploadMiddleware");
 const {
   sendMessage,
   getMessages,
+  getChatSummaries,
 } = require("../controllers/messageController");
 
 router.post(
@@ -16,6 +17,12 @@ router.post(
   protect,
   upload.single("image"),
   sendMessage
+);
+
+router.get(
+  "/summaries",
+  protect,
+  getChatSummaries
 );
 
 router.get("/conversation/:userId", protect, getMessages);

@@ -1,6 +1,6 @@
 let ioInstance = null;
 
-// userId -> socketId
+// userId -> Set of socketIds
 const userSocketMap = new Map();
 
 const setIO = (io) => {
@@ -26,44 +26,61 @@ const setSocketId = (userId, socketId) => {
   }
 
   const normalizedUserId = String(userId);
+  const normalizedSocketId = String(socketId);
+
+  const sockets =
+    userSocketMap.get(normalizedUserId) ||
+    new Set();
+
+  sockets.add(normalizedSocketId);
 
   userSocketMap.set(
     normalizedUserId,
-    socketId
+    sockets
   );
 
   console.log(
     "SOCKET USER ADDED:",
     normalizedUserId,
-    socketId
+    normalizedSocketId
   );
 };
 
-// Alias support
 const addUser = setSocketId;
 
 const getSocketId = (userId) => {
-  if (!userId) {
+  if (!userId) return null;
+
+  const sockets = userSocketMap.get(
+    String(userId)
+  );
+
+  if (!sockets || sockets.size === 0) {
     return null;
   }
 
-  const normalizedUserId = String(userId);
+  return Array.from(sockets)[0];
+};
 
-  return (
-    userSocketMap.get(normalizedUserId) ||
-    null
+const getSocketIds = (userId) => {
+  if (!userId) return [];
+
+  const sockets = userSocketMap.get(
+    String(userId)
   );
+
+  return sockets
+    ? Array.from(sockets)
+    : [];
 };
 
 const removeSocketId = (userIdOrSocketId) => {
-  if (!userIdOrSocketId) {
-    return;
-  }
+  if (!userIdOrSocketId) return;
 
-  const normalizedValue =
-    String(userIdOrSocketId);
+  const normalizedValue = String(
+    userIdOrSocketId
+  );
 
-  // userId directly passed ayithe
   if (userSocketMap.has(normalizedValue)) {
     userSocketMap.delete(normalizedValue);
 
@@ -75,26 +92,34 @@ const removeSocketId = (userIdOrSocketId) => {
     return;
   }
 
-  // socketId passed ayithe matching user remove
-  for (const [userId, socketId] of userSocketMap.entries()) {
-    if (String(socketId) === normalizedValue) {
+  for (const [
+    userId,
+    socketIds,
+  ] of userSocketMap.entries()) {
+    socketIds.delete(normalizedValue);
+
+    if (socketIds.size === 0) {
       userSocketMap.delete(userId);
 
       console.log(
-        "SOCKET USER REMOVED:",
+        "SOCKET USER OFFLINE:",
         userId
       );
-
-      break;
     }
   }
 };
 
-// Alias support
 const removeUser = removeSocketId;
 
 const getOnlineUsers = () => {
-  return Array.from(userSocketMap.keys());
+  return Array.from(
+    userSocketMap.entries()
+  )
+    .filter(
+      ([, socketIds]) =>
+        socketIds.size > 0
+    )
+    .map(([userId]) => userId);
 };
 
 module.exports = {
@@ -105,6 +130,7 @@ module.exports = {
   addUser,
 
   getSocketId,
+  getSocketIds,
 
   removeSocketId,
   removeUser,
