@@ -1207,23 +1207,28 @@ const googleLogin = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    // =========================
-    // GET ACTUAL POSTS COUNT
-    // =========================
+    const account = await User.findById(
+      req.user._id
+    );
+
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
     const postsCount =
       await Post.countDocuments({
         user: req.user._id,
       });
 
-    // =========================
-    // SAFE USER OBJECT
-    // =========================
-    const userObject =
-      typeof req.user.toObject === "function"
-        ? req.user.toObject()
-        : { ...req.user };
+    const userObject = account.toObject();
 
-    // Never expose sensitive auth fields
+    const hasPassword = Boolean(
+      userObject.password
+    );
+
     delete userObject.password;
     delete userObject.otp;
     delete userObject.otpExpiry;
@@ -1234,25 +1239,16 @@ const getProfile = async (req, res) => {
     delete userObject.passwordResetOtpExpiry;
     delete userObject.passwordResetOtpAttempts;
     delete userObject.passwordResetOtpLastSentAt;
-
     delete userObject.passwordResetTokenHash;
     delete userObject.passwordResetTokenExpiry;
 
-    // =========================
-    // RESPONSE
-    // =========================
     return res.status(200).json({
       success: true,
-
       user: {
         ...userObject,
-
-        // Keep frontend ID shape consistent
-        id:
-          userObject.id ||
-          userObject._id,
-
+        id: userObject._id,
         postsCount,
+        hasPassword,
       },
     });
   } catch (error) {

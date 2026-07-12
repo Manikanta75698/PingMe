@@ -67,19 +67,7 @@ const Settings = () => {
         <div className={styles.section}>
           <h2>Account</h2>
 
-          {!user?.hasPassword ? (
-            <button
-              className={styles.item}
-              onClick={() => setShowPasswordModal(true)}
-            >
-              <div className={styles.left}>
-                <Lock size={18} />
-                <span>Create Password</span>
-              </div>
-
-              <ChevronRight size={18} />
-            </button>
-          ) : (
+          {user?.hasPassword ? (
             <button
               className={styles.item}
               onClick={() =>
@@ -89,6 +77,20 @@ const Settings = () => {
               <div className={styles.left}>
                 <Lock size={18} />
                 <span>Change Password</span>
+              </div>
+
+              <ChevronRight size={18} />
+            </button>
+          ) : (
+            <button
+              className={styles.item}
+              onClick={() =>
+                setShowPasswordModal(true)
+              }
+            >
+              <div className={styles.left}>
+                <Lock size={18} />
+                <span>Create Password</span>
               </div>
 
               <ChevronRight size={18} />
