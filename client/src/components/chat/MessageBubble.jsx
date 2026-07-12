@@ -7,7 +7,9 @@ import {
 } from "lucide-react";
 
 const MessageBubble = ({ message, isOwn }) => {
-  const time = new Date(message.createdAt).toLocaleTimeString([], {
+  const time = new Date(
+    message.createdAt
+  ).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -22,8 +24,8 @@ const MessageBubble = ({ message, isOwn }) => {
     >
       <div
         className={`${styles.bubble} ${isOwn
-          ? styles.ownBubble
-          : styles.otherBubble
+            ? styles.ownBubble
+            : styles.otherBubble
           }`}
       >
         {message.image && (
@@ -45,17 +47,33 @@ const MessageBubble = ({ message, isOwn }) => {
 
           {isOwn && (
             <span className={styles.status}>
-              {
-                message.status === "sending" ? (
-                  <Clock3 size={14} />
-                ) : message.status === "sent" ? (
-                  <Check size={14} />
-                ) : message.status === "delivered" ? (
+              {message.status === "sending" && (
+                <Clock3 size={14} />
+              )}
+
+              {message.status === "sent" && (
+                <Check size={14} />
+              )}
+
+              {message.status ===
+                "delivered" && (
                   <CheckCheck size={14} />
-                ) : (
-                  <span className={styles.seen}>Seen</span>
-                )
-              }
+                )}
+
+              {message.status === "read" && (
+                <span className={styles.seen}>
+                  Seen
+                </span>
+              )}
+
+              {![
+                "sending",
+                "sent",
+                "delivered",
+                "read",
+              ].includes(message.status) && (
+                  <Check size={14} />
+                )}
             </span>
           )}
         </div>

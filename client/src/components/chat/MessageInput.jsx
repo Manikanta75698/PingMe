@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import styles from "./MessageInput.module.css";
 
@@ -26,8 +26,90 @@ const MessageInput = () => {
 
   const {
     selectedChat,
+    messages,
     setMessages,
+    socket,
   } = useChat();
+
+  useEffect(() => {
+    if (
+      !selectedChat ||
+      !Array.isArray(messages) ||
+      document.visibilityState !== "visible"
+    ) {
+      return;
+    }
+
+    const currentUserId =
+      user?._id || user?.id;
+
+    const selectedChatId =
+      selectedChat?._id || selectedChat?.id;
+
+    if (!currentUserId || !selectedChatId) {
+      return;
+    }
+
+    const unreadMessageIds = messages
+      .filter((message) => {
+        const senderId =
+          typeof message?.sender === "object"
+            ? message.sender?._id ||
+            message.sender?.id
+            : message?.sender;
+
+        const receiverId =
+          typeof message?.receiver === "object"
+            ? message.receiver?._id ||
+            message.receiver?.id
+            : message?.receiver;
+
+        const isReceivedMessage =
+          String(senderId) ===
+          String(selectedChatId) &&
+          String(receiverId) ===
+          String(currentUserId);
+
+        return (
+          message?._id &&
+          !String(message._id).startsWith("temp-") &&
+          isReceivedMessage &&
+          message.status !== "read"
+        );
+      })
+      .map((message) => String(message._id));
+
+    if (unreadMessageIds.length === 0) {
+      return;
+    }
+
+    unreadMessageIds.forEach((messageId) => {
+      socket.emit("messageRead", {
+        messageId,
+      });
+    });
+
+    // Receiver UI lo repeated emit raakunda local status update
+    setMessages((previousMessages) =>
+      previousMessages.map((message) =>
+        unreadMessageIds.includes(
+          String(message?._id)
+        )
+          ? {
+            ...message,
+            status: "read",
+          }
+          : message
+      )
+    );
+  }, [
+    messages,
+    selectedChat,
+    user?._id,
+    user?.id,
+    socket,
+    setMessages,
+  ]);
 
   const handleSend = async () => {
     if ((!text.trim() && !selectedImage) || !selectedChat || loading) {
