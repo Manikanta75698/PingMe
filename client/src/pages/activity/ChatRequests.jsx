@@ -1,3 +1,7 @@
+import { useState } from "react";
+
+import DefaultAvatar from "../../assets/default-avatar.png";
+
 import { useChat } from "../../context/ChatContext";
 
 import {
@@ -5,103 +9,158 @@ import {
   declineChatRequest,
 } from "../../services/chatRequestService";
 
-const ChatRequests = () => {
+import styles from "./ChatRequests.module.css";
 
+const ChatRequests = () => {
   const {
     receivedRequests,
     loadRequests,
   } = useChat();
 
+  const [loadingId, setLoadingId] =
+    useState(null);
+
+  const requests = Array.isArray(
+    receivedRequests
+  )
+    ? receivedRequests
+    : [];
 
   const handleAccept = async (id) => {
+    if (loadingId) return;
+
     try {
+      setLoadingId(id);
+
       await acceptChatRequest(id);
-
       await loadRequests();
-
     } catch (error) {
-      console.log(error);
+      alert(
+        error.response?.data?.message ||
+        "Unable to accept request"
+      );
+    } finally {
+      setLoadingId(null);
     }
   };
 
   const handleDecline = async (id) => {
+    if (loadingId) return;
+
     try {
+      setLoadingId(id);
+
       await declineChatRequest(id);
-
       await loadRequests();
-
     } catch (error) {
-      console.log(error);
+      alert(
+        error.response?.data?.message ||
+        "Unable to decline request"
+      );
+    } finally {
+      setLoadingId(null);
     }
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Chat Requests</h2>
+    <section className={styles.card}>
+      <div className={styles.heading}>
+        <div>
+          <h2>Chat Requests</h2>
 
-      {receivedRequests.length === 0 && (
-        <p>No pending requests.</p>
-      )}
-
-      {receivedRequests.map((request) => (
-        <div
-          key={request._id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "14px",
-            borderBottom: "1px solid #eee",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-            }}
-          >
-            <img
-              src={
-                request.sender.profilePic ||
-                "https://ui-avatars.com/api/?name=" +
-                request.sender.name
-              }
-              alt=""
-              style={{
-                width: 50,
-                height: 50,
-                borderRadius: "50%",
-                objectFit: "cover",
-              }}
-            />
-
-            <div>
-              <strong>{request.sender.name}</strong>
-
-              <p style={{ margin: 0 }}>
-                wants to chat with you.
-              </p>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-            }}
-          >
-            <button onClick={() => handleAccept(request._id)}>
-              Accept
-            </button>
-
-            <button onClick={() => handleDecline(request._id)}>
-              Decline
-            </button>
-          </div>
+          <p>
+            People who want to start a conversation
+            with you.
+          </p>
         </div>
-      ))}
-    </div>
+
+        {requests.length > 0 && (
+          <span className={styles.count}>
+            {requests.length}
+          </span>
+        )}
+      </div>
+
+      {requests.length === 0 ? (
+        <div className={styles.empty}>
+          <h3>No pending requests</h3>
+
+          <p>
+            New chat requests will appear here.
+          </p>
+        </div>
+      ) : (
+        <div className={styles.list}>
+          {requests.map((request) => {
+            const sender = request.sender || {};
+            const isLoading =
+              loadingId === request._id;
+
+            return (
+              <article
+                key={request._id}
+                className={styles.request}
+              >
+                <div className={styles.user}>
+                  <img
+                    src={
+                      sender.profilePic ||
+                      DefaultAvatar
+                    }
+                    alt={sender.name || "User"}
+                    className={styles.avatar}
+                    onError={(event) => {
+                      event.currentTarget.src =
+                        DefaultAvatar;
+                    }}
+                  />
+
+                  <div className={styles.userInfo}>
+                    <strong>
+                      {sender.name || "PingMe User"}
+                    </strong>
+
+                    <span>
+                      @{sender.username || "user"}
+                    </span>
+
+                    <p>
+                      Wants to chat with you.
+                    </p>
+                  </div>
+                </div>
+
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={styles.acceptBtn}
+                    onClick={() =>
+                      handleAccept(request._id)
+                    }
+                    disabled={isLoading}
+                  >
+                    {isLoading
+                      ? "Please wait..."
+                      : "Accept"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className={styles.declineBtn}
+                    onClick={() =>
+                      handleDecline(request._id)
+                    }
+                    disabled={isLoading}
+                  >
+                    Decline
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 };
 

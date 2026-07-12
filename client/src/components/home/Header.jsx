@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Home, Search, Heart, MessageCircle, SquarePlus, X } from "lucide-react";
 import styles from "./Header.module.css";
 import { useAuth } from "../../context/AuthContext";
+import { useChat } from "../../context/ChatContext";
 import Avatar from "../ui/avatar/Avatar";
 import { searchUsers } from "../../services/authService";
 import SearchResults from "../search/SearchResults";
@@ -11,6 +12,7 @@ import CreatePost from "./CreatePost";
 const Header = ({ scrollY }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { receivedRequests } = useChat();
   const openChat = () => {
     navigate("/chat");
   };
@@ -124,9 +126,24 @@ const Header = ({ scrollY }) => {
             <span className={styles.text}>Messages</span>
           </button>
 
-          <button className={styles.navItem}>
-            <Heart className={styles.icon} />
-            <span className={styles.text}>Notifications</span>
+          <button
+            type="button"
+            className={styles.navItem}
+            onClick={() => navigate("/activity")}
+          >
+            <div className={styles.iconWrapper}>
+              <Heart className={styles.icon} />
+
+              {receivedRequests.length > 0 && (
+                <span className={styles.badge}>
+                  {receivedRequests.length}
+                </span>
+              )}
+            </div>
+
+            <span className={styles.text}>
+              Notifications
+            </span>
           </button>
 
           {/* Desktop Only Buttons */}

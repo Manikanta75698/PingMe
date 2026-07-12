@@ -13,9 +13,7 @@ import CreatePost from "./CreatePost";
 
 const Sidebar = () => {
   const { user } = useAuth();
-  const {
-    receivedRequests,
-  } = useChat();
+  const { receivedRequests } = useChat();
   const navigate = useNavigate();
 
   const openChat = () => {
