@@ -321,10 +321,6 @@ const ProfileHeader = () => {
             @{user.username || "username"}
           </p>
 
-          <p>
-            {user.bio ||
-              "Welcome to PingMe 🚀"}
-          </p>
 
           {/* =====================
               STATS

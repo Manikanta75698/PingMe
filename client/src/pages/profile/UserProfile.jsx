@@ -9,7 +9,11 @@ import {
   useParams,
 } from "react-router-dom";
 
+import { ImageOff } from "lucide-react";
+
 import styles from "./UserProfile.module.css";
+
+import UserProfileSkeleton from "../../components/profile/UserProfileSkeleton";
 
 import DefaultAvatar from "../../assets/default-avatar.png";
 
@@ -120,7 +124,6 @@ const UserProfile = () => {
     setSelectedPost,
   ] = useState(null);
 
-  const [requestStatus, setRequestStatus] = useState(null);
 
   const currentUserId = normalizeId(
     currentUser?.id ||
@@ -136,22 +139,21 @@ const UserProfile = () => {
     Boolean(currentUserId) &&
     Boolean(profileUserId) &&
     currentUserId === profileUserId;
-
   const pendingRequest = sentRequests.find(
     (req) =>
-      req.receiver?._id === profileUserId &&
+      normalizeId(req.receiver) === profileUserId &&
       req.status === "pending"
   );
 
   const chatAccepted =
     sentRequests.find(
       (req) =>
-        req.receiver?._id === profileUserId &&
+        normalizeId(req.receiver) === profileUserId &&
         req.status === "accepted"
     ) ||
     receivedRequests.find(
       (req) =>
-        req.sender?._id === profileUserId &&
+        normalizeId(req.sender) === profileUserId &&
         req.status === "accepted"
     );
 
@@ -240,8 +242,9 @@ const UserProfile = () => {
   );
 
   useEffect(() => {
+    loadRequests();
     fetchUser();
-  }, [fetchUser, sentRequests]);
+  }, [fetchUser, loadRequests]);
 
   // =========================
   // FOLLOW / UNFOLLOW
@@ -356,8 +359,6 @@ const UserProfile = () => {
         receiver: profileUserId,
       });
 
-      console.log(res.data);
-
       await loadRequests();
 
     } catch (error) {
@@ -384,15 +385,8 @@ const UserProfile = () => {
     );
   };
 
-  // =========================
-  // LOADING
-  // =========================
   if (loading) {
-    return (
-      <div className={styles.loading}>
-        Loading profile...
-      </div>
-    );
+    return <UserProfileSkeleton />;
   }
 
   // =========================
@@ -419,165 +413,119 @@ const UserProfile = () => {
   return (
     <>
       <div className={styles.container}>
-        {/* =====================
-          PROFILE HEADER
-      ====================== */}
-        <div className={styles.header}>
-          <img
-            src={
-              user.profilePic ||
-              DefaultAvatar
-            }
-            alt={user.name || "User"}
-            className={styles.avatar}
-            onError={(e) => {
-              e.currentTarget.onerror =
-                null;
 
-              e.currentTarget.src =
-                DefaultAvatar;
-            }}
-          />
+        <div className={styles.profileCard}>
 
-          <h2 className={styles.name}>
-            {user.name || "User"}
-          </h2>
+          {/* PROFILE HEADER */}
+          <div className={styles.header}>
+            <img
+              src={user.profilePic || DefaultAvatar}
+              alt={user.name || "User"}
+              className={styles.avatar}
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = DefaultAvatar;
+              }}
+            />
 
-          <p
-            className={
-              styles.username
-            }
-          >
-            @{user.username || "user"}
-          </p>
+            <h1 className={styles.name}>
+              {user.name || "User"}
+            </h1>
 
-          <p className={styles.bio}>
-            {user.bio || "No bio yet"}
-          </p>
-
-          {user.location && (
-            <p>
-              📍 {user.location}
+            <p className={styles.username}>
+              @{user.username || "user"}
             </p>
+
+            <p className={styles.bio}>
+              {user.bio || "No bio yet"}
+            </p>
+          </div>
+
+          {/* STATS */}
+          <div className={styles.stats}>
+
+            <div className={styles.statItem}>
+              <span>{posts.length}</span>
+              <small>Posts</small>
+            </div>
+
+            <div className={styles.statItem}>
+              <span>{user.followers?.length || 0}</span>
+              <small>Followers</small>
+            </div>
+
+            <div className={styles.statItem}>
+              <span>{user.following?.length || 0}</span>
+              <small>Following</small>
+            </div>
+
+          </div>
+
+          {/* ACTION BUTTONS */}
+          {!isOwnProfile && (
+            <div className={styles.actions}>
+
+              <button
+                type="button"
+                className={
+                  isFollowing
+                    ? styles.followingBtn
+                    : styles.followBtn
+                }
+                onClick={handleFollow}
+                disabled={followLoading}
+              >
+                {followLoading
+                  ? "Please wait..."
+                  : isFollowing
+                    ? "Following"
+                    : "Follow"}
+              </button>
+
+              {Boolean(chatAccepted) ? (
+                <button
+                  className={styles.messageBtn}
+                  onClick={handleMessage}
+                >
+                  Message
+                </button>
+              ) : Boolean(pendingRequest) ? (
+                <button
+                  className={styles.pendingBtn}
+                  disabled
+                >
+                  ✓ Pending
+                </button>
+              ) : (
+                <button
+                  className={styles.messageBtn}
+                  onClick={handleSendRequest}
+                  disabled={requestLoading}
+                >
+                  {requestLoading
+                    ? "Sending..."
+                    : "Send Request"}
+                </button>
+              )}
+
+            </div>
           )}
 
-          {user.website && (
-            <p>
-              🌐 {user.website}
-            </p>
-          )}
         </div>
 
-        {/* =====================
-          STATS
-      ====================== */}
-        <div className={styles.stats}>
-          <div
-            className={
-              styles.statItem
-            }
-          >
-            <span>
-              {posts.length}
-            </span>
-
-            <small>
-              Posts
-            </small>
-          </div>
-
-          <div
-            className={
-              styles.statItem
-            }
-          >
-            <span>
-              {user.followers?.length ||
-                0}
-            </span>
-
-            <small>
-              Followers
-            </small>
-          </div>
-
-          <div
-            className={
-              styles.statItem
-            }
-          >
-            <span>
-              {user.following?.length ||
-                0}
-            </span>
-
-            <small>
-              Following
-            </small>
-          </div>
-        </div>
-
-        {/* =====================
-          ACTIONS
-      ====================== */}
-        {!isOwnProfile && (
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={
-                isFollowing
-                  ? styles.followingBtn
-                  : styles.followBtn
-              }
-              onClick={handleFollow}
-              disabled={followLoading}
-            >
-              {followLoading
-                ? "Please wait..."
-                : isFollowing
-                  ? "Following"
-                  : "Follow"}
-            </button>
-
-            {chatAccepted ? (
-              <button
-                className={styles.messageBtn}
-                onClick={handleMessage}
-              >
-                Message
-              </button>
-            ) : pendingRequest ? (
-              <button
-                className={styles.messageBtn}
-                disabled
-              >
-                Pending
-              </button>
-            ) : (
-              <button
-                className={styles.messageBtn}
-                onClick={handleSendRequest}
-                disabled={requestLoading}
-              >
-                {requestLoading
-                  ? "Sending..."
-                  : "Send Request"}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* POSTS GRID */}
+        {/* POSTS */}
         <div className={styles.postsGrid}>
+
           {posts.length > 0 ? (
             posts.map((post) => (
               <button
                 key={post._id}
                 type="button"
                 className={styles.postButton}
-                onClick={() =>
-                  setSelectedPost(post)
-                }
+                onClick={() => setSelectedPost(post)}
                 aria-label="Open post"
               >
                 <img
@@ -589,26 +537,29 @@ const UserProfile = () => {
               </button>
             ))
           ) : (
-            <p className={styles.empty}>
-              No posts yet.
-            </p>
+            <div className={styles.emptyPosts}>
+              <ImageOff
+                size={64}
+                strokeWidth={1.5}
+                className={styles.emptyIcon}
+              />
+
+              <h3>No Posts Yet</h3>
+
+              <p>
+                This user hasn't shared any posts yet.
+              </p>
+            </div>
           )}
+
         </div>
+
       </div>
+
       {selectedPost && (
         <PostModal
           post={selectedPost}
-          onClose={() =>
-            setSelectedPost(null)
-          }
-        />
-      )}
-      {selectedPost && (
-        <PostModal
-          post={selectedPost}
-          onClose={() =>
-            setSelectedPost(null)
-          }
+          onClose={() => setSelectedPost(null)}
         />
       )}
     </>

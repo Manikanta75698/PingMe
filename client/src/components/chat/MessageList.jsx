@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import styles from "./MessageList.module.css";
 
@@ -6,6 +6,33 @@ import { useChat } from "../../context/ChatContext";
 import { useAuth } from "../../context/AuthContext";
 
 import MessageBubble from "./MessageBubble";
+
+const normalizeId = (value) => {
+  if (!value) return "";
+
+  if (typeof value === "object") {
+    return String(value?._id || value?.id || "");
+  }
+
+  return String(value);
+};
+
+const getStoredUser = () => {
+  try {
+    const storedUser = localStorage.getItem("user");
+
+    return storedUser
+      ? JSON.parse(storedUser)
+      : null;
+  } catch (error) {
+    console.error(
+      "Unable to read stored user:",
+      error
+    );
+
+    return null;
+  }
+};
 
 const MessageList = () => {
   const {
@@ -17,68 +44,113 @@ const MessageList = () => {
 
   const bottomRef = useRef(null);
 
-  const currentUserId =
+  const storedUser = useMemo(
+    () => getStoredUser(),
+    []
+  );
+
+  const currentUserId = normalizeId(
     user?._id ||
     user?.id ||
-    JSON.parse(localStorage.getItem("user"))?._id ||
-    JSON.parse(localStorage.getItem("user"))?.id;
+    storedUser?._id ||
+    storedUser?.id
+  );
+
+  const safeMessages = Array.isArray(messages)
+    ? messages
+    : [];
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
       behavior: "smooth",
+      block: "end",
     });
-  }, [messages]);
+  }, [safeMessages.length]);
 
   useEffect(() => {
-    if (!messages.length) return;
+    if (
+      !currentUserId ||
+      safeMessages.length === 0 ||
+      document.visibilityState !== "visible"
+    ) {
+      return;
+    }
 
-    messages.forEach((message) => {
-      const receiverId =
-        typeof message.receiver === "object"
-          ? message.receiver._id
-          : message.receiver;
+    safeMessages.forEach((message) => {
+      const messageId = normalizeId(message?._id);
 
-      if (
+      const receiverId = normalizeId(
+        message?.receiver
+      );
+
+      const senderId = normalizeId(
+        message?.sender
+      );
+
+      const isReceivedMessage =
         receiverId === currentUserId &&
-        message.status !== "seen"
-      ) {
-        console.log("EMIT SEEN:", message._id);
+        senderId !== currentUserId;
 
-        socket.emit("messageSeen", {
-          messageId: message._id,
+      const shouldMarkAsRead =
+        messageId &&
+        !messageId.startsWith("temp-") &&
+        isReceivedMessage &&
+        message?.status !== "read";
+
+      if (shouldMarkAsRead) {
+        socket.emit("messageRead", {
+          messageId,
         });
       }
     });
+  }, [
+    safeMessages,
+    socket,
+    currentUserId,
+  ]);
 
-  }, [messages, socket, currentUserId]);
-
-  if (!messages.length) {
+  if (safeMessages.length === 0) {
     return (
       <div className={styles.empty}>
-        <p>No messages yet.</p>
-        <span>Start the conversation 👋</span>
+        <div className={styles.emptyContent}>
+          <h3>No messages yet</h3>
+
+          <p>
+            Start the conversation with a message.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={styles.container}>
-      {messages.map((message) => {
-        const senderId =
-          typeof message.sender === "object"
-            ? message.sender?._id
-            : message.sender;
+      <div className={styles.messagesInner}>
+        {safeMessages.map((message) => {
+          const messageId = normalizeId(
+            message?._id
+          );
 
-        return (
-          <MessageBubble
-            key={message._id}
-            message={message}
-            isOwn={senderId === currentUserId}
-          />
-        );
-      })}
+          const senderId = normalizeId(
+            message?.sender
+          );
 
-      <div ref={bottomRef} />
+          return (
+            <MessageBubble
+              key={messageId}
+              message={message}
+              isOwn={
+                senderId === currentUserId
+              }
+            />
+          );
+        })}
+
+        <div
+          ref={bottomRef}
+          className={styles.bottomAnchor}
+        />
+      </div>
     </div>
   );
 };
