@@ -5,8 +5,6 @@ import styles from "./Header.module.css";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import Avatar from "../ui/avatar/Avatar";
-import { searchUsers } from "../../services/authService";
-import SearchResults from "../search/SearchResults";
 import CreatePost from "./CreatePost";
 
 const Header = ({ scrollY }) => {
@@ -21,10 +19,7 @@ const Header = ({ scrollY }) => {
   const openChat = () => {
     navigate("/chat");
   };
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
 
   // 🚀 Scroll to Hide State
   const [showTopHeader, setShowTopHeader] = useState(true);
@@ -42,28 +37,6 @@ const Header = ({ scrollY }) => {
 
     lastScrollY.current = scrollY;
   }, [scrollY]);
-
-  const handleSearch = async (e) => {
-    const value = e.target.value;
-    setQuery(value);
-
-    if (!value.trim()) {
-      setResults([]);
-      return;
-    }
-
-    try {
-      const response = await searchUsers(value);
-      if (response.success) {
-        setResults(response.users);
-      } else {
-        setResults([]);
-      }
-    } catch (error) {
-      console.error(error);
-      setResults([]);
-    }
-  };
 
   return (
     <>
@@ -101,27 +74,17 @@ const Header = ({ scrollY }) => {
             <span className={styles.text}>Home</span>
           </button>
 
-          <div className={styles.searchContainer}>
-            <div className={styles.searchBox}>
-              <Search
-                className={styles.icon}
-                onClick={() => setShowSearch(true)}
-              />
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={query}
-                onChange={handleSearch}
-                className={`${styles.searchInput} ${showSearch ? styles.showSearchInput : ""
-                  }`}
-              />
-            </div>
-            {query && (
-              <div className={styles.searchResultsWrapper}>
-                <SearchResults users={results} onClose={() => { setQuery(""); setResults([]); }} />
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            className={styles.navItem}
+            onClick={() => navigate("/search")}
+          >
+            <Search className={styles.icon} />
+
+            <span className={styles.text}>
+              Search
+            </span>
+          </button>
 
           <button
             className={styles.navItem}
@@ -131,11 +94,25 @@ const Header = ({ scrollY }) => {
             <span className={styles.text}>Messages</span>
           </button>
 
-          {pendingRequestCount > 0 && (
-            <span className={styles.badge}>
-              {pendingRequestCount}
+          <button
+            type="button"
+            className={styles.navItem}
+            onClick={() => navigate("/activity")}
+          >
+            <div className={styles.iconWrapper}>
+              <Heart className={styles.icon} />
+
+              {pendingRequestCount > 0 && (
+                <span className={styles.badge}>
+                  {pendingRequestCount}
+                </span>
+              )}
+            </div>
+
+            <span className={styles.text}>
+              Notifications
             </span>
-          )}
+          </button>
 
           {/* Desktop Only Buttons */}
           <button className={`${styles.navItem} ${styles.desktopOnly}`} onClick={() => setIsCreateOpen(true)}>

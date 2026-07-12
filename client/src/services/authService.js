@@ -179,7 +179,7 @@ export const searchUsers = async (query) => {
     "/auth/search",
     {
       params: {
-        keyword: query,
+        query: query.trim(),
       },
     }
   );

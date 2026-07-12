@@ -6,9 +6,10 @@ const SearchResults = ({ users, onClose }) => {
   const navigate = useNavigate();
 
   const openProfile = (username) => {
-    navigate(`/user/${username}`);
+    if (!username) return;
 
-    onClose();
+    navigate(`/user/${username}`);
+    onClose?.();
   };
 
   if (!users.length) {

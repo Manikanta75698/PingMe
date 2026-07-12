@@ -1745,29 +1745,98 @@ const getUserProfile = async (req, res) => {
 
 const searchUsers = async (req, res) => {
   try {
-    const keyword = req.query.query || "";
+    const searchTerm = String(
+      req.query.query || req.query.q || ""
+    ).trim();
 
-    const users = await User.find({
+    if (!searchTerm) {
+      return res.status(200).json({
+        success: true,
+        users: [],
+      });
+    }
+
+    const escapedSearchTerm = searchTerm.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
+    );
+
+    const filter = {
       $or: [
-        { name: { $regex: keyword, $options: "i" } },
-        { username: { $regex: keyword, $options: "i" } },
+        {
+          name: {
+            $regex: escapedSearchTerm,
+            $options: "i",
+          },
+        },
+        {
+          username: {
+            $regex: escapedSearchTerm,
+            $options: "i",
+          },
+        },
       ],
-    })
-      .select("-password")
-      .limit(20);
+    };
 
-    res.status(200).json({
+    // Logged-in user ni search results nundi remove cheyyalante
+    if (req.user?._id) {
+      filter._id = {
+        $ne: req.user._id,
+      };
+    }
+
+    const users = await User.find(filter)
+      .select(
+        "name username profilePic bio"
+      )
+      .limit(30)
+      .lean();
+
+    const normalizedQuery = searchTerm
+      .toLowerCase()
+      .replace(/^@/, "");
+
+    const getSearchScore = (user) => {
+      const name = String(
+        user?.name || ""
+      ).toLowerCase();
+
+      const username = String(
+        user?.username || ""
+      ).toLowerCase();
+
+      if (username === normalizedQuery) return 1;
+      if (name === normalizedQuery) return 2;
+      if (username.startsWith(normalizedQuery)) return 3;
+      if (name.startsWith(normalizedQuery)) return 4;
+      if (username.includes(normalizedQuery)) return 5;
+      if (name.includes(normalizedQuery)) return 6;
+
+      return 100;
+    };
+
+    users.sort(
+      (firstUser, secondUser) =>
+        getSearchScore(firstUser) -
+        getSearchScore(secondUser)
+    );
+
+    return res.status(200).json({
       success: true,
       count: users.length,
       users,
     });
-
   } catch (error) {
-    console.log(error);
+    console.error(
+      "Search Users Error:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message ||
+        "Unable to search users",
     });
   }
 };
