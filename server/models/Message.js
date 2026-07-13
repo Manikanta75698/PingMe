@@ -1,53 +1,225 @@
-const mongoose = require("mongoose");
+const mongoose = require(
+  "mongoose"
+);
 
-const messageSchema = new mongoose.Schema(
-  {
-    sender: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+const ALLOWED_REACTIONS = [
+  "❤️",
+  "😂",
+  "😮",
+  "😢",
+  "👍",
+  "🔥",
+];
 
-    receiver: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+const reactionSchema =
+  new mongoose.Schema(
+    {
+      user: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+        ref: "User",
+        required: true,
+      },
 
-    text: {
-      type: String,
-      default: "",
-      trim: true,
-    },
+      emoji: {
+        type: String,
+        enum: ALLOWED_REACTIONS,
+        required: true,
+      },
 
-    status: {
-      type: String,
-      enum: ["sent", "delivered", "read"],
-      default: "sent",
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
     },
+    {
+      _id: false,
+    }
+  );
 
-    replyTo: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Message",
-      default: null,
-    },
+const messageSchema =
+  new mongoose.Schema(
+    {
+      sender: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+        ref: "User",
+        required: true,
+        index: true,
+      },
 
-    image: {
-      type: String,
-      default: "",
+      receiver: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+        ref: "User",
+        required: true,
+        index: true,
+      },
+
+      text: {
+        type: String,
+        default: "",
+        trim: true,
+        maxlength: [
+          5000,
+          "Message cannot exceed 5000 characters",
+        ],
+      },
+
+      image: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      status: {
+        type: String,
+        enum: [
+          "sent",
+          "delivered",
+          "read",
+        ],
+        default: "sent",
+        index: true,
+      },
+
+      replyTo: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+        ref: "Message",
+        default: null,
+      },
+
+      reactions: {
+        type: [reactionSchema],
+        default: [],
+      },
+
+      /*
+       * Normal messages ki null.
+       * Disappearing messages feature
+       * add chesinappudu date set chestham.
+       */
+      expiresAt: {
+        type: Date,
+        default: null,
+      },
     },
-  },
-  {
-    timestamps: true,
+    {
+      timestamps: true,
+      versionKey: false,
+    }
+  );
+
+/* =========================
+   VALIDATION
+========================= */
+
+messageSchema.pre(
+  "validate",
+  function validateMessage(next) {
+    const hasText =
+      Boolean(this.text?.trim());
+
+    const hasImage =
+      Boolean(this.image?.trim());
+
+    if (!hasText && !hasImage) {
+      return next(
+        new Error(
+          "Message must contain text or an image"
+        )
+      );
+    }
+
+    next();
   }
 );
 
+/*
+ * Schema save operations lo same user
+ * duplicate reaction prevent chesthundi.
+ *
+ * Controller lo atomic update pipeline
+ * kuda use chestham, concurrency safe kosam.
+ */
+messageSchema.path(
+  "reactions"
+).validate({
+  validator(reactions) {
+    const userIds = reactions.map(
+      (reaction) =>
+        String(reaction.user)
+    );
+
+    return (
+      new Set(userIds).size ===
+      userIds.length
+    );
+  },
+
+  message:
+    "A user can have only one reaction per message",
+});
+
+/* =========================
+   QUERY INDEXES
+========================= */
+
+/*
+ * Conversation messages fast ga
+ * chronological order lo load avvadaniki.
+ */
+messageSchema.index({
+  sender: 1,
+  receiver: 1,
+  createdAt: -1,
+});
+
+/*
+ * Delivered/read processing fast ga
+ * handle avvadaniki.
+ */
+messageSchema.index({
+  receiver: 1,
+  status: 1,
+});
+
+/*
+ * Only expiresAt date unna messages
+ * matrame automatic ga delete avutayi.
+ */
 messageSchema.index(
-  { createdAt: 1 },
-  { expireAfterSeconds: 86400 }
+  {
+    expiresAt: 1,
+  },
+  {
+    expireAfterSeconds: 0,
+    partialFilterExpression: {
+      expiresAt: {
+        $type: "date",
+      },
+    },
+  }
 );
 
-module.exports = mongoose.model(
-  "Message",
-  messageSchema
-);
+/* =========================
+   MODEL HELPERS
+========================= */
+
+messageSchema.statics.getAllowedReactions =
+  function getAllowedReactions() {
+    return [
+      ...ALLOWED_REACTIONS,
+    ];
+  };
+
+module.exports =
+  mongoose.model(
+    "Message",
+    messageSchema
+  );

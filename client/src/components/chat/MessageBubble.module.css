@@ -1,5 +1,5 @@
 /* =========================
-   SYSTEM THEME
+   THEME TOKENS
 ========================= */
 
 .ownWrapper,
@@ -7,8 +7,23 @@
   --bubble-surface:
     var(--surface, Canvas);
 
+  --bubble-soft:
+    var(--surface-light,
+      color-mix(in srgb,
+        CanvasText 7%,
+        Canvas));
+
+  --bubble-background:
+    var(--background, Canvas);
+
   --bubble-text:
     var(--text-primary, CanvasText);
+
+  --bubble-muted:
+    var(--text-secondary,
+      color-mix(in srgb,
+        CanvasText 62%,
+        transparent));
 
   --bubble-border:
     var(--border,
@@ -19,17 +34,21 @@
   --bubble-primary:
     var(--primary, Highlight);
 
-  color-scheme: light dark;
+  --bubble-primary-text:
+    var(--primary-contrast, HighlightText);
+
+  --bubble-danger:
+    var(--danger, #ef4444);
 
   display: flex;
+
   width: 100%;
+  min-width: 0;
 
-  margin: 3px 0;
+  box-sizing: border-box;
+
+  color-scheme: light dark;
 }
-
-/* =========================
-   MESSAGE ALIGNMENT
-========================= */
 
 .ownWrapper {
   justify-content: flex-end;
@@ -44,14 +63,29 @@
 ========================= */
 
 .messageGroup {
-  position: relative;
-
   display: flex;
+  flex-direction: column;
 
   width: fit-content;
-  max-width: min(76%, 560px);
+  max-width: min(72%, 680px);
 
-  overflow: visible;
+  min-width: 0;
+
+  position: relative;
+
+  animation:
+    bubbleAppear 0.18s ease-out;
+
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+.ownWrapper .messageGroup {
+  align-items: flex-end;
+}
+
+.otherWrapper .messageGroup {
+  align-items: flex-start;
 }
 
 /* =========================
@@ -59,34 +93,52 @@
 ========================= */
 
 .bubble {
-  display: inline-flex;
-  flex-direction: column;
+  position: relative;
 
   width: fit-content;
   max-width: 100%;
-  min-width: 72px;
 
-  padding: 8px 11px 5px;
+  min-width: 90px;
 
-  border-radius: 18px;
+  padding:
+    10px 11px 6px;
 
-  animation: bubbleIn 0.18s ease;
+  overflow: hidden;
+
+  border:
+    1px solid transparent;
+
+  box-sizing: border-box;
+
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.06);
+
+  overflow-wrap: anywhere;
 }
 
 .ownBubble {
-  color: #ffffff;
-  background: var(--bubble-primary);
+  color:
+    var(--bubble-primary-text);
 
-  border-bottom-right-radius: 6px;
+  background:
+    var(--bubble-primary);
+
+  border-radius:
+    18px 18px 5px 18px;
 }
 
 .otherBubble {
-  color: var(--bubble-text);
-  background: var(--bubble-surface);
+  color:
+    var(--bubble-text);
 
-  border: 1px solid var(--bubble-border);
+  background:
+    var(--bubble-surface);
 
-  border-bottom-left-radius: 6px;
+  border-color:
+    var(--bubble-border);
+
+  border-radius:
+    18px 18px 18px 5px;
 }
 
 /* =========================
@@ -96,12 +148,15 @@
 .text {
   margin: 0;
 
-  font-size: 15px;
-  line-height: 1.45;
+  color: inherit;
 
-  overflow-wrap: anywhere;
-  word-break: normal;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.48;
+
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* =========================
@@ -112,14 +167,109 @@
   display: block;
 
   width: 100%;
-  max-width: 300px;
-  max-height: 380px;
+  max-width: 360px;
+  max-height: 420px;
 
-  margin-bottom: 6px;
+  margin:
+    0 0 7px;
 
   object-fit: cover;
 
-  border-radius: 14px;
+  background:
+    var(--bubble-soft);
+
+  border-radius: 13px;
+}
+
+/* =========================
+   REPLY PREVIEW
+========================= */
+
+.replyPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  min-width: 0;
+
+  margin:
+    0 0 8px;
+
+  padding:
+    8px 10px;
+
+  overflow: hidden;
+
+  border-left:
+    3px solid currentColor;
+
+  border-radius: 9px;
+}
+
+.ownBubble .replyPreview {
+  color:
+    color-mix(in srgb,
+      var(--bubble-primary-text) 90%,
+      transparent);
+
+  background:
+    color-mix(in srgb,
+      Canvas 16%,
+      transparent);
+}
+
+.otherBubble .replyPreview {
+  color:
+    var(--bubble-primary);
+
+  background:
+    var(--bubble-soft);
+}
+
+.replySender {
+  display: block;
+
+  overflow: hidden;
+
+  color: inherit;
+
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.replyContent {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  min-width: 0;
+}
+
+.replyIcon {
+  flex: 0 0 auto;
+}
+
+.replyText {
+  display: block;
+
+  min-width: 0;
+
+  overflow: hidden;
+
+  color: inherit;
+
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+
+  opacity: 0.82;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* =========================
@@ -130,18 +280,24 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 3px;
+  gap: 4px;
 
-  min-height: 21px;
-  margin-top: 3px;
+  min-height: 19px;
 
-  font-size: 11px;
-  line-height: 1;
+  margin-top: 4px;
+  margin-left: 14px;
 }
 
 .time {
+  color: inherit;
+
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+
   white-space: nowrap;
-  opacity: 0.72;
+
+  opacity: 0.68;
 }
 
 .status {
@@ -149,20 +305,29 @@
   align-items: center;
   justify-content: center;
 
-  margin-left: 2px;
+  min-width: 14px;
 
-  white-space: nowrap;
+  color: inherit;
+
+  line-height: 1;
+
   opacity: 0.78;
 }
 
+.status svg {
+  display: block;
+}
+
 .seen {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 650;
   line-height: 1;
+
+  white-space: nowrap;
 }
 
 /* =========================
-   THREE-DOT BUTTON
+   MORE BUTTON
 ========================= */
 
 .moreButton {
@@ -172,21 +337,28 @@
 
   flex: 0 0 auto;
 
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  margin-left: 1px;
+  width: 25px;
+  height: 25px;
 
-  color: currentColor;
+  margin:
+    -3px -5px -3px 0;
+
+  padding: 0;
+
+  color: inherit;
   background: transparent;
 
   border: none;
   border-radius: 50%;
 
   cursor: pointer;
-  opacity: 0.65;
+
+  opacity: 0.68;
 
   touch-action: manipulation;
+
+  -webkit-tap-highlight-color:
+    transparent;
 
   transition:
     opacity 0.15s ease,
@@ -195,78 +367,235 @@
 }
 
 .moreButton:hover,
-.moreButton:focus-visible,
 .moreButton[data-open="true"] {
   opacity: 1;
+}
 
+.ownBubble .moreButton:hover,
+.ownBubble .moreButton[data-open="true"] {
   background:
     color-mix(in srgb,
-      currentColor 12%,
+      Canvas 18%,
       transparent);
 }
 
-.moreButton:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 1px;
+.otherBubble .moreButton:hover,
+.otherBubble .moreButton[data-open="true"] {
+  background:
+    var(--bubble-soft);
 }
 
 .moreButton:active {
-  transform: scale(0.92);
+  transform: scale(0.88);
+}
+
+.moreButton:focus-visible {
+  opacity: 1;
+
+  outline:
+    2px solid currentColor;
+
+  outline-offset: 1px;
 }
 
 /* =========================
-   REPLY PREVIEW
+   MESSAGE REACTIONS
 ========================= */
 
-.replyPreview {
-  min-width: 0;
+.reactionSummary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
 
-  margin-bottom: 7px;
-  padding: 7px 9px;
+  width: fit-content;
+  max-width: 100%;
 
-  color: inherit;
+  margin-top: 4px;
+}
+
+.ownReactions {
+  align-self: flex-end;
+
+  margin-right: 4px;
+}
+
+.otherReactions {
+  align-self: flex-start;
+
+  margin-left: 4px;
+}
+
+.reactionChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+
+  min-width: 38px;
+  height: 27px;
+
+  padding:
+    2px 8px;
+
+  color:
+    var(--bubble-muted);
+
+  background:
+    var(--bubble-surface);
+
+  border:
+    1px solid var(--bubble-border);
+
+  border-radius: 999px;
+
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.06);
+
+  box-sizing: border-box;
+
+  font: inherit;
+
+  cursor: pointer;
+
+  touch-action: manipulation;
+
+  -webkit-tap-highlight-color:
+    transparent;
+
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.reactionChip:hover:not(:disabled) {
+  color:
+    var(--bubble-text);
+
+  background:
+    var(--bubble-soft);
+
+  transform:
+    translateY(-1px);
+
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.09);
+}
+
+.reactionChip:active:not(:disabled) {
+  transform:
+    scale(0.93);
+}
+
+.reactionChip:focus-visible {
+  outline:
+    2px solid var(--bubble-primary);
+
+  outline-offset: 2px;
+}
+
+.reactionChip:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.reactionChipSelected {
+  color:
+    var(--bubble-primary);
 
   background:
     color-mix(in srgb,
-      currentColor 10%,
+      var(--bubble-primary) 12%,
+      var(--bubble-surface));
+
+  border-color:
+    color-mix(in srgb,
+      var(--bubble-primary) 48%,
       transparent);
 
-  border-left: 3px solid currentColor;
-  border-radius: 8px;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb,
+      var(--bubble-primary) 7%,
+      transparent);
 }
 
-.replySender {
-  display: block;
-
-  margin-bottom: 3px;
-
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.replyContent {
-  display: flex;
+.reactionEmoji {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
 
-  min-width: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI Emoji",
+    "Apple Color Emoji",
+    sans-serif;
+
+  font-size: 15px;
+  line-height: 1;
 }
 
-.replyIcon {
-  flex: 0 0 auto;
+.reactionCount {
+  min-width: 8px;
+
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+
+  text-align: center;
 }
 
-.replyText {
-  min-width: 0;
+/* =========================
+   REACTION ERROR
+========================= */
+
+.reactionError {
+  align-self: center;
+
+  max-width: 260px;
+
+  margin-top: 4px;
+  padding:
+    5px 9px;
 
   overflow: hidden;
 
-  font-size: 12px;
-  line-height: 1.3;
+  color:
+    var(--bubble-danger);
 
+  background:
+    color-mix(in srgb,
+      var(--bubble-danger) 9%,
+      transparent);
+
+  border:
+    1px solid color-mix(in srgb,
+      var(--bubble-danger) 18%,
+      transparent);
+
+  border-radius: 8px;
+
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* =========================
+   TABLET
+========================= */
+
+@media (max-width: 1024px) {
+  .messageGroup {
+    max-width: 76%;
+  }
 }
 
 /* =========================
@@ -275,33 +604,88 @@
 
 @media (max-width: 768px) {
   .messageGroup {
-    max-width: 86%;
+    max-width: 84%;
+
+    -webkit-touch-callout:
+      none;
   }
 
   .bubble {
-    min-width: 68px;
-    padding: 8px 10px 5px;
+    min-width: 78px;
 
-    border-radius: 17px;
+    padding:
+      9px 10px 6px;
   }
 
   .ownBubble {
-    border-bottom-right-radius: 6px;
+    border-radius:
+      17px 17px 5px 17px;
   }
 
   .otherBubble {
-    border-bottom-left-radius: 6px;
+    border-radius:
+      17px 17px 17px 5px;
   }
 
   .text {
-    font-size: 15px;
+    font-size: 13.5px;
+    line-height: 1.46;
+  }
+
+  .image {
+    max-width: 290px;
+    max-height: 360px;
+
+    border-radius: 12px;
+  }
+
+  .replyPreview {
+    padding:
+      7px 9px;
+
+    border-radius: 8px;
+  }
+
+  .meta {
+    margin-top: 3px;
   }
 
   .moreButton {
-    width: 24px;
-    height: 24px;
+    width: 27px;
+    height: 27px;
+  }
 
-    opacity: 0.78;
+  .reactionSummary {
+    gap: 4px;
+    margin-top: 3px;
+  }
+
+  .ownReactions {
+    margin-right: 2px;
+  }
+
+  .otherReactions {
+    margin-left: 2px;
+  }
+
+  .reactionChip {
+    min-width: 36px;
+    height: 26px;
+
+    padding-inline: 7px;
+  }
+
+  .reactionEmoji {
+    font-size: 14px;
+  }
+
+  .reactionCount {
+    font-size: 10px;
+  }
+
+  .reactionError {
+    max-width:
+      calc(100vw - 80px);
   }
 }
 
@@ -314,8 +698,21 @@
     max-width: 88%;
   }
 
+  .bubble {
+    padding:
+      8px 9px 5px;
+  }
+
   .image {
-    max-width: 250px;
+    max-width: 260px;
+    max-height: 330px;
+  }
+
+  .reactionChip {
+    min-width: 34px;
+    height: 25px;
+
+    padding-inline: 6px;
   }
 }
 
@@ -323,17 +720,19 @@
    ANIMATION
 ========================= */
 
-@keyframes bubbleIn {
+@keyframes bubbleAppear {
   from {
     opacity: 0;
 
     transform:
-      translateY(6px) scale(0.98);
+      translateY(5px) scale(0.985);
   }
 
   to {
     opacity: 1;
-    transform: none;
+
+    transform:
+      translateY(0) scale(1);
   }
 }
 
@@ -343,9 +742,18 @@
 
 @media (prefers-reduced-motion: reduce) {
 
-  .bubble,
-  .moreButton {
+  .messageGroup,
+  .moreButton,
+  .reactionChip {
     animation: none;
     transition: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+
+  .bubble,
+  .reactionChip {
+    border-width: 2px;
   }
 }

@@ -19,7 +19,56 @@ import MessageActionsMenu from "./MessageActionsMenu";
 
 import {
   deleteMessage,
+  toggleMessageReaction,
 } from "../../services/chatService";
+
+const ALLOWED_REACTIONS = [
+  "❤️",
+  "😂",
+  "😮",
+  "😢",
+  "👍",
+  "🔥",
+];
+
+const normalizeId = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "object") {
+    return String(
+      value?._id ||
+      value?.id ||
+      value?.userId ||
+      ""
+    );
+  }
+
+  return String(value);
+};
+
+const getStoredUserId = () => {
+  try {
+    const storedUser =
+      localStorage.getItem("user");
+
+    if (!storedUser) {
+      return "";
+    }
+
+    return normalizeId(
+      JSON.parse(storedUser)
+    );
+  } catch (error) {
+    console.error(
+      "Unable to read current user:",
+      error
+    );
+
+    return "";
+  }
+};
 
 const formatTime = (dateValue) => {
   const date = new Date(dateValue);
@@ -34,27 +83,80 @@ const formatTime = (dateValue) => {
   });
 };
 
+const getSafeReactions = (
+  reactions
+) =>
+  Array.isArray(reactions)
+    ? reactions.filter(
+      (reaction) =>
+        reaction?.emoji &&
+        ALLOWED_REACTIONS.includes(
+          reaction.emoji
+        )
+    )
+    : [];
+
 const MessageBubble = ({
   message,
   isOwn,
   onReply,
 }) => {
-  const [showActions, setShowActions] =
-    useState(false);
+  const [
+    showActions,
+    setShowActions,
+  ] = useState(false);
 
   const [
     showDeleteModal,
     setShowDeleteModal,
   ] = useState(false);
 
-  const [isDeleted, setIsDeleted] =
-    useState(false);
+  const [
+    isDeleted,
+    setIsDeleted,
+  ] = useState(false);
 
-  const [deleteError, setDeleteError] =
-    useState("");
+  const [
+    deleteError,
+    setDeleteError,
+  ] = useState("");
 
-  const pressTimerRef = useRef(null);
-  const optionsButtonRef = useRef(null);
+  const [
+    localReactions,
+    setLocalReactions,
+  ] = useState(() =>
+    getSafeReactions(
+      message?.reactions
+    )
+  );
+
+  const [
+    reactionLoading,
+    setReactionLoading,
+  ] = useState(false);
+
+  const [
+    reactionError,
+    setReactionError,
+  ] = useState("");
+
+  const pressTimerRef =
+    useRef(null);
+
+  const optionsButtonRef =
+    useRef(null);
+
+  const reactionRequestRef =
+    useRef(false);
+
+  const reactionErrorTimerRef =
+    useRef(null);
+
+  const mountedRef =
+    useRef(true);
+
+  const currentUserId =
+    getStoredUserId();
 
   const time = formatTime(
     message?.createdAt
@@ -80,6 +182,68 @@ const MessageBubble = ({
       "temp-"
     );
 
+  const selectedReaction =
+    localReactions.find(
+      (reaction) =>
+        normalizeId(
+          reaction?.user
+        ) === currentUserId
+    )?.emoji || "";
+
+  const reactionGroups =
+    ALLOWED_REACTIONS.map(
+      (emoji) => {
+        const matchingReactions =
+          localReactions.filter(
+            (reaction) =>
+              reaction?.emoji ===
+              emoji
+          );
+
+        return {
+          emoji,
+          count:
+            matchingReactions.length,
+
+          selected:
+            matchingReactions.some(
+              (reaction) =>
+                normalizeId(
+                  reaction?.user
+                ) ===
+                currentUserId
+            ),
+        };
+      }
+    ).filter(
+      (group) => group.count > 0
+    );
+
+  /* =========================
+     SYNC SERVER REACTIONS
+  ========================= */
+
+  useEffect(() => {
+    if (
+      reactionRequestRef.current
+    ) {
+      return;
+    }
+
+    setLocalReactions(
+      getSafeReactions(
+        message?.reactions
+      )
+    );
+  }, [
+    message?._id,
+    message?.reactions,
+  ]);
+
+  /* =========================
+     REPLY
+  ========================= */
+
   const handleReply = () => {
     if (
       !canUseActions ||
@@ -89,8 +253,178 @@ const MessageBubble = ({
     }
 
     setShowActions(false);
+
     onReply(message);
   };
+
+  /* =========================
+     REACTION
+  ========================= */
+
+  const handleReaction = async (
+    emoji
+  ) => {
+    const safeEmoji =
+      String(emoji || "").trim();
+
+    if (
+      !canUseActions ||
+      !currentUserId ||
+      !ALLOWED_REACTIONS.includes(
+        safeEmoji
+      ) ||
+      reactionRequestRef.current
+    ) {
+      return;
+    }
+
+    const previousReactions = [
+      ...localReactions,
+    ];
+
+    const existingReaction =
+      previousReactions.find(
+        (reaction) =>
+          normalizeId(
+            reaction?.user
+          ) === currentUserId
+      );
+
+    let optimisticReactions;
+
+    /*
+     * Same emoji click:
+     * remove reaction.
+     */
+    if (
+      existingReaction?.emoji ===
+      safeEmoji
+    ) {
+      optimisticReactions =
+        previousReactions.filter(
+          (reaction) =>
+            normalizeId(
+              reaction?.user
+            ) !== currentUserId
+        );
+    } else {
+      /*
+       * New reaction or replace
+       * previous reaction.
+       */
+      optimisticReactions = [
+        ...previousReactions.filter(
+          (reaction) =>
+            normalizeId(
+              reaction?.user
+            ) !== currentUserId
+        ),
+
+        {
+          user: {
+            _id: currentUserId,
+          },
+
+          emoji: safeEmoji,
+
+          createdAt:
+            new Date().toISOString(),
+        },
+      ];
+    }
+
+    reactionRequestRef.current =
+      true;
+
+    setReactionLoading(true);
+    setReactionError("");
+
+    /*
+     * Immediate optimistic UI.
+     */
+    setLocalReactions(
+      optimisticReactions
+    );
+
+    try {
+      const response =
+        await toggleMessageReaction(
+          message._id,
+          safeEmoji
+        );
+
+      const serverReactions =
+        response?.data?.data
+          ?.reactions;
+
+      if (
+        mountedRef.current &&
+        Array.isArray(
+          serverReactions
+        )
+      ) {
+        setLocalReactions(
+          getSafeReactions(
+            serverReactions
+          )
+        );
+      }
+    } catch (error) {
+      console.error(
+        "MESSAGE REACTION ERROR:",
+        error.response?.data ||
+        error.message
+      );
+
+      if (!mountedRef.current) {
+        return;
+      }
+
+      /*
+       * API failure:
+       * optimistic reaction rollback.
+       */
+      setLocalReactions(
+        previousReactions
+      );
+
+      setReactionError(
+        error.response?.data
+          ?.message ||
+        error.userMessage ||
+        "Unable to update reaction"
+      );
+
+      if (
+        reactionErrorTimerRef.current
+      ) {
+        window.clearTimeout(
+          reactionErrorTimerRef.current
+        );
+      }
+
+      reactionErrorTimerRef.current =
+        window.setTimeout(() => {
+          if (mountedRef.current) {
+            setReactionError("");
+          }
+
+          reactionErrorTimerRef.current =
+            null;
+        }, 3000);
+    } finally {
+      reactionRequestRef.current =
+        false;
+
+      if (mountedRef.current) {
+        setReactionLoading(false);
+      }
+    }
+  };
+
+  /* =========================
+     DELETE
+  ========================= */
 
   const handleDelete = () => {
     if (
@@ -114,7 +448,9 @@ const MessageBubble = ({
     setShowActions(false);
     setDeleteError("");
 
-    // Instant optimistic UI removal
+    /*
+     * Immediate optimistic removal.
+     */
     setIsDeleted(true);
 
     deleteMessage(message._id).catch(
@@ -125,11 +461,18 @@ const MessageBubble = ({
           error.message
         );
 
-        // Restore message when API fails
+        if (!mountedRef.current) {
+          return;
+        }
+
+        /*
+         * API fail ayithe message restore.
+         */
         setIsDeleted(false);
 
         setDeleteError(
-          error.response?.data?.message ||
+          error.response?.data
+            ?.message ||
           error.userMessage ||
           "Unable to delete this message. Please try again."
         );
@@ -143,6 +486,10 @@ const MessageBubble = ({
     setShowDeleteModal(false);
     setDeleteError("");
   };
+
+  /* =========================
+     LONG PRESS
+  ========================= */
 
   const startLongPress = () => {
     if (!canUseActions) {
@@ -158,7 +505,9 @@ const MessageBubble = ({
     pressTimerRef.current =
       window.setTimeout(() => {
         setShowActions(true);
-        pressTimerRef.current = null;
+
+        pressTimerRef.current =
+          null;
       }, 450);
   };
 
@@ -171,7 +520,8 @@ const MessageBubble = ({
       pressTimerRef.current
     );
 
-    pressTimerRef.current = null;
+    pressTimerRef.current =
+      null;
   };
 
   const handleContextMenu = (
@@ -199,13 +549,34 @@ const MessageBubble = ({
     );
   };
 
+  const stopReactionPropagation = (
+    event
+  ) => {
+    event.stopPropagation();
+    cancelLongPress();
+  };
+
+  /* =========================
+     CLEANUP
+  ========================= */
+
   useEffect(() => {
+    mountedRef.current = true;
+
     return () => {
-      if (
-        pressTimerRef.current
-      ) {
+      mountedRef.current = false;
+
+      if (pressTimerRef.current) {
         window.clearTimeout(
           pressTimerRef.current
+        );
+      }
+
+      if (
+        reactionErrorTimerRef.current
+      ) {
+        window.clearTimeout(
+          reactionErrorTimerRef.current
         );
       }
     };
@@ -269,14 +640,16 @@ const MessageBubble = ({
                     styles.replyContent
                   }
                 >
-                  {repliedMessage?.image && (
-                    <ImageIcon
-                      size={13}
-                      className={
-                        styles.replyIcon
-                      }
-                    />
-                  )}
+                  {repliedMessage
+                    ?.image && (
+                      <ImageIcon
+                        size={13}
+                        className={
+                          styles.replyIcon
+                        }
+                        aria-hidden="true"
+                      />
+                    )}
 
                   <span
                     className={
@@ -329,11 +702,16 @@ const MessageBubble = ({
                   className={
                     styles.status
                   }
+                  aria-label={
+                    message?.status ||
+                    "sent"
+                  }
                 >
                   {message?.status ===
                     "sending" && (
                       <Clock3
                         size={14}
+                        aria-hidden="true"
                       />
                     )}
 
@@ -341,6 +719,7 @@ const MessageBubble = ({
                     "sent" && (
                       <Check
                         size={14}
+                        aria-hidden="true"
                       />
                     )}
 
@@ -348,6 +727,7 @@ const MessageBubble = ({
                     "delivered" && (
                       <CheckCheck
                         size={14}
+                        aria-hidden="true"
                       />
                     )}
 
@@ -372,6 +752,7 @@ const MessageBubble = ({
                   ) && (
                       <Check
                         size={14}
+                        aria-hidden="true"
                       />
                     )}
                 </span>
@@ -416,10 +797,100 @@ const MessageBubble = ({
               >
                 <MoreVertical
                   size={16}
+                  aria-hidden="true"
                 />
               </button>
             </div>
           </div>
+
+          {reactionGroups.length >
+            0 && (
+              <div
+                className={`${styles.reactionSummary} ${isOwn
+                    ? styles.ownReactions
+                    : styles.otherReactions
+                  }`}
+                aria-label="Message reactions"
+                aria-busy={
+                  reactionLoading
+                }
+                onPointerDown={
+                  stopReactionPropagation
+                }
+                onTouchStart={
+                  stopReactionPropagation
+                }
+                onTouchEnd={
+                  stopReactionPropagation
+                }
+                onContextMenu={(
+                  event
+                ) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+              >
+                {reactionGroups.map(
+                  ({
+                    emoji,
+                    count,
+                    selected,
+                  }) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className={`${styles.reactionChip} ${selected
+                          ? styles.reactionChipSelected
+                          : ""
+                        }`}
+                      onClick={() =>
+                        handleReaction(
+                          emoji
+                        )
+                      }
+                      disabled={
+                        reactionLoading
+                      }
+                      aria-label={`${emoji} reaction, ${count} ${count === 1
+                          ? "person"
+                          : "people"
+                        }`}
+                      aria-pressed={
+                        selected
+                      }
+                    >
+                      <span
+                        className={
+                          styles.reactionEmoji
+                        }
+                        aria-hidden="true"
+                      >
+                        {emoji}
+                      </span>
+
+                      <span
+                        className={
+                          styles.reactionCount
+                        }
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+
+          {reactionError && (
+            <span
+              className={
+                styles.reactionError
+              }
+              role="status"
+            >
+              {reactionError}
+            </span>
+          )}
 
           <MessageActionsMenu
             open={showActions}
@@ -433,6 +904,9 @@ const MessageBubble = ({
                 ? "Photo"
                 : "Message")
             }
+            selectedReaction={
+              selectedReaction
+            }
             onClose={() =>
               setShowActions(false)
             }
@@ -441,6 +915,9 @@ const MessageBubble = ({
             }
             onDelete={
               handleDelete
+            }
+            onReact={
+              handleReaction
             }
           />
         </div>

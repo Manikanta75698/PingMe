@@ -663,6 +663,68 @@ export const ChatProvider = ({
     };
   }, []);
 
+
+  /* =========================
+   MESSAGE REACTIONS
+========================= */
+
+  useEffect(() => {
+    const handleReactionUpdate = (
+      payload = {}
+    ) => {
+      const messageId =
+        normalizeId(
+          payload?.messageId
+        );
+
+      const reactions =
+        Array.isArray(
+          payload?.reactions
+        )
+          ? payload.reactions
+          : [];
+
+      if (!messageId) {
+        return;
+      }
+
+      console.log(
+        "MESSAGE REACTION UPDATED:",
+        messageId,
+        reactions
+      );
+
+      setMessages((previous) =>
+        previous.map((message) => {
+          if (
+            normalizeId(
+              message?._id
+            ) !== messageId
+          ) {
+            return message;
+          }
+
+          return {
+            ...message,
+            reactions,
+          };
+        })
+      );
+    };
+
+    socket.on(
+      "messageReactionUpdated",
+      handleReactionUpdate
+    );
+
+    return () => {
+      socket.off(
+        "messageReactionUpdated",
+        handleReactionUpdate
+      );
+    };
+  }, []);
+
   /* =========================
      MESSAGE STATUS
   ========================= */

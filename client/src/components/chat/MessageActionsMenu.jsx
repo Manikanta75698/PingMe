@@ -5,174 +5,208 @@ import {
   useState,
 } from "react";
 
-import { createPortal } from "react-dom";
+import {
+  createPortal,
+} from "react-dom";
 
 import {
   Reply,
   Trash2,
-  X,
 } from "lucide-react";
 
 import styles from "./MessageActionsMenu.module.css";
 
+const REACTIONS = [
+  "❤️",
+  "😂",
+  "😮",
+  "😢",
+  "👍",
+  "🔥",
+];
+
 const MOBILE_QUERY =
   "(max-width: 768px)";
 
-const clamp = (
-  value,
-  minimum,
-  maximum
-) =>
-  Math.min(
-    Math.max(value, minimum),
-    maximum
-  );
+const VIEWPORT_GAP = 10;
+const MENU_GAP = 8;
 
 const MessageActionsMenu = ({
   open,
   anchorRef,
-  isOwn,
-  preview,
+  isOwn = false,
+  preview = "Message",
+  selectedReaction = "",
   onClose,
   onReply,
   onDelete,
+  onReact,
 }) => {
   const menuRef = useRef(null);
-  const firstActionRef = useRef(null);
+  const firstReactionRef =
+    useRef(null);
 
-  const [isMobile, setIsMobile] =
-    useState(false);
+  const [
+    isMobile,
+    setIsMobile,
+  ] = useState(() => {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return false;
+    }
 
-  const [position, setPosition] =
-    useState({
-      top: 0,
-      left: 0,
-      ready: false,
-    });
+    return window.matchMedia(
+      MOBILE_QUERY
+    ).matches;
+  });
 
-  /*
-   * Desktop / mobile layout detection.
-   */
+  const [
+    position,
+    setPosition,
+  ] = useState({
+    top: 0,
+    left: 0,
+    placement: "below",
+    ready: false,
+  });
+
+  /* =========================
+     MOBILE DETECTION
+  ========================= */
+
   useEffect(() => {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return undefined;
+    }
+
     const mediaQuery =
       window.matchMedia(
         MOBILE_QUERY
       );
 
-    const updateDeviceMode = () => {
+    const handleChange = (
+      event
+    ) => {
       setIsMobile(
-        mediaQuery.matches
+        event.matches
       );
     };
 
-    updateDeviceMode();
+    setIsMobile(
+      mediaQuery.matches
+    );
 
     mediaQuery.addEventListener(
       "change",
-      updateDeviceMode
+      handleChange
     );
 
     return () => {
       mediaQuery.removeEventListener(
         "change",
-        updateDeviceMode
+        handleChange
       );
     };
   }, []);
 
-  /*
-   * Desktop menu placement.
-   * Viewport space batti menu paina
-   * లేదా kinda automatic ga place avutundi.
-   */
+  /* =========================
+     DESKTOP POSITION
+  ========================= */
+
   useLayoutEffect(() => {
     if (
       !open ||
       isMobile ||
-      !anchorRef?.current
+      typeof window ===
+      "undefined"
     ) {
       return undefined;
     }
 
     const updatePosition = () => {
       const anchor =
-        anchorRef.current
-          ?.getBoundingClientRect();
+        anchorRef?.current;
 
       const menu =
-        menuRef.current
-          ?.getBoundingClientRect();
+        menuRef.current;
 
-      if (!anchor) {
+      if (!anchor || !menu) {
         return;
       }
 
-      const viewportPadding = 12;
-      const menuGap = 8;
+      const anchorRect =
+        anchor.getBoundingClientRect();
 
-      const menuWidth =
-        menu?.width || 188;
+      const menuRect =
+        menu.getBoundingClientRect();
 
-      const menuHeight =
-        menu?.height || 108;
+      const viewportWidth =
+        window.innerWidth;
 
-      let left = isOwn
-        ? anchor.right - menuWidth
-        : anchor.left;
+      const viewportHeight =
+        window.innerHeight;
 
-      left = clamp(
-        left,
-        viewportPadding,
-        window.innerWidth -
-        menuWidth -
-        viewportPadding
+      const spaceBelow =
+        viewportHeight -
+        anchorRect.bottom;
+
+      const shouldPlaceAbove =
+        spaceBelow <
+        menuRect.height +
+        MENU_GAP &&
+        anchorRect.top >
+        menuRect.height +
+        MENU_GAP;
+
+      const rawTop =
+        shouldPlaceAbove
+          ? anchorRect.top -
+          menuRect.height -
+          MENU_GAP
+          : anchorRect.bottom +
+          MENU_GAP;
+
+      const rawLeft =
+        anchorRect.right -
+        menuRect.width;
+
+      const top = Math.min(
+        Math.max(
+          rawTop,
+          VIEWPORT_GAP
+        ),
+        viewportHeight -
+        menuRect.height -
+        VIEWPORT_GAP
       );
 
-      const availableAbove =
-        anchor.top -
-        viewportPadding;
-
-      const availableBelow =
-        window.innerHeight -
-        anchor.bottom -
-        viewportPadding;
-
-      let top;
-
-      if (
-        availableAbove >=
-        menuHeight + menuGap ||
-        availableAbove >
-        availableBelow
-      ) {
-        top =
-          anchor.top -
-          menuHeight -
-          menuGap;
-      } else {
-        top =
-          anchor.bottom +
-          menuGap;
-      }
-
-      top = clamp(
-        top,
-        viewportPadding,
-        window.innerHeight -
-        menuHeight -
-        viewportPadding
+      const left = Math.min(
+        Math.max(
+          rawLeft,
+          VIEWPORT_GAP
+        ),
+        viewportWidth -
+        menuRect.width -
+        VIEWPORT_GAP
       );
 
       setPosition({
         top,
         left,
+        placement:
+          shouldPlaceAbove
+            ? "above"
+            : "below",
         ready: true,
       });
     };
 
-    updatePosition();
-
-    const animationFrame =
+    const frameId =
       window.requestAnimationFrame(
         updatePosition
       );
@@ -190,7 +224,7 @@ const MessageActionsMenu = ({
 
     return () => {
       window.cancelAnimationFrame(
-        animationFrame
+        frameId
       );
 
       window.removeEventListener(
@@ -207,24 +241,30 @@ const MessageActionsMenu = ({
   }, [
     open,
     isMobile,
-    isOwn,
     anchorRef,
   ]);
 
-  /*
-   * Keyboard accessibility.
-   */
+  /* =========================
+     ESCAPE + FOCUS
+  ========================= */
+
   useEffect(() => {
     if (!open) {
       return undefined;
     }
 
+    const previousFocusedElement =
+      document.activeElement;
+
     const handleKeyDown = (
       event
     ) => {
-      if (event.key === "Escape") {
+      if (
+        event.key ===
+        "Escape"
+      ) {
         event.preventDefault();
-        onClose();
+        onClose?.();
       }
     };
 
@@ -235,8 +275,9 @@ const MessageActionsMenu = ({
 
     const focusTimer =
       window.setTimeout(() => {
-        firstActionRef.current?.focus();
-      }, 40);
+        firstReactionRef.current
+          ?.focus();
+      }, 0);
 
     return () => {
       window.clearTimeout(
@@ -247,20 +288,31 @@ const MessageActionsMenu = ({
         "keydown",
         handleKeyDown
       );
+
+      if (
+        previousFocusedElement
+        instanceof HTMLElement
+      ) {
+        previousFocusedElement.focus();
+      }
     };
   }, [open, onClose]);
 
-  /*
-   * Mobile sheet open unnappudu
-   * background scroll lock.
-   */
+  /* =========================
+     MOBILE SCROLL LOCK
+  ========================= */
+
   useEffect(() => {
-    if (!open || !isMobile) {
+    if (
+      !open ||
+      !isMobile
+    ) {
       return undefined;
     }
 
     const previousOverflow =
-      document.body.style.overflow;
+      document.body.style
+        .overflow;
 
     document.body.style.overflow =
       "hidden";
@@ -269,86 +321,186 @@ const MessageActionsMenu = ({
       document.body.style.overflow =
         previousOverflow;
     };
-  }, [open, isMobile]);
+  }, [
+    open,
+    isMobile,
+  ]);
 
   if (
     !open ||
-    typeof document === "undefined"
+    typeof document ===
+    "undefined"
   ) {
     return null;
   }
 
-  const menuStyle = isMobile
-    ? undefined
-    : {
-      top: `${position.top}px`,
-      left: `${position.left}px`,
-      visibility: position.ready
-        ? "visible"
-        : "hidden",
-    };
+  const handleBackdropClick = (
+    event
+  ) => {
+    if (
+      event.target ===
+      event.currentTarget
+    ) {
+      onClose?.();
+    }
+  };
 
-  const menu = (
-    <>
-      <button
-        type="button"
-        className={
-          styles.backdrop
-        }
-        onClick={onClose}
-        aria-label="Close message actions"
-        tabIndex={-1}
-      />
+  const handleReaction = (
+    emoji
+  ) => {
+    onReact?.(emoji);
+    onClose?.();
+  };
 
+  const handleReply = () => {
+    onReply?.();
+    onClose?.();
+  };
+
+  const handleDelete = () => {
+    onDelete?.();
+    onClose?.();
+  };
+
+  const menuStyle =
+    isMobile
+      ? undefined
+      : {
+        top: `${position.top}px`,
+        left: `${position.left}px`,
+        visibility:
+          position.ready
+            ? "visible"
+            : "hidden",
+      };
+
+  return createPortal(
+    <div
+      className={`${styles.backdrop} ${isMobile
+          ? styles.mobileBackdrop
+          : styles.desktopBackdrop
+        }`}
+      onMouseDown={
+        handleBackdropClick
+      }
+      onTouchStart={
+        handleBackdropClick
+      }
+      role="presentation"
+    >
       <div
         ref={menuRef}
         className={`${styles.menu} ${isMobile
-            ? styles.mobileSheet
-            : styles.desktopPopover
+            ? styles.mobileMenu
+            : styles.desktopMenu
+          } ${position.placement ===
+            "above"
+            ? styles.above
+            : styles.below
           }`}
         style={menuStyle}
         role="menu"
         aria-label="Message actions"
-        onPointerDown={(event) => {
-          event.stopPropagation();
-        }}
+        onMouseDown={(event) =>
+          event.stopPropagation()
+        }
+        onTouchStart={(event) =>
+          event.stopPropagation()
+        }
       >
         <div
           className={
-            styles.mobileHeader
+            styles.preview
           }
         >
-          <div
+          <span
             className={
-              styles.dragHandle
-            }
-          />
-
-          <div
-            className={
-              styles.headerRow
+              styles.previewLabel
             }
           >
-            <div>
-              <h3>Message actions</h3>
+            Message
+          </span>
 
-              {preview && (
-                <p>{preview}</p>
-              )}
-            </div>
+          <p
+            className={
+              styles.previewText
+            }
+          >
+            {preview}
+          </p>
+        </div>
 
-            <button
-              type="button"
-              className={
-                styles.closeButton
+        <div
+          className={
+            styles.reactionSection
+          }
+        >
+          <span
+            className={
+              styles.reactionLabel
+            }
+          >
+            React
+          </span>
+
+          <div
+            className={
+              styles.reactionRow
+            }
+            role="group"
+            aria-label="Choose a reaction"
+          >
+            {REACTIONS.map(
+              (emoji, index) => {
+                const isSelected =
+                  selectedReaction ===
+                  emoji;
+
+                return (
+                  <button
+                    key={emoji}
+                    ref={
+                      index === 0
+                        ? firstReactionRef
+                        : undefined
+                    }
+                    type="button"
+                    className={`${styles.reactionButton} ${isSelected
+                        ? styles.selectedReaction
+                        : ""
+                      }`}
+                    onClick={() =>
+                      handleReaction(
+                        emoji
+                      )
+                    }
+                    aria-label={
+                      isSelected
+                        ? `Remove ${emoji} reaction`
+                        : `React with ${emoji}`
+                    }
+                    aria-pressed={
+                      isSelected
+                    }
+                    role="menuitem"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      {emoji}
+                    </span>
+                  </button>
+                );
               }
-              onClick={onClose}
-              aria-label="Close"
-            >
-              <X size={19} />
-            </button>
+            )}
           </div>
         </div>
+
+        <div
+          className={
+            styles.divider
+          }
+        />
 
         <div
           className={
@@ -356,78 +508,43 @@ const MessageActionsMenu = ({
           }
         >
           <button
-            ref={firstActionRef}
             type="button"
             className={
               styles.actionButton
             }
+            onClick={
+              handleReply
+            }
             role="menuitem"
-            onClick={() => {
-              onReply();
-              onClose();
-            }}
           >
-            <span
-              className={
-                styles.actionIcon
-              }
-            >
-              <Reply size={19} />
-            </span>
+            <Reply
+              size={19}
+              aria-hidden="true"
+            />
 
-            <span
-              className={
-                styles.actionContent
-              }
-            >
-              <strong>Reply</strong>
-
-              <small>
-                Reply to this message
-              </small>
-            </span>
+            <span>Reply</span>
           </button>
 
           {isOwn && (
             <button
               type="button"
-              className={`${styles.actionButton} ${styles.dangerAction}`}
+              className={`${styles.actionButton} ${styles.deleteButton}`}
+              onClick={
+                handleDelete
+              }
               role="menuitem"
-              onClick={() => {
-                onDelete();
-                onClose();
-              }}
             >
-              <span
-                className={
-                  styles.actionIcon
-                }
-              >
-                <Trash2 size={19} />
-              </span>
+              <Trash2
+                size={19}
+                aria-hidden="true"
+              />
 
-              <span
-                className={
-                  styles.actionContent
-                }
-              >
-                <strong>
-                  Delete
-                </strong>
-
-                <small>
-                  Delete this message
-                </small>
-              </span>
+              <span>Delete</span>
             </button>
           )}
         </div>
       </div>
-    </>
-  );
-
-  return createPortal(
-    menu,
+    </div>,
     document.body
   );
 };

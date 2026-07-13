@@ -1,4 +1,5 @@
 const express = require("express");
+
 const router = express.Router();
 
 const {
@@ -13,8 +14,13 @@ const {
   sendMessage,
   getMessages,
   getChatSummaries,
+  toggleReaction,
   deleteMessage,
 } = require("../controllers/messageController");
+
+/* =========================
+   SEND MESSAGE
+========================= */
 
 router.post(
   "/send",
@@ -23,17 +29,39 @@ router.post(
   sendMessage
 );
 
+/* =========================
+   CHAT SUMMARIES
+========================= */
+
 router.get(
   "/summaries",
   protect,
   getChatSummaries
 );
 
+/* =========================
+   MESSAGE REACTION
+========================= */
+
+router.patch(
+  "/:messageId/reaction",
+  protect,
+  toggleReaction
+);
+
+/* =========================
+   DELETE MESSAGE
+========================= */
+
 router.delete(
   "/:messageId",
   protect,
   deleteMessage
 );
+
+/* =========================
+   GET CONVERSATION
+========================= */
 
 router.get(
   "/conversation/:userId",

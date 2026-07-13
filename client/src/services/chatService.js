@@ -1,5 +1,12 @@
 import api from "./api";
 
+const normalizeId = (value) =>
+  String(value || "").trim();
+
+/* =========================
+   GET CONVERSATION
+========================= */
+
 export const getConversation = (
   userId,
   {
@@ -7,8 +14,30 @@ export const getConversation = (
     before = null,
   } = {}
 ) => {
+  const safeUserId =
+    normalizeId(userId);
+
+  if (!safeUserId) {
+    throw new Error(
+      "User ID is required"
+    );
+  }
+
+  const parsedLimit =
+    Number.parseInt(limit, 10);
+
+  const safeLimit = Math.min(
+    Math.max(
+      Number.isNaN(parsedLimit)
+        ? 30
+        : parsedLimit,
+      1
+    ),
+    50
+  );
+
   const params = {
-    limit,
+    limit: safeLimit,
   };
 
   if (before) {
@@ -16,22 +45,94 @@ export const getConversation = (
   }
 
   return api.get(
-    `/messages/conversation/${userId}`,
+    `/messages/conversation/${safeUserId}`,
     {
       params,
     }
   );
 };
 
-export const sendMessage = (data) =>
-  api.post("/messages/send", data);
+/* =========================
+   SEND MESSAGE
+========================= */
 
-export const getChatSummaries = () =>
-  api.get("/messages/summaries");
+export const sendMessage = (
+  data
+) => {
+  if (!data) {
+    throw new Error(
+      "Message data is required"
+    );
+  }
+
+  return api.post(
+    "/messages/send",
+    data
+  );
+};
+
+/* =========================
+   CHAT SUMMARIES
+========================= */
+
+export const getChatSummaries =
+  () =>
+    api.get(
+      "/messages/summaries"
+    );
+
+/* =========================
+   TOGGLE MESSAGE REACTION
+========================= */
+
+export const toggleMessageReaction =
+  (
+    messageId,
+    emoji
+  ) => {
+    const safeMessageId =
+      normalizeId(messageId);
+
+    const safeEmoji =
+      String(emoji || "").trim();
+
+    if (!safeMessageId) {
+      throw new Error(
+        "Message ID is required"
+      );
+    }
+
+    if (!safeEmoji) {
+      throw new Error(
+        "Reaction emoji is required"
+      );
+    }
+
+    return api.patch(
+      `/messages/${safeMessageId}/reaction`,
+      {
+        emoji: safeEmoji,
+      }
+    );
+  };
+
+/* =========================
+   DELETE MESSAGE
+========================= */
 
 export const deleteMessage = (
   messageId
-) =>
-  api.delete(
-    `/messages/${messageId}`
+) => {
+  const safeMessageId =
+    normalizeId(messageId);
+
+  if (!safeMessageId) {
+    throw new Error(
+      "Message ID is required"
+    );
+  }
+
+  return api.delete(
+    `/messages/${safeMessageId}`
   );
+};
