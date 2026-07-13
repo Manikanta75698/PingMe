@@ -28,3 +28,10 @@ export const sendMessage = (data) =>
 
 export const getChatSummaries = () =>
   api.get("/messages/summaries");
+
+export const deleteMessage = (
+  messageId
+) =>
+  api.delete(
+    `/messages/${messageId}`
+  );

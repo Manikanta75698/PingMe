@@ -582,14 +582,14 @@ export const ChatProvider = ({
   ========================= */
 
   useEffect(() => {
-    const handleDelete = (
-      messageId
-    ) => {
+    const handleDelete = ({
+      messageId,
+    }) => {
       setMessages((previous) =>
         previous.filter(
           (message) =>
-            message?._id !==
-            messageId
+            String(message?._id) !==
+            String(messageId)
         )
       );
 

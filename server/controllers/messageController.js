@@ -273,6 +273,79 @@ const getMessages = async (req, res) => {
   }
 };
 
+const deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+
+    const currentUserId = String(
+      req.user._id
+    );
+
+    const message =
+      await Message.findOne({
+        _id: messageId,
+        sender: currentUserId,
+      });
+
+    if (!message) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Message not found or you cannot delete it",
+      });
+    }
+
+    const receiverId = String(
+      message.receiver
+    );
+
+    await Message.deleteOne({
+      _id: message._id,
+    });
+
+    const io = getIO();
+
+    const deletePayload = {
+      messageId: String(
+        message._id
+      ),
+    };
+
+    // Receiver screen lo immediate remove
+    io.to(receiverId).emit(
+      "messageDeleted",
+      deletePayload
+    );
+
+    // Sender vere tab/device lo open unte
+    io.to(currentUserId).emit(
+      "messageDeleted",
+      deletePayload
+    );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Message deleted successfully",
+      messageId: String(
+        message._id
+      ),
+    });
+  } catch (error) {
+    console.error(
+      "DELETE MESSAGE ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message ||
+        "Unable to delete message",
+    });
+  }
+};
+
 const getChatSummaries = async (req, res) => {
   try {
     const currentUserId = String(req.user._id);
@@ -377,5 +450,6 @@ const getChatSummaries = async (req, res) => {
 module.exports = {
   sendMessage,
   getMessages,
+  deleteMessage,
   getChatSummaries,
 };
