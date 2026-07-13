@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -38,11 +39,16 @@ const getStoredUser = () => {
 };
 
 const normalizeId = (value) => {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   if (typeof value === "object") {
     return String(
-      value?._id || value?.id || ""
+      value?._id ||
+      value?.id ||
+      value?.userId ||
+      ""
     );
   }
 
@@ -97,11 +103,34 @@ export const ChatProvider = ({
     setSummariesLoading,
   ] = useState(false);
 
+  const typingTimerRef =
+    useRef(null);
+
+  const typingUserRef =
+    useRef("");
+
+  /* =========================
+     SELECTED CHAT RESET
+  ========================= */
 
   useEffect(() => {
     setReplyingTo(null);
+    setTypingUser(null);
+
+    typingUserRef.current = "";
+
+    if (typingTimerRef.current) {
+      window.clearTimeout(
+        typingTimerRef.current
+      );
+
+      typingTimerRef.current = null;
+    }
   }, [selectedChat]);
 
+  /* =========================
+     LOAD REQUESTS
+  ========================= */
 
   const loadRequests =
     useCallback(async () => {
@@ -137,6 +166,10 @@ export const ChatProvider = ({
         );
       }
     }, []);
+
+  /* =========================
+     LOAD CHAT SUMMARIES
+  ========================= */
 
   const loadChatSummaries =
     useCallback(async () => {
@@ -183,12 +216,19 @@ export const ChatProvider = ({
     const token =
       localStorage.getItem("token");
 
-    if (!token) return;
+    if (!token) {
+      return;
+    }
 
     Promise.all([
       loadRequests(),
       loadChatSummaries(),
-    ]);
+    ]).catch((error) => {
+      console.error(
+        "INITIAL CHAT DATA ERROR:",
+        error
+      );
+    });
   }, [
     loadRequests,
     loadChatSummaries,
@@ -213,7 +253,7 @@ export const ChatProvider = ({
         "Socket connection skipped: token or user ID missing"
       );
 
-      return;
+      return undefined;
     }
 
     const handleConnect = () => {
@@ -233,9 +273,11 @@ export const ChatProvider = ({
     ) => {
       const normalizedUsers =
         Array.isArray(users)
-          ? users.map((id) =>
-            String(id)
-          )
+          ? users
+            .map((user) =>
+              normalizeId(user)
+            )
+            .filter(Boolean)
           : [];
 
       setOnlineUsers(
@@ -272,30 +314,43 @@ export const ChatProvider = ({
     };
   }, []);
 
+  /* =========================
+     NEW MESSAGE
+  ========================= */
 
   useEffect(() => {
-    const handleMessage = (message) => {
+    const handleMessage = (
+      message
+    ) => {
       console.log(
         "🔥 newMessage RECEIVED",
         message
       );
 
-      const currentUser = getStoredUser();
+      const currentUser =
+        getStoredUser();
 
       const currentUserId =
         normalizeId(currentUser);
 
       const receiverId =
-        normalizeId(message?.receiver);
+        normalizeId(
+          message?.receiver
+        );
 
       const senderId =
-        normalizeId(message?.sender);
+        normalizeId(
+          message?.sender
+        );
 
       const selectedChatId =
-        normalizeId(selectedChat);
+        normalizeId(
+          selectedChat
+        );
 
       const isForCurrentUser =
-        receiverId === currentUserId;
+        receiverId ===
+        currentUserId;
 
       const isChatRoute =
         window.location.pathname.startsWith(
@@ -305,101 +360,144 @@ export const ChatProvider = ({
       const isExactChatOpen =
         isChatRoute &&
         selectedChatId &&
-        senderId === selectedChatId;
+        senderId ===
+        selectedChatId;
 
       if (
         isForCurrentUser &&
         message?._id
       ) {
-        socket.emit("messageDelivered", {
-          messageId: message._id,
-        });
+        socket.emit(
+          "messageDelivered",
+          {
+            messageId:
+              message._id,
+          }
+        );
       }
 
       if (isExactChatOpen) {
-        setMessages((previous) => {
-          const alreadyExists =
-            previous.some(
-              (item) =>
-                String(item?._id) ===
-                String(message?._id)
-            );
+        setMessages(
+          (previous) => {
+            const alreadyExists =
+              previous.some(
+                (item) =>
+                  String(
+                    item?._id
+                  ) ===
+                  String(
+                    message?._id
+                  )
+              );
 
-          if (alreadyExists) {
-            return previous;
+            if (alreadyExists) {
+              return previous;
+            }
+
+            return [
+              ...previous,
+              message,
+            ];
           }
-
-          return [...previous, message];
-        });
+        );
       }
 
       /*
-       * Home/profile/search page lo unte
-       * unread badge immediate ga increment.
+       * Chat open kakapothe unread
+       * count immediate ga update.
        */
       if (
         isForCurrentUser &&
         !isExactChatOpen
       ) {
-        setChatSummaries((previous) => {
-          const safeSummaries =
-            Array.isArray(previous)
-              ? previous
-              : [];
+        setChatSummaries(
+          (previous) => {
+            const safeSummaries =
+              Array.isArray(
+                previous
+              )
+                ? previous
+                : [];
 
-          const existingIndex =
-            safeSummaries.findIndex(
-              (summary) =>
-                normalizeId(summary?.user) ===
-                senderId
-            );
+            const existingIndex =
+              safeSummaries.findIndex(
+                (summary) =>
+                  normalizeId(
+                    summary?.user
+                  ) === senderId
+              );
 
-          if (existingIndex === -1) {
+            if (
+              existingIndex === -1
+            ) {
+              return safeSummaries;
+            }
 
-            return safeSummaries;
-          }
+            const updatedSummaries =
+              safeSummaries.map(
+                (
+                  summary,
+                  index
+                ) => {
+                  if (
+                    index !==
+                    existingIndex
+                  ) {
+                    return summary;
+                  }
 
-          const updatedSummaries =
-            safeSummaries.map(
-              (summary, index) => {
-                if (
-                  index !== existingIndex
-                ) {
-                  return summary;
+                  return {
+                    ...summary,
+                    lastMessage:
+                      message,
+                    unreadCount:
+                      (Number(
+                        summary
+                          ?.unreadCount
+                      ) || 0) + 1,
+                  };
                 }
+              );
 
-                return {
-                  ...summary,
-                  lastMessage: message,
-                  unreadCount:
-                    (Number(
-                      summary?.unreadCount
-                    ) || 0) + 1,
-                };
+            return updatedSummaries.sort(
+              (
+                first,
+                second
+              ) => {
+                const firstTime =
+                  new Date(
+                    first
+                      ?.lastMessage
+                      ?.createdAt ||
+                    0
+                  ).getTime();
+
+                const secondTime =
+                  new Date(
+                    second
+                      ?.lastMessage
+                      ?.createdAt ||
+                    0
+                  ).getTime();
+
+                return (
+                  secondTime -
+                  firstTime
+                );
               }
             );
-
-          return updatedSummaries.sort(
-            (first, second) => {
-              const firstTime =
-                new Date(
-                  first?.lastMessage
-                    ?.createdAt || 0
-                ).getTime();
-
-              const secondTime =
-                new Date(
-                  second?.lastMessage
-                    ?.createdAt || 0
-                ).getTime();
-
-              return secondTime - firstTime;
-            }
-          );
-        });
+          }
+        );
       }
 
-      loadChatSummaries();
+      loadChatSummaries().catch(
+        (error) => {
+          console.error(
+            "MESSAGE SUMMARY REFRESH ERROR:",
+            error
+          );
+        }
+      );
     };
 
     socket.on(
@@ -419,45 +517,152 @@ export const ChatProvider = ({
   ]);
 
   /* =========================
-     TYPING
+     TYPING INDICATOR
   ========================= */
 
   useEffect(() => {
-    let typingTimer;
+    const clearTypingTimer = () => {
+      if (
+        !typingTimerRef.current
+      ) {
+        return;
+      }
 
-    const handleTyping = (
-      data
+      window.clearTimeout(
+        typingTimerRef.current
+      );
+
+      typingTimerRef.current =
+        null;
+    };
+
+    const clearTypingUser = (
+      userId
     ) => {
+      const safeUserId =
+        normalizeId(userId);
+
+      if (
+        safeUserId &&
+        typingUserRef.current !==
+        safeUserId
+      ) {
+        return;
+      }
+
+      clearTypingTimer();
+
+      typingUserRef.current = "";
+      setTypingUser(null);
+    };
+
+    const handleTypingStart = (
+      data = {}
+    ) => {
+      const safeUserId =
+        normalizeId(
+          data?.userId
+        );
+
+      if (!safeUserId) {
+        return;
+      }
+
+      console.log(
+        "TYPING START RECEIVED:",
+        safeUserId
+      );
+
+      clearTypingTimer();
+
+      typingUserRef.current =
+        safeUserId;
+
       setTypingUser(
-        data?.userId || null
+        safeUserId
       );
 
-      clearTimeout(
-        typingTimer
+      /*
+       * typing:stop event miss aina
+       * indicator automatic ga clear.
+       */
+      typingTimerRef.current =
+        window.setTimeout(() => {
+          if (
+            typingUserRef.current ===
+            safeUserId
+          ) {
+            typingUserRef.current =
+              "";
+
+            setTypingUser(null);
+          }
+
+          typingTimerRef.current =
+            null;
+        }, 3000);
+    };
+
+    const handleTypingStop = (
+      data = {}
+    ) => {
+      const safeUserId =
+        normalizeId(
+          data?.userId
+        );
+
+      if (!safeUserId) {
+        return;
+      }
+
+      console.log(
+        "TYPING STOP RECEIVED:",
+        safeUserId
       );
 
-      typingTimer = setTimeout(
-        () => {
-          setTypingUser(null);
-        },
-        2000
+      clearTypingUser(
+        safeUserId
       );
     };
 
     socket.on(
+      "typing:start",
+      handleTypingStart
+    );
+
+    socket.on(
+      "typing:stop",
+      handleTypingStop
+    );
+
+    /*
+     * Old backend/frontend compatibility.
+     * New flow stable ayyaka remove cheyyachu.
+     */
+    socket.on(
       "typing",
-      handleTyping
+      handleTypingStart
     );
 
     return () => {
-      clearTimeout(
-        typingTimer
+      socket.off(
+        "typing:start",
+        handleTypingStart
+      );
+
+      socket.off(
+        "typing:stop",
+        handleTypingStop
       );
 
       socket.off(
         "typing",
-        handleTyping
+        handleTypingStart
       );
+
+      clearTypingTimer();
+
+      typingUserRef.current = "";
     };
   }, []);
 
@@ -492,7 +697,9 @@ export const ChatProvider = ({
       setMessages((previous) =>
         previous.map((message) => {
           if (
-            String(message?._id) !==
+            String(
+              message?._id
+            ) !==
             String(messageId)
           ) {
             return message;
@@ -517,50 +724,60 @@ export const ChatProvider = ({
 
           return {
             ...message,
-            status: normalizedStatus,
+            status:
+              normalizedStatus,
           };
         })
       );
 
-      setChatSummaries((previous) =>
-        Array.isArray(previous)
-          ? previous.map((summary) => {
-            if (
-              String(
-                summary?.lastMessage?._id
-              ) !== String(messageId)
-            ) {
-              return summary;
-            }
+      setChatSummaries(
+        (previous) =>
+          Array.isArray(previous)
+            ? previous.map(
+              (summary) => {
+                if (
+                  String(
+                    summary
+                      ?.lastMessage
+                      ?._id
+                  ) !==
+                  String(
+                    messageId
+                  )
+                ) {
+                  return summary;
+                }
 
-            const currentPriority =
-              statusPriority[
-              summary?.lastMessage
-                ?.status
-              ] ?? 0;
+                const currentPriority =
+                  statusPriority[
+                  summary
+                    ?.lastMessage
+                    ?.status
+                  ] ?? 0;
 
-            const incomingPriority =
-              statusPriority[
-              normalizedStatus
-              ] ?? 0;
+                const incomingPriority =
+                  statusPriority[
+                  normalizedStatus
+                  ] ?? 0;
 
-            if (
-              incomingPriority <
-              currentPriority
-            ) {
-              return summary;
-            }
+                if (
+                  incomingPriority <
+                  currentPriority
+                ) {
+                  return summary;
+                }
 
-            return {
-              ...summary,
-              lastMessage: {
-                ...summary.lastMessage,
-                status:
-                  normalizedStatus,
-              },
-            };
-          })
-          : []
+                return {
+                  ...summary,
+                  lastMessage: {
+                    ...summary.lastMessage,
+                    status:
+                      normalizedStatus,
+                  },
+                };
+              }
+            )
+            : []
       );
     };
 
@@ -584,16 +801,29 @@ export const ChatProvider = ({
   useEffect(() => {
     const handleDelete = ({
       messageId,
-    }) => {
+    } = {}) => {
+      if (!messageId) {
+        return;
+      }
+
       setMessages((previous) =>
         previous.filter(
           (message) =>
-            String(message?._id) !==
+            String(
+              message?._id
+            ) !==
             String(messageId)
         )
       );
 
-      loadChatSummaries();
+      loadChatSummaries().catch(
+        (error) => {
+          console.error(
+            "DELETE SUMMARY REFRESH ERROR:",
+            error
+          );
+        }
+      );
     };
 
     socket.on(
@@ -616,10 +846,17 @@ export const ChatProvider = ({
   useEffect(() => {
     const refreshChatData =
       async () => {
-        await Promise.all([
-          loadRequests(),
-          loadChatSummaries(),
-        ]);
+        try {
+          await Promise.all([
+            loadRequests(),
+            loadChatSummaries(),
+          ]);
+        } catch (error) {
+          console.error(
+            "REFRESH CHAT DATA ERROR:",
+            error
+          );
+        }
       };
 
     socket.on(
@@ -698,5 +935,15 @@ export const ChatProvider = ({
   );
 };
 
-export const useChat = () =>
-  useContext(ChatContext);
+export const useChat = () => {
+  const context =
+    useContext(ChatContext);
+
+  if (!context) {
+    throw new Error(
+      "useChat must be used inside ChatProvider"
+    );
+  }
+
+  return context;
+};

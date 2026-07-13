@@ -7,6 +7,11 @@ const {
 
 const Message = require("../models/Message");
 
+const TYPING_TIMEOUT_MS = 2500;
+
+const normalizeId = (value) =>
+  String(value || "").trim();
+
 const socketHandler = (io) => {
   setIO(io);
 
@@ -16,20 +21,174 @@ const socketHandler = (io) => {
       socket.id
     );
 
+    socket.data.userId = "";
+    socket.data.typingReceiverId = "";
+    socket.data.typingTimer = null;
+
+    const clearTypingTimer = () => {
+      if (!socket.data.typingTimer) {
+        return;
+      }
+
+      clearTimeout(
+        socket.data.typingTimer
+      );
+
+      socket.data.typingTimer = null;
+    };
+
+    const stopTypingForReceiver = (
+      receiverIdValue
+    ) => {
+      const senderId =
+        normalizeId(
+          socket.data.userId
+        );
+
+      const receiverId =
+        normalizeId(
+          receiverIdValue ||
+          socket.data
+            .typingReceiverId
+        );
+
+      clearTypingTimer();
+
+      if (
+        socket.data
+          .typingReceiverId ===
+        receiverId
+      ) {
+        socket.data.typingReceiverId =
+          "";
+      }
+
+      if (
+        !senderId ||
+        !receiverId ||
+        senderId === receiverId
+      ) {
+        return;
+      }
+
+      io.to(receiverId).emit(
+        "typing:stop",
+        {
+          userId: senderId,
+        }
+      );
+    };
+
+    const startTypingForReceiver = (
+      receiverIdValue
+    ) => {
+      const senderId =
+        normalizeId(
+          socket.data.userId
+        );
+
+      const receiverId =
+        normalizeId(
+          receiverIdValue
+        );
+
+      if (
+        !senderId ||
+        !receiverId ||
+        senderId === receiverId
+      ) {
+        return;
+      }
+
+      const previousReceiverId =
+        normalizeId(
+          socket.data
+            .typingReceiverId
+        );
+
+      /*
+       * User vere conversation ki
+       * switch ayithe previous receiver
+       * indicator clear chesthundi.
+       */
+      if (
+        previousReceiverId &&
+        previousReceiverId !==
+        receiverId
+      ) {
+        io.to(
+          previousReceiverId
+        ).emit("typing:stop", {
+          userId: senderId,
+        });
+      }
+
+      clearTypingTimer();
+
+      socket.data.typingReceiverId =
+        receiverId;
+
+      io.to(receiverId).emit(
+        "typing:start",
+        {
+          userId: senderId,
+        }
+      );
+
+      /*
+       * Old frontend compatibility.
+       * New frontend complete ayyaka
+       * ee legacy emit remove cheyyachu.
+       */
+      io.to(receiverId).emit(
+        "typing",
+        {
+          userId: senderId,
+        }
+      );
+
+      /*
+       * Client stop event miss aina
+       * automatic fallback.
+       */
+      socket.data.typingTimer =
+        setTimeout(() => {
+          stopTypingForReceiver(
+            receiverId
+          );
+        }, TYPING_TIMEOUT_MS);
+    };
+
     /* =========================
        JOIN USER ROOM
     ========================= */
 
     socket.on("join", (userId) => {
-      if (!userId) {
+      const normalizedUserId =
+        normalizeId(userId);
+
+      if (!normalizedUserId) {
         console.error(
           "SOCKET JOIN FAILED: User ID missing"
         );
+
         return;
       }
 
-      const normalizedUserId =
-        String(userId);
+      const previousUserId =
+        normalizeId(
+          socket.data.userId
+        );
+
+      if (
+        previousUserId &&
+        previousUserId !==
+        normalizedUserId
+      ) {
+        socket.leave(
+          previousUserId
+        );
+      }
 
       socket.data.userId =
         normalizedUserId;
@@ -56,57 +215,62 @@ const socketHandler = (io) => {
     });
 
     /* =========================
-    DELIVERED
- ========================= */
+       DELIVERED
+    ========================= */
 
     socket.on(
       "messageDelivered",
-      async ({ messageId }) => {
+      async ({ messageId } = {}) => {
         try {
-          const currentUserId = String(
-            socket.data.userId || ""
-          );
+          const currentUserId =
+            normalizeId(
+              socket.data.userId
+            );
 
-          if (!messageId || !currentUserId) {
+          if (
+            !messageId ||
+            !currentUserId
+          ) {
             return;
           }
 
           const message =
-            await Message.findOneAndUpdate(
-              {
-                _id: messageId,
-                receiver: currentUserId,
-                status: "sent",
-              },
-              {
-                $set: {
-                  status: "delivered",
+            await Message
+              .findOneAndUpdate(
+                {
+                  _id: messageId,
+                  receiver:
+                    currentUserId,
+                  status: "sent",
                 },
-              },
-              {
-                new: true,
-                runValidators: true,
-              }
-            );
+                {
+                  $set: {
+                    status:
+                      "delivered",
+                  },
+                },
+                {
+                  new: true,
+                  runValidators: true,
+                }
+              );
 
-          /*
-           * Message already delivered/read ayithe
-           * malli delivered event emit cheyyakudadhu.
-           */
           if (!message) {
             return;
           }
 
-          const senderId = String(
-            message.sender
-          );
+          const senderId =
+            normalizeId(
+              message.sender
+            );
 
           io.to(senderId).emit(
             "messageStatusUpdate",
             {
-              messageId: String(
-                message._id
-              ),
+              messageId:
+                normalizeId(
+                  message._id
+                ),
               status: "delivered",
             }
           );
@@ -130,11 +294,11 @@ const socketHandler = (io) => {
 
     socket.on(
       "messageRead",
-      async ({ messageId }) => {
+      async ({ messageId } = {}) => {
         try {
           const currentUserId =
-            String(
-              socket.data.userId || ""
+            normalizeId(
+              socket.data.userId
             );
 
           if (
@@ -145,40 +309,45 @@ const socketHandler = (io) => {
           }
 
           const message =
-            await Message.findOneAndUpdate(
-              {
-                _id: messageId,
-                receiver:
-                  currentUserId,
-              },
-              {
-                $set: {
-                  status: "read",
+            await Message
+              .findOneAndUpdate(
+                {
+                  _id: messageId,
+                  receiver:
+                    currentUserId,
                 },
-              },
-              {
-                new: true,
-                runValidators: true,
-              }
-            );
+                {
+                  $set: {
+                    status: "read",
+                  },
+                },
+                {
+                  new: true,
+                  runValidators: true,
+                }
+              );
 
           if (!message) {
             console.error(
               "READ MESSAGE NOT FOUND OR UNAUTHORIZED:",
               messageId
             );
+
             return;
           }
 
           const senderId =
-            String(message.sender);
+            normalizeId(
+              message.sender
+            );
 
           io.to(senderId).emit(
             "messageStatusUpdate",
             {
-              messageId: String(
-                message._id
-              ),
+              messageId:
+                normalizeId(
+                  message._id
+                ),
               status: "read",
             }
           );
@@ -197,24 +366,41 @@ const socketHandler = (io) => {
     );
 
     /* =========================
-       TYPING
+       TYPING START
     ========================= */
 
     socket.on(
-      "typing",
-      ({ receiverId, userId }) => {
-        if (
-          !receiverId ||
-          !userId
-        ) {
-          return;
-        }
+      "typing:start",
+      ({ receiverId } = {}) => {
+        startTypingForReceiver(
+          receiverId
+        );
+      }
+    );
 
-        io.to(
-          String(receiverId)
-        ).emit("typing", {
-          userId: String(userId),
-        });
+    /* =========================
+       TYPING STOP
+    ========================= */
+
+    socket.on(
+      "typing:stop",
+      ({ receiverId } = {}) => {
+        stopTypingForReceiver(
+          receiverId
+        );
+      }
+    );
+
+    /*
+     * Existing frontend temporary
+     * compatibility.
+     */
+    socket.on(
+      "typing",
+      ({ receiverId } = {}) => {
+        startTypingForReceiver(
+          receiverId
+        );
       }
     );
 
@@ -229,6 +415,20 @@ const socketHandler = (io) => {
           "SOCKET DISCONNECTED:",
           socket.id
         );
+
+        const typingReceiverId =
+          normalizeId(
+            socket.data
+              .typingReceiverId
+          );
+
+        if (typingReceiverId) {
+          stopTypingForReceiver(
+            typingReceiverId
+          );
+        } else {
+          clearTypingTimer();
+        }
 
         removeSocketId(
           socket.id

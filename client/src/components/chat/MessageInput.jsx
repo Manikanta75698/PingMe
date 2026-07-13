@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -49,6 +50,10 @@ const MessageInput = () => {
   const imageRef = useRef(null);
   const textareaRef = useRef(null);
 
+  const typingTimerRef = useRef(null);
+  const typingActiveRef = useRef(false);
+  const typingReceiverRef = useRef("");
+
   const {
     selectedChat,
     setMessages,
@@ -57,6 +62,9 @@ const MessageInput = () => {
     replyingTo,
     setReplyingTo,
   } = useChat();
+
+  const selectedChatId =
+    getUserId(selectedChat);
 
   const previewUrl = useMemo(() => {
     if (!selectedImage) return "";
@@ -75,6 +83,7 @@ const MessageInput = () => {
       }
     };
   }, [previewUrl]);
+
 
   const resetImage = () => {
     setSelectedImage(null);
@@ -260,7 +269,16 @@ const MessageInput = () => {
   };
 
   const handleChange = (event) => {
-    setText(event.target.value);
+    const nextValue =
+      event.target.value;
+
+    setText(nextValue);
+
+    if (nextValue.trim()) {
+      emitTypingActivity();
+    } else {
+      stopTyping();
+    }
 
     const textarea =
       textareaRef.current;
@@ -287,25 +305,99 @@ const MessageInput = () => {
     }
   };
 
-  const handleTyping = () => {
-    const receiverId =
-      getUserId(selectedChat);
+  const stopTyping = useCallback(() => {
+    if (typingTimerRef.current) {
+      window.clearTimeout(
+        typingTimerRef.current
+      );
 
-    const currentUserId =
-      getUserId(user);
-
-    if (
-      !receiverId ||
-      !currentUserId
-    ) {
-      return;
+      typingTimerRef.current = null;
     }
 
-    socket?.emit("typing", {
-      receiverId,
-      userId: currentUserId,
-    });
-  };
+    const receiverId =
+      typingReceiverRef.current;
+
+    if (
+      typingActiveRef.current &&
+      receiverId &&
+      socket?.connected
+    ) {
+      socket.emit("typing:stop", {
+        receiverId,
+      });
+    }
+
+    typingActiveRef.current = false;
+    typingReceiverRef.current = "";
+  }, [socket]);
+
+  const emitTypingActivity =
+    useCallback(() => {
+      const receiverId =
+        getUserId(selectedChat);
+
+      if (
+        !receiverId ||
+        !socket?.connected
+      ) {
+        return;
+      }
+
+      /*
+       * User vere chat ki switch ayithe
+       * previous receiver typing indicator stop.
+       */
+      if (
+        typingReceiverRef.current &&
+        typingReceiverRef.current !==
+        receiverId
+      ) {
+        stopTyping();
+      }
+
+      typingReceiverRef.current =
+        receiverId;
+
+      /*
+       * Every character ki event send cheyyakunda,
+       * typing start ayinappudu okasari matrame.
+       */
+      if (!typingActiveRef.current) {
+        socket.emit("typing:start", {
+          receiverId,
+        });
+
+        typingActiveRef.current = true;
+      }
+
+      if (typingTimerRef.current) {
+        window.clearTimeout(
+          typingTimerRef.current
+        );
+      }
+
+      /*
+       * 1.2 seconds typing activity lekapothe
+       * typing stop event automatic ga emit.
+       */
+      typingTimerRef.current =
+        window.setTimeout(() => {
+          stopTyping();
+        }, 1200);
+    }, [
+      selectedChat,
+      socket,
+      stopTyping,
+    ]);
+
+  useEffect(() => {
+    return () => {
+      stopTyping();
+    };
+  }, [
+    selectedChatId,
+    stopTyping,
+  ]);
 
   return (
     <div
@@ -446,8 +538,8 @@ const MessageInput = () => {
             !selectedChat
           }
           onChange={handleChange}
-          onInput={handleTyping}
           onKeyDown={handleEnter}
+          onBlur={stopTyping}
         />
       </div>
 

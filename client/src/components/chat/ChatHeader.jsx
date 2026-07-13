@@ -1,5 +1,10 @@
-import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+} from "lucide-react";
+
+import {
+  useNavigate,
+} from "react-router-dom";
 
 import styles from "./ChatHeader.module.css";
 
@@ -27,7 +32,8 @@ const normalizeId = (value) => {
 };
 
 const ChatHeader = () => {
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
   const {
     selectedChat,
@@ -38,7 +44,9 @@ const ChatHeader = () => {
 
   if (!selectedChat) {
     return (
-      <header className={styles.header}>
+      <header
+        className={styles.header}
+      >
         <h2 className={styles.empty}>
           Select a chat
         </h2>
@@ -70,12 +78,6 @@ const ChatHeader = () => {
     selectedChat?.profilePic ||
     DefaultAvatar;
 
-  const statusText = isTyping
-    ? "Typing..."
-    : isOnline
-      ? "Online"
-      : "Offline";
-
   const handleBack = () => {
     setSelectedChat(null);
 
@@ -91,14 +93,15 @@ const ChatHeader = () => {
       event.currentTarget;
 
     if (
-      image.src.endsWith(
-        DefaultAvatar
-      )
+      image.dataset.fallbackApplied ===
+      "true"
     ) {
       return;
     }
 
-    image.onerror = null;
+    image.dataset.fallbackApplied =
+      "true";
+
     image.src = DefaultAvatar;
   };
 
@@ -118,6 +121,7 @@ const ChatHeader = () => {
         >
           <ArrowLeft
             size={24}
+            strokeWidth={2}
             aria-hidden="true"
           />
         </button>
@@ -164,7 +168,30 @@ const ChatHeader = () => {
               }`}
             aria-live="polite"
           >
-            {statusText}
+            {isTyping ? (
+              <span
+                className={
+                  styles.typingIndicator
+                }
+              >
+                <span>Typing</span>
+
+                <span
+                  className={
+                    styles.typingDots
+                  }
+                  aria-hidden="true"
+                >
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              </span>
+            ) : isOnline ? (
+              "Online"
+            ) : (
+              "Offline"
+            )}
           </p>
         </div>
       </div>
