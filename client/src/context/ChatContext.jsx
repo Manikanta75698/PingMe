@@ -272,9 +272,6 @@ export const ChatProvider = ({
     };
   }, []);
 
-  /* =========================
-     NEW MESSAGE
-  ========================= */
 
   useEffect(() => {
     const handleMessage = (message) => {
@@ -310,10 +307,6 @@ export const ChatProvider = ({
         selectedChatId &&
         senderId === selectedChatId;
 
-      /*
-       * Message receiver ki deliver ayyindani
-       * backend ki acknowledge chestundi.
-       */
       if (
         isForCurrentUser &&
         message?._id
@@ -323,10 +316,6 @@ export const ChatProvider = ({
         });
       }
 
-      /*
-       * Exact sender conversation open unte
-       * message list lo add chestundi.
-       */
       if (isExactChatOpen) {
         setMessages((previous) => {
           const alreadyExists =
@@ -366,10 +355,7 @@ export const ChatProvider = ({
             );
 
           if (existingIndex === -1) {
-            /*
-             * Summary API shortly fetch ayi
-             * missing user entry add chestundi.
-             */
+
             return safeSummaries;
           }
 
@@ -480,50 +466,101 @@ export const ChatProvider = ({
   ========================= */
 
   useEffect(() => {
+    const statusPriority = {
+      sending: 0,
+      sent: 1,
+      delivered: 2,
+      read: 3,
+      seen: 3,
+    };
+
     const handleStatus = ({
       messageId,
       status,
     }) => {
+      const normalizedStatus =
+        status === "seen"
+          ? "read"
+          : status;
+
       console.log(
         "STATUS UPDATE:",
         messageId,
-        status
+        normalizedStatus
       );
 
       setMessages((previous) =>
-        previous.map((message) =>
-          message?._id ===
-            messageId
-            ? {
-              ...message,
-              status,
-            }
-            : message
-        )
+        previous.map((message) => {
+          if (
+            String(message?._id) !==
+            String(messageId)
+          ) {
+            return message;
+          }
+
+          const currentPriority =
+            statusPriority[
+            message?.status
+            ] ?? 0;
+
+          const incomingPriority =
+            statusPriority[
+            normalizedStatus
+            ] ?? 0;
+
+          if (
+            incomingPriority <
+            currentPriority
+          ) {
+            return message;
+          }
+
+          return {
+            ...message,
+            status: normalizedStatus,
+          };
+        })
       );
 
-      setChatSummaries(
-        (previous) =>
-          previous.map(
-            (summary) => {
-              if (
-                summary
-                  ?.lastMessage
-                  ?._id !==
-                messageId
-              ) {
-                return summary;
-              }
-
-              return {
-                ...summary,
-                lastMessage: {
-                  ...summary.lastMessage,
-                  status,
-                },
-              };
+      setChatSummaries((previous) =>
+        Array.isArray(previous)
+          ? previous.map((summary) => {
+            if (
+              String(
+                summary?.lastMessage?._id
+              ) !== String(messageId)
+            ) {
+              return summary;
             }
-          )
+
+            const currentPriority =
+              statusPriority[
+              summary?.lastMessage
+                ?.status
+              ] ?? 0;
+
+            const incomingPriority =
+              statusPriority[
+              normalizedStatus
+              ] ?? 0;
+
+            if (
+              incomingPriority <
+              currentPriority
+            ) {
+              return summary;
+            }
+
+            return {
+              ...summary,
+              lastMessage: {
+                ...summary.lastMessage,
+                status:
+                  normalizedStatus,
+              },
+            };
+          })
+          : []
       );
     };
 

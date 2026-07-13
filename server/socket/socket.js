@@ -56,56 +56,50 @@ const socketHandler = (io) => {
     });
 
     /* =========================
-       DELIVERED
-    ========================= */
+    DELIVERED
+ ========================= */
 
     socket.on(
       "messageDelivered",
       async ({ messageId }) => {
         try {
-          const currentUserId =
-            String(
-              socket.data.userId || ""
-            );
+          const currentUserId = String(
+            socket.data.userId || ""
+          );
 
-          if (
-            !messageId ||
-            !currentUserId
-          ) {
+          if (!messageId || !currentUserId) {
             return;
           }
 
           const message =
-            await Message.findOne({
-              _id: messageId,
-              receiver: currentUserId,
-            });
-
-          if (!message) {
-            console.error(
-              "DELIVERED MESSAGE NOT FOUND OR UNAUTHORIZED:",
-              messageId
+            await Message.findOneAndUpdate(
+              {
+                _id: messageId,
+                receiver: currentUserId,
+                status: "sent",
+              },
+              {
+                $set: {
+                  status: "delivered",
+                },
+              },
+              {
+                new: true,
+                runValidators: true,
+              }
             );
+
+          /*
+           * Message already delivered/read ayithe
+           * malli delivered event emit cheyyakudadhu.
+           */
+          if (!message) {
             return;
           }
 
-          const isAlreadyRead =
-            message.status === "read" ||
-            message.status === "seen";
-
-          if (
-            !isAlreadyRead &&
-            message.status !==
-            "delivered"
-          ) {
-            message.status =
-              "delivered";
-
-            await message.save();
-          }
-
-          const senderId =
-            String(message.sender);
+          const senderId = String(
+            message.sender
+          );
 
           io.to(senderId).emit(
             "messageStatusUpdate",
@@ -113,19 +107,13 @@ const socketHandler = (io) => {
               messageId: String(
                 message._id
               ),
-
-              status: isAlreadyRead
-                ? "read"
-                : message.status,
+              status: "delivered",
             }
           );
 
           console.log(
-            "MESSAGE STATUS:",
-            messageId,
-            isAlreadyRead
-              ? "read"
-              : message.status
+            "MESSAGE DELIVERED:",
+            messageId
           );
         } catch (error) {
           console.error(
