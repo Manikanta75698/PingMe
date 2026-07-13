@@ -1,7 +1,10 @@
-import { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
-import { useAuth } from "../../context/AuthContext";
+import { useParams } from "react-router-dom";
 
 import styles from "./Chat.module.css";
 
@@ -11,8 +14,28 @@ import MessageList from "../../components/chat/MessageList";
 import MessageInput from "../../components/chat/MessageInput";
 
 import { useChat } from "../../context/ChatContext";
-import { getConversation } from "../../services/chatService";
-import { getUsers } from "../../services/userService";
+
+import {
+  getConversation,
+} from "../../services/chatService";
+
+import {
+  getUsers,
+} from "../../services/userService";
+
+const MESSAGE_PAGE_SIZE = 30;
+
+const normalizeId = (value) => {
+  if (!value) return "";
+
+  if (typeof value === "object") {
+    return String(
+      value?._id || value?.id || ""
+    );
+  }
+
+  return String(value);
+};
 
 const Chat = () => {
   const { userId } = useParams();
@@ -20,99 +43,378 @@ const Chat = () => {
   const {
     selectedChat,
     setSelectedChat,
+
     setMessages,
+
+    chatSummaries,
+    setChatSummaries,
+    loadChatSummaries,
   } = useChat();
 
-  const { user } = useAuth();
-  const { socket } = useChat();
+  const selectedChatId =
+    normalizeId(selectedChat);
 
-  useEffect(() => {
-    if (userId) {
-      loadSelectedUser();
+  const [
+    messagesLoading,
+    setMessagesLoading,
+  ] = useState(false);
+
+  const [
+    olderMessagesLoading,
+    setOlderMessagesLoading,
+  ] = useState(false);
+
+  const [
+    messagesError,
+    setMessagesError,
+  ] = useState("");
+
+  const [
+    hasMoreMessages,
+    setHasMoreMessages,
+  ] = useState(false);
+
+  const [
+    nextCursor,
+    setNextCursor,
+  ] = useState(null);
+
+  const loadSelectedUser = useCallback(async () => {
+    if (!userId) return;
+
+    if (selectedChatId === String(userId)) {
+      return;
     }
-  }, [userId]);
 
-  useEffect(() => {
-    if (selectedChat) {
-      loadMessages();
+    const summaryUser = Array.isArray(chatSummaries)
+      ? chatSummaries.find(
+        (summary) =>
+          normalizeId(summary?.user) ===
+          String(userId)
+      )?.user
+      : null;
+
+    if (summaryUser) {
+      setSelectedChat(summaryUser);
+      return;
     }
-  }, [selectedChat]);
 
-  const loadSelectedUser = async () => {
     try {
-      const { data } = await getUsers();
+      const response = await getUsers();
 
-      const user = data.users.find(
-        (u) => u._id === userId
+      const users = Array.isArray(
+        response?.data?.users
+      )
+        ? response.data.users
+        : [];
+
+      const matchingUser = users.find(
+        (chatUser) =>
+          normalizeId(chatUser) ===
+          String(userId)
       );
 
-      if (user) {
-        setSelectedChat(user);
+      if (matchingUser) {
+        setSelectedChat(matchingUser);
       }
     } catch (error) {
-      console.error(error);
+      console.error(
+        "LOAD SELECTED CHAT USER ERROR:",
+        error.response?.data ||
+        error.message
+      );
     }
-  };
+  }, [
+    userId,
+    selectedChat,
+    chatSummaries,
+    setSelectedChat,
+  ]);
 
-  const loadMessages = async () => {
-    try {
-      const response = await getConversation(selectedChat._id);
+  const loadMessages =
+    useCallback(async () => {
 
-      const messages = response.data.messages;
 
-      setMessages(messages);
+      if (!selectedChatId) {
+        setMessages([]);
+        setHasMoreMessages(false);
+        setNextCursor(null);
+        return;
+      }
 
-      // 🔥 Seen event
-      messages.forEach((message) => {
-        const receiverId =
-          typeof message.receiver === "object"
-            ? message.receiver._id
-            : message.receiver;
+      try {
+        setMessagesLoading(true);
+        setMessagesError("");
 
-        if (
-          receiverId === user.id &&
-          message.status !== "seen"
-        ) {
-          socket.emit("messageSeen", {
-            messageId: message._id,
-          });
-        }
-      });
+        const response =
+          await getConversation(
+            selectedChatId,
+            {
+              limit:
+                MESSAGE_PAGE_SIZE,
+            }
+          );
 
-    } catch (error) {
-      console.error(error);
+        const conversationMessages =
+          Array.isArray(
+            response?.data?.messages
+          )
+            ? response.data.messages
+            : [];
+
+        const pagination =
+          response?.data?.pagination;
+
+        setMessages(
+          conversationMessages
+        );
+
+        setHasMoreMessages(
+          Boolean(
+            pagination?.hasMore
+          )
+        );
+
+        setNextCursor(
+          pagination?.nextCursor ||
+          null
+        );
+
+        setChatSummaries(
+          (previous) =>
+            Array.isArray(previous)
+              ? previous.map(
+                (summary) =>
+                  normalizeId(
+                    summary?.user
+                  ) ===
+                    selectedChatId
+                    ? {
+                      ...summary,
+                      unreadCount: 0,
+                    }
+                    : summary
+              )
+              : []
+        );
+
+      } catch (error) {
+        console.error(
+          "LOAD CONVERSATION ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+        setMessages([]);
+        setHasMoreMessages(false);
+        setNextCursor(null);
+
+        setMessagesError(
+          error.response?.data
+            ?.message ||
+          "Unable to load messages"
+        );
+      } finally {
+        setMessagesLoading(false);
+      }
+    }, [
+      selectedChatId,
+      setMessages,
+      setChatSummaries,
+    ]);
+
+  const loadOlderMessages =
+    useCallback(async () => {
+
+      if (
+        !selectedChatId ||
+        !nextCursor ||
+        !hasMoreMessages ||
+        olderMessagesLoading
+      ) {
+        return;
+      }
+
+      try {
+        setOlderMessagesLoading(true);
+        setMessagesError("");
+
+        const response =
+          await getConversation(
+            selectedChatId,
+            {
+              limit:
+                MESSAGE_PAGE_SIZE,
+              before: nextCursor,
+            }
+          );
+
+        const olderMessages =
+          Array.isArray(
+            response?.data?.messages
+          )
+            ? response.data.messages
+            : [];
+
+        const pagination =
+          response?.data?.pagination;
+
+        setMessages((previous) => {
+          const existingIds =
+            new Set(
+              previous.map(
+                (message) =>
+                  String(
+                    message?._id
+                  )
+              )
+            );
+
+          const uniqueOlderMessages =
+            olderMessages.filter(
+              (message) =>
+                !existingIds.has(
+                  String(
+                    message?._id
+                  )
+                )
+            );
+
+          return [
+            ...uniqueOlderMessages,
+            ...previous,
+          ];
+        });
+
+        setHasMoreMessages(
+          Boolean(
+            pagination?.hasMore
+          )
+        );
+
+        setNextCursor(
+          pagination?.nextCursor ||
+          null
+        );
+      } catch (error) {
+        console.error(
+          "LOAD OLDER MESSAGES ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+        setMessagesError(
+          error.response?.data
+            ?.message ||
+          "Unable to load older messages"
+        );
+      } finally {
+        setOlderMessagesLoading(false);
+      }
+    }, [
+      selectedChatId,
+      nextCursor,
+      hasMoreMessages,
+      olderMessagesLoading,
+      setMessages,
+    ]);
+
+  useEffect(() => {
+    if (!userId) {
+      setSelectedChat(null);
+      setMessages([]);
+      setHasMoreMessages(false);
+      setNextCursor(null);
+      return;
     }
-  };
+
+    loadSelectedUser();
+  }, [
+    userId,
+    loadSelectedUser,
+    setSelectedChat,
+    setMessages,
+  ]);
+
+  useEffect(() => {
+    if (!selectedChatId) return;
+
+    loadMessages();
+  }, [selectedChatId, loadMessages]);
 
   return (
-    <div className={styles.chatPage}>
-
-      <div
+    <main className={styles.chatPage}>
+      <section
         className={`
-        ${styles.sidebar}
-        ${selectedChat ? styles.hideSidebar : ""}
-      `}
+          ${styles.sidebar}
+          ${selectedChat
+            ? styles.hideSidebar
+            : ""
+          }
+        `}
       >
         <ChatSidebar />
-      </div>
+      </section>
 
-      <div
+      <section
         className={`
-        ${styles.chatArea}
-        ${!selectedChat ? styles.hideChat : ""}
-      `}
+          ${styles.chatArea}
+          ${!selectedChat
+            ? styles.hideChat
+            : ""
+          }
+        `}
       >
-        {selectedChat && <ChatHeader />}
+        {selectedChat && (
+          <ChatHeader />
+        )}
 
         <div className={styles.messages}>
+          {selectedChat &&
+            messagesLoading && (
+              <div
+                className={
+                  styles.messageState
+                }
+              >
+                Loading messages...
+              </div>
+            )}
 
-          {selectedChat && <MessageList />}
+          {selectedChat &&
+            !messagesLoading &&
+            messagesError && (
+              <div
+                className={
+                  styles.messageError
+                }
+              >
+                {messagesError}
+              </div>
+            )}
+
+          {selectedChat &&
+            !messagesLoading &&
+            !messagesError && (
+              <>
+                <MessageList
+                  hasMoreMessages={hasMoreMessages}
+                  olderMessagesLoading={
+                    olderMessagesLoading
+                  }
+                  loadOlderMessages={
+                    loadOlderMessages
+                  }
+                />
+              </>
+            )}
         </div>
 
-        {selectedChat && <MessageInput />}
-      </div>
-
-    </div>
+        {selectedChat && (
+          <MessageInput />
+        )}
+      </section>
+    </main>
   );
 };
 

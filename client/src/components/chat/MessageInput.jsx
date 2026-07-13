@@ -54,6 +54,8 @@ const MessageInput = () => {
     setMessages,
     socket,
     loadChatSummaries,
+    replyingTo,
+    setReplyingTo,
   } = useChat();
 
   const previewUrl = useMemo(() => {
@@ -156,10 +158,19 @@ const MessageInput = () => {
       image: previewUrl,
     };
 
-    setMessages((previous) => [
-      ...previous,
-      tempMessage,
-    ]);
+    replyTo: replyingTo
+      ? {
+        _id: replyingTo._id,
+        text: replyingTo.text || "",
+        image: replyingTo.image || "",
+        sender: replyingTo.sender,
+      }
+      : null,
+
+      setMessages((previous) => [
+        ...previous,
+        tempMessage,
+      ]);
 
     setText("");
     resetTextareaHeight();
@@ -178,6 +189,13 @@ const MessageInput = () => {
         "text",
         currentText
       );
+
+      if (replyingTo?._id) {
+        formData.append(
+          "replyTo",
+          replyingTo._id
+        );
+      }
 
       if (selectedImage) {
         formData.append(
@@ -205,6 +223,8 @@ const MessageInput = () => {
             : message
         )
       );
+
+      setReplyingTo(null);
 
       await loadChatSummaries();
     } catch (error) {
@@ -286,6 +306,34 @@ const MessageInput = () => {
     <div
       className={styles.container}
     >
+
+      {replyingTo && (
+        <div className={styles.replyBar}>
+          <div className={styles.replyInfo}>
+            <span className={styles.replyLabel}>
+              Replying to
+            </span>
+
+            <p className={styles.replyMessage}>
+              {replyingTo.text?.trim()
+                ? replyingTo.text
+                : replyingTo.image
+                  ? "Photo"
+                  : "Message"}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className={styles.replyClose}
+            onClick={() => setReplyingTo(null)}
+            aria-label="Cancel reply"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
       <button
         className={styles.icon}
         type="button"

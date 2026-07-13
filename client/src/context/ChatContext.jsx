@@ -58,6 +58,11 @@ export const ChatProvider = ({
   ] = useState(null);
 
   const [
+    replyingTo,
+    setReplyingTo,
+  ] = useState(null);
+
+  const [
     messages,
     setMessages,
   ] = useState([]);
@@ -91,6 +96,12 @@ export const ChatProvider = ({
     summariesLoading,
     setSummariesLoading,
   ] = useState(false);
+
+
+  useEffect(() => {
+    setReplyingTo(null);
+  }, [selectedChat]);
+
 
   const loadRequests =
     useCallback(async () => {
@@ -402,11 +413,6 @@ export const ChatProvider = ({
         });
       }
 
-      /*
-       * Database value tho background sync.
-       * Local update valla badge immediate ga
-       * kanipisthundi.
-       */
       loadChatSummaries();
     };
 
@@ -620,6 +626,9 @@ export const ChatProvider = ({
       value={{
         selectedChat,
         setSelectedChat,
+
+        replyingTo,
+        setReplyingTo,
 
         messages,
         setMessages,

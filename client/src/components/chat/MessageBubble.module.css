@@ -151,3 +151,190 @@
   }
 
 }
+
+.messageGroup {
+  max-width: min(72%, 540px);
+
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ownWrapper .messageGroup {
+  flex-direction: row-reverse;
+}
+
+.otherWrapper .messageGroup {
+  flex-direction: row;
+}
+
+.messageGroup .bubble {
+  max-width: 100%;
+}
+
+.replyButton {
+  flex: 0 0 auto;
+
+  width: 32px;
+  height: 32px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid var(--border);
+  border-radius: 50%;
+
+  background: var(--surface);
+  color: var(--text-secondary);
+
+  cursor: pointer;
+  opacity: 0;
+
+  transition:
+    opacity 0.18s ease,
+    color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.messageGroup:hover .replyButton,
+.replyButton:focus-visible {
+  opacity: 1;
+}
+
+.replyButton:hover:not(:disabled) {
+  background: var(--background);
+  color: var(--text-primary);
+  transform: scale(1.04);
+}
+
+.replyButton:disabled {
+  cursor: default;
+}
+
+.replyPreview {
+  min-width: 0;
+
+  margin-bottom: 7px;
+  padding: 7px 9px;
+
+  border-left: 3px solid currentColor;
+  border-radius: 8px;
+
+  background:
+    color-mix(in srgb,
+      currentColor 10%,
+      transparent);
+}
+
+.replySender {
+  display: block;
+
+  margin-bottom: 3px;
+
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.replyContent {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.replyIcon {
+  flex: 0 0 auto;
+}
+
+.replyText {
+  min-width: 0;
+
+  font-size: 12px;
+  line-height: 1.3;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+  .messageGroup {
+    max-width: 88%;
+  }
+
+  .replyButton {
+    width: 30px;
+    height: 30px;
+    opacity: 1;
+  }
+}
+
+.messageGroup {
+  position: relative;
+}
+
+.actionBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+
+  border: none;
+  background: transparent;
+}
+
+.actionMenu {
+  position: absolute;
+  z-index: 100;
+
+  top: calc(100% + 6px);
+  right: 0;
+
+  min-width: 120px;
+  padding: 6px;
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.otherWrapper .actionMenu {
+  left: 0;
+  right: auto;
+}
+
+.actionMenu button {
+  width: 100%;
+  min-height: 38px;
+
+  padding: 8px 10px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: transparent;
+  color: var(--text-primary);
+
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.actionMenu button:hover {
+  background: var(--background);
+}
+
+@media (max-width: 768px) {
+  .replyButton {
+    display: none;
+  }
+}

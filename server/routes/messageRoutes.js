@@ -25,6 +25,10 @@ router.get(
   getChatSummaries
 );
 
-router.get("/conversation/:userId", protect, getMessages);
+router.get(
+  "/conversation/:userId",
+  protect,
+  getMessages
+);
 
 module.exports = router;

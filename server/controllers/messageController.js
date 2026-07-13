@@ -116,61 +116,159 @@ const getMessages = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const chatAllowed = await ChatRequest.findOne({
-      status: "accepted",
-      $or: [
-        {
-          sender: req.user._id,
-          receiver: userId,
-        },
-        {
-          sender: userId,
-          receiver: req.user._id,
-        },
-      ],
-    });
+    const requestedLimit = Number.parseInt(
+      req.query.limit,
+      10
+    );
+
+    const limit = Math.min(
+      Math.max(
+        Number.isNaN(requestedLimit)
+          ? 30
+          : requestedLimit,
+        1
+      ),
+      50
+    );
+
+    const before = req.query.before;
+
+    const currentUserId = String(
+      req.user._id
+    );
+
+    const otherUserId = String(userId);
+
+    const chatAllowed =
+      await ChatRequest.findOne({
+        status: "accepted",
+        $or: [
+          {
+            sender: currentUserId,
+            receiver: otherUserId,
+          },
+          {
+            sender: otherUserId,
+            receiver: currentUserId,
+          },
+        ],
+      }).select("_id");
 
     if (!chatAllowed) {
       return res.status(403).json({
         success: false,
-        message: "Chat request not accepted",
+        message:
+          "Chat request not accepted",
       });
     }
 
-    const messages = await Message.find({
+    const conversationQuery = {
       $or: [
         {
-          sender: req.user._id,
-          receiver: userId,
+          sender: currentUserId,
+          receiver: otherUserId,
         },
         {
-          sender: userId,
-          receiver: req.user._id,
+          sender: otherUserId,
+          receiver: currentUserId,
         },
       ],
-    })
-      .populate("sender", "name username profilePic")
-      .populate("receiver", "name username profilePic")
-      .populate({
-        path: "replyTo",
-        populate: {
-          path: "sender",
-          select: "name username profilePic",
-        },
-      })
-      .sort({ createdAt: 1 });
+    };
+
+    if (before) {
+      const beforeDate =
+        new Date(before);
+
+      if (
+        Number.isNaN(
+          beforeDate.getTime()
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid pagination cursor",
+        });
+      }
+
+      conversationQuery.createdAt = {
+        $lt: beforeDate,
+      };
+    }
+
+    /*
+     * One extra message fetch chestham.
+     * Daani batti older messages unnayo
+     * ledho determine chestham.
+     */
+    const fetchedMessages =
+      await Message.find(
+        conversationQuery
+      )
+        .populate(
+          "sender",
+          "name username profilePic"
+        )
+        .populate(
+          "receiver",
+          "name username profilePic"
+        )
+        .populate({
+          path: "replyTo",
+          populate: {
+            path: "sender",
+            select:
+              "name username profilePic",
+          },
+        })
+        .sort({
+          createdAt: -1,
+          _id: -1,
+        })
+        .limit(limit + 1)
+        .lean();
+
+    const hasMore =
+      fetchedMessages.length > limit;
+
+    const pageMessages = hasMore
+      ? fetchedMessages.slice(0, limit)
+      : fetchedMessages;
+
+    /*
+     * Database nunchi latest-first vachayi.
+     * UI kosam oldest-first ga reverse chestham.
+     */
+    pageMessages.reverse();
+
+    const nextCursor =
+      hasMore &&
+        pageMessages.length > 0
+        ? pageMessages[0].createdAt
+        : null;
 
     return res.status(200).json({
       success: true,
-      count: messages.length,
-      messages,
+      count: pageMessages.length,
+      messages: pageMessages,
+
+      pagination: {
+        limit,
+        hasMore,
+        nextCursor,
+      },
     });
   } catch (error) {
-    console.error("Get Messages Error:", error);
+    console.error(
+      "Get Messages Error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message ||
+        "Unable to load messages",
     });
   }
 };
