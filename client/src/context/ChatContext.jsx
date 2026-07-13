@@ -122,7 +122,7 @@ export const ChatProvider = ({
         console.error(
           "LOAD CHAT REQUESTS ERROR:",
           error.response?.data ||
-            error.message
+          error.message
         );
       }
     }, []);
@@ -155,7 +155,7 @@ export const ChatProvider = ({
         console.error(
           "LOAD CHAT SUMMARIES ERROR:",
           error.response?.data ||
-            error.message
+          error.message
         );
 
         setChatSummaries([]);
@@ -223,8 +223,8 @@ export const ChatProvider = ({
       const normalizedUsers =
         Array.isArray(users)
           ? users.map((id) =>
-              String(id)
-            )
+            String(id)
+          )
           : [];
 
       setOnlineUsers(
@@ -266,74 +266,147 @@ export const ChatProvider = ({
   ========================= */
 
   useEffect(() => {
-    const handleMessage = (
-      message
-    ) => {
+    const handleMessage = (message) => {
       console.log(
         "🔥 newMessage RECEIVED",
         message
       );
 
-      const currentUser =
-        getStoredUser();
+      const currentUser = getStoredUser();
 
       const currentUserId =
         normalizeId(currentUser);
 
       const receiverId =
-        normalizeId(
-          message?.receiver
-        );
+        normalizeId(message?.receiver);
 
       const senderId =
-        normalizeId(
-          message?.sender
-        );
+        normalizeId(message?.sender);
 
       const selectedChatId =
         normalizeId(selectedChat);
 
       const isForCurrentUser =
-        receiverId ===
-        currentUserId;
+        receiverId === currentUserId;
 
-      const belongsToOpenChat =
-        selectedChatId &&
-        (senderId ===
-          selectedChatId ||
-          receiverId ===
-            selectedChatId);
-
-      if (isForCurrentUser) {
-        socket.emit(
-          "messageDelivered",
-          {
-            messageId:
-              message?._id,
-          }
+      const isChatRoute =
+        window.location.pathname.startsWith(
+          "/chat/"
         );
+
+      const isExactChatOpen =
+        isChatRoute &&
+        selectedChatId &&
+        senderId === selectedChatId;
+
+      /*
+       * Message receiver ki deliver ayyindani
+       * backend ki acknowledge chestundi.
+       */
+      if (
+        isForCurrentUser &&
+        message?._id
+      ) {
+        socket.emit("messageDelivered", {
+          messageId: message._id,
+        });
       }
 
-      if (belongsToOpenChat) {
+      /*
+       * Exact sender conversation open unte
+       * message list lo add chestundi.
+       */
+      if (isExactChatOpen) {
         setMessages((previous) => {
           const alreadyExists =
             previous.some(
               (item) =>
-                item?._id ===
-                message?._id
+                String(item?._id) ===
+                String(message?._id)
             );
 
           if (alreadyExists) {
             return previous;
           }
 
-          return [
-            ...previous,
-            message,
-          ];
+          return [...previous, message];
         });
       }
 
+      /*
+       * Home/profile/search page lo unte
+       * unread badge immediate ga increment.
+       */
+      if (
+        isForCurrentUser &&
+        !isExactChatOpen
+      ) {
+        setChatSummaries((previous) => {
+          const safeSummaries =
+            Array.isArray(previous)
+              ? previous
+              : [];
+
+          const existingIndex =
+            safeSummaries.findIndex(
+              (summary) =>
+                normalizeId(summary?.user) ===
+                senderId
+            );
+
+          if (existingIndex === -1) {
+            /*
+             * Summary API shortly fetch ayi
+             * missing user entry add chestundi.
+             */
+            return safeSummaries;
+          }
+
+          const updatedSummaries =
+            safeSummaries.map(
+              (summary, index) => {
+                if (
+                  index !== existingIndex
+                ) {
+                  return summary;
+                }
+
+                return {
+                  ...summary,
+                  lastMessage: message,
+                  unreadCount:
+                    (Number(
+                      summary?.unreadCount
+                    ) || 0) + 1,
+                };
+              }
+            );
+
+          return updatedSummaries.sort(
+            (first, second) => {
+              const firstTime =
+                new Date(
+                  first?.lastMessage
+                    ?.createdAt || 0
+                ).getTime();
+
+              const secondTime =
+                new Date(
+                  second?.lastMessage
+                    ?.createdAt || 0
+                ).getTime();
+
+              return secondTime - firstTime;
+            }
+          );
+        });
+      }
+
+      /*
+       * Database value tho background sync.
+       * Local update valla badge immediate ga
+       * kanipisthundi.
+       */
       loadChatSummaries();
     };
 
@@ -414,11 +487,11 @@ export const ChatProvider = ({
       setMessages((previous) =>
         previous.map((message) =>
           message?._id ===
-          messageId
+            messageId
             ? {
-                ...message,
-                status,
-              }
+              ...message,
+              status,
+            }
             : message
         )
       );
