@@ -4,17 +4,18 @@ import {
   useState,
 } from "react";
 
-import styles from "./MessageBubble.module.css";
-import DeleteMessageModal from "./DeleteMessageModal";
-
 import {
   Clock3,
   Check,
   CheckCheck,
-  Reply,
-  Trash2,
+  MoreVertical,
   Image as ImageIcon,
 } from "lucide-react";
+
+import styles from "./MessageBubble.module.css";
+
+import DeleteMessageModal from "./DeleteMessageModal";
+import MessageActionsMenu from "./MessageActionsMenu";
 
 import {
   deleteMessage,
@@ -41,8 +42,10 @@ const MessageBubble = ({
   const [showActions, setShowActions] =
     useState(false);
 
-  const [showDeleteModal, setShowDeleteModal] =
-    useState(false);
+  const [
+    showDeleteModal,
+    setShowDeleteModal,
+  ] = useState(false);
 
   const [isDeleted, setIsDeleted] =
     useState(false);
@@ -51,6 +54,7 @@ const MessageBubble = ({
     useState("");
 
   const pressTimerRef = useRef(null);
+  const optionsButtonRef = useRef(null);
 
   const time = formatTime(
     message?.createdAt
@@ -70,7 +74,7 @@ const MessageBubble = ({
       ? "Photo"
       : "Original message unavailable");
 
-  const canReply =
+  const canUseActions =
     Boolean(message?._id) &&
     !String(message._id).startsWith(
       "temp-"
@@ -78,17 +82,20 @@ const MessageBubble = ({
 
   const handleReply = () => {
     if (
-      canReply &&
-      typeof onReply === "function"
+      !canUseActions ||
+      typeof onReply !== "function"
     ) {
-      onReply(message);
+      return;
     }
+
+    setShowActions(false);
+    onReply(message);
   };
 
   const handleDelete = () => {
     if (
       !isOwn ||
-      !canReply
+      !canUseActions
     ) {
       return;
     }
@@ -103,23 +110,22 @@ const MessageBubble = ({
       return;
     }
 
-
     setShowDeleteModal(false);
     setShowActions(false);
     setDeleteError("");
 
+    // Instant optimistic UI removal
     setIsDeleted(true);
 
-
-    deleteMessage(message._id)
-      .catch((error) => {
+    deleteMessage(message._id).catch(
+      (error) => {
         console.error(
           "DELETE MESSAGE ERROR:",
           error.response?.data ||
           error.message
         );
 
-
+        // Restore message when API fails
         setIsDeleted(false);
 
         setDeleteError(
@@ -129,7 +135,8 @@ const MessageBubble = ({
         );
 
         setShowDeleteModal(true);
-      });
+      }
+    );
   };
 
   const closeDeleteModal = () => {
@@ -138,22 +145,33 @@ const MessageBubble = ({
   };
 
   const startLongPress = () => {
-    if (!canReply) return;
+    if (!canUseActions) {
+      return;
+    }
 
-    pressTimerRef.current =
-      window.setTimeout(() => {
-        setShowActions(true);
-      }, 500);
-  };
-
-  const cancelLongPress = () => {
     if (pressTimerRef.current) {
       window.clearTimeout(
         pressTimerRef.current
       );
-
-      pressTimerRef.current = null;
     }
+
+    pressTimerRef.current =
+      window.setTimeout(() => {
+        setShowActions(true);
+        pressTimerRef.current = null;
+      }, 450);
+  };
+
+  const cancelLongPress = () => {
+    if (!pressTimerRef.current) {
+      return;
+    }
+
+    window.clearTimeout(
+      pressTimerRef.current
+    );
+
+    pressTimerRef.current = null;
   };
 
   const handleContextMenu = (
@@ -161,14 +179,35 @@ const MessageBubble = ({
   ) => {
     event.preventDefault();
 
-    if (canReply) {
+    if (canUseActions) {
       setShowActions(true);
     }
   };
 
+  const toggleActions = (
+    event
+  ) => {
+    event.stopPropagation();
+
+    if (!canUseActions) {
+      return;
+    }
+
+    setShowActions(
+      (previousValue) =>
+        !previousValue
+    );
+  };
+
   useEffect(() => {
     return () => {
-      cancelLongPress();
+      if (
+        pressTimerRef.current
+      ) {
+        window.clearTimeout(
+          pressTimerRef.current
+        );
+      }
     };
   }, []);
 
@@ -186,29 +225,29 @@ const MessageBubble = ({
         }
       >
         <div
-          className={styles.messageGroup}
-          onTouchStart={startLongPress}
-          onTouchEnd={cancelLongPress}
-          onTouchMove={cancelLongPress}
-          onTouchCancel={cancelLongPress}
+          className={
+            styles.messageGroup
+          }
+          onTouchStart={
+            startLongPress
+          }
+          onTouchEnd={
+            cancelLongPress
+          }
+          onTouchMove={
+            cancelLongPress
+          }
+          onTouchCancel={
+            cancelLongPress
+          }
           onContextMenu={
             handleContextMenu
           }
         >
-          <button
-            type="button"
-            className={styles.replyButton}
-            onClick={handleReply}
-            aria-label="Reply to message"
-            disabled={!canReply}
-          >
-            <Reply size={17} />
-          </button>
-
           <div
             className={`${styles.bubble} ${isOwn
-              ? styles.ownBubble
-              : styles.otherBubble
+                ? styles.ownBubble
+                : styles.otherBubble
               }`}
           >
             {repliedMessage && (
@@ -254,20 +293,36 @@ const MessageBubble = ({
               <img
                 src={message.image}
                 alt="Message attachment"
-                className={styles.image}
+                className={
+                  styles.image
+                }
                 loading="lazy"
                 decoding="async"
               />
             )}
 
             {message?.text && (
-              <p className={styles.text}>
+              <p
+                className={
+                  styles.text
+                }
+              >
                 {message.text}
               </p>
             )}
 
-            <div className={styles.meta}>
-              <span>{time}</span>
+            <div
+              className={
+                styles.meta
+              }
+            >
+              <span
+                className={
+                  styles.time
+                }
+              >
+                {time}
+              </span>
 
               {isOwn && (
                 <span
@@ -277,12 +332,16 @@ const MessageBubble = ({
                 >
                   {message?.status ===
                     "sending" && (
-                      <Clock3 size={14} />
+                      <Clock3
+                        size={14}
+                      />
                     )}
 
                   {message?.status ===
                     "sent" && (
-                      <Check size={14} />
+                      <Check
+                        size={14}
+                      />
                     )}
 
                   {message?.status ===
@@ -303,74 +362,104 @@ const MessageBubble = ({
                       </span>
                     )}
 
-                  {[
+                  {![
                     "sending",
                     "sent",
                     "delivered",
                     "read",
                   ].includes(
                     message?.status
-                  ) === false && (
-                      <Check size={14} />
+                  ) && (
+                      <Check
+                        size={14}
+                      />
                     )}
                 </span>
               )}
+
+              <button
+                ref={
+                  optionsButtonRef
+                }
+                type="button"
+                className={
+                  styles.moreButton
+                }
+                onPointerDown={(
+                  event
+                ) => {
+                  event.stopPropagation();
+                }}
+                onTouchStart={(
+                  event
+                ) => {
+                  event.stopPropagation();
+                }}
+                onTouchEnd={(
+                  event
+                ) => {
+                  event.stopPropagation();
+                }}
+                onClick={
+                  toggleActions
+                }
+                aria-label="Message options"
+                aria-haspopup="menu"
+                aria-expanded={
+                  showActions
+                }
+                data-open={
+                  showActions
+                    ? "true"
+                    : "false"
+                }
+              >
+                <MoreVertical
+                  size={16}
+                />
+              </button>
             </div>
           </div>
 
-          {showActions && (
-            <>
-              <button
-                type="button"
-                className={
-                  styles.actionBackdrop
-                }
-                onClick={() =>
-                  setShowActions(false)
-                }
-                aria-label="Close message actions"
-              />
-
-              <div
-                className={
-                  styles.actionMenu
-                }
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleReply();
-                    setShowActions(false);
-                  }}
-                >
-                  <Reply size={17} />
-                  <span>Reply</span>
-                </button>
-
-                {isOwn && (
-                  <button
-                    type="button"
-                    className={
-                      styles.deleteAction
-                    }
-                    onClick={handleDelete}
-                  >
-                    <Trash2 size={17} />
-                    <span>Delete</span>
-                  </button>
-                )}
-              </div>
-            </>
-          )}
+          <MessageActionsMenu
+            open={showActions}
+            anchorRef={
+              optionsButtonRef
+            }
+            isOwn={isOwn}
+            preview={
+              message?.text?.trim() ||
+              (message?.image
+                ? "Photo"
+                : "Message")
+            }
+            onClose={() =>
+              setShowActions(false)
+            }
+            onReply={
+              handleReply
+            }
+            onDelete={
+              handleDelete
+            }
+          />
         </div>
       </div>
 
       <DeleteMessageModal
-        open={showDeleteModal}
+        open={
+          showDeleteModal
+        }
         loading={false}
-        error={deleteError}
-        onClose={closeDeleteModal}
-        onConfirm={confirmDelete}
+        error={
+          deleteError
+        }
+        onClose={
+          closeDeleteModal
+        }
+        onConfirm={
+          confirmDelete
+        }
       />
     </>
   );

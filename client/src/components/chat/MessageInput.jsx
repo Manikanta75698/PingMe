@@ -144,33 +144,31 @@ const MessageInput = () => {
         _id: currentUserId,
         name: user?.name,
         username: user?.username,
-        profilePic:
-          user?.profilePic,
+        profilePic: user?.profilePic,
       },
 
       receiver: receiverId,
 
-      createdAt:
-        new Date().toISOString(),
+      createdAt: new Date().toISOString(),
 
       status: "sending",
 
       image: previewUrl,
+
+      replyTo: replyingTo
+        ? {
+          _id: replyingTo._id,
+          text: replyingTo.text || "",
+          image: replyingTo.image || "",
+          sender: replyingTo.sender,
+        }
+        : null,
     };
 
-    replyTo: replyingTo
-      ? {
-        _id: replyingTo._id,
-        text: replyingTo.text || "",
-        image: replyingTo.image || "",
-        sender: replyingTo.sender,
-      }
-      : null,
-
-      setMessages((previous) => [
-        ...previous,
-        tempMessage,
-      ]);
+    setMessages((previous) => [
+      ...previous,
+      tempMessage,
+    ]);
 
     setText("");
     resetTextareaHeight();
@@ -226,7 +224,14 @@ const MessageInput = () => {
 
       setReplyingTo(null);
 
-      await loadChatSummaries();
+      loadChatSummaries().catch((error) => {
+        console.error(
+          "LOAD CHAT SUMMARIES ERROR:",
+          error.response?.data ||
+          error.message
+        );
+      });
+
     } catch (error) {
       console.error(
         "SEND MESSAGE ERROR:",
@@ -296,7 +301,7 @@ const MessageInput = () => {
       return;
     }
 
-    socket.emit("typing", {
+    socket?.emit("typing", {
       receiverId,
       userId: currentUserId,
     });
@@ -370,13 +375,29 @@ const MessageInput = () => {
 
           if (!file) return;
 
+          const allowedTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+          ];
+
           if (
-            !file.type.startsWith(
-              "image/"
-            )
+            !allowedTypes.includes(file.type)
           ) {
             alert(
-              "Please select a valid image"
+              "Please select a JPG, PNG, or WebP image"
+            );
+
+            event.target.value = "";
+            return;
+          }
+
+          const MAX_IMAGE_SIZE =
+            5 * 1024 * 1024;
+
+          if (file.size > MAX_IMAGE_SIZE) {
+            alert(
+              "Image size must be less than 5 MB"
             );
 
             event.target.value = "";

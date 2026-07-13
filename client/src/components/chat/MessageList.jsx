@@ -7,8 +7,13 @@ import {
 
 import styles from "./MessageList.module.css";
 
-import { useChat } from "../../context/ChatContext";
-import { useAuth } from "../../context/AuthContext";
+import {
+  useChat,
+} from "../../context/ChatContext";
+
+import {
+  useAuth,
+} from "../../context/AuthContext";
 
 import MessageBubble from "./MessageBubble";
 
@@ -16,7 +21,11 @@ const normalizeId = (value) => {
   if (!value) return "";
 
   if (typeof value === "object") {
-    return String(value?._id || value?.id || "");
+    return String(
+      value?._id ||
+      value?.id ||
+      ""
+    );
   }
 
   return String(value);
@@ -45,7 +54,6 @@ const MessageList = ({
   olderMessagesLoading = false,
   loadOlderMessages,
 }) => {
-
   const {
     messages,
     socket,
@@ -53,14 +61,13 @@ const MessageList = ({
     setReplyingTo,
   } = useChat();
 
-
   const { user } = useAuth();
 
-  const containerRef = useRef(null);
-  const bottomRef = useRef(null);
+  const containerRef =
+    useRef(null);
 
-  const selectedChatId =
-    normalizeId(selectedChat);
+  const bottomRef =
+    useRef(null);
 
   const initialScrollDoneRef =
     useRef(false);
@@ -68,78 +75,138 @@ const MessageList = ({
   const previousScrollHeightRef =
     useRef(0);
 
+  const previousFirstMessageIdRef =
+    useRef("");
+
   const loadingOlderRef =
     useRef(false);
 
-  const previousFirstMessageIdRef =
-    useRef("");
+  const readEmittedIdsRef =
+    useRef(new Set());
+
+  const messagesRef =
+    useRef([]);
+
+  const selectedChatId =
+    normalizeId(selectedChat);
 
   const storedUser = useMemo(
     () => getStoredUser(),
     []
   );
 
-  const currentUserId = normalizeId(
-    user?._id ||
-    user?.id ||
-    storedUser?._id ||
-    storedUser?.id
-  );
+  const currentUserId =
+    normalizeId(
+      user?._id ||
+      user?.id ||
+      storedUser?._id ||
+      storedUser?.id
+    );
 
-  const safeMessages = Array.isArray(messages)
-    ? messages
-    : [];
+  const safeMessages =
+    Array.isArray(messages)
+      ? messages
+      : [];
 
-  const firstMessageId = normalizeId(
-    safeMessages[0]?._id
-  );
+  const firstMessageId =
+    normalizeId(
+      safeMessages[0]?._id
+    );
 
-  const lastMessageId = normalizeId(
+  const lastMessage =
     safeMessages[
-      safeMessages.length - 1
-    ]?._id
-  );
+    safeMessages.length - 1
+    ];
 
-  useEffect(() => {
-    initialScrollDoneRef.current = false;
-    previousFirstMessageIdRef.current = "";
-    loadingOlderRef.current = false;
+  const lastMessageId =
+    normalizeId(
+      lastMessage?._id
+    );
+
+  const lastSenderId =
+    normalizeId(
+      lastMessage?.sender
+    );
+
+  /*
+   * Keep latest messages available
+   * inside async callbacks.
+   */
+  useLayoutEffect(() => {
+    messagesRef.current =
+      safeMessages;
+  }, [safeMessages]);
+
+  /*
+   * Reset scroll and read tracking
+   * when selected conversation changes.
+   *
+   * useLayoutEffect use chesthunnam,
+   * so initial scroll effect kanna mundu
+   * reset complete avutundi.
+   */
+  useLayoutEffect(() => {
+    initialScrollDoneRef.current =
+      false;
+
+    previousScrollHeightRef.current =
+      0;
+
+    previousFirstMessageIdRef.current =
+      "";
+
+    loadingOlderRef.current =
+      false;
+
+    readEmittedIdsRef.current.clear();
   }, [selectedChatId]);
 
+  /*
+   * Initial conversation load:
+   * scroll directly to latest message.
+   */
   useLayoutEffect(() => {
-    const container = containerRef.current;
+    const container =
+      containerRef.current;
 
     if (
       !container ||
       safeMessages.length === 0 ||
       initialScrollDoneRef.current
     ) {
-      return;
+      return undefined;
     }
 
     const scrollToBottom = () => {
       container.scrollTop =
         container.scrollHeight;
 
-      bottomRef.current?.scrollIntoView({
-        block: "end",
-        behavior: "auto",
-      });
+      initialScrollDoneRef.current =
+        true;
 
-      initialScrollDoneRef.current = true;
       previousFirstMessageIdRef.current =
         firstMessageId;
     };
 
-    requestAnimationFrame(scrollToBottom);
+    const animationFrameId =
+      window.requestAnimationFrame(
+        scrollToBottom
+      );
 
-    const timer = window.setTimeout(
-      scrollToBottom,
-      120
-    );
+    const timerId =
+      window.setTimeout(
+        scrollToBottom,
+        150
+      );
 
     return () => {
-      window.clearTimeout(timer);
+      window.cancelAnimationFrame(
+        animationFrameId
+      );
+
+      window.clearTimeout(
+        timerId
+      );
     };
   }, [
     selectedChatId,
@@ -147,35 +214,44 @@ const MessageList = ({
     firstMessageId,
   ]);
 
-  useEffect(() => {
+  /*
+   * Older messages top lo prepend
+   * ayinappudu current viewport position
+   * preserve chesthundi.
+   */
+  useLayoutEffect(() => {
     const container =
       containerRef.current;
 
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     const previousFirstId =
       previousFirstMessageIdRef.current;
 
     const olderMessagesWerePrepended =
-      previousFirstId &&
+      Boolean(previousFirstId) &&
+      Boolean(firstMessageId) &&
+      previousFirstId !==
       firstMessageId &&
-      previousFirstId !== firstMessageId &&
       loadingOlderRef.current;
 
-    if (olderMessagesWerePrepended) {
-      requestAnimationFrame(() => {
-        const newScrollHeight =
-          container.scrollHeight;
+    if (
+      olderMessagesWerePrepended
+    ) {
+      const newScrollHeight =
+        container.scrollHeight;
 
-        const heightDifference =
-          newScrollHeight -
-          previousScrollHeightRef.current;
+      const heightDifference =
+        newScrollHeight -
+        previousScrollHeightRef.current;
 
-        container.scrollTop +=
-          heightDifference;
+      container.scrollTop +=
+        heightDifference;
 
-        loadingOlderRef.current = false;
-      });
+      loadingOlderRef.current =
+        false;
     }
 
     previousFirstMessageIdRef.current =
@@ -185,9 +261,14 @@ const MessageList = ({
     safeMessages.length,
   ]);
 
-
+  /*
+   * New own message always bottom ki.
+   * Incoming message user bottom daggara
+   * unte matrame auto-scroll.
+   */
   useEffect(() => {
-    const container = containerRef.current;
+    const container =
+      containerRef.current;
 
     if (
       !container ||
@@ -195,17 +276,12 @@ const MessageList = ({
       loadingOlderRef.current ||
       !lastMessageId
     ) {
-      return;
+      return undefined;
     }
 
-    const lastMessage =
-      safeMessages[safeMessages.length - 1];
-
-    const lastSenderId =
-      normalizeId(lastMessage?.sender);
-
     const isOwnNewMessage =
-      lastSenderId === currentUserId;
+      lastSenderId ===
+      currentUserId;
 
     const distanceFromBottom =
       container.scrollHeight -
@@ -215,28 +291,38 @@ const MessageList = ({
     const isNearBottom =
       distanceFromBottom < 220;
 
-    /*
-     * Own message always bottom ki.
-     * Incoming message user bottom daggara
-     * unte bottom ki.
-     */
-    if (isOwnNewMessage || isNearBottom) {
-      requestAnimationFrame(() => {
-        bottomRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "end",
-        });
-      });
+    if (
+      !isOwnNewMessage &&
+      !isNearBottom
+    ) {
+      return undefined;
     }
+
+    const animationFrameId =
+      window.requestAnimationFrame(
+        () => {
+          bottomRef.current
+            ?.scrollIntoView({
+              behavior: "smooth",
+              block: "end",
+            });
+        }
+      );
+
+    return () => {
+      window.cancelAnimationFrame(
+        animationFrameId
+      );
+    };
   }, [
     lastMessageId,
+    lastSenderId,
     currentUserId,
-    safeMessages,
   ]);
 
   /*
-   * Scroll top reach ayithe older messages
-   * automatically fetch chestundi.
+   * Scroll top reach ayithe
+   * older messages fetch chesthundi.
    */
   const handleScroll = async () => {
     const container =
@@ -248,20 +334,48 @@ const MessageList = ({
       !hasMoreMessages ||
       olderMessagesLoading ||
       loadingOlderRef.current ||
-      typeof loadOlderMessages !== "function"
+      typeof loadOlderMessages !==
+      "function"
     ) {
       return;
     }
 
+    const firstIdBeforeRequest =
+      normalizeId(
+        messagesRef.current[0]?._id
+      );
+
     previousScrollHeightRef.current =
       container.scrollHeight;
 
-    loadingOlderRef.current = true;
+    loadingOlderRef.current =
+      true;
 
     try {
       await loadOlderMessages();
+
+      /*
+       * No older messages returned
+       * ayithe pagination lock release.
+       */
+      window.setTimeout(() => {
+        const currentFirstId =
+          normalizeId(
+            messagesRef.current[0]?._id
+          );
+
+        if (
+          loadingOlderRef.current &&
+          currentFirstId ===
+          firstIdBeforeRequest
+        ) {
+          loadingOlderRef.current =
+            false;
+        }
+      }, 250);
     } catch (error) {
-      loadingOlderRef.current = false;
+      loadingOlderRef.current =
+        false;
 
       console.error(
         "AUTO LOAD OLDER MESSAGES ERROR:",
@@ -271,57 +385,119 @@ const MessageList = ({
   };
 
   /*
-   * Received messages ni read ga mark chestundi.
+   * Received unread messages ni
+   * socket through read ga mark chesthundi.
    */
   useEffect(() => {
     if (
       !currentUserId ||
       safeMessages.length === 0 ||
-      document.visibilityState !== "visible"
+      !socket ||
+      typeof socket.emit !==
+      "function"
     ) {
-      return;
+      return undefined;
     }
 
-    safeMessages.forEach((message) => {
-      const messageId =
-        normalizeId(message?._id);
+    const markMessagesAsRead =
+      () => {
+        if (
+          document.visibilityState !==
+          "visible"
+        ) {
+          return;
+        }
 
-      const receiverId =
-        normalizeId(message?.receiver);
+        safeMessages.forEach(
+          (message) => {
+            const messageId =
+              normalizeId(
+                message?._id
+              );
 
-      const senderId =
-        normalizeId(message?.sender);
+            const receiverId =
+              normalizeId(
+                message?.receiver
+              );
 
-      const isReceivedMessage =
-        receiverId === currentUserId &&
-        senderId !== currentUserId;
+            const senderId =
+              normalizeId(
+                message?.sender
+              );
 
-      const shouldMarkAsRead =
-        messageId &&
-        !messageId.startsWith("temp-") &&
-        isReceivedMessage &&
-        message?.status !== "read";
+            const isReceivedMessage =
+              receiverId ===
+              currentUserId &&
+              senderId !==
+              currentUserId;
 
-      if (shouldMarkAsRead) {
-        socket.emit("messageRead", {
-          messageId,
-        });
-      }
-    });
+            const alreadyEmitted =
+              readEmittedIdsRef
+                .current
+                .has(messageId);
+
+            const shouldMarkAsRead =
+              Boolean(messageId) &&
+              !messageId.startsWith(
+                "temp-"
+              ) &&
+              isReceivedMessage &&
+              message?.status !==
+              "read" &&
+              !alreadyEmitted;
+
+            if (!shouldMarkAsRead) {
+              return;
+            }
+
+            readEmittedIdsRef
+              .current
+              .add(messageId);
+
+            socket.emit(
+              "messageRead",
+              {
+                messageId,
+              }
+            );
+          }
+        );
+      };
+
+    markMessagesAsRead();
+
+    document.addEventListener(
+      "visibilitychange",
+      markMessagesAsRead
+    );
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        markMessagesAsRead
+      );
+    };
   }, [
     safeMessages,
     socket,
     currentUserId,
   ]);
 
-  if (safeMessages.length === 0) {
+  if (
+    safeMessages.length === 0
+  ) {
     return (
       <div className={styles.empty}>
-        <div className={styles.emptyContent}>
+        <div
+          className={
+            styles.emptyContent
+          }
+        >
           <h3>No messages yet</h3>
 
           <p>
-            Start the conversation with a message.
+            Start the conversation
+            with a message.
           </p>
         </div>
       </div>
@@ -331,43 +507,79 @@ const MessageList = ({
   return (
     <div
       ref={containerRef}
-      className={styles.container}
+      className={
+        styles.container
+      }
       onScroll={handleScroll}
     >
-      <div className={styles.messagesInner}>
+      <div
+        className={
+          styles.messagesInner
+        }
+      >
         {olderMessagesLoading && (
-          <div className={styles.loadingOlder}>
+          <div
+            className={
+              styles.loadingOlder
+            }
+          >
             Loading older messages...
           </div>
         )}
 
         {!hasMoreMessages &&
           safeMessages.length > 0 && (
-            <div className={styles.startText}>
+            <div
+              className={
+                styles.startText
+              }
+            >
               Beginning of conversation
             </div>
           )}
 
-        {safeMessages.map((message) => {
-          const messageId =
-            normalizeId(message?._id);
+        {safeMessages.map(
+          (message, index) => {
+            const messageId =
+              normalizeId(
+                message?._id
+              );
 
-          const senderId =
-            normalizeId(message?.sender);
+            const senderId =
+              normalizeId(
+                message?.sender
+              );
 
-          return (
-            <MessageBubble
-              key={messageId}
-              message={message}
-              isOwn={senderId === currentUserId}
-              onReply={setReplyingTo}
-            />
-          );
-        })}
+            const fallbackKey =
+              `${senderId}-${message?.createdAt ||
+              index
+              }-${index}`;
+
+            return (
+              <MessageBubble
+                key={
+                  messageId ||
+                  fallbackKey
+                }
+                message={message}
+                isOwn={
+                  senderId ===
+                  currentUserId
+                }
+                onReply={
+                  setReplyingTo
+                }
+              />
+            );
+          }
+        )}
 
         <div
           ref={bottomRef}
-          className={styles.bottomAnchor}
+          className={
+            styles.bottomAnchor
+          }
+          aria-hidden="true"
         />
       </div>
     </div>
