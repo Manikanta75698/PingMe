@@ -10,19 +10,39 @@ import CreatePost from "./CreatePost";
 const Header = ({ scrollY }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { receivedRequests } = useChat();
+
+  const {
+    receivedRequests,
+    chatSummaries,
+    loadChatSummaries,
+  } = useChat();
+
   const pendingRequestCount = Array.isArray(receivedRequests)
     ? receivedRequests.filter(
       (request) => request.status === "pending"
     ).length
     : 0;
+
+  const totalUnreadMessages = Array.isArray(chatSummaries)
+    ? chatSummaries.reduce(
+      (total, chat) =>
+        total + (Number(chat?.unreadCount) || 0),
+      0
+    )
+    : 0;
+
   const openChat = () => {
     navigate("/chat");
   };
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
+
   // 🚀 Scroll to Hide State
   const [showTopHeader, setShowTopHeader] = useState(true);
+
+  useEffect(() => {
+    loadChatSummaries();
+  }, [loadChatSummaries]);
 
   const lastScrollY = useRef(0);
 
@@ -87,11 +107,25 @@ const Header = ({ scrollY }) => {
           </button>
 
           <button
+            type="button"
             className={styles.navItem}
             onClick={openChat}
           >
-            <MessageCircle className={styles.icon} />
-            <span className={styles.text}>Messages</span>
+            <div className={styles.iconWrapper}>
+              <MessageCircle className={styles.icon} />
+
+              {totalUnreadMessages > 0 && (
+                <span className={styles.badge}>
+                  {totalUnreadMessages > 99
+                    ? "99+"
+                    : totalUnreadMessages}
+                </span>
+              )}
+            </div>
+
+            <span className={styles.text}>
+              Messages
+            </span>
           </button>
 
           <button
