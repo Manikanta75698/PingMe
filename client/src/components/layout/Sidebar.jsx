@@ -13,14 +13,31 @@ import CreatePost from "./CreatePost";
 
 const Sidebar = () => {
   const { user } = useAuth();
-  const { receivedRequests } = useChat();
+
+  const {
+    receivedRequests,
+    chatSummaries,
+  } = useChat();
+
   const navigate = useNavigate();
 
   const openChat = () => {
-    console.log("clicked");
-    alert("clicked");
     navigate("/chat");
   };
+
+  const totalUnreadMessages = Array.isArray(chatSummaries)
+    ? chatSummaries.reduce(
+      (total, chat) =>
+        total + (Number(chat?.unreadCount) || 0),
+      0
+    )
+    : 0;
+
+  const pendingRequestsCount = Array.isArray(receivedRequests)
+    ? receivedRequests.filter(
+      (request) => request?.status === "pending"
+    ).length
+    : 0;
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -50,11 +67,35 @@ const Sidebar = () => {
           </div>
 
           <button
+            type="button"
             className={styles.navItem}
             onClick={openChat}
           >
-            <MessageCircle className={styles.icon} />
-            <span className={styles.text}>Messages</span>
+            <button
+              type="button"
+              className={styles.navItem}
+              onClick={() => navigate("/activity")}
+            >
+              <div className={styles.iconWrapper}>
+                <Heart className={styles.icon} />
+
+                {pendingRequestsCount > 0 && (
+                  <span className={styles.navBadge}>
+                    {pendingRequestsCount > 99
+                      ? "99+"
+                      : pendingRequestsCount}
+                  </span>
+                )}
+              </div>
+
+              <span className={styles.text}>
+                Activity
+              </span>
+            </button>
+
+            <span className={styles.text}>
+              Messages
+            </span>
           </button>
 
           <button

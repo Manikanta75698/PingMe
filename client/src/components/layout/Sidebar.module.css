@@ -6,7 +6,8 @@
   top: 0;
   left: 0;
   height: 100vh;
-  width: 250px; /* Sidebar width */
+  width: 250px;
+  /* Sidebar width */
   background-color: var(--background);
   border-right: 1px solid var(--border);
   padding: 20px 12px;
@@ -71,7 +72,8 @@
     top: auto;
     bottom: 0;
     width: 100%;
-    height: 60px; /* Bottom bar height */
+    height: 60px;
+    /* Bottom bar height */
     flex-direction: row;
     justify-content: space-around;
     align-items: center;
@@ -85,7 +87,8 @@
   }
 
   .logo {
-    display: none; /* Mobile lo logo hide chestham */
+    display: none;
+    /* Mobile lo logo hide chestham */
   }
 
   .navLinks {
@@ -102,7 +105,8 @@
   }
 
   .text {
-    display: none; /* Mobile lo icons mathrame kanipisthayi */
+    display: none;
+    /* Mobile lo icons mathrame kanipisthayi */
   }
 }
 
@@ -149,7 +153,8 @@
   position: absolute;
   top: 100%;
   left: 0;
-  width: 320px; /* Sidebar kante peddaga results box vasthundi */
+  width: 320px;
+  /* Sidebar kante peddaga results box vasthundi */
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -166,14 +171,15 @@
     padding: 8px;
     border: none;
   }
-  
+
   /* Mobile Bottom Nav lo input box pattadu kabatti hide chesthunnam */
   .searchInput {
-    display: none; 
+    display: none;
   }
 
   .searchResultsWrapper {
-    bottom: 100%; /* Mobile lo results kindanunchi paiki ravali */
+    bottom: 100%;
+    /* Mobile lo results kindanunchi paiki ravali */
     top: auto;
     margin-bottom: 10px;
   }
@@ -206,7 +212,7 @@
 }
 
 /* Modal lopala unna CreatePost ki margin avasaram ledu */
-.modalContent > section {
+.modalContent>section {
   margin-bottom: 0 !important;
 }
 
@@ -231,8 +237,46 @@
     opacity: 0;
     transform: scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+
+.iconWrapper {
+  position: relative;
+
+  flex: 0 0 auto;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navBadge {
+  position: absolute;
+  top: -7px;
+  right: -10px;
+
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 2px solid var(--surface);
+  border-radius: 999px;
+
+  background: var(--primary);
+  color: var(--on-primary, #ffffff);
+
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+
+  box-sizing: border-box;
 }
