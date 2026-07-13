@@ -44,7 +44,7 @@ const MessageBubble = ({
   const [showDeleteModal, setShowDeleteModal] =
     useState(false);
 
-  const [deleting, setDeleting] =
+  const [isDeleted, setIsDeleted] =
     useState(false);
 
   const [deleteError, setDeleteError] =
@@ -85,13 +85,10 @@ const MessageBubble = ({
     }
   };
 
-  // Delete button click chesinappudu
-  // custom popup open avutundi.
   const handleDelete = () => {
     if (
       !isOwn ||
-      !canReply ||
-      deleting
+      !canReply
     ) {
       return;
     }
@@ -101,44 +98,41 @@ const MessageBubble = ({
     setShowDeleteModal(true);
   };
 
-  // Popup lo Delete confirm chesinappudu
-  // API request run avutundi.
-  const confirmDelete = async () => {
-    if (
-      !message?._id ||
-      deleting
-    ) {
+  const confirmDelete = () => {
+    if (!message?._id) {
       return;
     }
 
-    try {
-      setDeleting(true);
-      setDeleteError("");
 
-      await deleteMessage(
-        message._id
-      );
+    setShowDeleteModal(false);
+    setShowActions(false);
+    setDeleteError("");
 
-      setShowDeleteModal(false);
-    } catch (error) {
-      console.error(
-        "DELETE MESSAGE ERROR:",
-        error.response?.data ||
-        error.message
-      );
+    setIsDeleted(true);
 
-      setDeleteError(
-        error.response?.data?.message ||
-        "Unable to delete this message. Please try again."
-      );
-    } finally {
-      setDeleting(false);
-    }
+
+    deleteMessage(message._id)
+      .catch((error) => {
+        console.error(
+          "DELETE MESSAGE ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+
+        setIsDeleted(false);
+
+        setDeleteError(
+          error.response?.data?.message ||
+          error.userMessage ||
+          "Unable to delete this message. Please try again."
+        );
+
+        setShowDeleteModal(true);
+      });
   };
 
   const closeDeleteModal = () => {
-    if (deleting) return;
-
     setShowDeleteModal(false);
     setDeleteError("");
   };
@@ -178,6 +172,10 @@ const MessageBubble = ({
     };
   }, []);
 
+  if (isDeleted) {
+    return null;
+  }
+
   return (
     <>
       <div
@@ -209,8 +207,8 @@ const MessageBubble = ({
 
           <div
             className={`${styles.bubble} ${isOwn
-                ? styles.ownBubble
-                : styles.otherBubble
+              ? styles.ownBubble
+              : styles.otherBubble
               }`}
           >
             {repliedMessage && (
@@ -356,10 +354,8 @@ const MessageBubble = ({
                       styles.deleteAction
                     }
                     onClick={handleDelete}
-                    disabled={deleting}
                   >
                     <Trash2 size={17} />
-
                     <span>Delete</span>
                   </button>
                 )}
@@ -371,7 +367,7 @@ const MessageBubble = ({
 
       <DeleteMessageModal
         open={showDeleteModal}
-        loading={deleting}
+        loading={false}
         error={deleteError}
         onClose={closeDeleteModal}
         onConfirm={confirmDelete}
