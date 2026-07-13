@@ -7,7 +7,9 @@ import {
   useState,
 } from "react";
 
-import socket from "../socket/socket";
+import socket, {
+  connectSocket,
+} from "../socket/socket";
 
 import {
   getReceivedRequests,
@@ -258,13 +260,8 @@ export const ChatProvider = ({
 
     const handleConnect = () => {
       console.log(
-        "SOCKET CONNECTED:",
+        "AUTHENTICATED SOCKET CONNECTED:",
         socket.id
-      );
-
-      socket.emit(
-        "join",
-        currentUserId
       );
     };
 
@@ -298,7 +295,7 @@ export const ChatProvider = ({
     if (socket.connected) {
       handleConnect();
     } else {
-      socket.connect();
+      connectSocket();
     }
 
     return () => {
