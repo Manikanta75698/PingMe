@@ -14,11 +14,15 @@ const messageSchema = new mongoose.Schema(
       required: true,
     },
 
-    text: String,
+    text: {
+      type: String,
+      default: "",
+      trim: true,
+    },
 
     status: {
       type: String,
-      enum: ["sent", "delivered", "seen"],
+      enum: ["sent", "delivered", "read"],
       default: "sent",
     },
 
@@ -28,7 +32,10 @@ const messageSchema = new mongoose.Schema(
       default: null,
     },
 
-    image: String,
+    image: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
@@ -40,4 +47,7 @@ messageSchema.index(
   { expireAfterSeconds: 86400 }
 );
 
-module.exports = mongoose.model("Message", messageSchema);
+module.exports = mongoose.model(
+  "Message",
+  messageSchema
+);
