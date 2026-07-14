@@ -1,56 +1,172 @@
-const Notification = require("../models/Notification");
+const mongoose =
+  require("mongoose");
 
-// Get Notifications
-const getNotifications = async (req, res) => {
+const Notification =
+  require("../models/Notification");
+
+/* =========================
+   GET NOTIFICATIONS
+========================= */
+
+const getNotifications = async (
+  req,
+  res
+) => {
   try {
-    const notifications = await Notification.find({
-      receiver: req.user._id,
-    })
-      .populate("sender", "name username profilePic")
-      .populate("post", "image caption")
-      .sort({ createdAt: -1 });
+    const currentUserId =
+      req.user?._id;
 
-    res.status(200).json({
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    const notifications =
+      await Notification.find({
+        receiver: currentUserId,
+      })
+        .populate(
+          "sender",
+          "name username profilePic"
+        )
+        .populate(
+          "post",
+          "image caption"
+        )
+        .sort({
+          createdAt: -1,
+        })
+        .lean();
+
+    const unreadCount =
+      notifications.reduce(
+        (
+          total,
+          notification
+        ) =>
+          notification?.isRead
+            ? total
+            : total + 1,
+        0
+      );
+
+    return res.status(200).json({
       success: true,
-      count: notifications.length,
+      count:
+        notifications.length,
+      unreadCount,
       notifications,
     });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "GET NOTIFICATIONS ERROR:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        "Unable to load notifications",
     });
   }
 };
 
-// Mark as Read
-const markAsRead = async (req, res) => {
+/* =========================
+   MARK NOTIFICATION AS READ
+========================= */
+
+const markAsRead = async (
+  req,
+  res
+) => {
   try {
-    const notification = await Notification.findById(req.params.id);
+    const currentUserId =
+      req.user?._id;
+
+    const notificationId =
+      String(
+        req.params?.id || ""
+      ).trim();
+
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
+      !notificationId ||
+      !mongoose.Types.ObjectId.isValid(
+        notificationId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid notification ID",
+      });
+    }
+
+    /*
+     * Current user ki belong ayye
+     * notification matrame update avutundi.
+     */
+    const notification =
+      await Notification
+        .findOneAndUpdate(
+          {
+            _id: notificationId,
+            receiver:
+              currentUserId,
+          },
+          {
+            $set: {
+              isRead: true,
+            },
+          },
+          {
+            new: true,
+            runValidators: true,
+          }
+        )
+        .populate(
+          "sender",
+          "name username profilePic"
+        )
+        .populate(
+          "post",
+          "image caption"
+        );
 
     if (!notification) {
       return res.status(404).json({
         success: false,
-        message: "Notification not found",
+        message:
+          "Notification not found",
       });
     }
 
-    notification.isRead = true;
-
-    await notification.save();
-
-    res.json({
+    return res.status(200).json({
       success: true,
-      message: "Notification marked as read",
+      message:
+        "Notification marked as read",
+      notification,
     });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "MARK NOTIFICATION READ ERROR:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        "Unable to update notification",
     });
   }
 };
