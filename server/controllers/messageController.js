@@ -30,45 +30,96 @@ const DEFAULT_REACTIONS = [
 ========================= */
 
 const normalizeId = (value) => {
-  if (!value) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return "";
   }
 
-  if (typeof value === "object") {
-    const nestedValue =
-      value?._id ||
-      value?.id ||
-      value?.userId;
+  if (
+    typeof value === "string" ||
+    typeof value === "number"
+  ) {
+    return String(value).trim();
+  }
 
-    if (nestedValue) {
+  /*
+   * Mongoose ObjectId ni first handle cheyyali.
+   * value.id getter ni mundu access cheyyakudadhu.
+   */
+  if (
+    value instanceof
+    mongoose.Types.ObjectId
+  ) {
+    return value.toHexString();
+  }
+
+  if (
+    typeof value?.toHexString ===
+    "function"
+  ) {
+    try {
+      return String(
+        value.toHexString()
+      ).trim();
+    } catch {
+      return "";
+    }
+  }
+
+  if (typeof value === "object") {
+    if (
+      value._id &&
+      value._id !== value
+    ) {
       return normalizeId(
-        nestedValue
+        value._id
+      );
+    }
+
+    if (
+      value.userId &&
+      value.userId !== value
+    ) {
+      return normalizeId(
+        value.userId
       );
     }
 
     /*
-     * Mongoose ObjectId support.
+     * Own id property unte matrame access.
+     * ObjectId prototype getter ni avoid chesthundi.
      */
     if (
-      typeof value.toString ===
-      "function"
+      Object.prototype
+        .hasOwnProperty.call(
+          value,
+          "id"
+        )
     ) {
-      const stringValue =
-        value.toString();
+      const ownId = value.id;
 
       if (
-        stringValue &&
-        stringValue !==
-        "[object Object]"
+        ownId &&
+        ownId !== value
       ) {
-        return stringValue.trim();
+        return normalizeId(
+          ownId
+        );
       }
     }
 
     return "";
   }
 
-  return String(value).trim();
+  const stringValue =
+    String(value).trim();
+
+  return stringValue ===
+    "[object Object]"
+    ? ""
+    : stringValue;
 };
 
 const isValidObjectId = (value) =>

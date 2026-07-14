@@ -14,45 +14,85 @@ const Message = require("../models/Message");
 const TYPING_TIMEOUT_MS = 2500;
 
 const normalizeId = (value) => {
-  if (!value) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return "";
   }
 
-  if (typeof value === "object") {
-    const nestedValue =
-      value?._id ||
-      value?.id ||
-      value?.userId;
+  if (
+    typeof value === "string" ||
+    typeof value === "number"
+  ) {
+    return String(value).trim();
+  }
 
-    if (nestedValue) {
+  /*
+   * Mongoose ObjectId compatible,
+   * mongoose import avasaram ledu.
+   */
+  if (
+    typeof value?.toHexString ===
+    "function"
+  ) {
+    try {
       return String(
-        nestedValue
+        value.toHexString()
       ).trim();
+    } catch {
+      return "";
+    }
+  }
+
+  if (typeof value === "object") {
+    if (
+      value._id &&
+      value._id !== value
+    ) {
+      return normalizeId(
+        value._id
+      );
     }
 
-    /*
-     * Mongoose ObjectId support.
-     */
     if (
-      typeof value.toString ===
-      "function"
+      value.userId &&
+      value.userId !== value
     ) {
-      const stringValue =
-        value.toString();
+      return normalizeId(
+        value.userId
+      );
+    }
+
+    if (
+      Object.prototype
+        .hasOwnProperty.call(
+          value,
+          "id"
+        )
+    ) {
+      const ownId = value.id;
 
       if (
-        stringValue &&
-        stringValue !==
-        "[object Object]"
+        ownId &&
+        ownId !== value
       ) {
-        return stringValue.trim();
+        return normalizeId(
+          ownId
+        );
       }
     }
 
     return "";
   }
 
-  return String(value).trim();
+  const stringValue =
+    String(value).trim();
+
+  return stringValue ===
+    "[object Object]"
+    ? ""
+    : stringValue;
 };
 
 const socketHandler = (io) => {
