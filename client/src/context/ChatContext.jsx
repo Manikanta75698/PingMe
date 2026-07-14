@@ -114,6 +114,9 @@ export const ChatProvider = ({
   const selectedChatRef =
     useRef(null);
 
+  const messagesRef =
+    useRef([]);
+
   const readReceiptIdsRef =
     useRef(new Set());
 
@@ -359,10 +362,7 @@ export const ChatProvider = ({
         Boolean(currentUserId) &&
         receiverId === currentUserId;
 
-      /*
-       * URL pathname check remove chesam.
-       * Selected chat ID match unte chaalu.
-       */
+
       const isExactChatOpen =
         isForCurrentUser &&
         Boolean(selectedChatId) &&
@@ -405,26 +405,6 @@ export const ChatProvider = ({
             ];
           }
         );
-
-        /*
-         * Current conversation open kabatti
-         * immediately read receipt send.
-         */
-        if (message?._id) {
-          readReceiptIdsRef.current.add(
-            normalizeId(
-              message._id
-            )
-          );
-
-          socket.emit(
-            "messageRead",
-            {
-              messageId:
-                message._id,
-            }
-          );
-        }
       }
 
       if (
@@ -535,86 +515,6 @@ export const ChatProvider = ({
     };
   }, [loadChatSummaries]);
 
-  /* =========================
-     MARK OPEN CHAT AS READ
-  ========================= */
-
-  useEffect(() => {
-    const currentUserId =
-      normalizeId(
-        getStoredUser()
-      );
-
-    const selectedChatId =
-      normalizeId(
-        selectedChat
-      );
-
-    if (
-      !currentUserId ||
-      !selectedChatId ||
-      !socket.connected
-    ) {
-      return;
-    }
-
-    messages.forEach(
-      (message) => {
-        const messageId =
-          normalizeId(
-            message?._id
-          );
-
-        const senderId =
-          normalizeId(
-            message?.sender
-          );
-
-        const receiverId =
-          normalizeId(
-            message?.receiver
-          );
-
-        const alreadyRead =
-          message?.status === "read" ||
-          message?.status === "seen";
-
-        const isReceivedMessage =
-          senderId ===
-          selectedChatId &&
-          receiverId ===
-          currentUserId;
-
-        if (
-          !messageId ||
-          messageId.startsWith(
-            "temp-"
-          ) ||
-          !isReceivedMessage ||
-          alreadyRead ||
-          readReceiptIdsRef.current.has(
-            messageId
-          )
-        ) {
-          return;
-        }
-
-        readReceiptIdsRef.current.add(
-          messageId
-        );
-
-        socket.emit(
-          "messageRead",
-          {
-            messageId,
-          }
-        );
-      }
-    );
-  }, [
-    messages,
-    selectedChat,
-  ]);
 
   /* =========================
      TYPING INDICATOR

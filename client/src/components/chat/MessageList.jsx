@@ -84,6 +84,9 @@ const MessageList = ({
   const readEmittedIdsRef =
     useRef(new Set());
 
+  const pendingMessagesRef =
+    useRef([]);
+
   const messagesRef =
     useRef([]);
 
