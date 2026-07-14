@@ -81,11 +81,6 @@ const MessageList = ({
   const loadingOlderRef =
     useRef(false);
 
-  const readEmittedIdsRef =
-    useRef(new Set());
-
-  const pendingMessagesRef =
-    useRef([]);
 
   const messagesRef =
     useRef([]);
@@ -140,14 +135,6 @@ const MessageList = ({
       safeMessages;
   }, [safeMessages]);
 
-  /*
-   * Reset scroll and read tracking
-   * when selected conversation changes.
-   *
-   * useLayoutEffect use chesthunnam,
-   * so initial scroll effect kanna mundu
-   * reset complete avutundi.
-   */
   useLayoutEffect(() => {
     initialScrollDoneRef.current =
       false;
@@ -161,13 +148,9 @@ const MessageList = ({
     loadingOlderRef.current =
       false;
 
-    readEmittedIdsRef.current.clear();
   }, [selectedChatId]);
 
-  /*
-   * Initial conversation load:
-   * scroll directly to latest message.
-   */
+
   useLayoutEffect(() => {
     const container =
       containerRef.current;
@@ -386,105 +369,6 @@ const MessageList = ({
       );
     }
   };
-
-  /*
-   * Received unread messages ni
-   * socket through read ga mark chesthundi.
-   */
-  useEffect(() => {
-    if (
-      !currentUserId ||
-      safeMessages.length === 0 ||
-      !socket ||
-      typeof socket.emit !==
-      "function"
-    ) {
-      return undefined;
-    }
-
-    const markMessagesAsRead =
-      () => {
-        if (
-          document.visibilityState !==
-          "visible"
-        ) {
-          return;
-        }
-
-        safeMessages.forEach(
-          (message) => {
-            const messageId =
-              normalizeId(
-                message?._id
-              );
-
-            const receiverId =
-              normalizeId(
-                message?.receiver
-              );
-
-            const senderId =
-              normalizeId(
-                message?.sender
-              );
-
-            const isReceivedMessage =
-              receiverId ===
-              currentUserId &&
-              senderId !==
-              currentUserId;
-
-            const alreadyEmitted =
-              readEmittedIdsRef
-                .current
-                .has(messageId);
-
-            const shouldMarkAsRead =
-              Boolean(messageId) &&
-              !messageId.startsWith(
-                "temp-"
-              ) &&
-              isReceivedMessage &&
-              message?.status !==
-              "read" &&
-              !alreadyEmitted;
-
-            if (!shouldMarkAsRead) {
-              return;
-            }
-
-            readEmittedIdsRef
-              .current
-              .add(messageId);
-
-            socket.emit(
-              "messageRead",
-              {
-                messageId,
-              }
-            );
-          }
-        );
-      };
-
-    markMessagesAsRead();
-
-    document.addEventListener(
-      "visibilitychange",
-      markMessagesAsRead
-    );
-
-    return () => {
-      document.removeEventListener(
-        "visibilitychange",
-        markMessagesAsRead
-      );
-    };
-  }, [
-    safeMessages,
-    socket,
-    currentUserId,
-  ]);
 
   if (
     safeMessages.length === 0
