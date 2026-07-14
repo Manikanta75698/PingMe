@@ -146,6 +146,24 @@ const MessageBubble = ({
   const optionsButtonRef =
     useRef(null);
 
+  const actionAnchorRef =
+    useRef(null);
+
+  const longPressReadyRef =
+    useRef(false);
+
+  const pointerStartRef =
+    useRef({
+      x: 0,
+      y: 0,
+    });
+
+  const activePointerIdRef =
+    useRef(null);
+
+  const suppressContextMenuUntilRef =
+    useRef(0);
+
   const reactionRequestRef =
     useRef(false);
 
@@ -491,27 +509,7 @@ const MessageBubble = ({
      LONG PRESS
   ========================= */
 
-  const startLongPress = () => {
-    if (!canUseActions) {
-      return;
-    }
-
-    if (pressTimerRef.current) {
-      window.clearTimeout(
-        pressTimerRef.current
-      );
-    }
-
-    pressTimerRef.current =
-      window.setTimeout(() => {
-        setShowActions(true);
-
-        pressTimerRef.current =
-          null;
-      }, 450);
-  };
-
-  const cancelLongPress = () => {
+  const clearLongPressTimer = () => {
     if (!pressTimerRef.current) {
       return;
     }
@@ -520,42 +518,270 @@ const MessageBubble = ({
       pressTimerRef.current
     );
 
-    pressTimerRef.current =
+    pressTimerRef.current = null;
+  };
+
+  const releasePointerCapture = (
+    element,
+    pointerId
+  ) => {
+    if (
+      !element ||
+      pointerId === null ||
+      typeof element
+        .hasPointerCapture !==
+      "function"
+    ) {
+      return;
+    }
+
+    try {
+      if (
+        element.hasPointerCapture(
+          pointerId
+        )
+      ) {
+        element.releasePointerCapture(
+          pointerId
+        );
+      }
+    } catch {
+      // Pointer already released.
+    }
+  };
+
+  const resetLongPress = (
+    element = null
+  ) => {
+    clearLongPressTimer();
+
+    releasePointerCapture(
+      element,
+      activePointerIdRef.current
+    );
+
+    activePointerIdRef.current =
       null;
+
+    longPressReadyRef.current =
+      false;
+  };
+
+  const handlePointerDown = (
+    event
+  ) => {
+    if (
+      !canUseActions ||
+      event.pointerType !== "touch" ||
+      !event.isPrimary
+    ) {
+      return;
+    }
+
+    const target =
+      event.target;
+
+    /*
+     * Buttons and reaction chips meeda
+     * long press start avvakudadhu.
+     */
+    if (
+      target instanceof Element &&
+      target.closest(
+        "button, a, input, textarea, [role='button']"
+      )
+    ) {
+      return;
+    }
+
+    resetLongPress(
+      event.currentTarget
+    );
+
+    activePointerIdRef.current =
+      event.pointerId;
+
+    pointerStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+
+    try {
+      event.currentTarget
+        .setPointerCapture(
+          event.pointerId
+        );
+    } catch {
+      // Unsupported mobile browser.
+    }
+
+    pressTimerRef.current =
+      window.setTimeout(() => {
+        /*
+         * Menu ikkada open cheyyam.
+         * Finger release ayyaka open chestham.
+         */
+        longPressReadyRef.current =
+          true;
+
+        pressTimerRef.current =
+          null;
+
+        if (
+          typeof navigator !==
+          "undefined" &&
+          typeof navigator.vibrate ===
+          "function"
+        ) {
+          navigator.vibrate(12);
+        }
+      }, 450);
+  };
+
+  const handlePointerMove = (
+    event
+  ) => {
+    if (
+      event.pointerType !== "touch" ||
+      activePointerIdRef.current !==
+      event.pointerId
+    ) {
+      return;
+    }
+
+    const movedX = Math.abs(
+      event.clientX -
+      pointerStartRef.current.x
+    );
+
+    const movedY = Math.abs(
+      event.clientY -
+      pointerStartRef.current.y
+    );
+
+    if (
+      movedX > 12 ||
+      movedY > 12
+    ) {
+      resetLongPress(
+        event.currentTarget
+      );
+    }
+  };
+
+  const handlePointerUp = (
+    event
+  ) => {
+    const shouldOpen =
+      event.pointerType === "touch" &&
+      event.pointerId ===
+      activePointerIdRef.current &&
+      longPressReadyRef.current;
+
+    clearLongPressTimer();
+
+    releasePointerCapture(
+      event.currentTarget,
+      activePointerIdRef.current
+    );
+
+    activePointerIdRef.current =
+      null;
+
+    longPressReadyRef.current =
+      false;
+
+    if (!shouldOpen) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    /*
+     * Desktop positioning fallback kosam
+     * message group anchor ga use chestham.
+     */
+    actionAnchorRef.current =
+      event.currentTarget;
+
+    suppressContextMenuUntilRef.current =
+      Date.now() + 1000;
+
+    setShowActions(true);
+  };
+
+  const handlePointerCancel = (
+    event
+  ) => {
+    resetLongPress(
+      event.currentTarget
+    );
   };
 
   const handleContextMenu = (
     event
   ) => {
     event.preventDefault();
-
-    if (canUseActions) {
-      setShowActions(true);
-    }
-  };
-
-  const toggleActions = (
-    event
-  ) => {
     event.stopPropagation();
 
     if (!canUseActions) {
       return;
     }
 
-    setShowActions(
-      (previousValue) =>
-        !previousValue
-    );
+    /*
+     * Mobile browser generated
+     * duplicate context-menu ignore.
+     */
+    if (
+      Date.now() <
+      suppressContextMenuUntilRef.current
+    ) {
+      return;
+    }
+
+    actionAnchorRef.current =
+      optionsButtonRef.current ||
+      event.currentTarget;
+
+    setShowActions(true);
+  };
+
+  const openActions = (
+    event
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!canUseActions) {
+      return;
+    }
+
+    resetLongPress();
+
+    actionAnchorRef.current =
+      event.currentTarget;
+
+    /*
+     * Toggle kaadhu.
+     * Duplicate clicks vachina stable ga open.
+     */
+    setShowActions(true);
+  };
+
+  const closeActions = () => {
+    resetLongPress();
+
+    setShowActions(false);
   };
 
   const stopReactionPropagation = (
     event
   ) => {
     event.stopPropagation();
-    cancelLongPress();
-  };
 
+    resetLongPress();
+  };
   /* =========================
      CLEANUP
   ========================= */
@@ -566,11 +792,19 @@ const MessageBubble = ({
     return () => {
       mountedRef.current = false;
 
-      if (pressTimerRef.current) {
-        window.clearTimeout(
-          pressTimerRef.current
-        );
-      }
+      clearLongPressTimer();
+
+      actionAnchorRef.current =
+        null;
+
+      activePointerIdRef.current =
+        null;
+
+      longPressReadyRef.current =
+        false;
+
+      suppressContextMenuUntilRef.current =
+        0;
 
       if (
         reactionErrorTimerRef.current
@@ -596,20 +830,18 @@ const MessageBubble = ({
         }
       >
         <div
-          className={
-            styles.messageGroup
+          className={styles.messageGroup}
+          onPointerDown={
+            handlePointerDown
           }
-          onTouchStart={
-            startLongPress
+          onPointerMove={
+            handlePointerMove
           }
-          onTouchEnd={
-            cancelLongPress
+          onPointerUp={
+            handlePointerUp
           }
-          onTouchMove={
-            cancelLongPress
-          }
-          onTouchCancel={
-            cancelLongPress
+          onPointerCancel={
+            handlePointerCancel
           }
           onContextMenu={
             handleContextMenu
@@ -617,8 +849,8 @@ const MessageBubble = ({
         >
           <div
             className={`${styles.bubble} ${isOwn
-                ? styles.ownBubble
-                : styles.otherBubble
+              ? styles.ownBubble
+              : styles.otherBubble
               }`}
           >
             {repliedMessage && (
@@ -684,27 +916,16 @@ const MessageBubble = ({
               </p>
             )}
 
-            <div
-              className={
-                styles.meta
-              }
-            >
-              <span
-                className={
-                  styles.time
-                }
-              >
+            <div className={styles.meta}>
+              <span className={styles.time}>
                 {time}
               </span>
 
               {isOwn && (
                 <span
-                  className={
-                    styles.status
-                  }
+                  className={styles.status}
                   aria-label={
-                    message?.status ||
-                    "sent"
+                    message?.status || "sent"
                   }
                 >
                   {message?.status ===
@@ -733,11 +954,7 @@ const MessageBubble = ({
 
                   {message?.status ===
                     "read" && (
-                      <span
-                        className={
-                          styles.seen
-                        }
-                      >
+                      <span className={styles.seen}>
                         Seen
                       </span>
                     )}
@@ -747,9 +964,7 @@ const MessageBubble = ({
                     "sent",
                     "delivered",
                     "read",
-                  ].includes(
-                    message?.status
-                  ) && (
+                  ].includes(message?.status) && (
                       <Check
                         size={14}
                         aria-hidden="true"
@@ -758,37 +973,22 @@ const MessageBubble = ({
                 </span>
               )}
 
+              {/* THREE-DOTS MESSAGE MENU BUTTON */}
               <button
-                ref={
-                  optionsButtonRef
-                }
+                ref={optionsButtonRef}
                 type="button"
-                className={
-                  styles.moreButton
-                }
-                onPointerDown={(
-                  event
-                ) => {
+                className={styles.moreButton}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                  clearLongPressTimer();
+                }}
+                onPointerUp={(event) => {
                   event.stopPropagation();
                 }}
-                onTouchStart={(
-                  event
-                ) => {
-                  event.stopPropagation();
-                }}
-                onTouchEnd={(
-                  event
-                ) => {
-                  event.stopPropagation();
-                }}
-                onClick={
-                  toggleActions
-                }
+                onClick={openActions}
                 aria-label="Message options"
                 aria-haspopup="menu"
-                aria-expanded={
-                  showActions
-                }
+                aria-expanded={showActions}
                 data-open={
                   showActions
                     ? "true"
@@ -807,25 +1007,18 @@ const MessageBubble = ({
             0 && (
               <div
                 className={`${styles.reactionSummary} ${isOwn
-                    ? styles.ownReactions
-                    : styles.otherReactions
+                  ? styles.ownReactions
+                  : styles.otherReactions
                   }`}
                 aria-label="Message reactions"
-                aria-busy={
-                  reactionLoading
-                }
+                aria-busy={reactionLoading}
                 onPointerDown={
                   stopReactionPropagation
                 }
-                onTouchStart={
-                  stopReactionPropagation
-                }
-                onTouchEnd={
-                  stopReactionPropagation
-                }
-                onContextMenu={(
-                  event
-                ) => {
+                onPointerUp={(event) => {
+                  event.stopPropagation();
+                }}
+                onContextMenu={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
                 }}
@@ -840,8 +1033,8 @@ const MessageBubble = ({
                       key={emoji}
                       type="button"
                       className={`${styles.reactionChip} ${selected
-                          ? styles.reactionChipSelected
-                          : ""
+                        ? styles.reactionChipSelected
+                        : ""
                         }`}
                       onClick={() =>
                         handleReaction(
@@ -852,8 +1045,8 @@ const MessageBubble = ({
                         reactionLoading
                       }
                       aria-label={`${emoji} reaction, ${count} ${count === 1
-                          ? "person"
-                          : "people"
+                        ? "person"
+                        : "people"
                         }`}
                       aria-pressed={
                         selected
@@ -894,9 +1087,7 @@ const MessageBubble = ({
 
           <MessageActionsMenu
             open={showActions}
-            anchorRef={
-              optionsButtonRef
-            }
+            anchorRef={actionAnchorRef}
             isOwn={isOwn}
             preview={
               message?.text?.trim() ||
@@ -907,18 +1098,10 @@ const MessageBubble = ({
             selectedReaction={
               selectedReaction
             }
-            onClose={() =>
-              setShowActions(false)
-            }
-            onReply={
-              handleReply
-            }
-            onDelete={
-              handleDelete
-            }
-            onReact={
-              handleReaction
-            }
+            onClose={closeActions}
+            onReply={handleReply}
+            onDelete={handleDelete}
+            onReact={handleReaction}
           />
         </div>
       </div>

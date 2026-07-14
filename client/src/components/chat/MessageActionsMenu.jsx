@@ -31,6 +31,12 @@ const MOBILE_QUERY =
 const VIEWPORT_GAP = 10;
 const MENU_GAP = 8;
 
+/*
+ * Long-press gesture complete ayye varaku
+ * backdrop close ni ignore chestham.
+ */
+const OPEN_GUARD_MS = 550;
+
 const MessageActionsMenu = ({
   open,
   anchorRef,
@@ -43,8 +49,15 @@ const MessageActionsMenu = ({
   onReact,
 }) => {
   const menuRef = useRef(null);
+
   const firstReactionRef =
     useRef(null);
+
+  const onCloseRef =
+    useRef(onClose);
+
+  const openedAtRef =
+    useRef(0);
 
   const [
     isMobile,
@@ -71,6 +84,26 @@ const MessageActionsMenu = ({
     placement: "below",
     ready: false,
   });
+
+  /* =========================
+     LATEST CLOSE CALLBACK
+  ========================= */
+
+  useEffect(() => {
+    onCloseRef.current =
+      onClose;
+  }, [onClose]);
+
+  /* =========================
+     OPEN TIME GUARD
+  ========================= */
+
+  useEffect(() => {
+    if (open) {
+      openedAtRef.current =
+        Date.now();
+    }
+  }, [open]);
 
   /* =========================
      MOBILE DETECTION
@@ -101,16 +134,36 @@ const MessageActionsMenu = ({
       mediaQuery.matches
     );
 
-    mediaQuery.addEventListener(
-      "change",
-      handleChange
-    );
-
-    return () => {
-      mediaQuery.removeEventListener(
+    if (
+      typeof mediaQuery
+        .addEventListener ===
+      "function"
+    ) {
+      mediaQuery.addEventListener(
         "change",
         handleChange
       );
+    } else {
+      mediaQuery.addListener(
+        handleChange
+      );
+    }
+
+    return () => {
+      if (
+        typeof mediaQuery
+          .removeEventListener ===
+        "function"
+      ) {
+        mediaQuery.removeEventListener(
+          "change",
+          handleChange
+        );
+      } else {
+        mediaQuery.removeListener(
+          handleChange
+        );
+      }
     };
   }, []);
 
@@ -127,6 +180,13 @@ const MessageActionsMenu = ({
     ) {
       return undefined;
     }
+
+    setPosition(
+      (previous) => ({
+        ...previous,
+        ready: false,
+      })
+    );
 
     const updatePosition = () => {
       const anchor =
@@ -245,7 +305,7 @@ const MessageActionsMenu = ({
   ]);
 
   /* =========================
-     ESCAPE + FOCUS
+     ESCAPE + DESKTOP FOCUS
   ========================= */
 
   useEffect(() => {
@@ -264,7 +324,8 @@ const MessageActionsMenu = ({
         "Escape"
       ) {
         event.preventDefault();
-        onClose?.();
+
+        onCloseRef.current?.();
       }
     };
 
@@ -273,30 +334,50 @@ const MessageActionsMenu = ({
       handleKeyDown
     );
 
-    const focusTimer =
-      window.setTimeout(() => {
-        firstReactionRef.current
-          ?.focus();
-      }, 0);
+    let focusTimer = null;
+
+    /*
+     * Mobile lo auto-focus remove.
+     * Android/iOS focus flicker prevent.
+     */
+    if (!isMobile) {
+      focusTimer =
+        window.setTimeout(() => {
+          firstReactionRef.current
+            ?.focus();
+        }, 0);
+    }
 
     return () => {
-      window.clearTimeout(
-        focusTimer
-      );
+      if (focusTimer) {
+        window.clearTimeout(
+          focusTimer
+        );
+      }
 
       document.removeEventListener(
         "keydown",
         handleKeyDown
       );
 
+      /*
+       * Mobile lo focus restore cheyyam.
+       * Touch gesture duplicate events prevent.
+       */
       if (
+        !isMobile &&
         previousFocusedElement
-        instanceof HTMLElement
+        instanceof HTMLElement &&
+        previousFocusedElement
+          .isConnected
       ) {
         previousFocusedElement.focus();
       }
     };
-  }, [open, onClose]);
+  }, [
+    open,
+    isMobile,
+  ]);
 
   /* =========================
      MOBILE SCROLL LOCK
@@ -314,12 +395,24 @@ const MessageActionsMenu = ({
       document.body.style
         .overflow;
 
+    const previousOverscroll =
+      document.body.style
+        .overscrollBehavior;
+
     document.body.style.overflow =
       "hidden";
+
+    document.body.style
+      .overscrollBehavior =
+      "none";
 
     return () => {
       document.body.style.overflow =
         previousOverflow;
+
+      document.body.style
+        .overscrollBehavior =
+        previousOverscroll;
     };
   }, [
     open,
@@ -334,32 +427,60 @@ const MessageActionsMenu = ({
     return null;
   }
 
+  const closeImmediately = () => {
+    onCloseRef.current?.();
+  };
+
   const handleBackdropClick = (
     event
   ) => {
     if (
-      event.target ===
+      event.target !==
       event.currentTarget
     ) {
-      onClose?.();
+      return;
     }
+
+    const timeSinceOpen =
+      Date.now() -
+      openedAtRef.current;
+
+    /*
+     * Long-press generated click
+     * immediate ga menu close cheyyakudadhu.
+     */
+    if (
+      isMobile &&
+      timeSinceOpen <
+      OPEN_GUARD_MS
+    ) {
+      return;
+    }
+
+    closeImmediately();
   };
 
   const handleReaction = (
     emoji
   ) => {
     onReact?.(emoji);
-    onClose?.();
+    closeImmediately();
   };
 
   const handleReply = () => {
     onReply?.();
-    onClose?.();
+    closeImmediately();
   };
 
   const handleDelete = () => {
     onDelete?.();
-    onClose?.();
+    closeImmediately();
+  };
+
+  const stopMenuEvent = (
+    event
+  ) => {
+    event.stopPropagation();
   };
 
   const menuStyle =
@@ -380,12 +501,17 @@ const MessageActionsMenu = ({
           ? styles.mobileBackdrop
           : styles.desktopBackdrop
         }`}
-      onMouseDown={
+      /*
+       * pointerdown remove chesam.
+       * Click gesture complete ayyaka
+       * matrame backdrop close avutundi.
+       */
+      onClick={
         handleBackdropClick
       }
-      onTouchStart={
-        handleBackdropClick
-      }
+      onContextMenu={(event) => {
+        event.preventDefault();
+      }}
       role="presentation"
     >
       <div
@@ -401,12 +527,16 @@ const MessageActionsMenu = ({
         style={menuStyle}
         role="menu"
         aria-label="Message actions"
-        onMouseDown={(event) =>
-          event.stopPropagation()
+        onClick={
+          stopMenuEvent
         }
-        onTouchStart={(event) =>
-          event.stopPropagation()
+        onPointerDown={
+          stopMenuEvent
         }
+        onContextMenu={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
       >
         <div
           className={

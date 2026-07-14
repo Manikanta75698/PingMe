@@ -45,7 +45,15 @@
 
   color: var(--menu-text);
 
+  overscroll-behavior: contain;
+  touch-action: none;
+
+  -webkit-tap-highlight-color:
+    transparent;
+
   color-scheme: light dark;
+
+  isolation: isolate;
 }
 
 /* =========================
@@ -62,15 +70,20 @@
   justify-content: center;
 
   padding:
-    16px 12px calc(16px + env(safe-area-inset-bottom));
+    12px 10px calc(12px + env(safe-area-inset-bottom));
 
   background:
-    rgba(0, 0, 0, 0.38);
+    rgba(0, 0, 0, 0.42);
 
-  backdrop-filter: blur(3px);
+  /*
+   * backdrop-filter Android mobile lo
+   * flicker create cheyyachu.
+   */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 
   animation:
-    backdropFadeIn 0.18s ease-out;
+    backdropFadeIn 0.16s ease-out both;
 }
 
 /* =========================
@@ -80,6 +93,7 @@
 .menu {
   overflow: hidden;
 
+  color: var(--menu-text);
   background:
     var(--menu-surface);
 
@@ -89,7 +103,12 @@
   box-sizing: border-box;
 
   box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.18);
+    0 18px 50px rgba(0, 0, 0, 0.2);
+
+  touch-action: manipulation;
+
+  -webkit-tap-highlight-color:
+    transparent;
 }
 
 /* =========================
@@ -99,7 +118,8 @@
 .desktopMenu {
   position: fixed;
 
-  width: min(330px,
+  width:
+    min(330px,
       calc(100vw - 20px));
 
   border-radius: 18px;
@@ -108,7 +128,7 @@
     top right;
 
   animation:
-    desktopMenuIn 0.16s ease-out;
+    desktopMenuIn 0.16s ease-out both;
 }
 
 .desktopMenu.above {
@@ -130,18 +150,42 @@
 
   width: 100%;
   max-width: 520px;
+  max-height:
+    calc(100dvh - 32px - env(safe-area-inset-bottom));
+
+  overflow-x: hidden;
+  overflow-y: auto;
 
   border-radius:
     24px 24px 18px 18px;
 
   box-shadow:
-    0 -10px 40px rgba(0, 0, 0, 0.24);
+    0 -12px 42px rgba(0, 0, 0, 0.26);
+
+  overscroll-behavior: contain;
+
+  /*
+   * Mobile animation flicker prevent.
+   */
+  transform:
+    translate3d(0, 0, 0);
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility:
+    hidden;
+
+  will-change:
+    transform,
+    opacity;
+
+  contain:
+    layout paint;
 
   animation:
-    mobileMenuIn 0.22s cubic-bezier(0.22,
+    mobileMenuIn 0.2s cubic-bezier(0.22,
       1,
       0.36,
-      1);
+      1) both;
 }
 
 .mobileMenu::before {
@@ -235,7 +279,8 @@
   display: grid;
 
   grid-template-columns:
-    repeat(6, minmax(0, 1fr));
+    repeat(6,
+      minmax(0, 1fr));
 
   gap: 6px;
 
@@ -249,6 +294,7 @@
 
   width: 100%;
   min-width: 0;
+
   aspect-ratio: 1;
 
   padding: 0;
@@ -282,26 +328,34 @@
   -webkit-tap-highlight-color:
     transparent;
 
+  user-select: none;
+  -webkit-user-select: none;
+
   transition:
-    transform 0.15s ease,
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    transform 0.12s ease,
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
-.reactionButton:hover {
-  background:
-    color-mix(in srgb,
-      var(--menu-primary) 10%,
-      var(--menu-surface));
+/*
+ * Hover effects mouse devices ki matrame.
+ * Mobile sticky-hover issue prevent.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .reactionButton:hover {
+    background:
+      color-mix(in srgb,
+        var(--menu-primary) 10%,
+        var(--menu-surface));
 
-  transform:
-    translateY(-2px) scale(1.04);
+    transform:
+      translateY(-2px) scale(1.04);
+  }
 }
 
 .reactionButton:active {
-  transform:
-    scale(0.9);
+  transform: scale(0.92);
 }
 
 .reactionButton:focus-visible {
@@ -337,8 +391,7 @@
     calc(100% - 28px);
   height: 1px;
 
-  margin:
-    0 auto;
+  margin: 0 auto;
 
   background:
     var(--menu-border);
@@ -391,20 +444,35 @@
   -webkit-tap-highlight-color:
     transparent;
 
+  user-select: none;
+  -webkit-user-select: none;
+
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease,
-    transform 0.15s ease;
+    background-color 0.12s ease,
+    color 0.12s ease,
+    transform 0.12s ease;
 }
 
-.actionButton:hover {
-  background:
-    var(--menu-soft);
+@media (hover: hover) and (pointer: fine) {
+  .actionButton:hover {
+    background:
+      var(--menu-soft);
+  }
+
+  .deleteButton:hover {
+    color:
+      var(--menu-danger);
+
+    background:
+      var(--menu-danger-soft);
+  }
 }
 
 .actionButton:active {
-  transform:
-    scale(0.985);
+  transform: scale(0.98);
+
+  background:
+    var(--menu-soft);
 }
 
 .actionButton:focus-visible {
@@ -423,10 +491,7 @@
     var(--menu-danger);
 }
 
-.deleteButton:hover {
-  color:
-    var(--menu-danger);
-
+.deleteButton:active {
   background:
     var(--menu-danger-soft);
 }
@@ -529,14 +594,18 @@
     opacity: 0;
 
     transform:
-      translateY(28px);
+      translate3d(0,
+        24px,
+        0);
   }
 
   to {
     opacity: 1;
 
     transform:
-      translateY(0);
+      translate3d(0,
+        0,
+        0);
   }
 }
 
@@ -553,6 +622,11 @@
   .actionButton {
     animation: none;
     transition: none;
+  }
+
+  .mobileMenu {
+    transform: none;
+    will-change: auto;
   }
 }
 

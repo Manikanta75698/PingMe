@@ -71,6 +71,8 @@
 
   min-width: 0;
 
+  touch-action: pan-y;
+
   position: relative;
 
   animation:
@@ -756,4 +758,12 @@
   .reactionChip {
     border-width: 2px;
   }
+}
+
+.menu {
+  touch-action: manipulation;
+}
+
+.backdrop {
+  touch-action: none;
 }
