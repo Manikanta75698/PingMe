@@ -121,32 +121,24 @@ const messageSchema =
 
 messageSchema.pre(
   "validate",
-  function validateMessage(next) {
+  function validateMessage() {
     const hasText =
-      Boolean(this.text?.trim());
+      typeof this.text === "string" &&
+      this.text.trim().length > 0;
 
     const hasImage =
-      Boolean(this.image?.trim());
+      typeof this.image === "string" &&
+      this.image.trim().length > 0;
 
     if (!hasText && !hasImage) {
-      return next(
-        new Error(
-          "Message must contain text or an image"
-        )
+      throw new Error(
+        "Message must contain text or an image"
       );
     }
-
-    next();
   }
 );
 
-/*
- * Schema save operations lo same user
- * duplicate reaction prevent chesthundi.
- *
- * Controller lo atomic update pipeline
- * kuda use chestham, concurrency safe kosam.
- */
+
 messageSchema.path(
   "reactions"
 ).validate({

@@ -679,161 +679,27 @@ const toggleReaction = async (
       });
     }
 
-    const userObjectId =
-      new mongoose.Types.ObjectId(
-        currentUserId
-      );
-
-    const reactionCreatedAt =
-      new Date();
-
     /*
-     * Atomic pipeline:
-     *
-     * Existing same emoji -> remove
-     * Existing different emoji -> replace
-     * No reaction -> add
-     *
-     * Oka user ki one reaction matrame.
+     * Sender or receiver matrame
+     * message ki react cheyyagalaru.
      */
-    const updatedMessage =
-      await Message.findOneAndUpdate(
-        {
-          _id: messageId,
+    const message =
+      await Message.findOne({
+        _id: messageId,
 
-          /*
-           * Sender or receiver matrame
-           * reaction add cheyyagalru.
-           */
-          $or: [
-            {
-              sender:
-                currentUserId,
-            },
-            {
-              receiver:
-                currentUserId,
-            },
-          ],
-        },
-        [
+        $or: [
           {
-            $set: {
-              reactions: {
-                $let: {
-                  vars: {
-                    existingReaction: {
-                      $arrayElemAt: [
-                        {
-                          $filter: {
-                            input: {
-                              $ifNull: [
-                                "$reactions",
-                                [],
-                              ],
-                            },
-
-                            as: "reaction",
-
-                            cond: {
-                              $eq: [
-                                "$$reaction.user",
-                                userObjectId,
-                              ],
-                            },
-                          },
-                        },
-                        0,
-                      ],
-                    },
-                  },
-
-                  in: {
-                    $cond: [
-                      /*
-                       * Same reaction click:
-                       * toggle off.
-                       */
-                      {
-                        $eq: [
-                          "$$existingReaction.emoji",
-                          emoji,
-                        ],
-                      },
-
-                      {
-                        $filter: {
-                          input: {
-                            $ifNull: [
-                              "$reactions",
-                              [],
-                            ],
-                          },
-
-                          as: "reaction",
-
-                          cond: {
-                            $ne: [
-                              "$$reaction.user",
-                              userObjectId,
-                            ],
-                          },
-                        },
-                      },
-
-                      /*
-                       * Add or replace reaction.
-                       */
-                      {
-                        $concatArrays: [
-                          {
-                            $filter: {
-                              input: {
-                                $ifNull: [
-                                  "$reactions",
-                                  [],
-                                ],
-                              },
-
-                              as: "reaction",
-
-                              cond: {
-                                $ne: [
-                                  "$$reaction.user",
-                                  userObjectId,
-                                ],
-                              },
-                            },
-                          },
-
-                          [
-                            {
-                              user:
-                                userObjectId,
-                              emoji,
-                              createdAt:
-                                reactionCreatedAt,
-                            },
-                          ],
-                        ],
-                      },
-                    ],
-                  },
-                },
-              },
-            },
+            sender:
+              currentUserId,
+          },
+          {
+            receiver:
+              currentUserId,
           },
         ],
-        {
-          new: true,
-        }
-      )
-        .populate(
-          "reactions.user",
-          "name username profilePic"
-        );
+      });
 
-    if (!updatedMessage) {
+    if (!message) {
       return res.status(404).json({
         success: false,
         message:
@@ -841,36 +707,94 @@ const toggleReaction = async (
       });
     }
 
-    const senderId =
-      normalizeId(
-        updatedMessage.sender
-      );
+    if (
+      !Array.isArray(
+        message.reactions
+      )
+    ) {
+      message.reactions = [];
+    }
 
-    const receiverId =
-      normalizeId(
-        updatedMessage.receiver
-      );
-
-    const currentReaction =
-      updatedMessage.reactions.find(
+    const existingIndex =
+      message.reactions.findIndex(
         (reaction) =>
           normalizeId(
             reaction?.user
           ) === currentUserId
       );
 
-    const action =
-      currentReaction
-        ? "set"
-        : "removed";
+    let action = "set";
+
+    /*
+     * Existing same emoji:
+     * remove reaction.
+     */
+    if (
+      existingIndex >= 0 &&
+      message.reactions[
+        existingIndex
+      ]?.emoji === emoji
+    ) {
+      message.reactions.splice(
+        existingIndex,
+        1
+      );
+
+      action = "removed";
+    } else if (
+      existingIndex >= 0
+    ) {
+      /*
+       * Existing different emoji:
+       * replace reaction.
+       */
+      message.reactions[
+        existingIndex
+      ].emoji = emoji;
+
+      message.reactions[
+        existingIndex
+      ].createdAt = new Date();
+
+      action = "set";
+    } else {
+      /*
+       * First reaction:
+       * add reaction.
+       */
+      message.reactions.push({
+        user: currentUserId,
+        emoji,
+        createdAt: new Date(),
+      });
+
+      action = "set";
+    }
+
+    await message.save();
+
+    await message.populate(
+      "reactions.user",
+      "name username profilePic"
+    );
+
+    const senderId =
+      normalizeId(
+        message.sender
+      );
+
+    const receiverId =
+      normalizeId(
+        message.receiver
+      );
 
     const reactionPayload = {
       messageId: String(
-        updatedMessage._id
+        message._id
       ),
 
       reactions:
-        updatedMessage.reactions,
+        message.reactions,
 
       updatedBy:
         currentUserId,
@@ -887,6 +811,7 @@ const toggleReaction = async (
 
     return res.status(200).json({
       success: true,
+
       message:
         action === "removed"
           ? "Reaction removed"
