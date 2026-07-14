@@ -111,11 +111,22 @@ export const ChatProvider = ({
   const typingUserRef =
     useRef("");
 
+  const selectedChatRef =
+    useRef(null);
+
+  const readReceiptIdsRef =
+    useRef(new Set());
+
   /* =========================
      SELECTED CHAT RESET
   ========================= */
 
   useEffect(() => {
+    selectedChatRef.current =
+      selectedChat;
+
+    readReceiptIdsRef.current.clear();
+
     setReplyingTo(null);
     setTypingUser(null);
 
@@ -320,15 +331,14 @@ export const ChatProvider = ({
       message
     ) => {
       console.log(
-        "🔥 newMessage RECEIVED",
+        "🔥 newMessage RECEIVED:",
         message
       );
 
-      const currentUser =
-        getStoredUser();
-
       const currentUserId =
-        normalizeId(currentUser);
+        normalizeId(
+          getStoredUser()
+        );
 
       const receiverId =
         normalizeId(
@@ -342,23 +352,21 @@ export const ChatProvider = ({
 
       const selectedChatId =
         normalizeId(
-          selectedChat
+          selectedChatRef.current
         );
 
       const isForCurrentUser =
-        receiverId ===
-        currentUserId;
+        Boolean(currentUserId) &&
+        receiverId === currentUserId;
 
-      const isChatRoute =
-        window.location.pathname.startsWith(
-          "/chat/"
-        );
-
+      /*
+       * URL pathname check remove chesam.
+       * Selected chat ID match unte chaalu.
+       */
       const isExactChatOpen =
-        isChatRoute &&
-        selectedChatId &&
-        senderId ===
-        selectedChatId;
+        isForCurrentUser &&
+        Boolean(selectedChatId) &&
+        senderId === selectedChatId;
 
       if (
         isForCurrentUser &&
@@ -379,10 +387,10 @@ export const ChatProvider = ({
             const alreadyExists =
               previous.some(
                 (item) =>
-                  String(
+                  normalizeId(
                     item?._id
                   ) ===
-                  String(
+                  normalizeId(
                     message?._id
                   )
               );
@@ -397,12 +405,28 @@ export const ChatProvider = ({
             ];
           }
         );
+
+        /*
+         * Current conversation open kabatti
+         * immediately read receipt send.
+         */
+        if (message?._id) {
+          readReceiptIdsRef.current.add(
+            normalizeId(
+              message._id
+            )
+          );
+
+          socket.emit(
+            "messageRead",
+            {
+              messageId:
+                message._id,
+            }
+          );
+        }
       }
 
-      /*
-       * Chat open kakapothe unread
-       * count immediate ga update.
-       */
       if (
         isForCurrentUser &&
         !isExactChatOpen
@@ -410,9 +434,7 @@ export const ChatProvider = ({
         setChatSummaries(
           (previous) => {
             const safeSummaries =
-              Array.isArray(
-                previous
-              )
+              Array.isArray(previous)
                 ? previous
                 : [];
 
@@ -445,8 +467,10 @@ export const ChatProvider = ({
 
                   return {
                     ...summary,
+
                     lastMessage:
                       message,
+
                     unreadCount:
                       (Number(
                         summary
@@ -491,7 +515,8 @@ export const ChatProvider = ({
         (error) => {
           console.error(
             "MESSAGE SUMMARY REFRESH ERROR:",
-            error
+            error.response?.data ||
+            error.message
           );
         }
       );
@@ -508,9 +533,87 @@ export const ChatProvider = ({
         handleMessage
       );
     };
+  }, [loadChatSummaries]);
+
+  /* =========================
+     MARK OPEN CHAT AS READ
+  ========================= */
+
+  useEffect(() => {
+    const currentUserId =
+      normalizeId(
+        getStoredUser()
+      );
+
+    const selectedChatId =
+      normalizeId(
+        selectedChat
+      );
+
+    if (
+      !currentUserId ||
+      !selectedChatId ||
+      !socket.connected
+    ) {
+      return;
+    }
+
+    messages.forEach(
+      (message) => {
+        const messageId =
+          normalizeId(
+            message?._id
+          );
+
+        const senderId =
+          normalizeId(
+            message?.sender
+          );
+
+        const receiverId =
+          normalizeId(
+            message?.receiver
+          );
+
+        const alreadyRead =
+          message?.status === "read" ||
+          message?.status === "seen";
+
+        const isReceivedMessage =
+          senderId ===
+          selectedChatId &&
+          receiverId ===
+          currentUserId;
+
+        if (
+          !messageId ||
+          messageId.startsWith(
+            "temp-"
+          ) ||
+          !isReceivedMessage ||
+          alreadyRead ||
+          readReceiptIdsRef.current.has(
+            messageId
+          )
+        ) {
+          return;
+        }
+
+        readReceiptIdsRef.current.add(
+          messageId
+        );
+
+        socket.emit(
+          "messageRead",
+          {
+            messageId,
+          }
+        );
+      }
+    );
   }, [
+    messages,
     selectedChat,
-    loadChatSummaries,
   ]);
 
   /* =========================
@@ -840,15 +943,65 @@ export const ChatProvider = ({
       );
     };
 
+    const handleDelivered = (
+      payload = {}
+    ) => {
+      handleStatus({
+        messageId:
+          payload?.messageId,
+        status: "delivered",
+      });
+    };
+
+    const handleRead = (
+      payload = {}
+    ) => {
+      handleStatus({
+        messageId:
+          payload?.messageId,
+        status: "read",
+      });
+    };
+
     socket.on(
       "messageStatusUpdate",
       handleStatus
+    );
+
+    socket.on(
+      "messageDelivered",
+      handleDelivered
+    );
+
+    socket.on(
+      "messageRead",
+      handleRead
+    );
+
+    socket.on(
+      "messageSeen",
+      handleRead
     );
 
     return () => {
       socket.off(
         "messageStatusUpdate",
         handleStatus
+      );
+
+      socket.off(
+        "messageDelivered",
+        handleDelivered
+      );
+
+      socket.off(
+        "messageRead",
+        handleRead
+      );
+
+      socket.off(
+        "messageSeen",
+        handleRead
       );
     };
   }, []);

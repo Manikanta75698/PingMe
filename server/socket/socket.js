@@ -5,25 +5,111 @@ const {
   getOnlineUsers,
 } = require("./socketInstance");
 
+const {
+  authenticateSocket,
+} = require("../middleware/authMiddleware");
+
 const Message = require("../models/Message");
 
 const TYPING_TIMEOUT_MS = 2500;
 
-const normalizeId = (value) =>
-  String(value || "").trim();
+const normalizeId = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  if (typeof value === "object") {
+    const nestedValue =
+      value?._id ||
+      value?.id ||
+      value?.userId;
+
+    if (nestedValue) {
+      return String(
+        nestedValue
+      ).trim();
+    }
+
+    /*
+     * Mongoose ObjectId support.
+     */
+    if (
+      typeof value.toString ===
+      "function"
+    ) {
+      const stringValue =
+        value.toString();
+
+      if (
+        stringValue &&
+        stringValue !==
+        "[object Object]"
+      ) {
+        return stringValue.trim();
+      }
+    }
+
+    return "";
+  }
+
+  return String(value).trim();
+};
 
 const socketHandler = (io) => {
   setIO(io);
 
+  io.use(authenticateSocket);
+
   io.on("connection", (socket) => {
-    console.log(
-      "SOCKET CONNECTED:",
+    const authenticatedUserId =
+      normalizeId(
+        socket.data?.userId ||
+        socket.userId ||
+        socket.user?._id
+      );
+
+    if (!authenticatedUserId) {
+      console.error(
+        "SOCKET CONNECTION REJECTED: Authenticated user ID missing",
+        socket.id
+      );
+
+      socket.disconnect(true);
+      return;
+    }
+
+    socket.data.userId =
+      authenticatedUserId;
+
+    socket.data.typingReceiverId =
+      "";
+
+    socket.data.typingTimer =
+      null;
+
+    /*
+     * JWT nunchi vachina user ID room lo
+     * automatic ga join chestham.
+     */
+    setSocketId(
+      authenticatedUserId,
       socket.id
     );
 
-    socket.data.userId = "";
-    socket.data.typingReceiverId = "";
-    socket.data.typingTimer = null;
+    socket.join(
+      authenticatedUserId
+    );
+
+    console.log(
+      "AUTHENTICATED USER SOCKET JOINED:",
+      authenticatedUserId,
+      socket.id
+    );
+
+    io.emit(
+      "onlineUsers",
+      getOnlineUsers()
+    );
 
     const clearTypingTimer = () => {
       if (!socket.data.typingTimer) {
@@ -159,60 +245,6 @@ const socketHandler = (io) => {
         }, TYPING_TIMEOUT_MS);
     };
 
-    /* =========================
-       JOIN USER ROOM
-    ========================= */
-
-    socket.on("join", (userId) => {
-      const normalizedUserId =
-        normalizeId(userId);
-
-      if (!normalizedUserId) {
-        console.error(
-          "SOCKET JOIN FAILED: User ID missing"
-        );
-
-        return;
-      }
-
-      const previousUserId =
-        normalizeId(
-          socket.data.userId
-        );
-
-      if (
-        previousUserId &&
-        previousUserId !==
-        normalizedUserId
-      ) {
-        socket.leave(
-          previousUserId
-        );
-      }
-
-      socket.data.userId =
-        normalizedUserId;
-
-      setSocketId(
-        normalizedUserId,
-        socket.id
-      );
-
-      socket.join(
-        normalizedUserId
-      );
-
-      console.log(
-        "USER JOINED SOCKET:",
-        normalizedUserId,
-        socket.id
-      );
-
-      io.emit(
-        "onlineUsers",
-        getOnlineUsers()
-      );
-    });
 
     /* =========================
        DELIVERED

@@ -13,6 +13,8 @@ const {
 } = require("../socket/socketInstance");
 
 const MAX_MESSAGE_LENGTH = 5000;
+const DEFAULT_PAGE_SIZE = 30;
+const MAX_PAGE_SIZE = 50;
 
 const DEFAULT_REACTIONS = [
   "❤️",
@@ -33,12 +35,37 @@ const normalizeId = (value) => {
   }
 
   if (typeof value === "object") {
-    return String(
+    const nestedValue =
       value?._id ||
       value?.id ||
-      value?.userId ||
-      ""
-    ).trim();
+      value?.userId;
+
+    if (nestedValue) {
+      return normalizeId(
+        nestedValue
+      );
+    }
+
+    /*
+     * Mongoose ObjectId support.
+     */
+    if (
+      typeof value.toString ===
+      "function"
+    ) {
+      const stringValue =
+        value.toString();
+
+      if (
+        stringValue &&
+        stringValue !==
+        "[object Object]"
+      ) {
+        return stringValue.trim();
+      }
+    }
+
+    return "";
   }
 
   return String(value).trim();
@@ -60,12 +87,71 @@ const getAllowedReactions = () => {
   return [...DEFAULT_REACTIONS];
 };
 
+/*
+ * getIO() initialize kakapothe
+ * controller crash avvakunda safe access.
+ */
+const getSafeIO = () => {
+  try {
+    return getIO();
+  } catch (error) {
+    console.error(
+      "SOCKET IO ACCESS ERROR:",
+      error?.message || error
+    );
+
+    return null;
+  }
+};
+
+const emitToParticipants = (
+  firstUserId,
+  secondUserId,
+  eventName,
+  payload
+) => {
+  const io = getSafeIO();
+
+  if (!io) {
+    return false;
+  }
+
+  const firstId =
+    normalizeId(firstUserId);
+
+  const secondId =
+    normalizeId(secondUserId);
+
+  if (firstId) {
+    io.to(firstId).emit(
+      eventName,
+      payload
+    );
+  }
+
+  if (
+    secondId &&
+    secondId !== firstId
+  ) {
+    io.to(secondId).emit(
+      eventName,
+      payload
+    );
+  }
+
+  return Boolean(
+    firstId ||
+    secondId
+  );
+};
+
 const isChatAccepted = async (
   firstUserId,
   secondUserId
 ) =>
   ChatRequest.exists({
     status: "accepted",
+
     $or: [
       {
         sender: firstUserId,
@@ -82,6 +168,16 @@ const uploadImageFromBuffer = (
   fileBuffer
 ) =>
   new Promise((resolve, reject) => {
+    if (!fileBuffer) {
+      reject(
+        new Error(
+          "Image buffer is missing"
+        )
+      );
+
+      return;
+    }
+
     const uploadStream =
       cloudinary.uploader.upload_stream(
         {
@@ -91,6 +187,16 @@ const uploadImageFromBuffer = (
         (error, result) => {
           if (error) {
             reject(error);
+            return;
+          }
+
+          if (!result?.secure_url) {
+            reject(
+              new Error(
+                "Cloudinary did not return an image URL"
+              )
+            );
+
             return;
           }
 
@@ -114,7 +220,8 @@ const getCloudinaryPublicId = (
     const parsedUrl =
       new URL(imageUrl);
 
-    const uploadMarker = "/upload/";
+    const uploadMarker =
+      "/upload/";
 
     const uploadIndex =
       parsedUrl.pathname.indexOf(
@@ -131,15 +238,24 @@ const getCloudinaryPublicId = (
         uploadMarker.length
       );
 
-    publicPath = publicPath.replace(
-      /^v\d+\//,
-      ""
-    );
+    /*
+     * Cloudinary version section remove:
+     * v1234567890/
+     */
+    publicPath =
+      publicPath.replace(
+        /^v\d+\//,
+        ""
+      );
 
-    publicPath = publicPath.replace(
-      /\.[^/.]+$/,
-      ""
-    );
+    /*
+     * File extension remove.
+     */
+    publicPath =
+      publicPath.replace(
+        /\.[^/.]+$/,
+        ""
+      );
 
     return decodeURIComponent(
       publicPath
@@ -169,9 +285,8 @@ const deleteCloudinaryImage =
       );
     } catch (error) {
       /*
-       * Message already deleted.
-       * Media cleanup failure request ni
-       * fail cheyyakudadhu.
+       * Media cleanup fail aina
+       * API request fail cheyyakudadhu.
        */
       console.error(
         "CLOUDINARY MESSAGE CLEANUP ERROR:",
@@ -180,26 +295,37 @@ const deleteCloudinaryImage =
     }
   };
 
-const emitToParticipants = (
-  firstUserId,
-  secondUserId,
-  eventName,
-  payload
+const populateMessage = async (
+  message
 ) => {
-  const io = getIO();
+  await message.populate([
+    {
+      path: "sender",
+      select:
+        "name username profilePic",
+    },
+    {
+      path: "receiver",
+      select:
+        "name username profilePic",
+    },
+    {
+      path: "replyTo",
 
-  io.to(
-    normalizeId(firstUserId)
-  ).emit(eventName, payload);
+      populate: {
+        path: "sender",
+        select:
+          "name username profilePic",
+      },
+    },
+    {
+      path: "reactions.user",
+      select:
+        "name username profilePic",
+    },
+  ]);
 
-  if (
-    normalizeId(firstUserId) !==
-    normalizeId(secondUserId)
-  ) {
-    io.to(
-      normalizeId(secondUserId)
-    ).emit(eventName, payload);
-  }
+  return message;
 };
 
 const getControllerErrorResponse = (
@@ -209,10 +335,12 @@ const getControllerErrorResponse = (
   if (
     error?.name ===
     "ValidationError" ||
-    error?.name === "CastError"
+    error?.name ===
+    "CastError"
   ) {
     return {
       status: 400,
+
       message:
         error.message ||
         "Invalid request data",
@@ -233,6 +361,14 @@ const sendMessage = async (
   req,
   res
 ) => {
+  /*
+   * Image upload success ayyi
+   * database save fail ayithe,
+   * orphan Cloudinary image cleanup.
+   */
+  let uploadedImageUrl = "";
+  let persistedMessage = null;
+
   try {
     const senderId =
       normalizeId(req.user);
@@ -251,6 +387,17 @@ const sendMessage = async (
       String(
         req.body?.text || ""
       ).trim();
+
+    if (
+      !senderId ||
+      !isValidObjectId(senderId)
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
 
     if (
       !receiverId ||
@@ -277,7 +424,9 @@ const sendMessage = async (
     ) {
       return res.status(400).json({
         success: false,
-        message: `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`,
+
+        message:
+          `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`,
       });
     }
 
@@ -287,6 +436,7 @@ const sendMessage = async (
     ) {
       return res.status(400).json({
         success: false,
+
         message:
           "Message must contain text or an image",
       });
@@ -318,37 +468,36 @@ const sendMessage = async (
     }
 
     /*
-     * User vere conversation message ID ni
-     * replyTo ga manually pampinchakunda check.
+     * Vere conversation message ID ni
+     * replyTo ga manually pampinchakunda
+     * authorization check.
      */
     if (replyToId) {
-      const repliedMessage =
+      const repliedMessageExists =
         await Message.exists({
           _id: replyToId,
+
           $or: [
             {
               sender: senderId,
-              receiver:
-                receiverId,
+              receiver: receiverId,
             },
             {
-              sender:
-                receiverId,
+              sender: receiverId,
               receiver: senderId,
             },
           ],
         });
 
-      if (!repliedMessage) {
+      if (!repliedMessageExists) {
         return res.status(400).json({
           success: false,
+
           message:
             "Reply message was not found in this conversation",
         });
       }
     }
-
-    let imageUrl = "";
 
     if (req.file) {
       const uploaded =
@@ -356,61 +505,72 @@ const sendMessage = async (
           req.file.buffer
         );
 
-      imageUrl =
-        uploaded?.secure_url || "";
+      uploadedImageUrl =
+        uploaded.secure_url;
     }
 
-    const message =
+    persistedMessage =
       await Message.create({
         sender: senderId,
         receiver: receiverId,
+
         text: normalizedText,
-        image: imageUrl,
+        image: uploadedImageUrl,
+
+        status: "sent",
+
         replyTo:
           replyToId || null,
+
         reactions: [],
       });
 
-    await message.populate([
-      {
-        path: "sender",
-        select:
-          "name username profilePic",
-      },
-      {
-        path: "receiver",
-        select:
-          "name username profilePic",
-      },
-      {
-        path: "replyTo",
-        populate: {
-          path: "sender",
-          select:
-            "name username profilePic",
-        },
-      },
-      {
-        path: "reactions.user",
-        select:
-          "name username profilePic",
-      },
-    ]);
-
-    const io = getIO();
-
-    io.to(receiverId).emit(
-      "newMessage",
-      message
+    await populateMessage(
+      persistedMessage
     );
+
+    /*
+     * Mongoose document badhulu
+     * clean plain JavaScript payload.
+     */
+    const messagePayload =
+      persistedMessage.toObject();
+
+    const io = getSafeIO();
+
+    if (io) {
+      /*
+       * Authenticated receiver room ki
+       * real-time message emit.
+       */
+      io.to(receiverId).emit(
+        "newMessage",
+        messagePayload
+      );
+    }
 
     return res.status(201).json({
       success: true,
+
       message:
         "Message sent successfully",
-      data: message,
+
+      data: messagePayload,
     });
   } catch (error) {
+    /*
+     * DB lo message save kakapothe
+     * uploaded image cleanup.
+     */
+    if (
+      uploadedImageUrl &&
+      !persistedMessage
+    ) {
+      void deleteCloudinaryImage(
+        uploadedImageUrl
+      );
+    }
+
     console.error(
       "SEND MESSAGE ERROR:",
       error
@@ -449,8 +609,23 @@ const getMessages = async (
       );
 
     if (
+      !currentUserId ||
+      !isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
       !otherUserId ||
-      !isValidObjectId(otherUserId)
+      !isValidObjectId(
+        otherUserId
+      )
     ) {
       return res.status(400).json({
         success: false,
@@ -481,11 +656,11 @@ const getMessages = async (
         Number.isNaN(
           requestedLimit
         )
-          ? 30
+          ? DEFAULT_PAGE_SIZE
           : requestedLimit,
         1
       ),
-      50
+      MAX_PAGE_SIZE
     );
 
     const before =
@@ -530,6 +705,7 @@ const getMessages = async (
       ) {
         return res.status(400).json({
           success: false,
+
           message:
             "Invalid pagination cursor",
         });
@@ -554,6 +730,7 @@ const getMessages = async (
         )
         .populate({
           path: "replyTo",
+
           populate: {
             path: "sender",
             select:
@@ -598,9 +775,12 @@ const getMessages = async (
 
     return res.status(200).json({
       success: true,
+
       count:
         pageMessages.length,
-      messages: pageMessages,
+
+      messages:
+        pageMessages,
 
       pagination: {
         limit,
@@ -651,12 +831,24 @@ const toggleReaction = async (
         req.body?.emoji || ""
       ).trim();
 
-    const allowedReactions =
-      getAllowedReactions();
+    if (
+      !currentUserId ||
+      !isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
 
     if (
       !messageId ||
-      !isValidObjectId(messageId)
+      !isValidObjectId(
+        messageId
+      )
     ) {
       return res.status(400).json({
         success: false,
@@ -664,6 +856,9 @@ const toggleReaction = async (
           "Invalid message ID",
       });
     }
+
+    const allowedReactions =
+      getAllowedReactions();
 
     if (
       !emoji ||
@@ -673,8 +868,10 @@ const toggleReaction = async (
     ) {
       return res.status(400).json({
         success: false,
+
         message:
           "Unsupported reaction",
+
         allowedReactions,
       });
     }
@@ -702,6 +899,7 @@ const toggleReaction = async (
     if (!message) {
       return res.status(404).json({
         success: false,
+
         message:
           "Message not found or you cannot react to it",
       });
@@ -726,8 +924,8 @@ const toggleReaction = async (
     let action = "set";
 
     /*
-     * Existing same emoji:
-     * remove reaction.
+     * Same reaction:
+     * remove.
      */
     if (
       existingIndex >= 0 &&
@@ -745,8 +943,8 @@ const toggleReaction = async (
       existingIndex >= 0
     ) {
       /*
-       * Existing different emoji:
-       * replace reaction.
+       * Different reaction:
+       * replace.
        */
       message.reactions[
         existingIndex
@@ -754,22 +952,28 @@ const toggleReaction = async (
 
       message.reactions[
         existingIndex
-      ].createdAt = new Date();
-
-      action = "set";
+      ].createdAt =
+        new Date();
     } else {
       /*
        * First reaction:
-       * add reaction.
+       * add.
        */
       message.reactions.push({
         user: currentUserId,
         emoji,
-        createdAt: new Date(),
+        createdAt:
+          new Date(),
       });
-
-      action = "set";
     }
+
+    /*
+     * Nested array changes
+     * Mongoose ki explicitly mark.
+     */
+    message.markModified(
+      "reactions"
+    );
 
     await message.save();
 
@@ -788,13 +992,18 @@ const toggleReaction = async (
         message.receiver
       );
 
+    const messageObject =
+      message.toObject();
+
     const reactionPayload = {
-      messageId: String(
-        message._id
-      ),
+      messageId:
+        normalizeId(
+          messageObject._id
+        ),
 
       reactions:
-        message.reactions,
+        messageObject.reactions ||
+        [],
 
       updatedBy:
         currentUserId,
@@ -802,6 +1011,10 @@ const toggleReaction = async (
       action,
     };
 
+    /*
+     * Sender and receiver authenticated
+     * rooms rendu update avutayi.
+     */
     emitToParticipants(
       senderId,
       receiverId,
@@ -817,7 +1030,8 @@ const toggleReaction = async (
           ? "Reaction removed"
           : "Reaction updated",
 
-      data: reactionPayload,
+      data:
+        reactionPayload,
     });
   } catch (error) {
     console.error(
@@ -858,8 +1072,23 @@ const deleteMessage = async (
       );
 
     if (
+      !currentUserId ||
+      !isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
       !messageId ||
-      !isValidObjectId(messageId)
+      !isValidObjectId(
+        messageId
+      )
     ) {
       return res.status(400).json({
         success: false,
@@ -869,7 +1098,7 @@ const deleteMessage = async (
     }
 
     /*
-     * Sender matrame message delete
+     * Sender matrame delete
      * cheyyagaladu.
      */
     const message =
@@ -881,10 +1110,16 @@ const deleteMessage = async (
     if (!message) {
       return res.status(404).json({
         success: false,
+
         message:
           "Message not found or you cannot delete it",
       });
     }
+
+    const senderId =
+      normalizeId(
+        message.sender
+      );
 
     const receiverId =
       normalizeId(
@@ -899,20 +1134,25 @@ const deleteMessage = async (
     });
 
     const deletePayload = {
-      messageId: String(
-        message._id
-      ),
+      messageId:
+        normalizeId(
+          message._id
+        ),
     };
 
+    /*
+     * Both participants UI nunchi
+     * immediate removal.
+     */
     emitToParticipants(
-      currentUserId,
+      senderId,
       receiverId,
       "messageDeleted",
       deletePayload
     );
 
     /*
-     * MongoDB response wait cheyyakunda
+     * Response wait cheyyakunda
      * Cloudinary cleanup background lo.
      */
     if (imageUrl) {
@@ -923,11 +1163,12 @@ const deleteMessage = async (
 
     return res.status(200).json({
       success: true,
+
       message:
         "Message deleted successfully",
-      messageId: String(
-        message._id
-      ),
+
+      messageId:
+        deletePayload.messageId,
     });
   } catch (error) {
     console.error(
@@ -954,157 +1195,210 @@ const deleteMessage = async (
    CHAT SUMMARIES
 ========================= */
 
-const getChatSummaries =
-  async (req, res) => {
-    try {
-      const currentUserId =
-        normalizeId(req.user);
+const getChatSummaries = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeId(req.user);
 
-      const acceptedRequests =
-        await ChatRequest.find({
-          status: "accepted",
+    if (
+      !currentUserId ||
+      !isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
 
-          $or: [
-            {
-              sender:
-                currentUserId,
-            },
-            {
-              receiver:
-                currentUserId,
-            },
-          ],
-        })
-          .populate(
-            "sender",
-            "name username profilePic"
+    const acceptedRequests =
+      await ChatRequest.find({
+        status: "accepted",
+
+        $or: [
+          {
+            sender:
+              currentUserId,
+          },
+          {
+            receiver:
+              currentUserId,
+          },
+        ],
+      })
+        .populate(
+          "sender",
+          "name username profilePic"
+        )
+        .populate(
+          "receiver",
+          "name username profilePic"
+        )
+        .lean();
+
+    /*
+     * Duplicate accepted requests unte
+     * same user duplicate summary
+     * create kakunda Map use chestham.
+     */
+    const uniqueUsers =
+      new Map();
+
+    acceptedRequests.forEach(
+      (request) => {
+        const requestSenderId =
+          normalizeId(
+            request.sender
+          );
+
+        const otherUser =
+          requestSenderId ===
+            currentUserId
+            ? request.receiver
+            : request.sender;
+
+        const otherUserId =
+          normalizeId(
+            otherUser
+          );
+
+        if (
+          otherUserId &&
+          !uniqueUsers.has(
+            otherUserId
           )
-          .populate(
-            "receiver",
-            "name username profilePic"
-          )
-          .lean();
+        ) {
+          uniqueUsers.set(
+            otherUserId,
+            otherUser
+          );
+        }
+      }
+    );
 
-      const summaries =
-        await Promise.all(
-          acceptedRequests.map(
-            async (request) => {
-              const senderId =
-                normalizeId(
-                  request.sender
-                );
-
-              const otherUser =
-                senderId ===
-                  currentUserId
-                  ? request.receiver
-                  : request.sender;
-
-              const otherUserId =
-                normalizeId(
-                  otherUser
-                );
-
-              const [
-                lastMessage,
-                unreadCount,
-              ] = await Promise.all([
-                Message.findOne({
-                  $or: [
-                    {
-                      sender:
-                        currentUserId,
-                      receiver:
-                        otherUserId,
-                    },
-                    {
-                      sender:
-                        otherUserId,
-                      receiver:
-                        currentUserId,
-                    },
-                  ],
-                })
-                  .sort({
-                    createdAt: -1,
-                    _id: -1,
-                  })
-                  .select(
-                    "text image sender receiver status createdAt"
-                  )
-                  .lean(),
-
-                Message.countDocuments({
+    const summaries =
+      await Promise.all(
+        Array.from(
+          uniqueUsers.entries()
+        ).map(
+          async ([
+            otherUserId,
+            otherUser,
+          ]) => {
+            const conversationFilter = {
+              $or: [
+                {
+                  sender:
+                    currentUserId,
+                  receiver:
+                    otherUserId,
+                },
+                {
                   sender:
                     otherUserId,
                   receiver:
                     currentUserId,
-                  status: {
-                    $ne: "read",
-                  },
-                }),
-              ]);
+                },
+              ],
+            };
 
-              return {
-                user: otherUser,
-                lastMessage,
-                unreadCount,
-              };
-            }
-          )
-        );
+            const [
+              lastMessage,
+              unreadCount,
+            ] = await Promise.all([
+              Message.findOne(
+                conversationFilter
+              )
+                .sort({
+                  createdAt: -1,
+                  _id: -1,
+                })
+                .select(
+                  "text image sender receiver status createdAt"
+                )
+                .lean(),
 
-      summaries.sort(
-        (first, second) => {
-          const firstTime =
-            first.lastMessage
-              ?.createdAt
-              ? new Date(
-                first.lastMessage
-                  .createdAt
-              ).getTime()
-              : 0;
+              Message.countDocuments({
+                sender:
+                  otherUserId,
 
-          const secondTime =
-            second.lastMessage
-              ?.createdAt
-              ? new Date(
-                second.lastMessage
-                  .createdAt
-              ).getTime()
-              : 0;
+                receiver:
+                  currentUserId,
 
-          return (
-            secondTime -
-            firstTime
-          );
-        }
+                status: {
+                  $in: [
+                    "sent",
+                    "delivered",
+                  ],
+                },
+              }),
+            ]);
+
+            return {
+              user: otherUser,
+              lastMessage,
+              unreadCount,
+            };
+          }
+        )
       );
 
-      return res.status(200).json({
-        success: true,
-        chats: summaries,
+    summaries.sort(
+      (first, second) => {
+        const firstTime =
+          first.lastMessage
+            ?.createdAt
+            ? new Date(
+              first.lastMessage
+                .createdAt
+            ).getTime()
+            : 0;
+
+        const secondTime =
+          second.lastMessage
+            ?.createdAt
+            ? new Date(
+              second.lastMessage
+                .createdAt
+            ).getTime()
+            : 0;
+
+        return (
+          secondTime -
+          firstTime
+        );
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      chats: summaries,
+    });
+  } catch (error) {
+    console.error(
+      "GET CHAT SUMMARIES ERROR:",
+      error
+    );
+
+    const result =
+      getControllerErrorResponse(
+        error,
+        "Unable to load chat summaries"
+      );
+
+    return res
+      .status(result.status)
+      .json({
+        success: false,
+        message: result.message,
       });
-    } catch (error) {
-      console.error(
-        "GET CHAT SUMMARIES ERROR:",
-        error
-      );
-
-      const result =
-        getControllerErrorResponse(
-          error,
-          "Unable to load chat summaries"
-        );
-
-      return res
-        .status(result.status)
-        .json({
-          success: false,
-          message: result.message,
-        });
-    }
-  };
+  }
+};
 
 /* =========================
    EXPORTS
