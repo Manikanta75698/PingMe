@@ -100,6 +100,8 @@ const MessageBubble = ({
   message,
   isOwn,
   onReply,
+  onVisible,
+  visibilityRoot,
 }) => {
   const [
     showActions,
@@ -172,6 +174,15 @@ const MessageBubble = ({
 
   const mountedRef =
     useRef(true);
+
+  const visibilityRef =
+    useRef(null);
+
+  const visibilityTimerRef =
+    useRef(null);
+
+  const visibilityReportedRef =
+    useRef(false);
 
   const currentUserId =
     getStoredUserId();
@@ -782,6 +793,135 @@ const MessageBubble = ({
 
     resetLongPress();
   };
+
+  /* =========================
+     VISIBLE MESSAGE RECEIPT
+  ========================= */
+
+  useEffect(() => {
+    visibilityReportedRef.current =
+      false;
+
+    if (
+      isOwn ||
+      !message?._id ||
+      String(message._id).startsWith(
+        "temp-"
+      ) ||
+      message?.status === "read" ||
+      message?.status === "seen" ||
+      typeof onVisible !== "function"
+    ) {
+      return undefined;
+    }
+
+    const element =
+      visibilityRef.current;
+
+    if (
+      !element ||
+      typeof IntersectionObserver ===
+      "undefined"
+    ) {
+      return undefined;
+    }
+
+    const clearVisibilityTimer =
+      () => {
+        if (
+          !visibilityTimerRef.current
+        ) {
+          return;
+        }
+
+        window.clearTimeout(
+          visibilityTimerRef.current
+        );
+
+        visibilityTimerRef.current =
+          null;
+      };
+
+    const observer =
+      new IntersectionObserver(
+        (entries) => {
+          const entry =
+            entries[0];
+
+          const pageIsVisible =
+            document.visibilityState ===
+            "visible";
+
+          const sufficientlyVisible =
+            entry?.isIntersecting &&
+            entry.intersectionRatio >=
+            0.65;
+
+          if (
+            !pageIsVisible ||
+            !sufficientlyVisible ||
+            visibilityReportedRef.current
+          ) {
+            clearVisibilityTimer();
+            return;
+          }
+
+          if (
+            visibilityTimerRef.current
+          ) {
+            return;
+          }
+
+          /*
+           * Quick scroll chesthe Seen
+           * raakunda 450ms wait.
+           */
+          visibilityTimerRef.current =
+            window.setTimeout(() => {
+              visibilityTimerRef.current =
+                null;
+
+              if (
+                visibilityReportedRef.current ||
+                document.visibilityState !==
+                "visible"
+              ) {
+                return;
+              }
+
+              visibilityReportedRef.current =
+                true;
+
+              onVisible(message);
+            }, 450);
+        },
+        {
+          root:
+            visibilityRoot?.current ||
+            null,
+
+          threshold: [
+            0,
+            0.65,
+            1,
+          ],
+        }
+      );
+
+    observer.observe(element);
+
+    return () => {
+      clearVisibilityTimer();
+      observer.disconnect();
+    };
+  }, [
+    message?._id,
+    message?.status,
+    isOwn,
+    onVisible,
+    visibilityRoot,
+  ]);
+
   /* =========================
      CLEANUP
   ========================= */
@@ -807,6 +947,17 @@ const MessageBubble = ({
         0;
 
       if (
+        visibilityTimerRef.current
+      ) {
+        window.clearTimeout(
+          visibilityTimerRef.current
+        );
+
+        visibilityTimerRef.current =
+          null;
+      }
+
+      if (
         reactionErrorTimerRef.current
       ) {
         window.clearTimeout(
@@ -823,6 +974,7 @@ const MessageBubble = ({
   return (
     <>
       <div
+        ref={visibilityRef}
         className={
           isOwn
             ? styles.ownWrapper

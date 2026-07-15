@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -85,6 +86,12 @@ const MessageList = ({
   const messagesRef =
     useRef([]);
 
+  const readEmittedIdsRef =
+    useRef(new Set());
+
+  const pendingReadIdsRef =
+    useRef(new Set());
+
   const selectedChatId =
     normalizeId(selectedChat);
 
@@ -126,10 +133,7 @@ const MessageList = ({
       lastMessage?.sender
     );
 
-  /*
-   * Keep latest messages available
-   * inside async callbacks.
-   */
+
   useLayoutEffect(() => {
     messagesRef.current =
       safeMessages;
@@ -147,6 +151,9 @@ const MessageList = ({
 
     loadingOlderRef.current =
       false;
+
+    readEmittedIdsRef.current.clear();
+    pendingReadIdsRef.current.clear();
 
   }, [selectedChatId]);
 
@@ -306,10 +313,143 @@ const MessageList = ({
     currentUserId,
   ]);
 
-  /*
-   * Scroll top reach ayithe
-   * older messages fetch chesthundi.
-   */
+  /* =========================
+     MARK VISIBLE MESSAGE READ
+  ========================= */
+
+  const handleMessageVisible =
+    useCallback(
+      (message) => {
+        const messageId =
+          normalizeId(
+            message?._id
+          );
+
+        const senderId =
+          normalizeId(
+            message?.sender
+          );
+
+        const receiverId =
+          normalizeId(
+            message?.receiver
+          );
+
+        const alreadyRead =
+          message?.status === "read" ||
+          message?.status === "seen";
+
+        const isReceivedMessage =
+          Boolean(messageId) &&
+          senderId ===
+          selectedChatId &&
+          receiverId ===
+          currentUserId;
+
+        if (
+          !isReceivedMessage ||
+          alreadyRead ||
+          messageId.startsWith(
+            "temp-"
+          ) ||
+          readEmittedIdsRef.current.has(
+            messageId
+          )
+        ) {
+          return;
+        }
+
+        if (!socket?.connected) {
+          pendingReadIdsRef.current.add(
+            messageId
+          );
+
+          return;
+        }
+
+        readEmittedIdsRef.current.add(
+          messageId
+        );
+
+        pendingReadIdsRef.current.delete(
+          messageId
+        );
+
+        socket.emit(
+          "messageRead",
+          {
+            messageId,
+          }
+        );
+      },
+      [
+        socket,
+        selectedChatId,
+        currentUserId,
+      ]
+    );
+
+  /* =========================
+ FLUSH PENDING READ RECEIPTS
+========================= */
+
+  useEffect(() => {
+    if (!socket) {
+      return undefined;
+    }
+
+    const flushPendingReads = () => {
+      if (!socket.connected) {
+        return;
+      }
+
+      pendingReadIdsRef.current.forEach(
+        (messageId) => {
+          if (
+            readEmittedIdsRef.current.has(
+              messageId
+            )
+          ) {
+            pendingReadIdsRef.current.delete(
+              messageId
+            );
+
+            return;
+          }
+
+          readEmittedIdsRef.current.add(
+            messageId
+          );
+
+          pendingReadIdsRef.current.delete(
+            messageId
+          );
+
+          socket.emit(
+            "messageRead",
+            {
+              messageId,
+            }
+          );
+        }
+      );
+    };
+
+    socket.on(
+      "connect",
+      flushPendingReads
+    );
+
+    flushPendingReads();
+
+    return () => {
+      socket.off(
+        "connect",
+        flushPendingReads
+      );
+    };
+  }, [socket]);
+
   const handleScroll = async () => {
     const container =
       containerRef.current;
@@ -455,6 +595,12 @@ const MessageList = ({
                 }
                 onReply={
                   setReplyingTo
+                }
+                onVisible={
+                  handleMessageVisible
+                }
+                visibilityRoot={
+                  containerRef
                 }
               />
             );
