@@ -1,4 +1,10 @@
 import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
   ArrowLeft,
 } from "lucide-react";
 
@@ -15,20 +21,179 @@ import {
 } from "../../context/ChatContext";
 
 const normalizeId = (value) => {
-  if (!value) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return "";
   }
 
-  if (typeof value === "object") {
-    return String(
-      value?._id ||
-      value?.id ||
-      value?.userId ||
-      ""
-    );
+  if (
+    typeof value === "string" ||
+    typeof value === "number"
+  ) {
+    return String(value).trim();
   }
 
-  return String(value);
+  if (typeof value === "object") {
+    if (
+      value._id &&
+      value._id !== value
+    ) {
+      return normalizeId(
+        value._id
+      );
+    }
+
+    if (
+      value.userId &&
+      value.userId !== value
+    ) {
+      return normalizeId(
+        value.userId
+      );
+    }
+
+    if (
+      Object.prototype
+        .hasOwnProperty.call(
+          value,
+          "id"
+        ) &&
+      value.id &&
+      value.id !== value
+    ) {
+      return normalizeId(
+        value.id
+      );
+    }
+
+    return "";
+  }
+
+  return String(value).trim();
+};
+
+const formatTime = (date) =>
+  date.toLocaleTimeString(
+    undefined,
+    {
+      hour: "numeric",
+      minute: "2-digit",
+    }
+  );
+
+const isSameCalendarDay = (
+  firstDate,
+  secondDate
+) =>
+  firstDate.getFullYear() ===
+  secondDate.getFullYear() &&
+  firstDate.getMonth() ===
+  secondDate.getMonth() &&
+  firstDate.getDate() ===
+  secondDate.getDate();
+
+const formatLastSeen = (
+  lastSeenValue,
+  currentTime
+) => {
+  if (!lastSeenValue) {
+    return "Offline";
+  }
+
+  const lastSeenDate =
+    new Date(lastSeenValue);
+
+  if (
+    Number.isNaN(
+      lastSeenDate.getTime()
+    )
+  ) {
+    return "Offline";
+  }
+
+  const now =
+    new Date(currentTime);
+
+  const differenceMs =
+    Math.max(
+      0,
+      now.getTime() -
+      lastSeenDate.getTime()
+    );
+
+  const differenceSeconds =
+    Math.floor(
+      differenceMs / 1000
+    );
+
+  if (differenceSeconds < 60) {
+    return "Last seen just now";
+  }
+
+  const differenceMinutes =
+    Math.floor(
+      differenceSeconds / 60
+    );
+
+  if (differenceMinutes < 60) {
+    return `Last seen ${differenceMinutes} ${differenceMinutes === 1
+        ? "minute"
+        : "minutes"
+      } ago`;
+  }
+
+  if (
+    isSameCalendarDay(
+      lastSeenDate,
+      now
+    )
+  ) {
+    return `Last seen today at ${formatTime(
+      lastSeenDate
+    )}`;
+  }
+
+  const yesterday =
+    new Date(now);
+
+  yesterday.setDate(
+    yesterday.getDate() - 1
+  );
+
+  if (
+    isSameCalendarDay(
+      lastSeenDate,
+      yesterday
+    )
+  ) {
+    return `Last seen yesterday at ${formatTime(
+      lastSeenDate
+    )}`;
+  }
+
+  const dateText =
+    lastSeenDate.toLocaleDateString(
+      undefined,
+      {
+        day: "numeric",
+        month: "short",
+
+        ...(
+          lastSeenDate.getFullYear() !==
+            now.getFullYear()
+            ? {
+              year: "numeric",
+            }
+            : {}
+        ),
+      }
+    );
+
+  return `Last seen ${dateText} at ${formatTime(
+    lastSeenDate
+  )}`;
 };
 
 const ChatHeader = () => {
@@ -38,9 +203,93 @@ const ChatHeader = () => {
   const {
     selectedChat,
     onlineUsers,
+    lastSeenByUser,
     typingUser,
     setSelectedChat,
   } = useChat();
+
+  const [
+    currentTime,
+    setCurrentTime,
+  ] = useState(
+    () => Date.now()
+  );
+
+  const selectedChatId =
+    normalizeId(
+      selectedChat
+    );
+
+  const isOnline =
+    Boolean(selectedChatId) &&
+    Array.isArray(
+      onlineUsers
+    ) &&
+    onlineUsers.some(
+      (onlineUser) =>
+        normalizeId(
+          onlineUser
+        ) === selectedChatId
+    );
+
+  const isTyping =
+    Boolean(selectedChatId) &&
+    normalizeId(
+      typingUser
+    ) === selectedChatId;
+
+  const selectedLastSeen =
+    lastSeenByUser?.[
+    selectedChatId
+    ] ||
+    selectedChat?.lastSeen ||
+    null;
+
+  const lastSeenText =
+    useMemo(
+      () =>
+        formatLastSeen(
+          selectedLastSeen,
+          currentTime
+        ),
+      [
+        selectedLastSeen,
+        currentTime,
+      ]
+    );
+
+  /*
+   * Offline status text automatic ga
+   * every 30 seconds refresh avutundi.
+   */
+  useEffect(() => {
+    if (
+      !selectedChatId ||
+      isOnline
+    ) {
+      return undefined;
+    }
+
+    setCurrentTime(
+      Date.now()
+    );
+
+    const timerId =
+      window.setInterval(() => {
+        setCurrentTime(
+          Date.now()
+        );
+      }, 30000);
+
+    return () => {
+      window.clearInterval(
+        timerId
+      );
+    };
+  }, [
+    selectedChatId,
+    isOnline,
+  ]);
 
   if (!selectedChat) {
     return (
@@ -54,21 +303,6 @@ const ChatHeader = () => {
     );
   }
 
-  const selectedChatId =
-    normalizeId(selectedChat);
-
-  const isOnline =
-    Array.isArray(onlineUsers) &&
-    onlineUsers.some(
-      (onlineUser) =>
-        normalizeId(onlineUser) ===
-        selectedChatId
-    );
-
-  const isTyping =
-    normalizeId(typingUser) ===
-    selectedChatId;
-
   const displayName =
     selectedChat?.name?.trim() ||
     selectedChat?.username?.trim() ||
@@ -81,9 +315,12 @@ const ChatHeader = () => {
   const handleBack = () => {
     setSelectedChat(null);
 
-    navigate("/chat", {
-      replace: true,
-    });
+    navigate(
+      "/chat",
+      {
+        replace: true,
+      }
+    );
   };
 
   const handleAvatarError = (
@@ -93,17 +330,27 @@ const ChatHeader = () => {
       event.currentTarget;
 
     if (
-      image.dataset.fallbackApplied ===
+      image.dataset
+        .fallbackApplied ===
       "true"
     ) {
       return;
     }
 
-    image.dataset.fallbackApplied =
+    image.dataset
+      .fallbackApplied =
       "true";
 
-    image.src = DefaultAvatar;
+    image.src =
+      DefaultAvatar;
   };
+
+  const statusText =
+    isTyping
+      ? ""
+      : isOnline
+        ? "Online"
+        : lastSeenText;
 
   return (
     <header
@@ -156,16 +403,23 @@ const ChatHeader = () => {
           )}
         </div>
 
-        <div className={styles.info}>
-          <h2 className={styles.name}>
+        <div
+          className={styles.info}
+        >
+          <h2
+            className={styles.name}
+          >
             {displayName}
           </h2>
 
           <p
-            className={`${styles.status} ${isTyping
+            className={`
+              ${styles.status}
+              ${isTyping
                 ? styles.typing
                 : ""
-              }`}
+              }
+            `}
             aria-live="polite"
           >
             {isTyping ? (
@@ -187,10 +441,8 @@ const ChatHeader = () => {
                   <i />
                 </span>
               </span>
-            ) : isOnline ? (
-              "Online"
             ) : (
-              "Offline"
+              statusText
             )}
           </p>
         </div>

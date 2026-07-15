@@ -81,6 +81,11 @@ export const ChatProvider = ({
   ] = useState([]);
 
   const [
+    lastSeenByUser,
+    setLastSeenByUser,
+  ] = useState({});
+
+  const [
     typingUser,
     setTypingUser,
   ] = useState(null);
@@ -142,6 +147,46 @@ export const ChatProvider = ({
 
       typingTimerRef.current = null;
     }
+  }, [selectedChat]);
+
+
+  /* =========================
+   SELECTED USER LAST SEEN
+========================= */
+
+  useEffect(() => {
+    const selectedChatId =
+      normalizeId(selectedChat);
+
+    const selectedLastSeen =
+      selectedChat?.lastSeen;
+
+    if (
+      !selectedChatId ||
+      !selectedLastSeen
+    ) {
+      return;
+    }
+
+    const parsedLastSeen =
+      new Date(selectedLastSeen);
+
+    if (
+      Number.isNaN(
+        parsedLastSeen.getTime()
+      )
+    ) {
+      return;
+    }
+
+    setLastSeenByUser(
+      (previous) => ({
+        ...previous,
+
+        [selectedChatId]:
+          parsedLastSeen.toISOString(),
+      })
+    );
   }, [selectedChat]);
 
   /* =========================
@@ -206,11 +251,62 @@ export const ChatProvider = ({
         const summaries =
           response?.data?.chats;
 
-        setChatSummaries(
+        const safeSummaries =
           Array.isArray(summaries)
             ? summaries
-            : []
+            : [];
+
+        setChatSummaries(
+          safeSummaries
         );
+
+        const lastSeenEntries = {};
+
+        safeSummaries.forEach(
+          (summary) => {
+            const userId =
+              normalizeId(
+                summary?.user
+              );
+
+            const lastSeen =
+              summary?.user?.lastSeen;
+
+            if (
+              !userId ||
+              !lastSeen
+            ) {
+              return;
+            }
+
+            const parsedLastSeen =
+              new Date(lastSeen);
+
+            if (
+              Number.isNaN(
+                parsedLastSeen.getTime()
+              )
+            ) {
+              return;
+            }
+
+            lastSeenEntries[userId] =
+              parsedLastSeen.toISOString();
+          }
+        );
+
+        if (
+          Object.keys(
+            lastSeenEntries
+          ).length > 0
+        ) {
+          setLastSeenByUser(
+            (previous) => ({
+              ...previous,
+              ...lastSeenEntries,
+            })
+          );
+        }
       } catch (error) {
         console.error(
           "LOAD CHAT SUMMARIES ERROR:",
@@ -264,7 +360,10 @@ export const ChatProvider = ({
     const currentUserId =
       normalizeId(currentUser);
 
-    if (!token || !currentUserId) {
+    if (
+      !token ||
+      !currentUserId
+    ) {
       console.error(
         "Socket connection skipped: token or user ID missing"
       );
@@ -291,8 +390,152 @@ export const ChatProvider = ({
             .filter(Boolean)
           : [];
 
+      /*
+       * Duplicate user IDs avoid.
+       */
       setOnlineUsers(
-        normalizedUsers
+        Array.from(
+          new Set(
+            normalizedUsers
+          )
+        )
+      );
+    };
+
+    const handlePresenceChanged = (
+      payload = {}
+    ) => {
+      const userId =
+        normalizeId(
+          payload?.userId
+        );
+
+      if (!userId) {
+        return;
+      }
+
+      const isOnline =
+        Boolean(
+          payload?.isOnline
+        );
+
+      /*
+       * Presence event vachina ventane
+       * onlineUsers locally update chestham.
+       */
+      setOnlineUsers(
+        (previous) => {
+          const onlineUserSet =
+            new Set(
+              (
+                Array.isArray(previous)
+                  ? previous
+                  : []
+              )
+                .map((user) =>
+                  normalizeId(user)
+                )
+                .filter(Boolean)
+            );
+
+          if (isOnline) {
+            onlineUserSet.add(
+              userId
+            );
+          } else {
+            onlineUserSet.delete(
+              userId
+            );
+          }
+
+          return Array.from(
+            onlineUserSet
+          );
+        }
+      );
+
+      /*
+       * User offline ayinappudu backend
+       * pampina lastSeen save chestham.
+       */
+      if (
+        !isOnline &&
+        payload?.lastSeen
+      ) {
+        const parsedLastSeen =
+          new Date(
+            payload.lastSeen
+          );
+
+        if (
+          !Number.isNaN(
+            parsedLastSeen.getTime()
+          )
+        ) {
+          setLastSeenByUser(
+            (previous) => ({
+              ...previous,
+
+              [userId]:
+                parsedLastSeen
+                  .toISOString(),
+            })
+          );
+        }
+      }
+
+      /*
+       * Sidebar summary user object kuda
+       * live presence tho update chesthundi.
+       */
+      setChatSummaries(
+        (previous) =>
+          Array.isArray(previous)
+            ? previous.map(
+              (summary) => {
+                const summaryUserId =
+                  normalizeId(
+                    summary?.user
+                  );
+
+                if (
+                  summaryUserId !==
+                  userId
+                ) {
+                  return summary;
+                }
+
+                if (
+                  !summary?.user ||
+                  typeof summary.user !==
+                  "object"
+                ) {
+                  return summary;
+                }
+
+                return {
+                  ...summary,
+
+                  user: {
+                    ...summary.user,
+
+                    isOnline,
+
+                    ...(
+                      !isOnline &&
+                        payload?.lastSeen
+                        ? {
+                          lastSeen:
+                            payload
+                              .lastSeen,
+                        }
+                        : {}
+                    ),
+                  },
+                };
+              }
+            )
+            : []
       );
     };
 
@@ -304,6 +547,11 @@ export const ChatProvider = ({
     socket.on(
       "onlineUsers",
       handleOnlineUsers
+    );
+
+    socket.on(
+      "userPresenceChanged",
+      handlePresenceChanged
     );
 
     if (socket.connected) {
@@ -321,6 +569,11 @@ export const ChatProvider = ({
       socket.off(
         "onlineUsers",
         handleOnlineUsers
+      );
+
+      socket.off(
+        "userPresenceChanged",
+        handlePresenceChanged
       );
     };
   }, []);
@@ -1021,6 +1274,9 @@ export const ChatProvider = ({
 
         onlineUsers,
         setOnlineUsers,
+
+        lastSeenByUser,
+        setLastSeenByUser,
 
         typingUser,
         setTypingUser,

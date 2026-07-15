@@ -1,7 +1,17 @@
 let ioInstance = null;
 
-// userId -> Set of socketIds
-const userSocketMap = new Map();
+/*
+ * userId -> Set<socketId>
+ *
+ * Oka user multiple browser tabs/devices
+ * nunchi connect avvachu.
+ */
+const userSocketMap =
+  new Map();
+
+/* =========================
+   IO INSTANCE
+========================= */
 
 const setIO = (io) => {
   ioInstance = io;
@@ -17,99 +27,246 @@ const getIO = () => {
   return ioInstance;
 };
 
-const setSocketId = (userId, socketId) => {
+/* =========================
+   ADD SOCKET
+========================= */
+
+const setSocketId = (
+  userId,
+  socketId
+) => {
   if (!userId || !socketId) {
     console.error(
       "Unable to store socket: userId or socketId missing"
     );
-    return;
+
+    return false;
   }
 
-  const normalizedUserId = String(userId);
-  const normalizedSocketId = String(socketId);
+  const normalizedUserId =
+    String(userId).trim();
 
-  const sockets =
-    userSocketMap.get(normalizedUserId) ||
-    new Set();
+  const normalizedSocketId =
+    String(socketId).trim();
 
-  sockets.add(normalizedSocketId);
+  if (
+    !normalizedUserId ||
+    !normalizedSocketId
+  ) {
+    return false;
+  }
+
+  const socketIds =
+    userSocketMap.get(
+      normalizedUserId
+    ) || new Set();
+
+  socketIds.add(
+    normalizedSocketId
+  );
 
   userSocketMap.set(
     normalizedUserId,
-    sockets
+    socketIds
   );
 
   console.log(
     "SOCKET USER ADDED:",
     normalizedUserId,
-    normalizedSocketId
+    normalizedSocketId,
+    `(${socketIds.size} active)`
   );
+
+  return true;
 };
 
 const addUser = setSocketId;
 
-const getSocketId = (userId) => {
-  if (!userId) return null;
+/* =========================
+   READ SOCKETS
+========================= */
 
-  const sockets = userSocketMap.get(
-    String(userId)
-  );
-
-  if (!sockets || sockets.size === 0) {
+const getSocketId = (
+  userId
+) => {
+  if (!userId) {
     return null;
   }
 
-  return Array.from(sockets)[0];
+  const socketIds =
+    userSocketMap.get(
+      String(userId).trim()
+    );
+
+  if (
+    !socketIds ||
+    socketIds.size === 0
+  ) {
+    return null;
+  }
+
+  return Array.from(
+    socketIds
+  )[0];
 };
 
-const getSocketIds = (userId) => {
-  if (!userId) return [];
+const getSocketIds = (
+  userId
+) => {
+  if (!userId) {
+    return [];
+  }
 
-  const sockets = userSocketMap.get(
-    String(userId)
-  );
+  const socketIds =
+    userSocketMap.get(
+      String(userId).trim()
+    );
 
-  return sockets
-    ? Array.from(sockets)
+  return socketIds
+    ? Array.from(socketIds)
     : [];
 };
 
-const removeSocketId = (userIdOrSocketId) => {
-  if (!userIdOrSocketId) return;
+const isUserOnline = (
+  userId
+) => {
+  if (!userId) {
+    return false;
+  }
 
-  const normalizedValue = String(
-    userIdOrSocketId
+  const socketIds =
+    userSocketMap.get(
+      String(userId).trim()
+    );
+
+  return Boolean(
+    socketIds &&
+    socketIds.size > 0
   );
+};
 
-  if (userSocketMap.has(normalizedValue)) {
-    userSocketMap.delete(normalizedValue);
+/* =========================
+   REMOVE SOCKET
+========================= */
+
+const removeSocketId = (
+  userIdOrSocketId
+) => {
+  if (!userIdOrSocketId) {
+    return {
+      userId: "",
+      isOnline: false,
+      remainingSocketCount: 0,
+    };
+  }
+
+  const normalizedValue =
+    String(
+      userIdOrSocketId
+    ).trim();
+
+  /*
+   * Direct userId remove request.
+   * Ee case lo aa user sockets anni remove.
+   */
+  if (
+    userSocketMap.has(
+      normalizedValue
+    )
+  ) {
+    userSocketMap.delete(
+      normalizedValue
+    );
 
     console.log(
       "SOCKET USER REMOVED:",
       normalizedValue
     );
 
-    return;
+    return {
+      userId:
+        normalizedValue,
+
+      isOnline:
+        false,
+
+      remainingSocketCount:
+        0,
+    };
   }
 
+  /*
+   * socketId search chesi
+   * exact socket matrame remove.
+   */
   for (const [
     userId,
     socketIds,
   ] of userSocketMap.entries()) {
-    socketIds.delete(normalizedValue);
+    if (
+      !socketIds.has(
+        normalizedValue
+      )
+    ) {
+      continue;
+    }
 
-    if (socketIds.size === 0) {
-      userSocketMap.delete(userId);
+    socketIds.delete(
+      normalizedValue
+    );
+
+    const remainingSocketCount =
+      socketIds.size;
+
+    const stillOnline =
+      remainingSocketCount > 0;
+
+    if (!stillOnline) {
+      userSocketMap.delete(
+        userId
+      );
 
       console.log(
         "SOCKET USER OFFLINE:",
         userId
       );
+    } else {
+      userSocketMap.set(
+        userId,
+        socketIds
+      );
+
+      console.log(
+        "SOCKET USER CONNECTION REMOVED:",
+        userId,
+        normalizedValue,
+        `(${remainingSocketCount} active)`
+      );
     }
+
+    return {
+      userId,
+
+      isOnline:
+        stillOnline,
+
+      remainingSocketCount,
+    };
   }
+
+  return {
+    userId: "",
+    isOnline: false,
+    remainingSocketCount: 0,
+  };
 };
 
-const removeUser = removeSocketId;
+const removeUser =
+  removeSocketId;
+
+/* =========================
+   ONLINE USERS
+========================= */
 
 const getOnlineUsers = () => {
   return Array.from(
@@ -119,7 +276,10 @@ const getOnlineUsers = () => {
       ([, socketIds]) =>
         socketIds.size > 0
     )
-    .map(([userId]) => userId);
+    .map(
+      ([userId]) =>
+        userId
+    );
 };
 
 module.exports = {
@@ -131,6 +291,7 @@ module.exports = {
 
   getSocketId,
   getSocketIds,
+  isUserOnline,
 
   removeSocketId,
   removeUser,

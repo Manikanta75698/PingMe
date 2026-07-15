@@ -3,6 +3,7 @@ const {
   setSocketId,
   removeSocketId,
   getOnlineUsers,
+  isUserOnline,
 } = require("./socketInstance");
 
 const {
@@ -11,7 +12,14 @@ const {
 
 const Message = require("../models/Message");
 
+const User = require("../models/User");
+
 const TYPING_TIMEOUT_MS = 2500;
+
+const PRESENCE_OFFLINE_DELAY_MS = 3000;
+
+const offlineTimers =
+  new Map();
 
 const normalizeId = (value) => {
   if (
@@ -138,6 +146,56 @@ const socketHandler = (io) => {
 
     socket.join(
       authenticatedUserId
+    );
+
+    /*
+ * Pending offline timer unte
+ * reconnect ayyaka cancel chesthundi.
+ */
+    const pendingOfflineTimer =
+      offlineTimers.get(
+        authenticatedUserId
+      );
+
+    if (pendingOfflineTimer) {
+      clearTimeout(
+        pendingOfflineTimer
+      );
+
+      offlineTimers.delete(
+        authenticatedUserId
+      );
+    }
+
+    User.findByIdAndUpdate(
+      authenticatedUserId,
+      {
+        $set: {
+          isOnline: true,
+        },
+      },
+      {
+        runValidators: true,
+      }
+    ).catch((error) => {
+      console.error(
+        "USER ONLINE STATUS UPDATE ERROR:",
+        error
+      );
+    });
+
+    io.emit(
+      "userPresenceChanged",
+      {
+        userId:
+          authenticatedUserId,
+
+        isOnline:
+          true,
+
+        lastSeen:
+          null,
+      }
     );
 
     console.log(
@@ -502,13 +560,118 @@ const socketHandler = (io) => {
           clearTypingTimer();
         }
 
-        removeSocketId(
-          socket.id
-        );
+        const removalResult =
+          removeSocketId(
+            socket.id
+          );
+
+        const disconnectedUserId =
+          normalizeId(
+            removalResult?.userId ||
+            socket.data?.userId
+          );
 
         io.emit(
           "onlineUsers",
           getOnlineUsers()
+        );
+
+        /*
+         * Same user ki vere tab/device socket
+         * active unte Offline mark cheyyakudadhu.
+         */
+        if (
+          !disconnectedUserId ||
+          removalResult?.isOnline
+        ) {
+          return;
+        }
+
+        /*
+         * Temporary network disconnect/reconnect
+         * valla status flicker raakunda grace time.
+         */
+        const existingTimer =
+          offlineTimers.get(
+            disconnectedUserId
+          );
+
+        if (existingTimer) {
+          clearTimeout(
+            existingTimer
+          );
+        }
+
+        const offlineTimer =
+          setTimeout(async () => {
+            offlineTimers.delete(
+              disconnectedUserId
+            );
+
+            /*
+             * Grace period lopala reconnect
+             * ayithe Offline update cancel.
+             */
+            if (
+              isUserOnline(
+                disconnectedUserId
+              )
+            ) {
+              return;
+            }
+
+            try {
+              const lastSeen =
+                new Date();
+
+              await User.findByIdAndUpdate(
+                disconnectedUserId,
+                {
+                  $set: {
+                    isOnline: false,
+                    lastSeen,
+                  },
+                },
+                {
+                  runValidators: true,
+                }
+              );
+
+              io.emit(
+                "userPresenceChanged",
+                {
+                  userId:
+                    disconnectedUserId,
+
+                  isOnline:
+                    false,
+
+                  lastSeen:
+                    lastSeen.toISOString(),
+                }
+              );
+
+              io.emit(
+                "onlineUsers",
+                getOnlineUsers()
+              );
+
+              console.log(
+                "USER MARKED OFFLINE:",
+                disconnectedUserId,
+                lastSeen.toISOString()
+              );
+            } catch (error) {
+              console.error(
+                "USER OFFLINE STATUS UPDATE ERROR:",
+                error
+              );
+            }
+          }, PRESENCE_OFFLINE_DELAY_MS);
+
+        offlineTimers.set(
+          disconnectedUserId,
+          offlineTimer
         );
       }
     );
