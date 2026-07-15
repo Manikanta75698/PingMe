@@ -376,6 +376,16 @@ export const ChatProvider = ({
         "AUTHENTICATED SOCKET CONNECTED:",
         socket.id
       );
+
+      socket.emit(
+        "presence:sync",
+        {
+          userId:
+            normalizeId(
+              selectedChatRef.current
+            ),
+        }
+      );
     };
 
     const handleOnlineUsers = (
@@ -453,6 +463,9 @@ export const ChatProvider = ({
           );
         }
       );
+
+
+
 
       /*
        * User offline ayinappudu backend
@@ -539,6 +552,63 @@ export const ChatProvider = ({
       );
     };
 
+
+    const handlePresenceSnapshot = (
+      payload = {}
+    ) => {
+      const normalizedUsers =
+        Array.isArray(
+          payload?.onlineUsers
+        )
+          ? payload.onlineUsers
+            .map((userId) =>
+              normalizeId(userId)
+            )
+            .filter(Boolean)
+          : [];
+
+      setOnlineUsers(
+        Array.from(
+          new Set(normalizedUsers)
+        )
+      );
+
+      const targetUserId =
+        normalizeId(
+          payload?.userId
+        );
+
+      if (
+        !targetUserId ||
+        !payload?.lastSeen
+      ) {
+        return;
+      }
+
+      const parsedLastSeen =
+        new Date(
+          payload.lastSeen
+        );
+
+      if (
+        Number.isNaN(
+          parsedLastSeen.getTime()
+        )
+      ) {
+        return;
+      }
+
+      setLastSeenByUser(
+        (previous) => ({
+          ...previous,
+
+          [targetUserId]:
+            parsedLastSeen
+              .toISOString(),
+        })
+      );
+    };
+
     socket.on(
       "connect",
       handleConnect
@@ -552,6 +622,11 @@ export const ChatProvider = ({
     socket.on(
       "userPresenceChanged",
       handlePresenceChanged
+    );
+
+    socket.on(
+      "presence:snapshot",
+      handlePresenceSnapshot
     );
 
     if (socket.connected) {
@@ -574,6 +649,112 @@ export const ChatProvider = ({
       socket.off(
         "userPresenceChanged",
         handlePresenceChanged
+      );
+      /* =========================
+         SELECTED CHAT PRESENCE SYNC
+      ========================= */
+
+      useEffect(() => {
+        const selectedUserId =
+          normalizeId(
+            selectedChat
+          );
+
+        if (
+          !selectedUserId ||
+          !socket.connected
+        ) {
+          return;
+        }
+
+        socket.emit(
+          "presence:sync",
+          {
+            userId:
+              selectedUserId,
+          }
+        );
+      }, [selectedChat]);
+      socket.off(
+        "presence:snapshot",
+        handlePresenceSnapshot
+      );
+    };
+  }, []);
+
+
+  /* =========================
+   SELECTED CHAT PRESENCE SYNC
+========================= */
+
+  useEffect(() => {
+    const selectedUserId =
+      normalizeId(
+        selectedChat
+      );
+
+    if (
+      !selectedUserId ||
+      !socket.connected
+    ) {
+      return;
+    }
+
+    socket.emit(
+      "presence:sync",
+      {
+        userId:
+          selectedUserId,
+      }
+    );
+  }, [selectedChat]);
+
+
+  /* =========================
+   WINDOW PRESENCE RESYNC
+========================= */
+
+  useEffect(() => {
+    const requestPresenceSync =
+      () => {
+        if (
+          !socket.connected ||
+          document.visibilityState !==
+          "visible"
+        ) {
+          return;
+        }
+
+        socket.emit(
+          "presence:sync",
+          {
+            userId:
+              normalizeId(
+                selectedChatRef.current
+              ),
+          }
+        );
+      };
+
+    window.addEventListener(
+      "focus",
+      requestPresenceSync
+    );
+
+    document.addEventListener(
+      "visibilitychange",
+      requestPresenceSync
+    );
+
+    return () => {
+      window.removeEventListener(
+        "focus",
+        requestPresenceSync
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        requestPresenceSync
       );
     };
   }, []);

@@ -496,6 +496,63 @@ const socketHandler = (io) => {
     );
 
     /* =========================
+   PRESENCE SYNC
+========================= */
+
+    socket.on(
+      "presence:sync",
+      async ({ userId } = {}) => {
+        try {
+          const targetUserId =
+            normalizeId(userId);
+
+          let lastSeen = null;
+
+          if (targetUserId) {
+            const targetUser =
+              await User.findById(
+                targetUserId
+              )
+                .select("lastSeen")
+                .lean();
+
+            lastSeen =
+              targetUser?.lastSeen
+                ? new Date(
+                  targetUser.lastSeen
+                ).toISOString()
+                : null;
+          }
+
+          socket.emit(
+            "presence:snapshot",
+            {
+              onlineUsers:
+                getOnlineUsers(),
+
+              userId:
+                targetUserId,
+
+              isOnline:
+                targetUserId
+                  ? isUserOnline(
+                    targetUserId
+                  )
+                  : false,
+
+              lastSeen,
+            }
+          );
+        } catch (error) {
+          console.error(
+            "PRESENCE SYNC ERROR:",
+            error
+          );
+        }
+      }
+    );
+
+    /* =========================
        TYPING START
     ========================= */
 
