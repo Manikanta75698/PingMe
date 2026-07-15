@@ -650,31 +650,7 @@ export const ChatProvider = ({
         "userPresenceChanged",
         handlePresenceChanged
       );
-      /* =========================
-         SELECTED CHAT PRESENCE SYNC
-      ========================= */
 
-      useEffect(() => {
-        const selectedUserId =
-          normalizeId(
-            selectedChat
-          );
-
-        if (
-          !selectedUserId ||
-          !socket.connected
-        ) {
-          return;
-        }
-
-        socket.emit(
-          "presence:sync",
-          {
-            userId:
-              selectedUserId,
-          }
-        );
-      }, [selectedChat]);
       socket.off(
         "presence:snapshot",
         handlePresenceSnapshot
