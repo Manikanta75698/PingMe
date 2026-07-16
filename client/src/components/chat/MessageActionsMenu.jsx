@@ -10,6 +10,7 @@ import {
 } from "react-dom";
 
 import {
+  Pencil,
   Reply,
   Trash2,
 } from "lucide-react";
@@ -31,20 +32,17 @@ const MOBILE_QUERY =
 const VIEWPORT_GAP = 10;
 const MENU_GAP = 8;
 
-/*
- * Long-press gesture complete ayye varaku
- * backdrop close ni ignore chestham.
- */
 const OPEN_GUARD_MS = 550;
 
 const MessageActionsMenu = ({
   open,
   anchorRef,
   isOwn = false,
-  preview = "Message",
+  canEdit = false,
   selectedReaction = "",
   onClose,
   onReply,
+  onEdit,
   onDelete,
   onReact,
 }) => {
@@ -472,6 +470,15 @@ const MessageActionsMenu = ({
     closeImmediately();
   };
 
+  const handleEdit = () => {
+    if (!canEdit) {
+      return;
+    }
+
+    onEdit?.();
+    closeImmediately();
+  };
+
   const handleDelete = () => {
     onDelete?.();
     closeImmediately();
@@ -498,8 +505,8 @@ const MessageActionsMenu = ({
   return createPortal(
     <div
       className={`${styles.backdrop} ${isMobile
-          ? styles.mobileBackdrop
-          : styles.desktopBackdrop
+        ? styles.mobileBackdrop
+        : styles.desktopBackdrop
         }`}
       /*
        * pointerdown remove chesam.
@@ -517,8 +524,8 @@ const MessageActionsMenu = ({
       <div
         ref={menuRef}
         className={`${styles.menu} ${isMobile
-            ? styles.mobileMenu
-            : styles.desktopMenu
+          ? styles.mobileMenu
+          : styles.desktopMenu
           } ${position.placement ===
             "above"
             ? styles.above
@@ -538,40 +545,12 @@ const MessageActionsMenu = ({
           event.stopPropagation();
         }}
       >
-        <div
-          className={
-            styles.preview
-          }
-        >
-          <span
-            className={
-              styles.previewLabel
-            }
-          >
-            Message
-          </span>
-
-          <p
-            className={
-              styles.previewText
-            }
-          >
-            {preview}
-          </p>
-        </div>
 
         <div
           className={
             styles.reactionSection
           }
         >
-          <span
-            className={
-              styles.reactionLabel
-            }
-          >
-            React
-          </span>
 
           <div
             className={
@@ -596,8 +575,8 @@ const MessageActionsMenu = ({
                     }
                     type="button"
                     className={`${styles.reactionButton} ${isSelected
-                        ? styles.selectedReaction
-                        : ""
+                      ? styles.selectedReaction
+                      : ""
                       }`}
                     onClick={() =>
                       handleReaction(
@@ -654,6 +633,26 @@ const MessageActionsMenu = ({
 
             <span>Reply</span>
           </button>
+
+          {isOwn && canEdit && (
+            <button
+              type="button"
+              className={
+                styles.actionButton
+              }
+              onClick={
+                handleEdit
+              }
+              role="menuitem"
+            >
+              <Pencil
+                size={19}
+                aria-hidden="true"
+              />
+
+              <span>Edit</span>
+            </button>
+          )}
 
           {isOwn && (
             <button

@@ -302,6 +302,16 @@
   opacity: 0.68;
 }
 
+.edited {
+  color: inherit;
+
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+
+  opacity: 0.68;
+}
+
 .status {
   display: inline-flex;
   align-items: center;

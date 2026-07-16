@@ -100,9 +100,11 @@ const MessageBubble = ({
   message,
   isOwn,
   onReply,
+  onEdit,
   onVisible,
   visibilityRoot,
 }) => {
+
   const [
     showActions,
     setShowActions,
@@ -211,6 +213,18 @@ const MessageBubble = ({
       "temp-"
     );
 
+  const canEdit =
+    isOwn &&
+    canUseActions &&
+    Boolean(
+      message?.text?.trim()
+    );
+
+  const isEdited =
+    Boolean(
+      message?.editedAt
+    );
+
   const selectedReaction =
     localReactions.find(
       (reaction) =>
@@ -284,6 +298,23 @@ const MessageBubble = ({
     setShowActions(false);
 
     onReply(message);
+  };
+
+  /* =========================
+   EDIT
+========================= */
+
+  const handleEdit = () => {
+    if (
+      !canEdit ||
+      typeof onEdit !== "function"
+    ) {
+      return;
+    }
+
+    setShowActions(false);
+
+    onEdit(message);
   };
 
   /* =========================
@@ -1069,6 +1100,17 @@ const MessageBubble = ({
             )}
 
             <div className={styles.meta}>
+              {isEdited && (
+                <span
+                  className={
+                    styles.edited
+                  }
+                  title="This message was edited"
+                >
+                  Edited
+                </span>
+              )}
+
               <span className={styles.time}>
                 {time}
               </span>
@@ -1241,17 +1283,13 @@ const MessageBubble = ({
             open={showActions}
             anchorRef={actionAnchorRef}
             isOwn={isOwn}
-            preview={
-              message?.text?.trim() ||
-              (message?.image
-                ? "Photo"
-                : "Message")
-            }
+            canEdit={canEdit}
             selectedReaction={
               selectedReaction
             }
             onClose={closeActions}
             onReply={handleReply}
+            onEdit={handleEdit}
             onDelete={handleDelete}
             onReact={handleReaction}
           />

@@ -324,6 +324,26 @@
   white-space: nowrap;
 }
 
+/* =========================
+   EDIT BAR
+========================= */
+
+.editBar {
+  min-height: 48px;
+
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.editBar .replyInfo {
+  display: flex;
+  align-items: center;
+}
+
+.editLabel {
+  margin-bottom: 0;
+}
+
 .replyClose {
   width: 34px;
   height: 34px;
@@ -456,6 +476,13 @@
     height: 42px;
   }
 
+  .send[data-mode="edit"] {
+    box-shadow:
+      0 6px 18px color-mix(in srgb,
+        var(--composer-primary) 22%,
+        transparent);
+  }
+
   .inputWrapper {
     min-height: 42px;
     padding: 0 13px;
@@ -495,7 +522,13 @@
   .container:has(.replyBar) .preview {
     bottom: calc(100% + 72px);
   }
+
+  .editBar {
+    min-height: 46px;
+  }
 }
+
+
 
 /* =========================
    SMALL MOBILE

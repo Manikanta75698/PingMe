@@ -71,6 +71,11 @@ export const ChatProvider = ({
   ] = useState(null);
 
   const [
+    editingMessage,
+    setEditingMessage,
+  ] = useState(null);
+
+  const [
     messages,
     setMessages,
   ] = useState([]);
@@ -136,6 +141,7 @@ export const ChatProvider = ({
     readReceiptIdsRef.current.clear();
 
     setReplyingTo(null);
+    setEditingMessage(null);
     setTypingUser(null);
 
     typingUserRef.current = "";
@@ -927,6 +933,187 @@ export const ChatProvider = ({
 
 
   /* =========================
+   MESSAGE EDITED
+========================= */
+
+  useEffect(() => {
+    const handleMessageEdited = (
+      payload = {}
+    ) => {
+      /*
+       * Backend direct message object emit chesthundi.
+       * Future compatibility kosam data/message
+       * wrappers kuda support chesthunnam.
+       */
+      const editedMessage =
+        payload?.data ||
+        payload?.message ||
+        payload;
+
+      const messageId =
+        normalizeId(
+          editedMessage?._id ||
+          payload?.messageId
+        );
+
+      if (!messageId) {
+        return;
+      }
+
+      console.log(
+        "MESSAGE EDITED:",
+        messageId
+      );
+
+      setMessages((previous) =>
+        Array.isArray(previous)
+          ? previous.map((message) => {
+            const currentMessageId =
+              normalizeId(
+                message?._id
+              );
+
+            /*
+             * Original message bubble update.
+             */
+            if (
+              currentMessageId ===
+              messageId
+            ) {
+              return {
+                ...message,
+                ...editedMessage,
+              };
+            }
+
+            /*
+             * Ee edited message ni vere message
+             * reply preview ga use chesthe,
+             * reply preview text kuda live update.
+             */
+            const replyToId =
+              normalizeId(
+                message?.replyTo
+              );
+
+            if (
+              replyToId !== messageId ||
+              !message?.replyTo ||
+              typeof message.replyTo !==
+              "object"
+            ) {
+              return message;
+            }
+
+            return {
+              ...message,
+
+              replyTo: {
+                ...message.replyTo,
+
+                text:
+                  editedMessage?.text ??
+                  message.replyTo?.text,
+
+                editedAt:
+                  editedMessage?.editedAt ??
+                  message.replyTo?.editedAt,
+              },
+            };
+          })
+          : []
+      );
+
+      /*
+       * Sidebar last message edited ayithe
+       * summary preview kuda live update.
+       */
+      setChatSummaries(
+        (previous) =>
+          Array.isArray(previous)
+            ? previous.map(
+              (summary) => {
+                const lastMessageId =
+                  normalizeId(
+                    summary
+                      ?.lastMessage
+                      ?._id
+                  );
+
+                if (
+                  lastMessageId !==
+                  messageId
+                ) {
+                  return summary;
+                }
+
+                return {
+                  ...summary,
+
+                  lastMessage: {
+                    ...summary.lastMessage,
+                    ...editedMessage,
+                  },
+                };
+              }
+            )
+            : []
+      );
+
+      /*
+       * Currently reply chesthunna message
+       * edited ayithe reply composer preview
+       * kuda latest text show chesthundi.
+       */
+      setReplyingTo(
+        (previous) => {
+          if (
+            normalizeId(
+              previous?._id
+            ) !== messageId
+          ) {
+            return previous;
+          }
+
+          return {
+            ...previous,
+            ...editedMessage,
+          };
+        }
+      );
+
+      setEditingMessage(
+        (previous) => {
+          if (
+            normalizeId(
+              previous?._id
+            ) !== messageId
+          ) {
+            return previous;
+          }
+
+          return {
+            ...previous,
+            ...editedMessage,
+          };
+        }
+      );
+    };
+
+    socket.on(
+      "messageEdited",
+      handleMessageEdited
+    );
+
+    return () => {
+      socket.off(
+        "messageEdited",
+        handleMessageEdited
+      );
+    };
+  }, []);
+
+  /* =========================
      TYPING INDICATOR
   ========================= */
 
@@ -1122,6 +1309,26 @@ export const ChatProvider = ({
             reactions,
           };
         })
+      );
+
+      setEditingMessage(
+        (previous) =>
+          normalizeId(
+            previous?._id
+          ) ===
+            normalizeId(messageId)
+            ? null
+            : previous
+      );
+
+      setReplyingTo(
+        (previous) =>
+          normalizeId(
+            previous?._id
+          ) ===
+            normalizeId(messageId)
+            ? null
+            : previous
       );
     };
 
@@ -1425,6 +1632,9 @@ export const ChatProvider = ({
 
         replyingTo,
         setReplyingTo,
+
+        editingMessage,
+        setEditingMessage,
 
         messages,
         setMessages,

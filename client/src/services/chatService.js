@@ -136,3 +136,34 @@ export const deleteMessage = (
     `/messages/${safeMessageId}`
   );
 };
+
+export const editMessage = async (
+  messageId,
+  text
+) => {
+  const normalizedMessageId =
+    String(messageId || "").trim();
+
+  const normalizedText =
+    String(text || "").trim();
+
+  if (!normalizedMessageId) {
+    throw new Error(
+      "Message ID is required"
+    );
+  }
+
+  if (!normalizedText) {
+    throw new Error(
+      "Edited message cannot be empty"
+    );
+  }
+
+  return api.patch(
+    `/messages/${normalizedMessageId}`,
+    {
+      text: normalizedText,
+    }
+  );
+};
+

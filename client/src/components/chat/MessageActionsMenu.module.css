@@ -1,5 +1,5 @@
 /* =========================
-   THEME TOKENS
+   COMPACT ACTION MENU
 ========================= */
 
 .backdrop {
@@ -9,7 +9,7 @@
   --menu-soft:
     var(--surface-light,
       color-mix(in srgb,
-        CanvasText 7%,
+        CanvasText 6%,
         Canvas));
 
   --menu-text:
@@ -18,13 +18,13 @@
   --menu-muted:
     var(--text-secondary,
       color-mix(in srgb,
-        CanvasText 62%,
+        CanvasText 58%,
         transparent));
 
   --menu-border:
     var(--border,
       color-mix(in srgb,
-        CanvasText 14%,
+        CanvasText 12%,
         transparent));
 
   --menu-primary:
@@ -33,31 +33,26 @@
   --menu-danger:
     var(--danger, #ef4444);
 
-  --menu-danger-soft:
-    color-mix(in srgb,
-      var(--menu-danger) 10%,
-      transparent);
-
   position: fixed;
   inset: 0;
 
   z-index: 1000;
 
-  color: var(--menu-text);
+  color:
+    var(--menu-text);
 
-  overscroll-behavior: contain;
-  touch-action: none;
+  overscroll-behavior:
+    contain;
 
   -webkit-tap-highlight-color:
     transparent;
 
-  color-scheme: light dark;
-
-  isolation: isolate;
+  color-scheme:
+    light dark;
 }
 
 /* =========================
-   BACKDROP MODES
+   BACKDROP
 ========================= */
 
 .desktopBackdrop {
@@ -70,20 +65,13 @@
   justify-content: center;
 
   padding:
-    12px 10px calc(12px + env(safe-area-inset-bottom));
+    8px 8px calc(8px + env(safe-area-inset-bottom));
 
   background:
-    rgba(0, 0, 0, 0.42);
-
-  /*
-   * backdrop-filter Android mobile lo
-   * flicker create cheyyachu.
-   */
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+    rgba(0, 0, 0, 0.32);
 
   animation:
-    backdropFadeIn 0.16s ease-out both;
+    backdropFadeIn 0.14s ease-out both;
 }
 
 /* =========================
@@ -93,42 +81,42 @@
 .menu {
   overflow: hidden;
 
-  color: var(--menu-text);
+  color:
+    var(--menu-text);
+
   background:
     var(--menu-surface);
 
   border:
     1px solid var(--menu-border);
 
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.18);
+
   box-sizing: border-box;
 
-  box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.2);
-
-  touch-action: manipulation;
-
-  -webkit-tap-highlight-color:
-    transparent;
+  touch-action:
+    manipulation;
 }
 
 /* =========================
-   DESKTOP MENU
+   DESKTOP POPUP
 ========================= */
 
 .desktopMenu {
   position: fixed;
 
-  width:
-    min(330px,
-      calc(100vw - 20px));
+  width: 248px;
+  max-width:
+    calc(100vw - 16px);
 
-  border-radius: 18px;
+  border-radius: 14px;
 
   transform-origin:
     top right;
 
   animation:
-    desktopMenuIn 0.16s ease-out both;
+    desktopMenuIn 0.14s ease-out both;
 }
 
 .desktopMenu.above {
@@ -148,41 +136,30 @@
 .mobileMenu {
   position: relative;
 
-  width: 100%;
-  max-width: 520px;
+  width:
+    min(100%,
+      420px);
+
   max-height:
-    calc(100dvh - 32px - env(safe-area-inset-bottom));
+    calc(100dvh - 24px - env(safe-area-inset-bottom));
 
   overflow-x: hidden;
   overflow-y: auto;
 
   border-radius:
-    24px 24px 18px 18px;
+    20px;
 
   box-shadow:
-    0 -12px 42px rgba(0, 0, 0, 0.26);
+    0 -8px 30px rgba(0, 0, 0, 0.22);
 
-  overscroll-behavior: contain;
+  overscroll-behavior:
+    contain;
 
-  /*
-   * Mobile animation flicker prevent.
-   */
   transform:
     translate3d(0, 0, 0);
 
-  backface-visibility: hidden;
-  -webkit-backface-visibility:
-    hidden;
-
-  will-change:
-    transform,
-    opacity;
-
-  contain:
-    layout paint;
-
   animation:
-    mobileMenuIn 0.2s cubic-bezier(0.22,
+    mobileMenuIn 0.18s cubic-bezier(0.22,
       1,
       0.36,
       1) both;
@@ -191,88 +168,41 @@
 .mobileMenu::before {
   display: block;
 
-  width: 42px;
+  width: 34px;
   height: 4px;
 
   margin:
-    9px auto 3px;
+    7px auto 4px;
 
   background:
     var(--menu-border);
 
-  border-radius: 999px;
+  border-radius:
+    999px;
 
   content: "";
 }
 
 /* =========================
-   MESSAGE PREVIEW
+   REMOVE WASTE CONTENT
 ========================= */
 
-.preview {
-  min-width: 0;
-
-  padding:
-    16px 18px 13px;
-}
-
-.previewLabel {
-  display: block;
-
-  margin-bottom: 5px;
-
-  color:
-    var(--menu-muted);
-
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.2;
-
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.previewText {
-  display: -webkit-box;
-
-  margin: 0;
-
-  overflow: hidden;
-
-  color:
-    var(--menu-text);
-
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.45;
-
-  overflow-wrap: anywhere;
-
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+/*
+ * Message preview and labels hide.
+ * Instagram/WhatsApp style compact menu.
+ */
+.preview,
+.reactionLabel {
+  display: none;
 }
 
 /* =========================
-   REACTION SECTION
+   REACTIONS
 ========================= */
 
 .reactionSection {
   padding:
-    4px 14px 14px;
-}
-
-.reactionLabel {
-  display: block;
-
-  margin:
-    0 4px 9px;
-
-  color:
-    var(--menu-muted);
-
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 1.2;
+    9px 10px;
 }
 
 .reactionRow {
@@ -282,7 +212,7 @@
     repeat(6,
       minmax(0, 1fr));
 
-  gap: 6px;
+  gap: 4px;
 
   width: 100%;
 }
@@ -294,8 +224,7 @@
 
   width: 100%;
   min-width: 0;
-
-  aspect-ratio: 1;
+  height: 38px;
 
   padding: 0;
 
@@ -303,12 +232,13 @@
     var(--menu-text);
 
   background:
-    var(--menu-soft);
+    transparent;
 
   border:
     1px solid transparent;
 
-  border-radius: 14px;
+  border-radius:
+    10px;
 
   font-family:
     system-ui,
@@ -318,15 +248,13 @@
     "Apple Color Emoji",
     sans-serif;
 
-  font-size: 23px;
+  font-size: 21px;
   line-height: 1;
 
   cursor: pointer;
 
-  touch-action: manipulation;
-
-  -webkit-tap-highlight-color:
-    transparent;
+  touch-action:
+    manipulation;
 
   user-select: none;
   -webkit-user-select: none;
@@ -334,51 +262,41 @@
   transition:
     transform 0.12s ease,
     background-color 0.12s ease,
-    border-color 0.12s ease,
-    box-shadow 0.12s ease;
+    border-color 0.12s ease;
 }
 
-/*
- * Hover effects mouse devices ki matrame.
- * Mobile sticky-hover issue prevent.
- */
 @media (hover: hover) and (pointer: fine) {
   .reactionButton:hover {
     background:
-      color-mix(in srgb,
-        var(--menu-primary) 10%,
-        var(--menu-surface));
+      var(--menu-soft);
 
     transform:
-      translateY(-2px) scale(1.04);
+      scale(1.08);
   }
 }
 
 .reactionButton:active {
-  transform: scale(0.92);
+  transform:
+    scale(0.9);
 }
 
 .reactionButton:focus-visible {
   outline:
     2px solid var(--menu-primary);
 
-  outline-offset: 2px;
+  outline-offset:
+    1px;
 }
 
 .selectedReaction {
   background:
     color-mix(in srgb,
-      var(--menu-primary) 15%,
+      var(--menu-primary) 14%,
       var(--menu-surface));
 
   border-color:
     color-mix(in srgb,
-      var(--menu-primary) 55%,
-      transparent);
-
-  box-shadow:
-    0 0 0 3px color-mix(in srgb,
-      var(--menu-primary) 9%,
+      var(--menu-primary) 42%,
       transparent);
 }
 
@@ -387,27 +305,26 @@
 ========================= */
 
 .divider {
-  width:
-    calc(100% - 28px);
+  width: 100%;
   height: 1px;
 
-  margin: 0 auto;
+  margin: 0;
 
   background:
     var(--menu-border);
 }
 
 /* =========================
-   ACTION BUTTONS
+   ACTIONS
 ========================= */
 
 .actions {
   display: flex;
   flex-direction: column;
 
-  gap: 4px;
+  gap: 1px;
 
-  padding: 8px;
+  padding: 5px;
 }
 
 .actionButton {
@@ -415,11 +332,12 @@
   align-items: center;
 
   width: 100%;
+  min-height: 42px;
 
-  gap: 12px;
+  gap: 11px;
 
   padding:
-    12px 13px;
+    9px 11px;
 
   color:
     var(--menu-text);
@@ -428,21 +346,19 @@
     transparent;
 
   border: none;
-  border-radius: 12px;
+  border-radius: 9px;
 
   font: inherit;
   font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
+  font-weight: 550;
+  line-height: 1.25;
 
   text-align: left;
 
   cursor: pointer;
 
-  touch-action: manipulation;
-
-  -webkit-tap-highlight-color:
-    transparent;
+  touch-action:
+    manipulation;
 
   user-select: none;
   -webkit-user-select: none;
@@ -451,6 +367,15 @@
     background-color 0.12s ease,
     color 0.12s ease,
     transform 0.12s ease;
+}
+
+.actionButton svg {
+  flex: 0 0 auto;
+
+  width: 19px;
+  height: 19px;
+
+  stroke-width: 2;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -464,26 +389,26 @@
       var(--menu-danger);
 
     background:
-      var(--menu-danger-soft);
+      color-mix(in srgb,
+        var(--menu-danger) 9%,
+        transparent);
   }
 }
 
 .actionButton:active {
-  transform: scale(0.98);
-
   background:
     var(--menu-soft);
+
+  transform:
+    scale(0.98);
 }
 
 .actionButton:focus-visible {
   outline:
     2px solid var(--menu-primary);
 
-  outline-offset: -2px;
-}
-
-.actionButton svg {
-  flex: 0 0 auto;
+  outline-offset:
+    -2px;
 }
 
 .deleteButton {
@@ -493,7 +418,9 @@
 
 .deleteButton:active {
   background:
-    var(--menu-danger-soft);
+    color-mix(in srgb,
+      var(--menu-danger) 9%,
+      transparent);
 }
 
 /* =========================
@@ -501,33 +428,35 @@
 ========================= */
 
 @media (max-width: 768px) {
-  .preview {
-    padding:
-      13px 18px 12px;
-  }
-
   .reactionSection {
     padding:
-      5px 14px 15px;
+      10px 9px 9px;
   }
 
   .reactionRow {
-    gap: 7px;
+    gap: 3px;
   }
 
   .reactionButton {
-    min-height: 46px;
+    height: 42px;
 
-    border-radius: 15px;
+    border-radius: 11px;
 
-    font-size: 24px;
+    font-size: 23px;
+  }
+
+  .actions {
+    padding:
+      5px;
   }
 
   .actionButton {
-    min-height: 48px;
+    min-height: 46px;
 
     padding:
-      13px 14px;
+      11px 12px;
+
+    border-radius: 10px;
 
     font-size: 15px;
   }
@@ -539,23 +468,23 @@
 
 @media (max-width: 390px) {
   .mobileBackdrop {
-    padding-inline: 8px;
+    padding-inline:
+      6px;
   }
 
   .reactionSection {
-    padding-inline: 10px;
-  }
-
-  .reactionRow {
-    gap: 5px;
+    padding-inline:
+      7px;
   }
 
   .reactionButton {
-    min-height: 42px;
-
-    border-radius: 13px;
+    height: 39px;
 
     font-size: 21px;
+  }
+
+  .actionButton {
+    min-height: 44px;
   }
 }
 
@@ -578,7 +507,7 @@
     opacity: 0;
 
     transform:
-      translateY(-4px) scale(0.96);
+      translateY(-3px) scale(0.97);
   }
 
   to {
@@ -595,7 +524,7 @@
 
     transform:
       translate3d(0,
-        24px,
+        18px,
         0);
   }
 
@@ -622,11 +551,6 @@
   .actionButton {
     animation: none;
     transition: none;
-  }
-
-  .mobileMenu {
-    transform: none;
-    will-change: auto;
   }
 }
 

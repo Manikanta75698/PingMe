@@ -60,6 +60,7 @@ const MessageList = ({
     socket,
     selectedChat,
     setReplyingTo,
+    setEditingMessage,
   } = useChat();
 
   const { user } = useAuth();
@@ -312,6 +313,31 @@ const MessageList = ({
     lastSenderId,
     currentUserId,
   ]);
+
+
+  /* =========================
+   START EDITING MESSAGE
+========================= */
+
+  const handleEditMessage =
+    useCallback(
+      (message) => {
+        if (!message?._id) {
+          return;
+        }
+
+        /*
+         * Reply and Edit modes
+         * same time lo undakudadhu.
+         */
+        setReplyingTo(null);
+        setEditingMessage(message);
+      },
+      [
+        setReplyingTo,
+        setEditingMessage,
+      ]
+    );
 
   /* =========================
      MARK VISIBLE MESSAGE READ
@@ -593,8 +619,12 @@ const MessageList = ({
                   senderId ===
                   currentUserId
                 }
-                onReply={
-                  setReplyingTo
+                onReply={(replyMessage) => {
+                  setEditingMessage(null);
+                  setReplyingTo(replyMessage);
+                }}
+                onEdit={
+                  handleEditMessage
                 }
                 onVisible={
                   handleMessageVisible
