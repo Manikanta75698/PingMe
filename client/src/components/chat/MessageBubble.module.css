@@ -600,6 +600,20 @@
   white-space: nowrap;
 }
 
+.copyFeedback {
+  display: block;
+
+  margin-top: 4px;
+
+  color: inherit;
+
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+
+  opacity: 0.68;
+}
+
 /* =========================
    TABLET
 ========================= */
@@ -699,6 +713,31 @@
     max-width:
       calc(100vw - 80px);
   }
+}
+
+/* =========================
+   FORWARDED LABEL
+========================= */
+
+.forwardedLabel {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 4px;
+
+  margin-bottom: 5px;
+
+  color: inherit;
+
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+
+  opacity: 0.68;
+}
+
+.forwardedLabel svg {
+  flex: 0 0 auto;
 }
 
 /* =========================

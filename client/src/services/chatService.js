@@ -167,3 +167,34 @@ export const editMessage = async (
   );
 };
 
+export const forwardMessage = async (
+  messageId,
+  receiverId
+) => {
+  const normalizedMessageId =
+    String(messageId || "").trim();
+
+  const normalizedReceiverId =
+    String(receiverId || "").trim();
+
+  if (!normalizedMessageId) {
+    throw new Error(
+      "Message ID is required"
+    );
+  }
+
+  if (!normalizedReceiverId) {
+    throw new Error(
+      "Receiver ID is required"
+    );
+  }
+
+  return api.post(
+    `/messages/${normalizedMessageId}/forward`,
+    {
+      receiver:
+        normalizedReceiverId,
+    }
+  );
+};
+

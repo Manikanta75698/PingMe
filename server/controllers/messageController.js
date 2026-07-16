@@ -346,6 +346,42 @@ const deleteCloudinaryImage =
     }
   };
 
+const deleteCloudinaryImageIfUnused =
+  async (imageUrl) => {
+    if (!imageUrl) {
+      return;
+    }
+
+    try {
+      /*
+       * Forwarded messages same image URL
+       * use chestayi. Vere message image ni
+       * use chesthunte Cloudinary asset delete cheyyam.
+       */
+      const imageStillUsed =
+        await Message.exists({
+          image: imageUrl,
+        });
+
+      if (imageStillUsed) {
+        return;
+      }
+
+      await deleteCloudinaryImage(
+        imageUrl
+      );
+    } catch (error) {
+      /*
+       * Background media cleanup failure
+       * API response ni affect cheyyakudadhu.
+       */
+      console.error(
+        "SHARED MESSAGE IMAGE CLEANUP ERROR:",
+        error
+      );
+    }
+  };
+
 const populateMessage = async (
   message
 ) => {
@@ -1272,6 +1308,230 @@ const editMessage = async (
   }
 };
 
+
+/* =========================
+   FORWARD MESSAGE
+========================= */
+
+const forwardMessage = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeId(req.user);
+
+    const sourceMessageId =
+      normalizeId(
+        req.params?.messageId
+      );
+
+    const receiverId =
+      normalizeId(
+        req.body?.receiver
+      );
+
+    if (
+      !currentUserId ||
+      !isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
+      !sourceMessageId ||
+      !isValidObjectId(
+        sourceMessageId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid message ID",
+      });
+    }
+
+    if (
+      !receiverId ||
+      !isValidObjectId(
+        receiverId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "A valid receiver is required",
+      });
+    }
+
+    if (
+      currentUserId ===
+      receiverId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "You cannot forward a message to yourself",
+      });
+    }
+
+    /*
+     * Current user original message
+     * sender or receiver ayyi undali.
+     */
+    const sourceMessage =
+      await Message.findOne({
+        _id: sourceMessageId,
+
+        $or: [
+          {
+            sender:
+              currentUserId,
+          },
+          {
+            receiver:
+              currentUserId,
+          },
+        ],
+      });
+
+    if (!sourceMessage) {
+      return res.status(404).json({
+        success: false,
+
+        message:
+          "Message not found or you cannot forward it",
+      });
+    }
+
+    const sourceText =
+      String(
+        sourceMessage.text || ""
+      ).trim();
+
+    const sourceImage =
+      String(
+        sourceMessage.image || ""
+      ).trim();
+
+    if (
+      !sourceText &&
+      !sourceImage
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "This message cannot be forwarded",
+      });
+    }
+
+    /*
+     * Destination user tho accepted
+     * chat connection undali.
+     */
+    const chatAllowed =
+      await isChatAccepted(
+        currentUserId,
+        receiverId
+      );
+
+    if (!chatAllowed) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Chat request not accepted",
+      });
+    }
+
+    const forwardedMessage =
+      await Message.create({
+        sender:
+          currentUserId,
+
+        receiver:
+          receiverId,
+
+        text:
+          sourceText,
+
+        image:
+          sourceImage,
+
+        status:
+          "sent",
+
+        replyTo:
+          null,
+
+        reactions:
+          [],
+
+        editedAt:
+          null,
+
+        isForwarded:
+          true,
+
+        forwardedFrom:
+          sourceMessage._id,
+      });
+
+    await populateMessage(
+      forwardedMessage
+    );
+
+    const messagePayload =
+      forwardedMessage.toObject();
+
+    /*
+     * Receiver authenticated socket room ki
+     * forwarded message real-time emit.
+     */
+    const io = getSafeIO();
+
+    if (io) {
+      io.to(receiverId).emit(
+        "newMessage",
+        messagePayload
+      );
+    }
+
+    return res.status(201).json({
+      success: true,
+
+      message:
+        "Message forwarded successfully",
+
+      data:
+        messagePayload,
+    });
+  } catch (error) {
+    console.error(
+      "FORWARD MESSAGE ERROR:",
+      error
+    );
+
+    const result =
+      getControllerErrorResponse(
+        error,
+        "Unable to forward message"
+      );
+
+    return res
+      .status(result.status)
+      .json({
+        success: false,
+        message: result.message,
+      });
+  }
+};
+
 /* =========================
    DELETE MESSAGE
 ========================= */
@@ -1369,12 +1629,8 @@ const deleteMessage = async (
       deletePayload
     );
 
-    /*
-     * Response wait cheyyakunda
-     * Cloudinary cleanup background lo.
-     */
     if (imageUrl) {
-      void deleteCloudinaryImage(
+      void deleteCloudinaryImageIfUnused(
         imageUrl
       );
     }
@@ -1627,6 +1883,7 @@ module.exports = {
   getMessages,
   toggleReaction,
   editMessage,
+  forwardMessage,
   deleteMessage,
   getChatSummaries,
 };

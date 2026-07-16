@@ -8,6 +8,7 @@ import {
   Clock3,
   Check,
   CheckCheck,
+  Forward as ForwardIcon,
   MoreVertical,
   Image as ImageIcon,
 } from "lucide-react";
@@ -101,6 +102,7 @@ const MessageBubble = ({
   isOwn,
   onReply,
   onEdit,
+  onForward,
   onVisible,
   visibilityRoot,
 }) => {
@@ -144,6 +146,11 @@ const MessageBubble = ({
     setReactionError,
   ] = useState("");
 
+  const [
+    copyFeedback,
+    setCopyFeedback,
+  ] = useState("");
+
   const pressTimerRef =
     useRef(null);
 
@@ -172,6 +179,9 @@ const MessageBubble = ({
     useRef(false);
 
   const reactionErrorTimerRef =
+    useRef(null);
+
+  const copyFeedbackTimerRef =
     useRef(null);
 
   const mountedRef =
@@ -213,16 +223,37 @@ const MessageBubble = ({
       "temp-"
     );
 
-  const canEdit =
-    isOwn &&
-    canUseActions &&
+  const hasMessageText =
     Boolean(
       message?.text?.trim()
     );
 
+  const hasMessageContent =
+    hasMessageText ||
+    Boolean(message?.image);
+
+  const canCopy =
+    canUseActions &&
+    hasMessageText;
+
+  const canForward =
+    canUseActions &&
+    hasMessageContent;
+
+  const canEdit =
+    isOwn &&
+    canUseActions &&
+    hasMessageText;
+
   const isEdited =
     Boolean(
       message?.editedAt
+    );
+
+  const isForwarded =
+    Boolean(
+      message?.isForwarded ||
+      message?.forwardedFrom
     );
 
   const selectedReaction =
@@ -298,6 +329,137 @@ const MessageBubble = ({
     setShowActions(false);
 
     onReply(message);
+  };
+
+  /* =========================
+   COPY
+========================= */
+
+  const copyTextToClipboard =
+    async (value) => {
+      const safeText =
+        String(value || "");
+
+      if (!safeText) {
+        return false;
+      }
+
+      if (
+        navigator?.clipboard &&
+        window.isSecureContext
+      ) {
+        await navigator.clipboard
+          .writeText(safeText);
+
+        return true;
+      }
+
+      /*
+       * Older browser fallback.
+       */
+      const temporaryTextarea =
+        document.createElement(
+          "textarea"
+        );
+
+      temporaryTextarea.value =
+        safeText;
+
+      temporaryTextarea.setAttribute(
+        "readonly",
+        ""
+      );
+
+      temporaryTextarea.style.position =
+        "fixed";
+
+      temporaryTextarea.style.opacity =
+        "0";
+
+      document.body.appendChild(
+        temporaryTextarea
+      );
+
+      temporaryTextarea.select();
+
+      const copied =
+        document.execCommand(
+          "copy"
+        );
+
+      document.body.removeChild(
+        temporaryTextarea
+      );
+
+      return copied;
+    };
+
+  const handleCopy = async () => {
+    if (!canCopy) {
+      return;
+    }
+
+    try {
+      const copied =
+        await copyTextToClipboard(
+          message.text
+        );
+
+      if (!copied) {
+        throw new Error(
+          "Clipboard copy failed"
+        );
+      }
+
+      setCopyFeedback(
+        "Copied"
+      );
+
+      if (
+        copyFeedbackTimerRef.current
+      ) {
+        window.clearTimeout(
+          copyFeedbackTimerRef.current
+        );
+      }
+
+      copyFeedbackTimerRef.current =
+        window.setTimeout(() => {
+          if (mountedRef.current) {
+            setCopyFeedback("");
+          }
+
+          copyFeedbackTimerRef.current =
+            null;
+        }, 1500);
+    } catch (error) {
+      console.error(
+        "COPY MESSAGE ERROR:",
+        error
+      );
+
+      setCopyFeedback(
+        "Unable to copy"
+      );
+    }
+  };
+
+  /* =========================
+     FORWARD
+  ========================= */
+
+  const handleForward = () => {
+    if (
+      !canForward ||
+      typeof onForward !==
+      "function"
+    ) {
+      return;
+    }
+
+    setShowActions(false);
+
+    onForward(message);
   };
 
   /* =========================
@@ -471,6 +633,7 @@ const MessageBubble = ({
 
           reactionErrorTimerRef.current =
             null;
+
         }, 3000);
     } finally {
       reactionRequestRef.current =
@@ -957,6 +1120,10 @@ const MessageBubble = ({
      CLEANUP
   ========================= */
 
+  /* =========================
+   CLEANUP
+========================= */
+
   useEffect(() => {
     mountedRef.current = true;
 
@@ -994,6 +1161,20 @@ const MessageBubble = ({
         window.clearTimeout(
           reactionErrorTimerRef.current
         );
+
+        reactionErrorTimerRef.current =
+          null;
+      }
+
+      if (
+        copyFeedbackTimerRef.current
+      ) {
+        window.clearTimeout(
+          copyFeedbackTimerRef.current
+        );
+
+        copyFeedbackTimerRef.current =
+          null;
       }
     };
   }, []);
@@ -1032,10 +1213,26 @@ const MessageBubble = ({
         >
           <div
             className={`${styles.bubble} ${isOwn
-              ? styles.ownBubble
-              : styles.otherBubble
+                ? styles.ownBubble
+                : styles.otherBubble
               }`}
           >
+            {isForwarded && (
+              <div
+                className={
+                  styles.forwardedLabel
+                }
+              >
+                <ForwardIcon
+                  size={12}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+
+                <span>Forwarded</span>
+              </div>
+            )}
+
             {repliedMessage && (
               <div
                 className={
@@ -1279,16 +1476,31 @@ const MessageBubble = ({
             </span>
           )}
 
+          {copyFeedback && (
+            <span
+              className={
+                styles.copyFeedback
+              }
+              role="status"
+            >
+              {copyFeedback}
+            </span>
+          )}
+
           <MessageActionsMenu
             open={showActions}
             anchorRef={actionAnchorRef}
             isOwn={isOwn}
+            canCopy={canCopy}
             canEdit={canEdit}
+            canForward={canForward}
             selectedReaction={
               selectedReaction
             }
             onClose={closeActions}
             onReply={handleReply}
+            onCopy={handleCopy}
+            onForward={handleForward}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onReact={handleReaction}

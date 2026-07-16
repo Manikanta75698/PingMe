@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 
 import styles from "./MessageList.module.css";
@@ -17,6 +18,8 @@ import {
 } from "../../context/AuthContext";
 
 import MessageBubble from "./MessageBubble";
+
+import ForwardMessageModal from "./ForwardMessageModal";
 
 const normalizeId = (value) => {
   if (!value) return "";
@@ -64,6 +67,11 @@ const MessageList = ({
   } = useChat();
 
   const { user } = useAuth();
+
+  const [
+    forwardingMessage,
+    setForwardingMessage,
+  ] = useState(null);
 
   const containerRef =
     useRef(null);
@@ -208,11 +216,7 @@ const MessageList = ({
     firstMessageId,
   ]);
 
-  /*
-   * Older messages top lo prepend
-   * ayinappudu current viewport position
-   * preserve chesthundi.
-   */
+
   useLayoutEffect(() => {
     const container =
       containerRef.current;
@@ -338,6 +342,32 @@ const MessageList = ({
         setEditingMessage,
       ]
     );
+
+
+  /* =========================
+ FORWARD MESSAGE
+========================= */
+
+  const handleForwardMessage =
+    useCallback(
+      (message) => {
+        if (!message?._id) {
+          return;
+        }
+
+        setForwardingMessage(
+          message
+        );
+      },
+      []
+    );
+
+  const closeForwardModal =
+    useCallback(() => {
+      setForwardingMessage(
+        null
+      );
+    }, []);
 
   /* =========================
      MARK VISIBLE MESSAGE READ
@@ -621,10 +651,15 @@ const MessageList = ({
                 }
                 onReply={(replyMessage) => {
                   setEditingMessage(null);
-                  setReplyingTo(replyMessage);
+                  setReplyingTo(
+                    replyMessage
+                  );
                 }}
                 onEdit={
                   handleEditMessage
+                }
+                onForward={
+                  handleForwardMessage
                 }
                 onVisible={
                   handleMessageVisible
@@ -636,6 +671,20 @@ const MessageList = ({
             );
           }
         )}
+
+        <ForwardMessageModal
+          open={
+            Boolean(
+              forwardingMessage
+            )
+          }
+          message={
+            forwardingMessage
+          }
+          onClose={
+            closeForwardModal
+          }
+        />
 
         <div
           ref={bottomRef}

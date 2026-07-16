@@ -10,6 +10,8 @@ import {
 } from "react-dom";
 
 import {
+  Copy,
+  Forward,
   Pencil,
   Reply,
   Trash2,
@@ -38,14 +40,19 @@ const MessageActionsMenu = ({
   open,
   anchorRef,
   isOwn = false,
+  canCopy = false,
   canEdit = false,
+  canForward = false,
   selectedReaction = "",
   onClose,
   onReply,
+  onCopy,
+  onForward,
   onEdit,
   onDelete,
   onReact,
 }) => {
+
   const menuRef = useRef(null);
 
   const firstReactionRef =
@@ -470,6 +477,24 @@ const MessageActionsMenu = ({
     closeImmediately();
   };
 
+  const handleCopy = async () => {
+    if (!canCopy) {
+      return;
+    }
+
+    await onCopy?.();
+    closeImmediately();
+  };
+
+  const handleForward = () => {
+    if (!canForward) {
+      return;
+    }
+
+    onForward?.();
+    closeImmediately();
+  };
+
   const handleEdit = () => {
     if (!canEdit) {
       return;
@@ -633,6 +658,46 @@ const MessageActionsMenu = ({
 
             <span>Reply</span>
           </button>
+
+          {canCopy && (
+            <button
+              type="button"
+              className={
+                styles.actionButton
+              }
+              onClick={() => {
+                void handleCopy();
+              }}
+              role="menuitem"
+            >
+              <Copy
+                size={19}
+                aria-hidden="true"
+              />
+
+              <span>Copy</span>
+            </button>
+          )}
+
+          {canForward && (
+            <button
+              type="button"
+              className={
+                styles.actionButton
+              }
+              onClick={
+                handleForward
+              }
+              role="menuitem"
+            >
+              <Forward
+                size={19}
+                aria-hidden="true"
+              />
+
+              <span>Forward</span>
+            </button>
+          )}
 
           {isOwn && canEdit && (
             <button

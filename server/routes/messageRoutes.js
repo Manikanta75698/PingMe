@@ -16,6 +16,7 @@ const {
   getChatSummaries,
   toggleReaction,
   editMessage,
+  forwardMessage,
   deleteMessage,
 } = require(
   "../controllers/messageController"
@@ -44,6 +45,12 @@ router.patch(
   "/:messageId",
   protect,
   editMessage
+);
+
+router.post(
+  "/:messageId/forward",
+  protect,
+  forwardMessage
 );
 
 router.delete(

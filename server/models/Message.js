@@ -74,6 +74,17 @@ const messageSchema =
         default: null,
       },
 
+      isForwarded: {
+        type: Boolean,
+        default: false,
+      },
+
+      forwardedFrom: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Message",
+        default: null,
+      },
+
       image: {
         type: String,
         default: "",
