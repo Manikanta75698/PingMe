@@ -15,12 +15,11 @@ const {
   getMessages,
   getChatSummaries,
   toggleReaction,
+  editMessage,
   deleteMessage,
-} = require("../controllers/messageController");
-
-/* =========================
-   SEND MESSAGE
-========================= */
+} = require(
+  "../controllers/messageController"
+);
 
 router.post(
   "/send",
@@ -29,19 +28,11 @@ router.post(
   sendMessage
 );
 
-/* =========================
-   CHAT SUMMARIES
-========================= */
-
 router.get(
   "/summaries",
   protect,
   getChatSummaries
 );
-
-/* =========================
-   MESSAGE REACTION
-========================= */
 
 router.patch(
   "/:messageId/reaction",
@@ -49,19 +40,17 @@ router.patch(
   toggleReaction
 );
 
-/* =========================
-   DELETE MESSAGE
-========================= */
+router.patch(
+  "/:messageId",
+  protect,
+  editMessage
+);
 
 router.delete(
   "/:messageId",
   protect,
   deleteMessage
 );
-
-/* =========================
-   GET CONVERSATION
-========================= */
 
 router.get(
   "/conversation/:userId",

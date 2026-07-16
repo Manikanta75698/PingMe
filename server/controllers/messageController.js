@@ -927,10 +927,6 @@ const toggleReaction = async (
       });
     }
 
-    /*
-     * Sender or receiver matrame
-     * message ki react cheyyagalaru.
-     */
     const message =
       await Message.findOne({
         _id: messageId,
@@ -993,10 +989,7 @@ const toggleReaction = async (
     } else if (
       existingIndex >= 0
     ) {
-      /*
-       * Different reaction:
-       * replace.
-       */
+
       message.reactions[
         existingIndex
       ].emoji = emoji;
@@ -1006,10 +999,7 @@ const toggleReaction = async (
       ].createdAt =
         new Date();
     } else {
-      /*
-       * First reaction:
-       * add.
-       */
+
       message.reactions.push({
         user: currentUserId,
         emoji,
@@ -1018,10 +1008,7 @@ const toggleReaction = async (
       });
     }
 
-    /*
-     * Nested array changes
-     * Mongoose ki explicitly mark.
-     */
+
     message.markModified(
       "reactions"
     );
@@ -1062,10 +1049,7 @@ const toggleReaction = async (
       action,
     };
 
-    /*
-     * Sender and receiver authenticated
-     * rooms rendu update avutayi.
-     */
+
     emitToParticipants(
       senderId,
       receiverId,
@@ -1094,6 +1078,189 @@ const toggleReaction = async (
       getControllerErrorResponse(
         error,
         "Unable to update reaction"
+      );
+
+    return res
+      .status(result.status)
+      .json({
+        success: false,
+        message: result.message,
+      });
+  }
+};
+
+
+/* =========================
+   EDIT MESSAGE
+========================= */
+
+const editMessage = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeId(req.user);
+
+    const messageId =
+      normalizeId(
+        req.params?.messageId
+      );
+
+    const normalizedText =
+      String(
+        req.body?.text || ""
+      ).trim();
+
+    if (
+      !currentUserId ||
+      !isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
+      !messageId ||
+      !isValidObjectId(
+        messageId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid message ID",
+      });
+    }
+
+    if (!normalizedText) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Edited message cannot be empty",
+      });
+    }
+
+    if (
+      normalizedText.length >
+      MAX_MESSAGE_LENGTH
+    ) {
+      return res.status(400).json({
+        success: false,
+
+        message:
+          `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`,
+      });
+    }
+
+    /*
+     * Sender matrame own message
+     * edit cheyyagaladu.
+     */
+    const message =
+      await Message.findOne({
+        _id: messageId,
+        sender: currentUserId,
+      });
+
+    if (!message) {
+      return res.status(404).json({
+        success: false,
+
+        message:
+          "Message not found or you cannot edit it",
+      });
+    }
+
+    /*
+     * Image-only message edit
+     * disable chesthunnam.
+     */
+    const existingText =
+      String(
+        message.text || ""
+      ).trim();
+
+    if (!existingText) {
+      return res.status(400).json({
+        success: false,
+
+        message:
+          "Image-only messages cannot be edited",
+      });
+    }
+
+    if (
+      existingText ===
+      normalizedText
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "No changes were made",
+      });
+    }
+
+    message.text =
+      normalizedText;
+
+    message.editedAt =
+      new Date();
+
+    await message.save();
+
+    await populateMessage(
+      message
+    );
+
+    const messagePayload =
+      message.toObject();
+
+    const senderId =
+      normalizeId(
+        messagePayload.sender
+      );
+
+    const receiverId =
+      normalizeId(
+        messagePayload.receiver
+      );
+
+    /*
+     * Sender and receiver UI rendu
+     * real-time update avutayi.
+     */
+    emitToParticipants(
+      senderId,
+      receiverId,
+      "messageEdited",
+      messagePayload
+    );
+
+    return res.status(200).json({
+      success: true,
+
+      message:
+        "Message edited successfully",
+
+      data:
+        messagePayload,
+    });
+  } catch (error) {
+    console.error(
+      "EDIT MESSAGE ERROR:",
+      error
+    );
+
+    const result =
+      getControllerErrorResponse(
+        error,
+        "Unable to edit message"
       );
 
     return res
@@ -1459,6 +1626,7 @@ module.exports = {
   sendMessage,
   getMessages,
   toggleReaction,
+  editMessage,
   deleteMessage,
   getChatSummaries,
 };

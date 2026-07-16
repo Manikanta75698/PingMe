@@ -69,6 +69,11 @@ const messageSchema =
         ],
       },
 
+      editedAt: {
+        type: Date,
+        default: null,
+      },
+
       image: {
         type: String,
         default: "",
@@ -99,11 +104,6 @@ const messageSchema =
         default: [],
       },
 
-      /*
-       * Normal messages ki null.
-       * Disappearing messages feature
-       * add chesinappudu date set chestham.
-       */
       expiresAt: {
         type: Date,
         default: null,
@@ -158,33 +158,18 @@ messageSchema.path(
     "A user can have only one reaction per message",
 });
 
-/* =========================
-   QUERY INDEXES
-========================= */
-
-/*
- * Conversation messages fast ga
- * chronological order lo load avvadaniki.
- */
 messageSchema.index({
   sender: 1,
   receiver: 1,
   createdAt: -1,
 });
 
-/*
- * Delivered/read processing fast ga
- * handle avvadaniki.
- */
 messageSchema.index({
   receiver: 1,
   status: 1,
 });
 
-/*
- * Only expiresAt date unna messages
- * matrame automatic ga delete avutayi.
- */
+
 messageSchema.index(
   {
     expiresAt: 1,
