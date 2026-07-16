@@ -1207,7 +1207,11 @@ const Chat = () => {
         `}
       >
         {selectedChat && (
-          <ChatHeader />
+          <>
+            <ChatHeader />
+
+            <PinnedMessageBanner />
+          </>
         )}
 
         <div

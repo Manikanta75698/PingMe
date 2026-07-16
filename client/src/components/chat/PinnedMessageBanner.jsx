@@ -30,7 +30,6 @@ const PinnedMessageBanner = () => {
   const {
     pinnedMessage,
     requestMessageScroll,
-    messageSearchOpen,
   } = useChat();
 
   const messageId =
@@ -40,8 +39,7 @@ const PinnedMessageBanner = () => {
 
   if (
     !messageId ||
-    !pinnedMessage?.pinnedAt ||
-    messageSearchOpen
+    !pinnedMessage?.pinnedAt
   ) {
     return null;
   }

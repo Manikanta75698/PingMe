@@ -2089,6 +2089,21 @@ export const ChatProvider = ({
   ]);
 
 
+  const pinnedMessageFromMessages =
+    Array.isArray(messages)
+      ? messages.find(
+        (message) =>
+          Boolean(
+            message?.pinnedAt
+          )
+      ) || null
+      : null;
+
+  const resolvedPinnedMessage =
+    pinnedMessageFromMessages ||
+    pinnedMessage ||
+    null;
+
   const requestMessageScroll = (
     messageId
   ) => {
@@ -2119,7 +2134,9 @@ export const ChatProvider = ({
         selectedChat,
         setSelectedChat,
 
-        pinnedMessage,
+        pinnedMessage:
+          resolvedPinnedMessage,
+
         setPinnedMessage,
 
         messageScrollRequest,
