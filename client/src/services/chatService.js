@@ -198,3 +198,37 @@ export const forwardMessage = async (
   );
 };
 
+export const togglePinMessage = async (
+  messageId
+) => {
+  const normalizedMessageId =
+    String(messageId || "").trim();
+
+  if (!normalizedMessageId) {
+    throw new Error(
+      "Message ID is required"
+    );
+  }
+
+  return api.patch(
+    `/messages/${normalizedMessageId}/pin`
+  );
+};
+
+
+export const getPinnedMessage = async (
+  userId
+) => {
+  const normalizedUserId =
+    String(userId || "").trim();
+
+  if (!normalizedUserId) {
+    throw new Error(
+      "User ID is required"
+    );
+  }
+
+  return api.get(
+    `/messages/conversation/${normalizedUserId}/pinned`
+  );
+};

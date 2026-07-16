@@ -18,7 +18,10 @@ import {
 
 import {
   getChatSummaries,
+  getPinnedMessage as fetchPinnedMessage,
 } from "../services/chatService";
+
+
 
 const ChatContext = createContext(null);
 
@@ -76,9 +79,39 @@ export const ChatProvider = ({
   ] = useState(null);
 
   const [
+    messageSearchOpen,
+    setMessageSearchOpen,
+  ] = useState(false);
+
+  const [
+    messageSearchQuery,
+    setMessageSearchQuery,
+  ] = useState("");
+
+  const [
+    messageSearchMatches,
+    setMessageSearchMatches,
+  ] = useState([]);
+
+  const [
+    activeSearchMatchIndex,
+    setActiveSearchMatchIndex,
+  ] = useState(0);
+
+  const [
     messages,
     setMessages,
   ] = useState([]);
+
+  const [
+    messageScrollRequest,
+    setMessageScrollRequest,
+  ] = useState(null);
+
+  const [
+    pinnedMessage,
+    setPinnedMessage,
+  ] = useState(null);
 
   const [
     onlineUsers,
@@ -130,6 +163,9 @@ export const ChatProvider = ({
   const readReceiptIdsRef =
     useRef(new Set());
 
+  const selectedChatId =
+    normalizeId(selectedChat);
+
   /* =========================
      SELECTED CHAT RESET
   ========================= */
@@ -144,6 +180,15 @@ export const ChatProvider = ({
     setEditingMessage(null);
     setTypingUser(null);
 
+    setMessageSearchOpen(false);
+    setMessageSearchQuery("");
+    setMessageSearchMatches([]);
+    setActiveSearchMatchIndex(0);
+
+    setMessageScrollRequest(
+      null
+    );
+
     typingUserRef.current = "";
 
     if (typingTimerRef.current) {
@@ -155,6 +200,56 @@ export const ChatProvider = ({
     }
   }, [selectedChat]);
 
+
+  /* =========================
+     LOAD PINNED MESSAGE
+  ========================= */
+
+  useEffect(() => {
+    if (!selectedChatId) {
+      setPinnedMessage(null);
+      return undefined;
+    }
+
+    let isActive = true;
+
+    setPinnedMessage(null);
+
+    const loadPinnedMessage =
+      async () => {
+        try {
+          const response =
+            await fetchPinnedMessage(
+              selectedChatId
+            );
+
+          if (!isActive) {
+            return;
+          }
+
+          setPinnedMessage(
+            response?.data?.data ||
+            null
+          );
+        } catch (error) {
+          console.error(
+            "GET PINNED MESSAGE ERROR:",
+            error.response?.data ||
+            error.message
+          );
+
+          if (isActive) {
+            setPinnedMessage(null);
+          }
+        }
+      };
+
+    loadPinnedMessage();
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedChatId]);
 
   /* =========================
    SELECTED USER LAST SEEN
@@ -940,11 +1035,7 @@ export const ChatProvider = ({
     const handleMessageEdited = (
       payload = {}
     ) => {
-      /*
-       * Backend direct message object emit chesthundi.
-       * Future compatibility kosam data/message
-       * wrappers kuda support chesthunnam.
-       */
+
       const editedMessage =
         payload?.data ||
         payload?.message ||
@@ -973,9 +1064,7 @@ export const ChatProvider = ({
                 message?._id
               );
 
-            /*
-             * Original message bubble update.
-             */
+
             if (
               currentMessageId ===
               messageId
@@ -1024,10 +1113,25 @@ export const ChatProvider = ({
           : []
       );
 
-      /*
-       * Sidebar last message edited ayithe
-       * summary preview kuda live update.
-       */
+      setPinnedMessage((previous) => {
+        const previousId =
+          normalizeId(
+            previous?._id
+          );
+
+        if (
+          !previous ||
+          previousId !== messageId
+        ) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+          ...editedMessage,
+        };
+      });
+
       setChatSummaries(
         (previous) =>
           Array.isArray(previous)
@@ -1346,6 +1450,326 @@ export const ChatProvider = ({
   }, []);
 
   /* =========================
+   MESSAGE PIN UPDATED
+========================= */
+
+  useEffect(() => {
+    const handleMessagePinUpdated = (
+      payload = {}
+    ) => {
+      const updatedMessage =
+        payload?.message &&
+          typeof payload.message ===
+          "object"
+          ? payload.message
+          : null;
+
+      const messageId =
+        normalizeId(
+          payload?.messageId ||
+          updatedMessage?._id
+        );
+
+      if (!messageId) {
+        return;
+      }
+
+      const clearedMessageIds =
+        new Set(
+          Array.isArray(
+            payload?.clearedMessageIds
+          )
+            ? payload.clearedMessageIds
+              .map((item) =>
+                normalizeId(item)
+              )
+              .filter(Boolean)
+            : []
+        );
+
+      const isPinned =
+        Boolean(
+          payload?.isPinned
+        );
+
+      console.log(
+        "MESSAGE PIN UPDATED:",
+        messageId,
+        isPinned
+      );
+
+      const updatePinState = (
+        message
+      ) => {
+        if (
+          !message ||
+          typeof message !==
+          "object"
+        ) {
+          return message;
+        }
+
+        const currentMessageId =
+          normalizeId(
+            message?._id
+          );
+
+        /*
+         * New message pin chesinappudu
+         * previous pinned message clear.
+         */
+        if (
+          clearedMessageIds.has(
+            currentMessageId
+          )
+        ) {
+          return {
+            ...message,
+
+            pinnedAt: null,
+            pinnedBy: null,
+          };
+        }
+
+        if (
+          currentMessageId !==
+          messageId
+        ) {
+          return message;
+        }
+
+        /*
+         * Backend full message pampisthe
+         * latest populated message merge.
+         */
+        if (updatedMessage) {
+          return {
+            ...message,
+            ...updatedMessage,
+
+            pinnedAt:
+              isPinned
+                ? (
+                  updatedMessage
+                    ?.pinnedAt ||
+                  payload?.pinnedAt ||
+                  message?.pinnedAt ||
+                  null
+                )
+                : null,
+
+            pinnedBy:
+              isPinned
+                ? (
+                  updatedMessage
+                    ?.pinnedBy ||
+                  payload?.pinnedBy ||
+                  message?.pinnedBy ||
+                  null
+                )
+                : null,
+          };
+        }
+
+        return {
+          ...message,
+
+          pinnedAt:
+            isPinned
+              ? (
+                payload?.pinnedAt ||
+                message?.pinnedAt ||
+                null
+              )
+              : null,
+
+          pinnedBy:
+            isPinned
+              ? (
+                payload?.pinnedBy ||
+                message?.pinnedBy ||
+                null
+              )
+              : null,
+        };
+      };
+
+
+      setMessages(
+        (previous) =>
+          Array.isArray(previous)
+            ? previous.map(
+              updatePinState
+            )
+            : []
+      );
+
+      /*
+ * Header pinned banner state update.
+ */
+      setPinnedMessage(
+        (previous) => {
+          const previousId =
+            normalizeId(
+              previous?._id
+            );
+
+
+          if (isPinned) {
+            if (updatedMessage) {
+              return {
+                ...(previousId ===
+                  messageId
+                  ? previous
+                  : {}),
+                ...updatedMessage,
+                pinnedAt:
+                  updatedMessage
+                    ?.pinnedAt ||
+                  payload?.pinnedAt ||
+                  new Date()
+                    .toISOString(),
+                pinnedBy:
+                  updatedMessage
+                    ?.pinnedBy ||
+                  payload?.pinnedBy ||
+                  null,
+              };
+            }
+
+            return {
+              _id: messageId,
+              pinnedAt:
+                payload?.pinnedAt ||
+                new Date()
+                  .toISOString(),
+              pinnedBy:
+                payload?.pinnedBy ||
+                null,
+            };
+          }
+
+
+          if (
+            previousId ===
+            messageId ||
+            clearedMessageIds.has(
+              previousId
+            )
+          ) {
+            return null;
+          }
+
+          return previous;
+        }
+      );
+
+
+      setChatSummaries(
+        (previous) =>
+          Array.isArray(previous)
+            ? previous.map(
+              (summary) => {
+                const lastMessage =
+                  summary?.lastMessage;
+
+                const lastMessageId =
+                  normalizeId(
+                    lastMessage?._id
+                  );
+
+                if (
+                  lastMessageId !==
+                  messageId &&
+                  !clearedMessageIds.has(
+                    lastMessageId
+                  )
+                ) {
+                  return summary;
+                }
+
+                return {
+                  ...summary,
+
+                  lastMessage:
+                    updatePinState(
+                      lastMessage
+                    ),
+                };
+              }
+            )
+            : []
+      );
+
+      /*
+       * Reply composer lo selected message
+       * pin state update.
+       */
+      setReplyingTo(
+        (previous) => {
+          const previousId =
+            normalizeId(
+              previous?._id
+            );
+
+          if (
+            previousId !==
+            messageId &&
+            !clearedMessageIds.has(
+              previousId
+            )
+          ) {
+            return previous;
+          }
+
+          return updatePinState(
+            previous
+          );
+        }
+      );
+
+      /*
+       * Edit composer lo selected message
+       * pin state update.
+       */
+      setEditingMessage(
+        (previous) => {
+          const previousId =
+            normalizeId(
+              previous?._id
+            );
+
+          if (
+            previousId !==
+            messageId &&
+            !clearedMessageIds.has(
+              previousId
+            )
+          ) {
+            return previous;
+          }
+
+          return updatePinState(
+            previous
+          );
+        }
+      );
+    };
+
+    socket.on(
+      "messagePinUpdated",
+      handleMessagePinUpdated
+    );
+
+    return () => {
+      socket.off(
+        "messagePinUpdated",
+        handleMessagePinUpdated
+      );
+    };
+  }, []);
+
+  /* =========================
      MESSAGE STATUS
   ========================= */
 
@@ -1531,18 +1955,58 @@ export const ChatProvider = ({
     const handleDelete = ({
       messageId,
     } = {}) => {
-      if (!messageId) {
+      const deletedMessageId =
+        normalizeId(messageId);
+
+      if (!deletedMessageId) {
         return;
       }
 
       setMessages((previous) =>
-        previous.filter(
-          (message) =>
-            String(
-              message?._id
-            ) !==
-            String(messageId)
-        )
+        Array.isArray(previous)
+          ? previous.filter(
+            (message) =>
+              normalizeId(
+                message?._id
+              ) !==
+              deletedMessageId
+          )
+          : []
+      );
+
+      /*
+       * Deleted message pinned message
+       * ayithe banner immediate ga hide.
+       */
+      setPinnedMessage(
+        (previous) =>
+          normalizeId(
+            previous?._id
+          ) === deletedMessageId
+            ? null
+            : previous
+      );
+
+      /*
+       * Reply/Edit composer lo deleted
+       * message selected unte clear.
+       */
+      setReplyingTo(
+        (previous) =>
+          normalizeId(
+            previous?._id
+          ) === deletedMessageId
+            ? null
+            : previous
+      );
+
+      setEditingMessage(
+        (previous) =>
+          normalizeId(
+            previous?._id
+          ) === deletedMessageId
+            ? null
+            : previous
       );
 
       loadChatSummaries().catch(
@@ -1624,11 +2088,42 @@ export const ChatProvider = ({
     loadChatSummaries,
   ]);
 
+
+  const requestMessageScroll = (
+    messageId
+  ) => {
+    const normalizedMessageId =
+      normalizeId(messageId);
+
+    if (!normalizedMessageId) {
+      return;
+    }
+
+    setMessageScrollRequest(
+      (previous) => ({
+        messageId:
+          normalizedMessageId,
+
+        requestKey:
+          Number(
+            previous?.requestKey ||
+            0
+          ) + 1,
+      })
+    );
+  };
+
   return (
     <ChatContext.Provider
       value={{
         selectedChat,
         setSelectedChat,
+
+        pinnedMessage,
+        setPinnedMessage,
+
+        messageScrollRequest,
+        requestMessageScroll,
 
         replyingTo,
         setReplyingTo,
@@ -1638,6 +2133,18 @@ export const ChatProvider = ({
 
         messages,
         setMessages,
+
+        messageSearchOpen,
+        setMessageSearchOpen,
+
+        messageSearchQuery,
+        setMessageSearchQuery,
+
+        messageSearchMatches,
+        setMessageSearchMatches,
+
+        activeSearchMatchIndex,
+        setActiveSearchMatchIndex,
 
         onlineUsers,
         setOnlineUsers,

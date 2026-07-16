@@ -410,6 +410,11 @@ const populateMessage = async (
       select:
         "name username profilePic",
     },
+    {
+      path: "pinnedBy",
+      select:
+        "name username profilePic",
+    },
   ]);
 
   return message;
@@ -616,10 +621,6 @@ const sendMessage = async (
       persistedMessage
     );
 
-    /*
-     * Mongoose document badhulu
-     * clean plain JavaScript payload.
-     */
     const messagePayload =
       persistedMessage.toObject();
 
@@ -828,6 +829,10 @@ const getMessages = async (
           "reactions.user",
           "name username profilePic"
         )
+        .populate(
+          "pinnedBy",
+          "name username profilePic"
+        )
         .sort({
           createdAt: -1,
           _id: -1,
@@ -895,6 +900,137 @@ const getMessages = async (
       });
   }
 };
+
+
+/* =========================
+   GET PINNED MESSAGE
+========================= */
+
+const getPinnedMessage = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeId(req.user);
+
+    const otherUserId =
+      normalizeId(
+        req.params?.userId
+      );
+
+    if (
+      !currentUserId ||
+      !isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
+      !otherUserId ||
+      !isValidObjectId(
+        otherUserId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid user ID",
+      });
+    }
+
+    if (
+      currentUserId ===
+      otherUserId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid conversation",
+      });
+    }
+
+    const chatAllowed =
+      await isChatAccepted(
+        currentUserId,
+        otherUserId
+      );
+
+    if (!chatAllowed) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Chat request not accepted",
+      });
+    }
+
+    const pinnedMessage =
+      await Message.findOne({
+        pinnedAt: {
+          $ne: null,
+        },
+
+        $or: [
+          {
+            sender:
+              currentUserId,
+            receiver:
+              otherUserId,
+          },
+          {
+            sender:
+              otherUserId,
+            receiver:
+              currentUserId,
+          },
+        ],
+      }).sort({
+        pinnedAt: -1,
+      });
+
+    if (!pinnedMessage) {
+      return res.status(200).json({
+        success: true,
+        data: null,
+      });
+    }
+
+    await populateMessage(
+      pinnedMessage
+    );
+
+    return res.status(200).json({
+      success: true,
+      data:
+        pinnedMessage.toObject(),
+    });
+  } catch (error) {
+    console.error(
+      "GET PINNED MESSAGE ERROR:",
+      error
+    );
+
+    const result =
+      getControllerErrorResponse(
+        error,
+        "Unable to get pinned message"
+      );
+
+    return res
+      .status(result.status)
+      .json({
+        success: false,
+        message: result.message,
+      });
+  }
+};
+
 
 /* =========================
    TOGGLE MESSAGE REACTION
@@ -1533,6 +1669,287 @@ const forwardMessage = async (
 };
 
 /* =========================
+   TOGGLE PIN MESSAGE
+========================= */
+
+const togglePinMessage = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeId(req.user);
+
+    const messageId =
+      normalizeId(
+        req.params?.messageId
+      );
+
+    if (
+      !currentUserId ||
+      !isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
+      !messageId ||
+      !isValidObjectId(
+        messageId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid message ID",
+      });
+    }
+
+    /*
+     * Sender or receiver matrame
+     * message pin/unpin cheyyagalaru.
+     */
+    const message =
+      await Message.findOne({
+        _id: messageId,
+
+        $or: [
+          {
+            sender:
+              currentUserId,
+          },
+          {
+            receiver:
+              currentUserId,
+          },
+        ],
+      });
+
+    if (!message) {
+      return res.status(404).json({
+        success: false,
+
+        message:
+          "Message not found or you cannot pin it",
+      });
+    }
+
+    const senderId =
+      normalizeId(
+        message.sender
+      );
+
+    const receiverId =
+      normalizeId(
+        message.receiver
+      );
+
+    const otherUserId =
+      senderId ===
+        currentUserId
+        ? receiverId
+        : senderId;
+
+    const chatAllowed =
+      await isChatAccepted(
+        currentUserId,
+        otherUserId
+      );
+
+    if (!chatAllowed) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Chat request not accepted",
+      });
+    }
+
+    const conversationFilter = {
+      $or: [
+        {
+          sender:
+            senderId,
+
+          receiver:
+            receiverId,
+        },
+        {
+          sender:
+            receiverId,
+
+          receiver:
+            senderId,
+        },
+      ],
+    };
+
+    const isCurrentlyPinned =
+      Boolean(
+        message.pinnedAt
+      );
+
+    let clearedMessageIds = [];
+
+    if (isCurrentlyPinned) {
+      /*
+       * Current pinned message:
+       * unpin chestham.
+       */
+      message.pinnedAt =
+        null;
+
+      message.pinnedBy =
+        null;
+    } else {
+      /*
+       * Existing pinned messages identify
+       * chesi client UI clear cheyyadaniki
+       * IDs payload lo pampistham.
+       */
+      const previouslyPinnedMessages =
+        await Message.find({
+          ...conversationFilter,
+
+          _id: {
+            $ne:
+              message._id,
+          },
+
+          pinnedAt: {
+            $ne: null,
+          },
+        })
+          .select("_id")
+          .lean();
+
+      clearedMessageIds =
+        previouslyPinnedMessages
+          .map((item) =>
+            normalizeId(
+              item?._id
+            )
+          )
+          .filter(Boolean);
+
+      /*
+       * Conversation lo previous pin
+       * automatic ga remove.
+       */
+      await Message.updateMany(
+        {
+          ...conversationFilter,
+
+          _id: {
+            $ne:
+              message._id,
+          },
+
+          pinnedAt: {
+            $ne: null,
+          },
+        },
+        {
+          $set: {
+            pinnedAt:
+              null,
+
+            pinnedBy:
+              null,
+          },
+        }
+      );
+
+      message.pinnedAt =
+        new Date();
+
+      message.pinnedBy =
+        currentUserId;
+    }
+
+    await message.save();
+
+    await populateMessage(
+      message
+    );
+
+    const messagePayload =
+      message.toObject();
+
+    const pinPayload = {
+      messageId:
+        normalizeId(
+          messagePayload._id
+        ),
+
+      isPinned:
+        Boolean(
+          messagePayload.pinnedAt
+        ),
+
+      pinnedAt:
+        messagePayload.pinnedAt ||
+        null,
+
+      pinnedBy:
+        messagePayload.pinnedBy ||
+        null,
+
+      clearedMessageIds,
+
+      message:
+        messagePayload,
+    };
+
+    /*
+     * Participants rendu devices lo
+     * real-time pin state update.
+     */
+    emitToParticipants(
+      senderId,
+      receiverId,
+      "messagePinUpdated",
+      pinPayload
+    );
+
+    return res.status(200).json({
+      success: true,
+
+      message:
+        pinPayload.isPinned
+          ? "Message pinned successfully"
+          : "Message unpinned successfully",
+
+      data:
+        pinPayload,
+    });
+  } catch (error) {
+    console.error(
+      "TOGGLE PIN MESSAGE ERROR:",
+      error
+    );
+
+    const result =
+      getControllerErrorResponse(
+        error,
+        "Unable to update pinned message"
+      );
+
+    return res
+      .status(result.status)
+      .json({
+        success: false,
+        message: result.message,
+      });
+  }
+};
+
+/* =========================
    DELETE MESSAGE
 ========================= */
 
@@ -1881,9 +2298,11 @@ const getChatSummaries = async (
 module.exports = {
   sendMessage,
   getMessages,
+  getPinnedMessage,
   toggleReaction,
   editMessage,
   forwardMessage,
+  togglePinMessage,
   deleteMessage,
   getChatSummaries,
 };

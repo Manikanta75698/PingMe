@@ -1,0 +1,175 @@
+.banner {
+  width: 100%;
+  min-height: 58px;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 9px 16px;
+
+  color: var(--text-primary,
+      CanvasText);
+
+  background: var(--surface,
+      Canvas);
+
+  border: 0;
+  border-bottom: 1px solid var(--border,
+      color-mix(in srgb,
+        CanvasText 14%,
+        transparent));
+
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.banner:hover {
+  background: var(--surface-light,
+      color-mix(in srgb,
+        CanvasText 6%,
+        Canvas));
+}
+
+.banner:active {
+  background: var(--surface-light,
+      color-mix(in srgb,
+        CanvasText 10%,
+        Canvas));
+}
+
+.banner:focus-visible {
+  outline: 2px solid var(--primary,
+      Highlight);
+
+  outline-offset: -2px;
+}
+
+.iconWrapper {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--primary,
+      Highlight);
+
+  background:
+    color-mix(in srgb,
+      var(--primary,
+        Highlight) 12%,
+      transparent);
+
+  border-radius: 50%;
+}
+
+.content {
+  min-width: 0;
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.title {
+  display: block;
+
+  color: var(--primary,
+      Highlight);
+
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pinnedBy {
+  color: var(--text-secondary,
+      color-mix(in srgb,
+        CanvasText 68%,
+        transparent));
+
+  font-weight: 500;
+}
+
+.preview {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  color: var(--text-secondary,
+      color-mix(in srgb,
+        CanvasText 68%,
+        transparent));
+
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.preview svg {
+  flex-shrink: 0;
+}
+
+.preview span {
+  min-width: 0;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  flex-shrink: 0;
+
+  color: var(--text-secondary,
+      color-mix(in srgb,
+        CanvasText 55%,
+        transparent));
+}
+
+@media (max-width: 768px) {
+  .banner {
+    min-height: 54px;
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .iconWrapper {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+
+  .title {
+    font-size: 12.5px;
+  }
+
+  .preview {
+    font-size: 12.5px;
+  }
+
+  .chevron {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner {
+    transition: none;
+  }
+}

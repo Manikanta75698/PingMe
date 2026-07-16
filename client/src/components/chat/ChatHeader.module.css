@@ -427,3 +427,487 @@
     transform: none;
   }
 }
+
+
+
+/* =========================
+   HEADER ACTIONS
+========================= */
+
+.headerActions {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  flex: 0 0 auto;
+
+  margin-left: auto;
+}
+
+.menuButton,
+.clearSearchButton,
+.searchNavigation button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  color: var(--header-text);
+  background: transparent;
+
+  border: none;
+  border-radius: 50%;
+
+  font: inherit;
+
+  cursor: pointer;
+
+  touch-action: manipulation;
+
+  -webkit-tap-highlight-color:
+    transparent;
+
+  transition:
+    color 0.14s ease,
+    background-color 0.14s ease,
+    transform 0.14s ease;
+}
+
+.menuButton {
+  width: 40px;
+  height: 40px;
+}
+
+.menuButton:hover,
+.clearSearchButton:hover,
+.searchNavigation button:hover:not(:disabled) {
+  color:
+    var(--header-primary);
+
+  background:
+    var(--header-soft);
+}
+
+.menuButton:active,
+.clearSearchButton:active,
+.searchNavigation button:active:not(:disabled) {
+  transform:
+    scale(0.92);
+}
+
+.menuButton:focus-visible,
+.clearSearchButton:focus-visible,
+.searchNavigation button:focus-visible {
+  outline:
+    2px solid var(--header-primary);
+
+  outline-offset: 2px;
+}
+
+/* =========================
+   TOP-RIGHT CHAT MENU
+========================= */
+
+.headerMenu {
+  position: absolute;
+
+  top: calc(100% + 8px);
+  right: 0;
+
+  z-index: 60;
+
+  width: 190px;
+
+  padding: 5px;
+
+  overflow: hidden;
+
+  color:
+    var(--header-text);
+
+  background:
+    var(--header-surface);
+
+  border:
+    1px solid var(--header-border);
+
+  border-radius: 12px;
+
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.18);
+
+  transform-origin:
+    top right;
+
+  animation:
+    headerMenuIn 0.14s ease-out both;
+}
+
+.headerMenuItem {
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  min-height: 42px;
+
+  gap: 10px;
+
+  padding:
+    9px 10px;
+
+  color:
+    var(--header-text);
+
+  background:
+    transparent;
+
+  border: none;
+  border-radius: 9px;
+
+  font: inherit;
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.2;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  touch-action:
+    manipulation;
+
+  -webkit-tap-highlight-color:
+    transparent;
+
+  transition:
+    color 0.14s ease,
+    background-color 0.14s ease;
+}
+
+.headerMenuItem:hover {
+  color:
+    var(--header-primary);
+
+  background:
+    var(--header-soft);
+}
+
+.headerMenuItem:focus-visible {
+  outline:
+    2px solid var(--header-primary);
+
+  outline-offset: -2px;
+}
+
+.headerMenuItem svg {
+  flex: 0 0 auto;
+}
+
+/* =========================
+   SEARCH HEADER
+========================= */
+
+.searchHeader {
+  justify-content: flex-start;
+
+  gap: 10px;
+}
+
+/*
+ * Normal desktop header lo back button hide.
+ * Search mode lo desktop ki kuda show.
+ */
+.searchHeader .backButton {
+  display: inline-flex;
+}
+
+.searchInputWrapper {
+  display: flex;
+  align-items: center;
+
+  flex: 1 1 auto;
+
+  min-width: 120px;
+  max-width: 720px;
+  min-height: 42px;
+
+  gap: 8px;
+
+  padding:
+    0 7px 0 13px;
+
+  color:
+    var(--header-muted);
+
+  background:
+    var(--header-soft);
+
+  border:
+    1px solid transparent;
+
+  border-radius: 21px;
+
+  transition:
+    border-color 0.14s ease,
+    box-shadow 0.14s ease,
+    background-color 0.14s ease;
+}
+
+.searchInputWrapper:focus-within {
+  border-color:
+    var(--header-primary);
+
+  box-shadow:
+    0 0 0 3px color-mix(in srgb,
+      var(--header-primary) 14%,
+      transparent);
+}
+
+.searchInputWrapper>svg {
+  flex: 0 0 auto;
+}
+
+.searchInputWrapper input {
+  flex: 1 1 auto;
+
+  width: 100%;
+  min-width: 0;
+
+  padding:
+    9px 0;
+
+  color:
+    var(--header-text);
+
+  background:
+    transparent;
+
+  border: none;
+  outline: none;
+
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.searchInputWrapper input::placeholder {
+  color:
+    var(--header-muted);
+
+  opacity: 1;
+}
+
+/*
+ * Browser default search X remove.
+ * Mana custom X matrame show avutundi.
+ */
+.searchInputWrapper input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.clearSearchButton {
+  flex: 0 0 auto;
+
+  width: 30px;
+  height: 30px;
+
+  color:
+    var(--header-muted);
+}
+
+.searchCount {
+  flex: 0 0 auto;
+
+  min-width: 64px;
+
+  color:
+    var(--header-muted);
+
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.2;
+
+  text-align: center;
+  white-space: nowrap;
+}
+
+.searchNavigation {
+  display: flex;
+  align-items: center;
+
+  flex: 0 0 auto;
+
+  gap: 2px;
+}
+
+.searchNavigation button {
+  width: 36px;
+  height: 36px;
+
+  color:
+    var(--header-muted);
+}
+
+.searchNavigation button:disabled {
+  cursor: default;
+
+  opacity: 0.35;
+}
+
+/* =========================
+   HEADER MENU ANIMATION
+========================= */
+
+@keyframes headerMenuIn {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-3px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0) scale(1);
+  }
+}
+
+/* =========================
+   SEARCH TABLET
+========================= */
+
+@media (max-width: 1024px) {
+  .searchInputWrapper {
+    max-width: none;
+  }
+}
+
+/* =========================
+   SEARCH MOBILE
+========================= */
+
+@media (max-width: 768px) {
+  .menuButton {
+    width: 38px;
+    height: 38px;
+  }
+
+  .headerMenu {
+    top: calc(100% + 7px);
+    right: 0;
+
+    width: 184px;
+
+    border-radius: 12px;
+  }
+
+  .headerMenuItem {
+    min-height: 44px;
+
+    font-size: 14px;
+  }
+
+  .searchHeader {
+    gap: 5px;
+
+    padding:
+      0 7px;
+  }
+
+  .searchHeader .backButton {
+    width: 38px;
+    height: 38px;
+  }
+
+  .searchInputWrapper {
+    min-height: 40px;
+
+    gap: 6px;
+
+    padding:
+      0 5px 0 11px;
+
+    border-radius: 20px;
+  }
+
+  .searchInputWrapper input {
+    padding:
+      8px 0;
+
+    font-size: 16px;
+  }
+
+  .clearSearchButton {
+    width: 28px;
+    height: 28px;
+  }
+
+  .searchCount {
+    min-width: 50px;
+
+    font-size: 11px;
+  }
+
+  .searchNavigation {
+    gap: 0;
+  }
+
+  .searchNavigation button {
+    width: 32px;
+    height: 36px;
+  }
+}
+
+/* =========================
+   SEARCH SMALL MOBILE
+========================= */
+
+@media (max-width: 420px) {
+  .searchHeader {
+    gap: 3px;
+
+    padding:
+      0 5px;
+  }
+
+  .searchHeader .backButton {
+    width: 34px;
+    height: 36px;
+  }
+
+  .searchInputWrapper {
+    min-width: 0;
+
+    padding-left: 9px;
+  }
+
+  .searchCount {
+    min-width: 42px;
+
+    font-size: 10px;
+  }
+
+  .searchNavigation button {
+    width: 29px;
+  }
+}
+
+/* =========================
+   SEARCH ACCESSIBILITY
+========================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .headerMenu,
+  .menuButton,
+  .headerMenuItem,
+  .clearSearchButton,
+  .searchNavigation button {
+    animation: none;
+    transition: none;
+  }
+}

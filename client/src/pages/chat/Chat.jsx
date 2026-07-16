@@ -15,6 +15,7 @@ import styles from "./Chat.module.css";
 
 import ChatSidebar from "../../components/chat/ChatSidebar";
 import ChatHeader from "../../components/chat/ChatHeader";
+import PinnedMessageBanner from "../../components/chat/PinnedMessageBanner";
 import MessageList from "../../components/chat/MessageList";
 import MessageInput from "../../components/chat/MessageInput";
 

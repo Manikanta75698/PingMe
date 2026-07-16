@@ -85,6 +85,17 @@ const messageSchema =
         default: null,
       },
 
+      pinnedAt: {
+        type: Date,
+        default: null,
+      },
+
+      pinnedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+
       image: {
         type: String,
         default: "",
@@ -173,6 +184,12 @@ messageSchema.index({
   sender: 1,
   receiver: 1,
   createdAt: -1,
+});
+
+messageSchema.index({
+  sender: 1,
+  receiver: 1,
+  pinnedAt: -1,
 });
 
 messageSchema.index({

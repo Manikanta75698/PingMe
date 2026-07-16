@@ -13,6 +13,8 @@ import {
   Copy,
   Forward,
   Pencil,
+  Pin,
+  PinOff,
   Reply,
   Trash2,
 } from "lucide-react";
@@ -43,11 +45,14 @@ const MessageActionsMenu = ({
   canCopy = false,
   canEdit = false,
   canForward = false,
+  canPin = false,
+  isPinned = false,
   selectedReaction = "",
   onClose,
   onReply,
   onCopy,
   onForward,
+  onPin,
   onEdit,
   onDelete,
   onReact,
@@ -495,6 +500,15 @@ const MessageActionsMenu = ({
     closeImmediately();
   };
 
+  const handlePin = () => {
+    if (!canPin) {
+      return;
+    }
+
+    onPin?.();
+    closeImmediately();
+  };
+
   const handleEdit = () => {
     if (!canEdit) {
       return;
@@ -696,6 +710,37 @@ const MessageActionsMenu = ({
               />
 
               <span>Forward</span>
+            </button>
+          )}
+
+          {canPin && (
+            <button
+              type="button"
+              className={
+                styles.actionButton
+              }
+              onClick={
+                handlePin
+              }
+              role="menuitem"
+            >
+              {isPinned ? (
+                <PinOff
+                  size={19}
+                  aria-hidden="true"
+                />
+              ) : (
+                <Pin
+                  size={19}
+                  aria-hidden="true"
+                />
+              )}
+
+              <span>
+                {isPinned
+                  ? "Unpin"
+                  : "Pin"}
+              </span>
             </button>
           )}
 

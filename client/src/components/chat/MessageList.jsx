@@ -58,12 +58,28 @@ const MessageList = ({
   olderMessagesLoading = false,
   loadOlderMessages,
 }) => {
+
   const {
     messages,
+    setMessages,
+
+    pinnedMessage,
+    messageScrollRequest,
+
     socket,
     selectedChat,
+
     setReplyingTo,
     setEditingMessage,
+
+    messageSearchOpen,
+    messageSearchQuery,
+
+    messageSearchMatches,
+    setMessageSearchMatches,
+
+    activeSearchMatchIndex,
+    setActiveSearchMatchIndex,
   } = useChat();
 
   const { user } = useAuth();
@@ -72,6 +88,17 @@ const MessageList = ({
     forwardingMessage,
     setForwardingMessage,
   ] = useState(null);
+
+  const [
+    pinnedScrollTargetId,
+    setPinnedScrollTargetId,
+  ] = useState("");
+
+  const pinnedScrollTimerRef =
+    useRef(null);
+
+  const pendingPinnedScrollIdRef =
+    useRef("");
 
   const containerRef =
     useRef(null);
@@ -91,6 +118,8 @@ const MessageList = ({
   const loadingOlderRef =
     useRef(false);
 
+  const messageElementRefs =
+    useRef(new Map());
 
   const messagesRef =
     useRef([]);
@@ -142,6 +171,352 @@ const MessageList = ({
       lastMessage?.sender
     );
 
+  /* =========================
+ MESSAGE SEARCH
+========================= */
+
+  const normalizedSearchQuery =
+    String(
+      messageSearchQuery || ""
+    )
+      .trim()
+      .toLocaleLowerCase();
+
+  const calculatedSearchMatches =
+    useMemo(() => {
+      if (
+        !messageSearchOpen ||
+        !normalizedSearchQuery
+      ) {
+        return [];
+      }
+
+      return safeMessages
+        .filter((message) => {
+          const messageText =
+            String(
+              message?.text || ""
+            )
+              .trim()
+              .toLocaleLowerCase();
+
+          return (
+            Boolean(messageText) &&
+            messageText.includes(
+              normalizedSearchQuery
+            )
+          );
+        })
+        .map((message) =>
+          normalizeId(
+            message?._id
+          )
+        )
+        .filter(Boolean);
+    }, [
+      safeMessages,
+      messageSearchOpen,
+      normalizedSearchQuery,
+    ]);
+
+  const activeSearchMessageId =
+    messageSearchMatches[
+    activeSearchMatchIndex
+    ] || "";
+
+  /* =========================
+     PINNED MESSAGE SCROLL
+  ========================= */
+
+  const scrollToMessageById =
+    useCallback((messageId) => {
+      const normalizedMessageId =
+        normalizeId(messageId);
+
+      if (!normalizedMessageId) {
+        return false;
+      }
+
+      const messageElement =
+        messageElementRefs.current.get(
+          normalizedMessageId
+        );
+
+      if (!messageElement) {
+        return false;
+      }
+
+      messageElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+
+      setPinnedScrollTargetId(
+        normalizedMessageId
+      );
+
+      if (
+        pinnedScrollTimerRef.current
+      ) {
+        window.clearTimeout(
+          pinnedScrollTimerRef.current
+        );
+      }
+
+      pinnedScrollTimerRef.current =
+        window.setTimeout(() => {
+          setPinnedScrollTargetId("");
+
+          pinnedScrollTimerRef.current =
+            null;
+        }, 1800);
+
+      return true;
+    }, []);
+
+  useEffect(() => {
+    const requestedMessageId =
+      normalizeId(
+        messageScrollRequest
+          ?.messageId
+      );
+
+    if (!requestedMessageId) {
+      return;
+    }
+
+    /*
+     * Message current list lo already
+     * loaded unte direct scroll.
+     */
+    if (
+      scrollToMessageById(
+        requestedMessageId
+      )
+    ) {
+      pendingPinnedScrollIdRef.current =
+        "";
+
+      return;
+    }
+
+    const pinnedMessageId =
+      normalizeId(
+        pinnedMessage?._id
+      );
+
+    /*
+     * Dedicated pinned API response
+     * requested message ki match avvali.
+     */
+    if (
+      !pinnedMessage ||
+      pinnedMessageId !==
+      requestedMessageId
+    ) {
+      pendingPinnedScrollIdRef.current =
+        "";
+
+      console.warn(
+        "Pinned message is unavailable:",
+        requestedMessageId
+      );
+
+      return;
+    }
+
+    pendingPinnedScrollIdRef.current =
+      requestedMessageId;
+
+    /*
+     * Old pinned message current
+     * pagination lo lekapothe insert.
+     */
+    setMessages((previous) => {
+      const safePrevious =
+        Array.isArray(previous)
+          ? previous
+          : [];
+
+      const alreadyLoaded =
+        safePrevious.some(
+          (currentMessage) =>
+            normalizeId(
+              currentMessage?._id
+            ) === requestedMessageId
+        );
+
+      if (alreadyLoaded) {
+        return safePrevious;
+      }
+
+      const mergedMessages = [
+        ...safePrevious,
+        pinnedMessage,
+      ];
+
+      mergedMessages.sort(
+        (
+          firstMessage,
+          secondMessage
+        ) => {
+          const firstTime =
+            new Date(
+              firstMessage?.createdAt ||
+              0
+            ).getTime();
+
+          const secondTime =
+            new Date(
+              secondMessage?.createdAt ||
+              0
+            ).getTime();
+
+          return (
+            firstTime -
+            secondTime
+          );
+        }
+      );
+
+      return mergedMessages;
+    });
+  }, [
+    messageScrollRequest
+      ?.messageId,
+
+    messageScrollRequest
+      ?.requestKey,
+
+    pinnedMessage,
+    scrollToMessageById,
+    setMessages,
+  ]);
+
+  /* =========================
+     SCROLL AFTER INSERT
+  ========================= */
+
+  useEffect(() => {
+    const pendingMessageId =
+      normalizeId(
+        pendingPinnedScrollIdRef
+          .current
+      );
+
+    if (!pendingMessageId) {
+      return undefined;
+    }
+
+    const frameId =
+      window.requestAnimationFrame(
+        () => {
+          const didScroll =
+            scrollToMessageById(
+              pendingMessageId
+            );
+
+          if (didScroll) {
+            pendingPinnedScrollIdRef.current =
+              "";
+          }
+        }
+      );
+
+    return () => {
+      window.cancelAnimationFrame(
+        frameId
+      );
+    };
+  }, [
+    messages,
+
+    messageScrollRequest
+      ?.requestKey,
+
+    scrollToMessageById,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (
+        pinnedScrollTimerRef.current
+      ) {
+        window.clearTimeout(
+          pinnedScrollTimerRef.current
+        );
+
+        pinnedScrollTimerRef.current =
+          null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setMessageSearchMatches(
+      calculatedSearchMatches
+    );
+
+    setActiveSearchMatchIndex(
+      (previousIndex) => {
+        if (
+          calculatedSearchMatches
+            .length === 0
+        ) {
+          return 0;
+        }
+
+        return Math.min(
+          previousIndex,
+          calculatedSearchMatches
+            .length - 1
+        );
+      }
+    );
+  }, [
+    calculatedSearchMatches,
+    setMessageSearchMatches,
+    setActiveSearchMatchIndex,
+  ]);
+
+  useEffect(() => {
+    if (
+      !messageSearchOpen ||
+      !normalizedSearchQuery ||
+      !activeSearchMessageId
+    ) {
+      return undefined;
+    }
+
+    const frameId =
+      window.requestAnimationFrame(
+        () => {
+          const messageElement =
+            messageElementRefs.current
+              .get(
+                activeSearchMessageId
+              );
+
+          messageElement
+            ?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+              inline: "nearest",
+            });
+        }
+      );
+
+    return () => {
+      window.cancelAnimationFrame(
+        frameId
+      );
+    };
+  }, [
+    messageSearchOpen,
+    normalizedSearchQuery,
+    activeSearchMessageId,
+  ]);
 
   useLayoutEffect(() => {
     messagesRef.current =
@@ -163,6 +538,25 @@ const MessageList = ({
 
     readEmittedIdsRef.current.clear();
     pendingReadIdsRef.current.clear();
+    messageElementRefs.current.clear();
+
+    pendingPinnedScrollIdRef.current =
+      "";
+
+    setPinnedScrollTargetId(
+      ""
+    );
+
+    if (
+      pinnedScrollTimerRef.current
+    ) {
+      window.clearTimeout(
+        pinnedScrollTimerRef.current
+      );
+
+      pinnedScrollTimerRef.current =
+        null;
+    }
 
   }, [selectedChatId]);
 
@@ -272,11 +666,11 @@ const MessageList = ({
       !container ||
       !initialScrollDoneRef.current ||
       loadingOlderRef.current ||
-      !lastMessageId
+      !lastMessageId ||
+      messageSearchOpen
     ) {
       return undefined;
     }
-
     const isOwnNewMessage =
       lastSenderId ===
       currentUserId;
@@ -316,6 +710,7 @@ const MessageList = ({
     lastMessageId,
     lastSenderId,
     currentUserId,
+    messageSearchOpen,
   ]);
 
 
@@ -638,36 +1033,88 @@ const MessageList = ({
               index
               }-${index}`;
 
+            const isSearchMatch =
+              Boolean(messageId) &&
+              messageSearchMatches.includes(
+                messageId
+              );
+
+            const isActiveSearchMatch =
+              Boolean(messageId) &&
+              activeSearchMessageId ===
+              messageId;
+
+            const isPinnedScrollTarget =
+              Boolean(messageId) &&
+              pinnedScrollTargetId ===
+              messageId;
+
             return (
-              <MessageBubble
+              <div
                 key={
                   messageId ||
                   fallbackKey
                 }
-                message={message}
-                isOwn={
-                  senderId ===
-                  currentUserId
-                }
-                onReply={(replyMessage) => {
-                  setEditingMessage(null);
-                  setReplyingTo(
-                    replyMessage
-                  );
+                ref={(element) => {
+                  if (!messageId) {
+                    return;
+                  }
+
+                  if (element) {
+                    messageElementRefs.current.set(
+                      messageId,
+                      element
+                    );
+                  } else {
+                    messageElementRefs.current.delete(
+                      messageId
+                    );
+                  }
                 }}
-                onEdit={
-                  handleEditMessage
+                data-message-id={
+                  messageId ||
+                  undefined
                 }
-                onForward={
-                  handleForwardMessage
-                }
-                onVisible={
-                  handleMessageVisible
-                }
-                visibilityRoot={
-                  containerRef
-                }
-              />
+              >
+                <MessageBubble
+                  message={message}
+                  isOwn={
+                    senderId ===
+                    currentUserId
+                  }
+                  onReply={(replyMessage) => {
+                    setEditingMessage(null);
+
+                    setReplyingTo(
+                      replyMessage
+                    );
+                  }}
+                  onEdit={
+                    handleEditMessage
+                  }
+                  onForward={
+                    handleForwardMessage
+                  }
+                  onVisible={
+                    handleMessageVisible
+                  }
+                  visibilityRoot={
+                    containerRef
+                  }
+                  searchQuery={
+                    messageSearchQuery
+                  }
+                  isSearchMatch={
+                    isSearchMatch
+                  }
+                  isActiveSearchMatch={
+                    isActiveSearchMatch
+                  }
+                  isPinnedScrollTarget={
+                    isPinnedScrollTarget
+                  }
+                />
+              </div>
             );
           }
         )}

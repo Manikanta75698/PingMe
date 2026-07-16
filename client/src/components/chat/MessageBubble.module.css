@@ -816,3 +816,114 @@
 .backdrop {
   touch-action: none;
 }
+
+/* =========================
+   MESSAGE SEARCH
+========================= */
+
+.bubble.searchMatch {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb,
+      Highlight 36%,
+      transparent);
+}
+
+.bubble.activeSearchMatch {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb,
+      Highlight 60%,
+      transparent),
+    0 8px 24px rgba(0, 0, 0, 0.14);
+
+  animation:
+    activeSearchPulse 0.42s ease-out;
+}
+
+.searchHighlight {
+  padding:
+    0 2px;
+
+  color: #111827;
+  background: #fde047;
+
+  border-radius: 3px;
+
+  font: inherit;
+
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+@keyframes activeSearchPulse {
+  from {
+    transform:
+      scale(0.985);
+  }
+
+  to {
+    transform:
+      scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble.activeSearchMatch {
+    animation: none;
+  }
+}
+
+
+.pinnedScrollTarget {
+  position: relative;
+  z-index: 1;
+  animation: pinnedMessagePulse 1.8s ease-out;
+}
+
+@keyframes pinnedMessagePulse {
+  0% {
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 0 transparent;
+    transform: scale(1);
+  }
+
+  25% {
+    outline: 2px solid var(--primary, Highlight);
+
+    box-shadow:
+      0 0 0 5px color-mix(in srgb,
+        var(--primary, Highlight) 22%,
+        transparent);
+
+    transform: scale(1.015);
+  }
+
+  65% {
+    outline: 2px solid var(--primary, Highlight);
+
+    box-shadow:
+      0 0 0 3px color-mix(in srgb,
+        var(--primary, Highlight) 14%,
+        transparent);
+
+    transform: scale(1.005);
+  }
+
+  100% {
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 0 transparent;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pinnedScrollTarget {
+    animation: none;
+
+    outline: 2px solid var(--primary, Highlight);
+
+    box-shadow:
+      0 0 0 4px color-mix(in srgb,
+        var(--primary, Highlight) 18%,
+        transparent);
+  }
+}

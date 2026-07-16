@@ -13,10 +13,12 @@ const {
 const {
   sendMessage,
   getMessages,
+  getPinnedMessage,
   getChatSummaries,
   toggleReaction,
   editMessage,
   forwardMessage,
+  togglePinMessage,
   deleteMessage,
 } = require(
   "../controllers/messageController"
@@ -42,6 +44,12 @@ router.patch(
 );
 
 router.patch(
+  "/:messageId/pin",
+  protect,
+  togglePinMessage
+);
+
+router.patch(
   "/:messageId",
   protect,
   editMessage
@@ -57,6 +65,12 @@ router.delete(
   "/:messageId",
   protect,
   deleteMessage
+);
+
+router.get(
+  "/conversation/:userId/pinned",
+  protect,
+  getPinnedMessage
 );
 
 router.get(

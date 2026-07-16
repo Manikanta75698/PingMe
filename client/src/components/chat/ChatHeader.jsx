@@ -1,11 +1,17 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import {
   ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  MoreVertical,
+  Search,
+  X,
 } from "lucide-react";
 
 import {
@@ -206,6 +212,16 @@ const ChatHeader = () => {
     lastSeenByUser,
     typingUser,
     setSelectedChat,
+
+    messageSearchOpen,
+    setMessageSearchOpen,
+
+    messageSearchQuery,
+    setMessageSearchQuery,
+
+    messageSearchMatches,
+    activeSearchMatchIndex,
+    setActiveSearchMatchIndex,
   } = useChat();
 
   const [
@@ -214,6 +230,20 @@ const ChatHeader = () => {
   ] = useState(
     () => Date.now()
   );
+
+  const [
+    showHeaderMenu,
+    setShowHeaderMenu,
+  ] = useState(false);
+
+  const menuButtonRef =
+    useRef(null);
+
+  const menuRef =
+    useRef(null);
+
+  const searchInputRef =
+    useRef(null);
 
   const selectedChatId =
     normalizeId(
@@ -258,10 +288,24 @@ const ChatHeader = () => {
       ]
     );
 
-  /*
-   * Offline status text automatic ga
-   * every 30 seconds refresh avutundi.
-   */
+  const matchCount =
+    Array.isArray(
+      messageSearchMatches
+    )
+      ? messageSearchMatches.length
+      : 0;
+
+  const hasMatches =
+    matchCount > 0;
+
+  const resultText =
+    messageSearchQuery.trim()
+      ? hasMatches
+        ? `${activeSearchMatchIndex + 1
+        } of ${matchCount}`
+        : "No results"
+      : "";
+
   useEffect(() => {
     if (
       !selectedChatId ||
@@ -291,6 +335,89 @@ const ChatHeader = () => {
     isOnline,
   ]);
 
+  /*
+   * Header menu outside click.
+   */
+  useEffect(() => {
+    if (!showHeaderMenu) {
+      return undefined;
+    }
+
+    const handleDocumentClick = (
+      event
+    ) => {
+      const target =
+        event.target;
+
+      if (
+        menuRef.current
+          ?.contains(target) ||
+        menuButtonRef.current
+          ?.contains(target)
+      ) {
+        return;
+      }
+
+      setShowHeaderMenu(false);
+    };
+
+    const handleEscape = (
+      event
+    ) => {
+      if (
+        event.key ===
+        "Escape"
+      ) {
+        setShowHeaderMenu(false);
+      }
+    };
+
+    document.addEventListener(
+      "pointerdown",
+      handleDocumentClick
+    );
+
+    document.addEventListener(
+      "keydown",
+      handleEscape
+    );
+
+    return () => {
+      document.removeEventListener(
+        "pointerdown",
+        handleDocumentClick
+      );
+
+      document.removeEventListener(
+        "keydown",
+        handleEscape
+      );
+    };
+  }, [showHeaderMenu]);
+
+  /*
+   * Search open ayyaka input focus.
+   */
+  useEffect(() => {
+    if (!messageSearchOpen) {
+      return;
+    }
+
+    const frameId =
+      window.requestAnimationFrame(
+        () => {
+          searchInputRef.current
+            ?.focus();
+        }
+      );
+
+    return () => {
+      window.cancelAnimationFrame(
+        frameId
+      );
+    };
+  }, [messageSearchOpen]);
+
   if (!selectedChat) {
     return (
       <header
@@ -312,7 +439,18 @@ const ChatHeader = () => {
     selectedChat?.profilePic ||
     DefaultAvatar;
 
+  const closeMessageSearch = () => {
+    setMessageSearchOpen(false);
+    setMessageSearchQuery("");
+    setActiveSearchMatchIndex(0);
+  };
+
   const handleBack = () => {
+    if (messageSearchOpen) {
+      closeMessageSearch();
+      return;
+    }
+
     setSelectedChat(null);
 
     navigate(
@@ -345,12 +483,176 @@ const ChatHeader = () => {
       DefaultAvatar;
   };
 
+  const openMessageSearch = () => {
+    setShowHeaderMenu(false);
+    setMessageSearchOpen(true);
+  };
+
+  const showPreviousMatch = () => {
+    if (!hasMatches) {
+      return;
+    }
+
+    setActiveSearchMatchIndex(
+      (previous) =>
+        previous <= 0
+          ? matchCount - 1
+          : previous - 1
+    );
+  };
+
+  const showNextMatch = () => {
+    if (!hasMatches) {
+      return;
+    }
+
+    setActiveSearchMatchIndex(
+      (previous) =>
+        previous >=
+          matchCount - 1
+          ? 0
+          : previous + 1
+    );
+  };
+
   const statusText =
     isTyping
       ? ""
       : isOnline
         ? "Online"
         : lastSeenText;
+
+  if (messageSearchOpen) {
+    return (
+      <header
+        className={`${styles.header} ${styles.searchHeader}`}
+        aria-label="Search messages"
+      >
+        <button
+          type="button"
+          className={
+            styles.backButton
+          }
+          onClick={
+            closeMessageSearch
+          }
+          aria-label="Close message search"
+        >
+          <ArrowLeft
+            size={23}
+            strokeWidth={2}
+            aria-hidden="true"
+          />
+        </button>
+
+        <div
+          className={
+            styles.searchInputWrapper
+          }
+        >
+          <Search
+            size={18}
+            aria-hidden="true"
+          />
+
+          <input
+            ref={
+              searchInputRef
+            }
+            type="search"
+            value={
+              messageSearchQuery
+            }
+            onChange={(event) => {
+              setMessageSearchQuery(
+                event.target.value
+              );
+
+              setActiveSearchMatchIndex(
+                0
+              );
+            }}
+            placeholder="Search messages"
+            aria-label="Search messages"
+          />
+
+          {messageSearchQuery && (
+            <button
+              type="button"
+              className={
+                styles.clearSearchButton
+              }
+              onClick={() => {
+                setMessageSearchQuery(
+                  ""
+                );
+
+                setActiveSearchMatchIndex(
+                  0
+                );
+
+                searchInputRef.current
+                  ?.focus();
+              }}
+              aria-label="Clear search"
+            >
+              <X
+                size={17}
+                aria-hidden="true"
+              />
+            </button>
+          )}
+        </div>
+
+        <span
+          className={
+            styles.searchCount
+          }
+          aria-live="polite"
+        >
+          {resultText}
+        </span>
+
+        <div
+          className={
+            styles.searchNavigation
+          }
+        >
+          <button
+            type="button"
+            onClick={
+              showPreviousMatch
+            }
+            disabled={
+              !hasMatches
+            }
+            aria-label="Previous result"
+          >
+            <ChevronUp
+              size={20}
+              aria-hidden="true"
+            />
+          </button>
+
+          <button
+            type="button"
+            onClick={
+              showNextMatch
+            }
+            disabled={
+              !hasMatches
+            }
+            aria-label="Next result"
+          >
+            <ChevronDown
+              size={20}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header
@@ -446,6 +748,70 @@ const ChatHeader = () => {
             )}
           </p>
         </div>
+      </div>
+
+      <div
+        className={
+          styles.headerActions
+        }
+      >
+        <button
+          ref={
+            menuButtonRef
+          }
+          type="button"
+          className={
+            styles.menuButton
+          }
+          onClick={() => {
+            setShowHeaderMenu(
+              (previous) =>
+                !previous
+            );
+          }}
+          aria-label="Chat options"
+          aria-haspopup="menu"
+          aria-expanded={
+            showHeaderMenu
+          }
+        >
+          <MoreVertical
+            size={22}
+            aria-hidden="true"
+          />
+        </button>
+
+        {showHeaderMenu && (
+          <div
+            ref={
+              menuRef
+            }
+            className={
+              styles.headerMenu
+            }
+            role="menu"
+          >
+            <button
+              type="button"
+              className={
+                styles.headerMenuItem
+              }
+              onClick={
+                openMessageSearch
+              }
+              role="menuitem"
+            >
+              <Search
+                size={18}
+                aria-hidden="true"
+              />
+
+              <span>
+                Search messages
+              </span>
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

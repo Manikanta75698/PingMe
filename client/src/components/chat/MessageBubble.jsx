@@ -5,6 +5,10 @@ import {
 } from "react";
 
 import {
+  useChat,
+} from "../../context/ChatContext";
+
+import {
   Clock3,
   Check,
   CheckCheck,
@@ -21,6 +25,7 @@ import MessageActionsMenu from "./MessageActionsMenu";
 import {
   deleteMessage,
   toggleMessageReaction,
+  togglePinMessage,
 } from "../../services/chatService";
 
 const ALLOWED_REACTIONS = [
@@ -97,6 +102,68 @@ const getSafeReactions = (
     )
     : [];
 
+
+const escapeRegExp = (value) =>
+  String(value || "").replace(
+    /[.*+?^${}()|[\]\\]/g,
+    "\\$&"
+  );
+
+const highlightMessageText = (
+  text,
+  query
+) => {
+  const safeText =
+    String(text || "");
+
+  const safeQuery =
+    String(query || "").trim();
+
+  if (
+    !safeText ||
+    !safeQuery
+  ) {
+    return safeText;
+  }
+
+  const escapedQuery =
+    escapeRegExp(safeQuery);
+
+  const parts =
+    safeText.split(
+      new RegExp(
+        `(${escapedQuery})`,
+        "gi"
+      )
+    );
+
+  const normalizedQuery =
+    safeQuery.toLocaleLowerCase();
+
+  return parts.map(
+    (part, index) => {
+      const isMatch =
+        part.toLocaleLowerCase() ===
+        normalizedQuery;
+
+      if (!isMatch) {
+        return part;
+      }
+
+      return (
+        <mark
+          key={`${part}-${index}`}
+          className={
+            styles.searchHighlight
+          }
+        >
+          {part}
+        </mark>
+      );
+    }
+  );
+};
+
 const MessageBubble = ({
   message,
   isOwn,
@@ -105,7 +172,16 @@ const MessageBubble = ({
   onForward,
   onVisible,
   visibilityRoot,
+  searchQuery = "",
+  isSearchMatch = false,
+  isActiveSearchMatch = false,
+  isPinnedScrollTarget = false,
 }) => {
+
+  const {
+    setMessages,
+    setPinnedMessage,
+  } = useChat();
 
   const [
     showActions,
@@ -151,6 +227,16 @@ const MessageBubble = ({
     setCopyFeedback,
   ] = useState("");
 
+  const [
+    pinLoading,
+    setPinLoading,
+  ] = useState(false);
+
+  const [
+    pinError,
+    setPinError,
+  ] = useState("");
+
   const pressTimerRef =
     useRef(null);
 
@@ -182,6 +268,9 @@ const MessageBubble = ({
     useRef(null);
 
   const copyFeedbackTimerRef =
+    useRef(null);
+
+  const pinErrorTimerRef =
     useRef(null);
 
   const mountedRef =
@@ -240,10 +329,19 @@ const MessageBubble = ({
     canUseActions &&
     hasMessageContent;
 
+  const canPin =
+    canUseActions &&
+    hasMessageContent;
+
   const canEdit =
     isOwn &&
     canUseActions &&
     hasMessageText;
+
+  const isPinned =
+    Boolean(
+      message?.pinnedAt
+    );
 
   const isEdited =
     Boolean(
@@ -460,6 +558,207 @@ const MessageBubble = ({
     setShowActions(false);
 
     onForward(message);
+  };
+
+  /* =========================
+     PIN / UNPIN
+  ========================= */
+
+  const handlePin = async () => {
+    if (
+      !canPin ||
+      pinLoading ||
+      !message?._id
+    ) {
+      return;
+    }
+
+    setShowActions(false);
+    setPinLoading(true);
+    setPinError("");
+
+    try {
+      const response =
+        await togglePinMessage(
+          message._id
+        );
+
+      const pinData =
+        response?.data?.data;
+
+      const updatedMessageId =
+        normalizeId(
+          pinData?.messageId ||
+          pinData?.message?._id
+        );
+
+      if (!updatedMessageId) {
+        throw new Error(
+          "Invalid pin response from server"
+        );
+      }
+
+      const clearedMessageIds =
+        new Set(
+          Array.isArray(
+            pinData?.clearedMessageIds
+          )
+            ? pinData.clearedMessageIds
+              .map((item) =>
+                normalizeId(item)
+              )
+              .filter(Boolean)
+            : []
+        );
+
+
+      setMessages(
+        (previous) =>
+          Array.isArray(previous)
+            ? previous.map(
+              (currentMessage) => {
+                const currentMessageId =
+                  normalizeId(
+                    currentMessage?._id
+                  );
+
+                if (
+                  clearedMessageIds.has(
+                    currentMessageId
+                  )
+                ) {
+                  return {
+                    ...currentMessage,
+                    pinnedAt: null,
+                    pinnedBy: null,
+                  };
+                }
+
+                if (
+                  currentMessageId !==
+                  updatedMessageId
+                ) {
+                  return currentMessage;
+                }
+
+                if (
+                  pinData?.message &&
+                  typeof pinData.message ===
+                  "object"
+                ) {
+                  return {
+                    ...currentMessage,
+                    ...pinData.message,
+                  };
+                }
+
+                return {
+                  ...currentMessage,
+
+                  pinnedAt:
+                    pinData?.isPinned
+                      ? pinData?.pinnedAt ||
+                      new Date()
+                        .toISOString()
+                      : null,
+
+                  pinnedBy:
+                    pinData?.isPinned
+                      ? pinData?.pinnedBy ||
+                      null
+                      : null,
+                };
+              }
+            )
+            : []
+      );
+
+      setPinnedMessage((previous) => {
+        const previousId =
+          normalizeId(previous?._id);
+
+        if (pinData?.isPinned) {
+          if (
+            pinData?.message &&
+            typeof pinData.message ===
+            "object"
+          ) {
+            return {
+              ...pinData.message,
+              pinnedAt:
+                pinData.message
+                  ?.pinnedAt ||
+                pinData?.pinnedAt ||
+                new Date()
+                  .toISOString(),
+              pinnedBy:
+                pinData.message
+                  ?.pinnedBy ||
+                pinData?.pinnedBy ||
+                null,
+            };
+          }
+
+          return {
+            ...message,
+            _id: updatedMessageId,
+            pinnedAt:
+              pinData?.pinnedAt ||
+              new Date()
+                .toISOString(),
+            pinnedBy:
+              pinData?.pinnedBy ||
+              null,
+          };
+        }
+
+        return previousId ===
+          updatedMessageId
+          ? null
+          : previous;
+      });
+
+
+    } catch (error) {
+      console.error(
+        "PIN MESSAGE ERROR:",
+        error.response?.data ||
+        error.message
+      );
+
+      if (!mountedRef.current) {
+        return;
+      }
+
+      setPinError(
+        error.response?.data
+          ?.message ||
+        error.userMessage ||
+        "Unable to update pinned message"
+      );
+
+      if (
+        pinErrorTimerRef.current
+      ) {
+        window.clearTimeout(
+          pinErrorTimerRef.current
+        );
+      }
+
+      pinErrorTimerRef.current =
+        window.setTimeout(() => {
+          if (mountedRef.current) {
+            setPinError("");
+          }
+
+          pinErrorTimerRef.current =
+            null;
+        }, 3000);
+    } finally {
+      if (mountedRef.current) {
+        setPinLoading(false);
+      }
+    }
   };
 
   /* =========================
@@ -1213,9 +1512,23 @@ const MessageBubble = ({
         >
           <div
             className={`${styles.bubble} ${isOwn
-                ? styles.ownBubble
-                : styles.otherBubble
+              ? styles.ownBubble
+              : styles.otherBubble
+              } ${isSearchMatch
+                ? styles.searchMatch
+                : ""
+              } ${isActiveSearchMatch
+                ? styles.activeSearchMatch
+                : ""
+              } ${isPinnedScrollTarget
+                ? styles.pinnedScrollTarget
+                : ""
               }`}
+            aria-current={
+              isActiveSearchMatch
+                ? "true"
+                : undefined
+            }
           >
             {isForwarded && (
               <div
@@ -1292,7 +1605,12 @@ const MessageBubble = ({
                   styles.text
                 }
               >
-                {message.text}
+                {isSearchMatch
+                  ? highlightMessageText(
+                    message.text,
+                    searchQuery
+                  )
+                  : message.text}
               </p>
             )}
 
@@ -1487,6 +1805,17 @@ const MessageBubble = ({
             </span>
           )}
 
+          {pinError && (
+            <span
+              className={
+                styles.reactionError
+              }
+              role="alert"
+            >
+              {pinError}
+            </span>
+          )}
+
           <MessageActionsMenu
             open={showActions}
             anchorRef={actionAnchorRef}
@@ -1494,6 +1823,11 @@ const MessageBubble = ({
             canCopy={canCopy}
             canEdit={canEdit}
             canForward={canForward}
+            canPin={
+              canPin &&
+              !pinLoading
+            }
+            isPinned={isPinned}
             selectedReaction={
               selectedReaction
             }
@@ -1501,6 +1835,7 @@ const MessageBubble = ({
             onReply={handleReply}
             onCopy={handleCopy}
             onForward={handleForward}
+            onPin={handlePin}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onReact={handleReaction}

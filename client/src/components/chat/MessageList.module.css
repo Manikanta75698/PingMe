@@ -305,3 +305,15 @@
     scroll-behavior: auto;
   }
 }
+
+/* =========================
+   MESSAGE SEARCH ITEM
+========================= */
+
+.messageSearchItem {
+  width: 100%;
+  min-width: 0;
+
+  scroll-margin:
+    90px 0 110px;
+}
