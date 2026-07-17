@@ -109,3 +109,104 @@
     min-height: auto;
   }
 }
+
+.serverStatus,
+.serverReady,
+.errorMessage {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.serverStatus {
+  color: var(--text-secondary,
+      color-mix(in srgb,
+        CanvasText 70%,
+        transparent));
+
+  background: var(--surface-light,
+      color-mix(in srgb,
+        CanvasText 6%,
+        Canvas));
+
+  border: 1px solid var(--border,
+      color-mix(in srgb,
+        CanvasText 12%,
+        transparent));
+}
+
+.serverReady {
+  padding: 6px 10px;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.errorMessage {
+  color: var(--danger,
+      #dc2626);
+
+  background: color-mix(in srgb,
+      #dc2626 8%,
+      Canvas);
+
+  border: 1px solid color-mix(in srgb,
+      #dc2626 24%,
+      transparent);
+}
+
+.statusSpinner {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  border: 2px solid color-mix(in srgb,
+      CanvasText 18%,
+      transparent);
+  border-top-color:
+    currentColor;
+  border-radius: 50%;
+  animation:
+    loginServerSpin 0.75s linear infinite;
+}
+
+.retryButton {
+  width: 100%;
+  padding: 9px 12px;
+  color: CanvasText;
+  background: Canvas;
+  border: 1px solid var(--border,
+      color-mix(in srgb,
+        CanvasText 16%,
+        transparent));
+  border-radius: 9px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.retryButton:hover {
+  background: var(--surface-light,
+      color-mix(in srgb,
+        CanvasText 6%,
+        Canvas));
+}
+
+.googleDisabled {
+  opacity: 0.55;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+@keyframes loginServerSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
