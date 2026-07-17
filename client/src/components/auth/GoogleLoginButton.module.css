@@ -1,0 +1,88 @@
+.container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.buttonWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  transition:
+    opacity 0.2s ease;
+}
+
+.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  color: var(--text-primary,
+      CanvasText);
+
+  background: var(--surface,
+      Canvas);
+
+  border: 1px solid var(--border,
+      color-mix(in srgb,
+        CanvasText 14%,
+        transparent));
+
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.spinner {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+
+  border: 2px solid color-mix(in srgb,
+      currentColor 22%,
+      transparent);
+
+  border-top-color:
+    currentColor;
+
+  border-radius: 50%;
+
+  animation:
+    googleLoginSpin 0.75s linear infinite;
+}
+
+.errorMessage {
+  max-width: 320px;
+  margin: 0;
+
+  color: var(--danger,
+      #dc2626);
+
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+}
+
+@keyframes googleLoginSpin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}

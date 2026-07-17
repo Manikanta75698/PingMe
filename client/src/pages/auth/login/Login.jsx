@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -42,53 +41,64 @@ const Login = () => {
     useState(false);
 
   const [
-    serverStatus,
-    setServerStatus,
-  ] = useState("checking");
-
-  const [
     errorMessage,
     setErrorMessage,
   ] = useState("");
 
-  const checkBackend = useCallback(
-    async () => {
-      setServerStatus("checking");
-      setErrorMessage("");
-
-      try {
-        await api.get("/health", {
-          timeout: 90000,
-
-          headers: {
-            "Cache-Control":
-              "no-cache",
-          },
-        });
-
-        setServerStatus("ready");
-      } catch (error) {
-        console.error(
-          "BACKEND HEALTH ERROR:",
-          error.response?.data ||
-          error.message
-        );
-
-        setServerStatus("error");
-
-        setErrorMessage(
-          "Server is taking longer than expected. Please retry."
-        );
-      }
-    },
-    []
-  );
+  /* =========================
+     SILENT BACKEND WARM-UP
+  ========================= */
 
   useEffect(() => {
-    checkBackend();
-  }, [checkBackend]);
+    const controller =
+      new AbortController();
 
-  const handleChange = (event) => {
+    const warmUpBackend =
+      async () => {
+        try {
+          await api.get("/health", {
+            timeout: 90000,
+
+            signal:
+              controller.signal,
+
+            headers: {
+              "Cache-Control":
+                "no-cache",
+            },
+          });
+        } catch (error) {
+          if (
+            error.code ===
+            "ERR_CANCELED" ||
+            error.name ===
+            "CanceledError"
+          ) {
+            return;
+          }
+
+          console.warn(
+            "BACKEND WARM-UP DELAYED:",
+            error.response?.data ||
+            error.message
+          );
+        }
+      };
+
+    warmUpBackend();
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  /* =========================
+     INPUT CHANGE
+  ========================= */
+
+  const handleChange = (
+    event
+  ) => {
     const {
       name,
       value,
@@ -96,31 +106,24 @@ const Login = () => {
 
     setErrorMessage("");
 
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    setFormData(
+      (previous) => ({
+        ...previous,
+        [name]: value,
+      })
+    );
   };
+
+  /* =========================
+     LOGIN SUBMIT
+  ========================= */
 
   const handleSubmit = async (
     event
   ) => {
     event.preventDefault();
 
-    if (
-      loading ||
-      serverStatus === "checking"
-    ) {
-      return;
-    }
-
-    if (serverStatus !== "ready") {
-      setErrorMessage(
-        "Server is not ready. Please retry the connection."
-      );
-
-      return;
-    }
+    if (loading) return;
 
     const email =
       formData.email
@@ -198,18 +201,23 @@ const Login = () => {
         setErrorMessage(
           "You appear to be offline. Check your internet connection."
         );
-      } else if (status === 401) {
+      } else if (
+        status === 401
+      ) {
         setErrorMessage(
           "Invalid email or password."
         );
-      } else if (status === 403) {
+      } else if (
+        status === 403
+      ) {
         setErrorMessage(
           error.response?.data
             ?.message ||
           "Please verify your email before signing in."
         );
       } else if (
-        error.code === "ECONNABORTED"
+        error.code ===
+        "ECONNABORTED"
       ) {
         setErrorMessage(
           "The server took too long to respond. Please try again."
@@ -226,14 +234,6 @@ const Login = () => {
       setLoading(false);
     }
   };
-
-  const serverStarting =
-    serverStatus === "checking";
-
-  const authenticationDisabled =
-    loading ||
-    serverStarting ||
-    serverStatus === "error";
 
   return (
     <AuthLayout>
@@ -254,44 +254,10 @@ const Login = () => {
           </h1>
 
           <p>
-            Sign in to continue to
-            PingMe
+            Sign in to continue
+            to PingMe
           </p>
         </div>
-
-        {serverStarting && (
-          <div
-            className={
-              styles.serverStatus
-            }
-            role="status"
-            aria-live="polite"
-          >
-            <span
-              className={
-                styles.statusSpinner
-              }
-              aria-hidden="true"
-            />
-
-            <span>
-              Starting secure
-              server…
-            </span>
-          </div>
-        )}
-
-        {serverStatus ===
-          "ready" && (
-            <div
-              className={
-                styles.serverReady
-              }
-              role="status"
-            >
-              Server ready
-            </div>
-          )}
 
         {errorMessage && (
           <div
@@ -305,24 +271,13 @@ const Login = () => {
           </div>
         )}
 
-        {serverStatus ===
-          "error" && (
-            <button
-              type="button"
-              className={
-                styles.retryButton
-              }
-              onClick={
-                checkBackend
-              }
-            >
-              Retry connection
-            </button>
-          )}
-
         <form
-          className={styles.form}
-          onSubmit={handleSubmit}
+          className={
+            styles.form
+          }
+          onSubmit={
+            handleSubmit
+          }
           noValidate
         >
           <Input
@@ -361,7 +316,9 @@ const Login = () => {
               styles.forgot
             }
           >
-            <Link to="/forgot-password">
+            <Link
+              to="/forgot-password"
+            >
               Forgot Password?
             </Link>
           </div>
@@ -369,15 +326,11 @@ const Login = () => {
           <Button
             fullWidth
             type="submit"
-            disabled={
-              authenticationDisabled
-            }
+            disabled={loading}
           >
             {loading
               ? "Signing In..."
-              : serverStarting
-                ? "Starting Server..."
-                : "Login"}
+              : "Login"}
           </Button>
         </form>
 
@@ -390,19 +343,16 @@ const Login = () => {
         </div>
 
         <div
-          className={`${styles.googleLogin
-            } ${authenticationDisabled
+          className={`${styles.googleLogin} ${loading
               ? styles.googleDisabled
               : ""
             }`}
           aria-disabled={
-            authenticationDisabled
+            loading
           }
         >
           <GoogleLoginButton
-            disabled={
-              authenticationDisabled
-            }
+            disabled={loading}
           />
         </div>
 

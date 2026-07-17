@@ -1,16 +1,56 @@
 import api from "./api";
 
+const AUTH_TIMEOUT = 90000;
+
+const normalizeEmail = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
 // =========================
 // LOGIN
 // =========================
-export const loginUser = async (data) => {
+export const loginUser = async (
+  data = {}
+) => {
+  const email = normalizeEmail(
+    data.email
+  );
+
+  const password = String(
+    data.password || ""
+  );
+
+  if (!email || !password) {
+    throw new Error(
+      "Email and password are required"
+    );
+  }
+
   const response = await api.post(
     "/auth/login",
-    data
+    {
+      email,
+      password,
+    },
+    {
+      timeout: AUTH_TIMEOUT,
+    }
   );
+
+  if (
+    !response?.data ||
+    typeof response.data !==
+    "object"
+  ) {
+    throw new Error(
+      "Invalid login response"
+    );
+  }
 
   return response.data;
 };
+
 
 // =========================
 // REGISTER
@@ -94,18 +134,45 @@ export const setPassword = async (data) => {
 
   return response.data;
 };
+
+
 // =========================
 // GOOGLE LOGIN
 // =========================
 export const googleLogin = async (
   credential
 ) => {
+  const normalizedCredential =
+    String(
+      credential || ""
+    ).trim();
+
+  if (!normalizedCredential) {
+    throw new Error(
+      "Google credential is required"
+    );
+  }
+
   const response = await api.post(
     "/auth/google",
     {
-      credential,
+      credential:
+        normalizedCredential,
+    },
+    {
+      timeout: AUTH_TIMEOUT,
     }
   );
+
+  if (
+    !response?.data ||
+    typeof response.data !==
+    "object"
+  ) {
+    throw new Error(
+      "Invalid Google login response"
+    );
+  }
 
   return response.data;
 };

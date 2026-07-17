@@ -1,18 +1,58 @@
 import axios from "axios";
 
+/* =========================
+   API BASE URL
+========================= */
 
-const rawApiUrl =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:5000/api";
+const DEFAULT_API_ORIGIN =
+  "http://localhost:5000";
 
-const API_URL = rawApiUrl.replace(/\/+$/, "");
+const normalizeApiBaseUrl = (
+  value
+) => {
+  const normalizedValue = String(
+    value || DEFAULT_API_ORIGIN
+  )
+    .trim()
+    .replace(/\/+$/, "");
+
+  /*
+   * Environment URL:
+   * https://example.com
+   * or
+   * https://example.com/api
+   *
+   * Both formats are supported.
+   */
+  if (
+    normalizedValue
+      .toLowerCase()
+      .endsWith("/api")
+  ) {
+    return normalizedValue;
+  }
+
+  return `${normalizedValue}/api`;
+};
+
+const API_URL =
+  normalizeApiBaseUrl(
+    import.meta.env.VITE_API_URL
+  );
+
+/* =========================
+   AXIOS INSTANCE
+========================= */
 
 const api = axios.create({
   baseURL: API_URL,
 
-
-  timeout: 30000,
-
+  /*
+   * Normal requests use 45 seconds.
+   * Login and health requests can
+   * override this with 90 seconds.
+   */
+  timeout: 45000,
 
   withCredentials: true,
 
@@ -21,6 +61,9 @@ const api = axios.create({
   },
 });
 
+/* =========================
+   REQUEST INTERCEPTOR
+========================= */
 
 api.interceptors.request.use(
   (config) => {
@@ -33,58 +76,95 @@ api.interceptors.request.use(
 
       config.headers.Authorization =
         `Bearer ${token}`;
+
+      /*
+       * A valid authenticated request
+       * means an earlier redirect cycle
+       * is no longer active.
+       */
+      sessionStorage.removeItem(
+        "authRedirecting"
+      );
     }
 
-
+    /*
+     * Let Axios/browser generate the
+     * multipart boundary automatically.
+     */
     if (
       config.data instanceof FormData
     ) {
-      delete config.headers[
-        "Content-Type"
-      ];
+      if (
+        typeof config.headers?.delete ===
+        "function"
+      ) {
+        config.headers.delete(
+          "Content-Type"
+        );
+      } else if (config.headers) {
+        delete config.headers[
+          "Content-Type"
+        ];
+
+        delete config.headers[
+          "content-type"
+        ];
+      }
     }
 
     if (import.meta.env.DEV) {
+      const method =
+        config.method
+          ?.toUpperCase() || "GET";
+
       console.log(
-        `[API REQUEST] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`
+        `[API REQUEST] ${method} ${config.baseURL}${config.url}`
       );
     }
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+
+  (error) =>
+    Promise.reject(error)
 );
 
+/* =========================
+   RESPONSE INTERCEPTOR
+========================= */
 
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
 
   (error) => {
+    /*
+     * AbortController cancellation is
+     * intentional and should not appear
+     * as an application error.
+     */
+    if (
+      axios.isCancel(error) ||
+      error.code === "ERR_CANCELED"
+    ) {
+      return Promise.reject(error);
+    }
+
     const status =
       error.response?.status;
 
-    const requestUrl =
-      error.config?.url || "";
+    const requestUrl = String(
+      error.config?.url || ""
+    );
 
     const serverMessage =
       error.response?.data?.message;
 
-    if (import.meta.env.DEV) {
-      console.error(
-        "[API ERROR]",
-        {
-          status,
-          url: requestUrl,
-          message:
-            serverMessage ||
-            error.message,
-        }
-      );
-    }
+    const isTimeout =
+      error.code ===
+      "ECONNABORTED" ||
+      String(error.message || "")
+        .toLowerCase()
+        .includes("timeout");
 
     const publicAuthRoutes = [
       "/auth/login",
@@ -98,12 +178,38 @@ api.interceptors.response.use(
     ];
 
     const isPublicAuthRequest =
-      publicAuthRoutes.some((route) =>
-        requestUrl.includes(route)
+      publicAuthRoutes.some(
+        (route) =>
+          requestUrl.includes(route)
       );
+
+    if (import.meta.env.DEV) {
+      console.error(
+        "[API ERROR]",
+        {
+          status:
+            status || "NETWORK",
+          method:
+            error.config?.method
+              ?.toUpperCase(),
+          url: requestUrl,
+          message:
+            serverMessage ||
+            error.message,
+        }
+      );
+    }
+
+    /* =========================
+       UNAUTHORIZED SESSION
+    ========================= */
+
+    const storedToken =
+      localStorage.getItem("token");
 
     if (
       status === 401 &&
+      storedToken &&
       !isPublicAuthRequest
     ) {
       const alreadyRedirecting =
@@ -111,8 +217,13 @@ api.interceptors.response.use(
           "authRedirecting"
         );
 
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      localStorage.removeItem(
+        "token"
+      );
+
+      localStorage.removeItem(
+        "user"
+      );
 
       if (!alreadyRedirecting) {
         sessionStorage.setItem(
@@ -120,22 +231,60 @@ api.interceptors.response.use(
           "true"
         );
 
-        window.location.replace("/");
+        const currentPath =
+          window.location.pathname;
+
+        if (
+          currentPath !== "/" &&
+          currentPath !== "/login"
+        ) {
+          window.location.replace(
+            "/"
+          );
+        }
       }
     }
 
-    if (!error.response) {
+    /* =========================
+       USER-FRIENDLY MESSAGE
+    ========================= */
+
+    if (!navigator.onLine) {
       error.userMessage =
-        "Unable to connect to the server. Check your internet connection and try again.";
-    } else if (status === 404) {
+        "You appear to be offline. Check your internet connection.";
+    } else if (isTimeout) {
+      error.userMessage =
+        "The server took too long to respond. Please try again.";
+    } else if (!error.response) {
+      error.userMessage =
+        "Unable to connect to the server. Please try again.";
+    } else if (status === 400) {
       error.userMessage =
         serverMessage ||
-        "The requested resource was not found.";
+        "Please check the information you entered.";
+    } else if (status === 401) {
+      error.userMessage =
+        serverMessage ||
+        "Your session has expired. Please sign in again.";
     } else if (status === 403) {
       error.userMessage =
         serverMessage ||
         "You do not have permission to perform this action.";
-    } else if (status >= 500) {
+    } else if (status === 404) {
+      error.userMessage =
+        serverMessage ||
+        "The requested resource was not found.";
+    } else if (status === 409) {
+      error.userMessage =
+        serverMessage ||
+        "This information already exists.";
+    } else if (status === 429) {
+      error.userMessage =
+        serverMessage ||
+        "Too many requests. Please wait and try again.";
+    } else if (
+      status >= 500
+    ) {
       error.userMessage =
         serverMessage ||
         "The server encountered an error. Please try again shortly.";
@@ -149,6 +298,9 @@ api.interceptors.response.use(
   }
 );
 
+/* =========================
+   HELPERS
+========================= */
 
 export const clearAuthRedirectFlag =
   () => {
