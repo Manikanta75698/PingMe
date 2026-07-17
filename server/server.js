@@ -84,6 +84,29 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+/* =========================
+   HEALTH CHECK
+========================= */
+
+app.get(
+  "/api/health",
+  (req, res) => {
+    res.set(
+      "Cache-Control",
+      "no-store"
+    );
+
+    return res.status(200).json({
+      success: true,
+      status: "ok",
+      message:
+        "Backend is awake",
+      timestamp:
+        new Date().toISOString(),
+    });
+  }
+);
+
 // REST Endpoints
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
