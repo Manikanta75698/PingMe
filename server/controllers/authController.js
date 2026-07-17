@@ -2150,19 +2150,27 @@ const blockUser = async (
       targetUserId,
 
       {
-        userId: targetUserId,
-        blockedByMe: true,
-        blockedMe:
-          targetBlockedCurrent,
-        isBlocked: true,
+        userId:
+          targetUserId,
+
+        blockedByMe: false,
+        blockedMe,
+
+        isBlocked:
+          blockedMe,
       },
 
       {
-        userId: currentUserId,
+        userId:
+          currentUserId,
+
         blockedByMe:
-          targetBlockedCurrent,
-        blockedMe: true,
-        isBlocked: true,
+          blockedMe,
+
+        blockedMe: false,
+
+        isBlocked:
+          blockedMe,
       }
     );
 

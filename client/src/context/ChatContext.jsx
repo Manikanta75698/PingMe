@@ -1900,8 +1900,8 @@ export const ChatProvider = ({
   }, []);
 
   /* =========================
-     USER BLOCK STATUS UPDATED
-  ========================= */
+    USER BLOCK STATUS UPDATED
+ ========================= */
 
   useEffect(() => {
     const handleUserBlockStatusUpdated = (
@@ -1956,10 +1956,6 @@ export const ChatProvider = ({
 
       setBlockStatusError("");
 
-      /*
-       * Block ayinappudu active
-       * composer states clear.
-       */
       if (
         nextBlockStatus.isBlocked
       ) {
