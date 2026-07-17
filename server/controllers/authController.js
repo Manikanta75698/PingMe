@@ -2153,11 +2153,12 @@ const blockUser = async (
         userId:
           targetUserId,
 
-        blockedByMe: false,
-        blockedMe,
+        blockedByMe: true,
 
-        isBlocked:
-          blockedMe,
+        blockedMe:
+          targetBlockedCurrent,
+
+        isBlocked: true,
       },
 
       {
@@ -2165,17 +2166,17 @@ const blockUser = async (
           currentUserId,
 
         blockedByMe:
-          blockedMe,
+          targetBlockedCurrent,
 
-        blockedMe: false,
+        blockedMe: true,
 
-        isBlocked:
-          blockedMe,
+        isBlocked: true,
       }
     );
 
     return res.status(200).json({
       success: true,
+
       message:
         "User blocked successfully",
 
@@ -2184,11 +2185,14 @@ const blockUser = async (
           targetUserId,
 
         blockedByMe: true,
+
         blockedMe:
           targetBlockedCurrent,
+
         isBlocked: true,
       },
     });
+
   } catch (error) {
     console.error(
       "BLOCK USER ERROR:",
@@ -2300,6 +2304,35 @@ const unblockUser = async (
             userId
           ) === currentUserId
       );
+
+    emitBlockStatusUpdate(
+      currentUserId,
+      targetUserId,
+
+      {
+        userId:
+          targetUserId,
+
+        blockedByMe: false,
+        blockedMe,
+
+        isBlocked:
+          blockedMe,
+      },
+
+      {
+        userId:
+          currentUserId,
+
+        blockedByMe:
+          blockedMe,
+
+        blockedMe: false,
+
+        isBlocked:
+          blockedMe,
+      }
+    );
 
     return res.status(200).json({
       success: true,
@@ -2443,36 +2476,7 @@ const getBlockStatus = async (
             userId
           ) === currentUserId
       );
-
-    emitBlockStatusUpdate(
-      currentUserId,
-      targetUserId,
-
-      {
-        userId:
-          targetUserId,
-
-        blockedByMe: false,
-        blockedMe,
-
-        isBlocked:
-          blockedMe,
-      },
-
-      {
-        userId:
-          currentUserId,
-
-        blockedByMe:
-          blockedMe,
-
-        blockedMe: false,
-
-        isBlocked:
-          blockedMe,
-      }
-    );
-
+      
     return res.status(200).json({
       success: true,
 
