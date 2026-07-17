@@ -84,6 +84,13 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
+    blockedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
     // Authentication
     isVerified: {
       type: Boolean,
@@ -180,5 +187,9 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+userSchema.index({
+  blockedUsers: 1,
+});
 
 module.exports = mongoose.model("User", userSchema);

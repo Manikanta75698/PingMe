@@ -21,7 +21,9 @@ import {
   getPinnedMessage as fetchPinnedMessage,
 } from "../services/chatService";
 
-
+import {
+  getBlockStatus as fetchBlockStatus,
+} from "../services/authService";
 
 const ChatContext = createContext(null);
 
@@ -112,6 +114,26 @@ export const ChatProvider = ({
     pinnedMessage,
     setPinnedMessage,
   ] = useState(null);
+
+  const [
+    blockStatus,
+    setBlockStatus,
+  ] = useState({
+    userId: "",
+    blockedByMe: false,
+    blockedMe: false,
+    isBlocked: false,
+  });
+
+  const [
+    blockStatusLoading,
+    setBlockStatusLoading,
+  ] = useState(false);
+
+  const [
+    blockStatusError,
+    setBlockStatusError,
+  ] = useState("");
 
   const [
     onlineUsers,
@@ -245,6 +267,114 @@ export const ChatProvider = ({
       };
 
     loadPinnedMessage();
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedChatId]);
+
+
+  /* =========================
+   LOAD BLOCK STATUS
+========================= */
+
+  useEffect(() => {
+    if (!selectedChatId) {
+      setBlockStatus({
+        userId: "",
+        blockedByMe: false,
+        blockedMe: false,
+        isBlocked: false,
+      });
+
+      setBlockStatusLoading(false);
+      setBlockStatusError("");
+
+      return undefined;
+    }
+
+    let isActive = true;
+
+    setBlockStatus({
+      userId: selectedChatId,
+      blockedByMe: false,
+      blockedMe: false,
+      isBlocked: false,
+    });
+
+    setBlockStatusLoading(true);
+    setBlockStatusError("");
+
+    const loadBlockStatus =
+      async () => {
+        try {
+          const response =
+            await fetchBlockStatus(
+              selectedChatId
+            );
+
+          if (!isActive) {
+            return;
+          }
+
+          const data =
+            response?.data?.data ||
+            {};
+
+          setBlockStatus({
+            userId:
+              normalizeId(
+                data?.userId
+              ) || selectedChatId,
+
+            blockedByMe:
+              Boolean(
+                data?.blockedByMe
+              ),
+
+            blockedMe:
+              Boolean(
+                data?.blockedMe
+              ),
+
+            isBlocked:
+              Boolean(
+                data?.isBlocked
+              ),
+          });
+        } catch (error) {
+          console.error(
+            "LOAD BLOCK STATUS ERROR:",
+            error.response?.data ||
+            error.message
+          );
+
+          if (!isActive) {
+            return;
+          }
+
+          setBlockStatusError(
+            error.response?.data
+              ?.message ||
+            "Unable to load block status"
+          );
+
+          setBlockStatus({
+            userId: selectedChatId,
+            blockedByMe: false,
+            blockedMe: false,
+            isBlocked: false,
+          });
+        } finally {
+          if (isActive) {
+            setBlockStatusLoading(
+              false
+            );
+          }
+        }
+      };
+
+    loadBlockStatus();
 
     return () => {
       isActive = false;
@@ -1770,6 +1900,91 @@ export const ChatProvider = ({
   }, []);
 
   /* =========================
+     USER BLOCK STATUS UPDATED
+  ========================= */
+
+  useEffect(() => {
+    const handleUserBlockStatusUpdated = (
+      payload = {}
+    ) => {
+      const payloadUserId =
+        normalizeId(
+          payload?.userId
+        );
+
+      const activeChatId =
+        normalizeId(
+          selectedChatRef.current
+        );
+
+      if (
+        !payloadUserId ||
+        payloadUserId !==
+        activeChatId
+      ) {
+        return;
+      }
+
+      const nextBlockStatus = {
+        userId:
+          payloadUserId,
+
+        blockedByMe:
+          Boolean(
+            payload?.blockedByMe
+          ),
+
+        blockedMe:
+          Boolean(
+            payload?.blockedMe
+          ),
+
+        isBlocked:
+          Boolean(
+            payload?.isBlocked
+          ),
+      };
+
+      console.log(
+        "USER BLOCK STATUS UPDATED:",
+        nextBlockStatus
+      );
+
+      setBlockStatus(
+        nextBlockStatus
+      );
+
+      setBlockStatusError("");
+
+      /*
+       * Block ayinappudu active
+       * composer states clear.
+       */
+      if (
+        nextBlockStatus.isBlocked
+      ) {
+        setTypingUser(null);
+        typingUserRef.current = "";
+
+        setReplyingTo(null);
+        setEditingMessage(null);
+      }
+    };
+
+    socket.on(
+      "userBlockStatusUpdated",
+      handleUserBlockStatusUpdated
+    );
+
+    return () => {
+      socket.off(
+        "userBlockStatusUpdated",
+        handleUserBlockStatusUpdated
+      );
+    };
+  }, []);
+
+  /* =========================
      MESSAGE STATUS
   ========================= */
 
@@ -2133,6 +2348,12 @@ export const ChatProvider = ({
       value={{
         selectedChat,
         setSelectedChat,
+
+        blockStatus,
+        setBlockStatus,
+
+        blockStatusLoading,
+        blockStatusError,
 
         pinnedMessage:
           resolvedPinnedMessage,

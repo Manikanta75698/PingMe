@@ -1,6 +1,11 @@
 const crypto = require("crypto");
-
+const mongoose = require(
+  "mongoose"
+);
 const User = require("../models/User");
+const {
+  getIO,
+} = require("../socket/socketInstance");
 const Notification = require("../models/Notification");
 const Post = require("../models/Post");
 const uploadImage = require("../utils/cloudinaryUpload");
@@ -28,6 +33,113 @@ const {
   hashPassword,
   comparePassword,
 } = require("../utils/hashPassword");
+
+const normalizeUserId = (
+  value
+) => {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number"
+  ) {
+    return String(value).trim();
+  }
+
+  if (
+    value instanceof
+    mongoose.Types.ObjectId
+  ) {
+    return value.toHexString();
+  }
+
+  if (
+    typeof value?.toHexString ===
+    "function"
+  ) {
+    try {
+      return String(
+        value.toHexString()
+      ).trim();
+    } catch {
+      return "";
+    }
+  }
+
+  if (typeof value === "object") {
+    if (
+      value._id &&
+      value._id !== value
+    ) {
+      return normalizeUserId(
+        value._id
+      );
+    }
+
+    if (
+      value.userId &&
+      value.userId !== value
+    ) {
+      return normalizeUserId(
+        value.userId
+      );
+    }
+
+    if (
+      Object.prototype
+        .hasOwnProperty.call(
+          value,
+          "id"
+        ) &&
+      value.id &&
+      value.id !== value
+    ) {
+      return normalizeUserId(
+        value.id
+      );
+    }
+
+    return "";
+  }
+
+  return String(value).trim();
+};
+
+
+const emitBlockStatusUpdate = (
+  currentUserId,
+  targetUserId,
+  currentUserPayload,
+  targetUserPayload
+) => {
+  try {
+    const io = getIO();
+
+    io.to(
+      normalizeUserId(currentUserId)
+    ).emit(
+      "userBlockStatusUpdated",
+      currentUserPayload
+    );
+
+    io.to(
+      normalizeUserId(targetUserId)
+    ).emit(
+      "userBlockStatusUpdated",
+      targetUserPayload
+    );
+  } catch (error) {
+    console.error(
+      "BLOCK STATUS SOCKET ERROR:",
+      error?.message || error
+    );
+  }
+};
 
 // Register User
 const registerUser = async (req, res) => {
@@ -1908,6 +2020,480 @@ const checkUsernameAvailability = async (
   }
 };
 
+/* =========================
+   BLOCK USER
+========================= */
+
+const blockUser = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeUserId(
+        req.user
+      );
+
+    const targetUserId =
+      normalizeUserId(
+        req.params?.userId
+      );
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
+      !targetUserId ||
+      !mongoose.isValidObjectId(
+        targetUserId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid user ID",
+      });
+    }
+
+    if (
+      currentUserId ===
+      targetUserId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "You cannot block yourself",
+      });
+    }
+
+    const targetUser =
+      await User.findById(
+        targetUserId
+      )
+        .select(
+          "_id blockedUsers"
+        )
+        .lean();
+
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "User not found",
+      });
+    }
+
+    const targetBlockedCurrent =
+      Array.isArray(
+        targetUser?.blockedUsers
+      ) &&
+      targetUser.blockedUsers.some(
+        (userId) =>
+          normalizeUserId(
+            userId
+          ) === currentUserId
+      );
+
+    /*
+     * Block user and remove existing
+     * follow relationship from both sides.
+     */
+    await Promise.all([
+      User.updateOne(
+        {
+          _id: currentUserId,
+        },
+        {
+          $addToSet: {
+            blockedUsers:
+              targetUserId,
+          },
+
+          $pull: {
+            following:
+              targetUserId,
+
+            followers:
+              targetUserId,
+          },
+        }
+      ),
+
+      User.updateOne(
+        {
+          _id: targetUserId,
+        },
+        {
+          $pull: {
+            following:
+              currentUserId,
+
+            followers:
+              currentUserId,
+          },
+        }
+      ),
+    ]);
+
+    emitBlockStatusUpdate(
+      currentUserId,
+      targetUserId,
+
+      {
+        userId: targetUserId,
+        blockedByMe: true,
+        blockedMe:
+          targetBlockedCurrent,
+        isBlocked: true,
+      },
+
+      {
+        userId: currentUserId,
+        blockedByMe:
+          targetBlockedCurrent,
+        blockedMe: true,
+        isBlocked: true,
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "User blocked successfully",
+
+      data: {
+        userId:
+          targetUserId,
+
+        blockedByMe: true,
+        blockedMe:
+          targetBlockedCurrent,
+        isBlocked: true,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "BLOCK USER ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to block user",
+    });
+  }
+};
+
+
+/* =========================
+   UNBLOCK USER
+========================= */
+
+const unblockUser = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeUserId(
+        req.user
+      );
+
+    const targetUserId =
+      normalizeUserId(
+        req.params?.userId
+      );
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
+      !targetUserId ||
+      !mongoose.isValidObjectId(
+        targetUserId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid user ID",
+      });
+    }
+
+    if (
+      currentUserId ===
+      targetUserId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid user",
+      });
+    }
+
+    const result =
+      await User.updateOne(
+        {
+          _id: currentUserId,
+        },
+        {
+          $pull: {
+            blockedUsers:
+              targetUserId,
+          },
+        }
+      );
+
+    if (
+      result.matchedCount === 0
+    ) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "User not found",
+      });
+    }
+
+    const targetUser =
+      await User.findById(
+        targetUserId
+      )
+        .select("blockedUsers")
+        .lean();
+
+    const blockedMe =
+      Array.isArray(
+        targetUser?.blockedUsers
+      ) &&
+      targetUser.blockedUsers.some(
+        (userId) =>
+          normalizeUserId(
+            userId
+          ) === currentUserId
+      );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "User unblocked successfully",
+
+      data: {
+        userId:
+          targetUserId,
+
+        blockedByMe: false,
+        blockedMe,
+
+        isBlocked:
+          blockedMe,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "UNBLOCK USER ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to unblock user",
+    });
+  }
+};
+
+
+/* =========================
+   GET BLOCK STATUS
+========================= */
+
+const getBlockStatus = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeUserId(
+        req.user
+      );
+
+    const targetUserId =
+      normalizeUserId(
+        req.params?.userId
+      );
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
+      !targetUserId ||
+      !mongoose.isValidObjectId(
+        targetUserId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid user ID",
+      });
+    }
+
+    if (
+      currentUserId ===
+      targetUserId
+    ) {
+      return res.status(200).json({
+        success: true,
+
+        data: {
+          userId:
+            targetUserId,
+
+          blockedByMe: false,
+          blockedMe: false,
+          isBlocked: false,
+        },
+      });
+    }
+
+    const [
+      currentUser,
+      targetUser,
+    ] = await Promise.all([
+      User.findById(
+        currentUserId
+      )
+        .select("blockedUsers")
+        .lean(),
+
+      User.findById(
+        targetUserId
+      )
+        .select(
+          "_id blockedUsers"
+        )
+        .lean(),
+    ]);
+
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "User not found",
+      });
+    }
+
+    const blockedByMe =
+      Array.isArray(
+        currentUser?.blockedUsers
+      ) &&
+      currentUser.blockedUsers.some(
+        (userId) =>
+          normalizeUserId(
+            userId
+          ) === targetUserId
+      );
+
+    const blockedMe =
+      Array.isArray(
+        targetUser?.blockedUsers
+      ) &&
+      targetUser.blockedUsers.some(
+        (userId) =>
+          normalizeUserId(
+            userId
+          ) === currentUserId
+      );
+
+    emitBlockStatusUpdate(
+      currentUserId,
+      targetUserId,
+
+      {
+        userId:
+          targetUserId,
+
+        blockedByMe: false,
+        blockedMe,
+
+        isBlocked:
+          blockedMe,
+      },
+
+      {
+        userId:
+          currentUserId,
+
+        blockedByMe:
+          blockedMe,
+
+        blockedMe: false,
+
+        isBlocked:
+          blockedMe,
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+
+      data: {
+        userId:
+          targetUserId,
+
+        blockedByMe,
+        blockedMe,
+
+        isBlocked:
+          blockedByMe ||
+          blockedMe,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "GET BLOCK STATUS ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to get block status",
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -1928,4 +2514,7 @@ module.exports = {
   checkUsernameAvailability,
   setPassword,
   changePassword,
+  blockUser,
+  unblockUser,
+  getBlockStatus,
 };

@@ -181,7 +181,13 @@ const MessageBubble = ({
   const {
     setMessages,
     setPinnedMessage,
+    blockStatus,
   } = useChat();
+
+  const isBlocked =
+    Boolean(
+      blockStatus?.isBlocked
+    );
 
   const [
     showActions,
@@ -312,6 +318,11 @@ const MessageBubble = ({
       "temp-"
     );
 
+
+  const canInteract =
+    canUseActions &&
+    !isBlocked;
+
   const hasMessageText =
     Boolean(
       message?.text?.trim()
@@ -418,12 +429,11 @@ const MessageBubble = ({
 
   const handleReply = () => {
     if (
-      !canUseActions ||
+      !canInteract ||
       typeof onReply !== "function"
     ) {
       return;
     }
-
     setShowActions(false);
 
     onReply(message);
@@ -789,7 +799,7 @@ const MessageBubble = ({
       String(emoji || "").trim();
 
     if (
-      !canUseActions ||
+      !canInteract ||
       !currentUserId ||
       !ALLOWED_REACTIONS.includes(
         safeEmoji
@@ -1751,7 +1761,8 @@ const MessageBubble = ({
                         )
                       }
                       disabled={
-                        reactionLoading
+                        reactionLoading ||
+                        isBlocked
                       }
                       aria-label={`${emoji} reaction, ${count} ${count === 1
                         ? "person"
@@ -1820,6 +1831,15 @@ const MessageBubble = ({
             open={showActions}
             anchorRef={actionAnchorRef}
             isOwn={isOwn}
+
+            canReply={
+              canInteract
+            }
+
+            canReact={
+              canInteract
+            }
+
             canCopy={canCopy}
             canEdit={canEdit}
             canForward={canForward}

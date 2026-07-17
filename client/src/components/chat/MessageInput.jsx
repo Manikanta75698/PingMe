@@ -22,6 +22,7 @@ import {
 } from "../../context/AuthContext";
 
 import {
+  Ban,
   Check,
   Smile,
   ImagePlus,
@@ -86,6 +87,9 @@ const MessageInput = () => {
     selectedChat,
     setMessages,
 
+    blockStatus,
+    blockStatusLoading,
+
     socket,
     loadChatSummaries,
 
@@ -104,6 +108,27 @@ const MessageInput = () => {
 
   const isEditing =
     Boolean(editingMessageId);
+
+  const blockedByMe =
+    Boolean(
+      blockStatus?.blockedByMe
+    );
+
+  const blockedMe =
+    Boolean(
+      blockStatus?.blockedMe
+    );
+
+  const isBlocked =
+    Boolean(
+      blockStatus?.isBlocked
+    );
+
+  const composerDisabled =
+    loading ||
+    !selectedChat ||
+    blockStatusLoading ||
+    isBlocked;
 
   /* =========================
      IMAGE PREVIEW
@@ -210,12 +235,42 @@ const MessageInput = () => {
         "";
     }, [socket]);
 
+  /* =========================
+     BLOCKED CHAT RESET
+  ========================= */
+
+  useEffect(() => {
+    if (!isBlocked) {
+      return;
+    }
+
+    stopTyping();
+
+    setText("");
+    setReplyingTo(null);
+    setEditingMessage(null);
+
+    resetImage();
+    resetTextareaHeight();
+  }, [
+    isBlocked,
+    stopTyping,
+    setReplyingTo,
+    setEditingMessage,
+    resetImage,
+    resetTextareaHeight,
+  ]);
+
   const emitTypingActivity =
     useCallback(() => {
-      /*
-       * Own message edit chesthunnappudu
-       * receiver ki typing indicator pampincham.
-       */
+
+      if (
+        isBlocked ||
+        blockStatusLoading
+      ) {
+        stopTyping();
+        return;
+      }
       if (isEditing) {
         stopTyping();
         return;
@@ -265,6 +320,8 @@ const MessageInput = () => {
           stopTyping();
         }, 1200);
     }, [
+      isBlocked,
+      blockStatusLoading,
       isEditing,
       selectedChat,
       socket,
@@ -376,7 +433,9 @@ const MessageInput = () => {
 
       if (
         !messageId ||
-        loading
+        loading ||
+        blockStatusLoading ||
+        isBlocked
       ) {
         return;
       }
@@ -573,7 +632,9 @@ const MessageInput = () => {
           !selectedImage
         ) ||
         !selectedChat ||
-        loading
+        loading ||
+        blockStatusLoading ||
+        isBlocked
       ) {
         return;
       }
@@ -857,6 +918,40 @@ const MessageInput = () => {
     Boolean(text.trim()) ||
     Boolean(selectedImage);
 
+  if (
+    selectedChat &&
+    isBlocked
+  ) {
+    const blockedText =
+      blockedByMe
+        ? "You blocked this user. Unblock them to send messages."
+        : blockedMe
+          ? "You can’t message this account."
+          : "Messaging is unavailable in this conversation.";
+
+    return (
+      <div
+        className={`${styles.container} ${styles.blockedContainer}`}
+        role="status"
+      >
+        <div
+          className={
+            styles.blockedNotice
+          }
+        >
+          <Ban
+            size={19}
+            aria-hidden="true"
+          />
+
+          <span>
+            {blockedText}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={
@@ -962,8 +1057,7 @@ const MessageInput = () => {
             type="button"
             aria-label="Choose emoji"
             disabled={
-              loading ||
-              !selectedChat
+              composerDisabled
             }
           >
             <Smile
@@ -980,8 +1074,7 @@ const MessageInput = () => {
             type="button"
             aria-label="Attach image"
             disabled={
-              loading ||
-              !selectedChat
+              composerDisabled
             }
             onClick={() =>
               imageRef.current
@@ -1106,8 +1199,7 @@ const MessageInput = () => {
           }
           value={text}
           disabled={
-            loading ||
-            !selectedChat
+            composerDisabled
           }
           onChange={
             handleChange
@@ -1138,8 +1230,7 @@ const MessageInput = () => {
             void handleSubmit();
           }}
           disabled={
-            loading ||
-            !selectedChat ||
+            composerDisabled ||
             (
               isEditing &&
               !text.trim()
@@ -1173,7 +1264,7 @@ const MessageInput = () => {
           }
           aria-label="Record voice message"
           disabled={
-            !selectedChat
+            composerDisabled
           }
         >
           <Mic

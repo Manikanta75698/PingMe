@@ -7,10 +7,12 @@ import {
 
 import {
   ArrowLeft,
+  Ban,
   ChevronDown,
   ChevronUp,
   MoreVertical,
   Search,
+  UserCheck,
   X,
 } from "lucide-react";
 
@@ -21,6 +23,11 @@ import {
 import styles from "./ChatHeader.module.css";
 
 import DefaultAvatar from "../../assets/default-avatar.png";
+
+import {
+  blockUser as blockUserRequest,
+  unblockUser as unblockUserRequest,
+} from "../../services/authService";
 
 import {
   useChat,
@@ -145,8 +152,8 @@ const formatLastSeen = (
 
   if (differenceMinutes < 60) {
     return `Last seen ${differenceMinutes} ${differenceMinutes === 1
-        ? "minute"
-        : "minutes"
+      ? "minute"
+      : "minutes"
       } ago`;
   }
 
@@ -213,6 +220,11 @@ const ChatHeader = () => {
     typingUser,
     setSelectedChat,
 
+    blockStatus,
+    setBlockStatus,
+    blockStatusLoading,
+    blockStatusError,
+
     messageSearchOpen,
     setMessageSearchOpen,
 
@@ -236,6 +248,16 @@ const ChatHeader = () => {
     setShowHeaderMenu,
   ] = useState(false);
 
+  const [
+    blockActionLoading,
+    setBlockActionLoading,
+  ] = useState(false);
+
+  const [
+    blockActionError,
+    setBlockActionError,
+  ] = useState("");
+
   const menuButtonRef =
     useRef(null);
 
@@ -249,6 +271,15 @@ const ChatHeader = () => {
     normalizeId(
       selectedChat
     );
+
+  const blockedByMe =
+    Boolean(
+      blockStatus?.blockedByMe
+    );
+
+  const blockActionBusy =
+    blockStatusLoading ||
+    blockActionLoading;
 
   const isOnline =
     Boolean(selectedChatId) &&
@@ -488,6 +519,86 @@ const ChatHeader = () => {
     setMessageSearchOpen(true);
   };
 
+  const handleBlockToggle =
+    async () => {
+      if (
+        !selectedChatId ||
+        blockActionBusy
+      ) {
+        return;
+      }
+
+      if (!blockedByMe) {
+        const confirmed =
+          window.confirm(
+            `Block ${displayName}? They will no longer be able to message or interact with you.`
+          );
+
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      setBlockActionLoading(true);
+      setBlockActionError("");
+
+      try {
+        const response =
+          blockedByMe
+            ? await unblockUserRequest(
+              selectedChatId
+            )
+            : await blockUserRequest(
+              selectedChatId
+            );
+
+        const data =
+          response?.data?.data ||
+          {};
+
+        setBlockStatus({
+          userId:
+            normalizeId(
+              data?.userId
+            ) || selectedChatId,
+
+          blockedByMe:
+            Boolean(
+              data?.blockedByMe
+            ),
+
+          blockedMe:
+            Boolean(
+              data?.blockedMe
+            ),
+
+          isBlocked:
+            Boolean(
+              data?.isBlocked
+            ),
+        });
+
+        setShowHeaderMenu(false);
+      } catch (error) {
+        console.error(
+          "BLOCK USER ACTION ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+        setBlockActionError(
+          error.response?.data
+            ?.message ||
+          `Unable to ${blockedByMe
+            ? "unblock"
+            : "block"
+          } user`
+        );
+      } finally {
+        setBlockActionLoading(false);
+      }
+    };
+
   const showPreviousMatch = () => {
     if (!hasMatches) {
       return;
@@ -544,6 +655,60 @@ const ChatHeader = () => {
             aria-hidden="true"
           />
         </button>
+
+        <button
+          type="button"
+          className={`${styles.headerMenuItem} ${!blockedByMe
+            ? styles.dangerMenuItem
+            : ""
+            }`}
+          onClick={() => {
+            void handleBlockToggle();
+          }}
+          disabled={
+            blockActionBusy
+          }
+          role="menuitem"
+        >
+          {blockedByMe ? (
+            <UserCheck
+              size={18}
+              aria-hidden="true"
+            />
+          ) : (
+            <Ban
+              size={18}
+              aria-hidden="true"
+            />
+          )}
+
+          <span>
+            {blockStatusLoading
+              ? "Checking…"
+              : blockActionLoading
+                ? blockedByMe
+                  ? "Unblocking…"
+                  : "Blocking…"
+                : blockedByMe
+                  ? "Unblock user"
+                  : "Block user"}
+          </span>
+        </button>
+
+        {(
+          blockActionError ||
+          blockStatusError
+        ) && (
+            <p
+              className={
+                styles.headerMenuError
+              }
+              role="alert"
+            >
+              {blockActionError ||
+                blockStatusError}
+            </p>
+          )}
 
         <div
           className={
@@ -783,9 +948,7 @@ const ChatHeader = () => {
 
         {showHeaderMenu && (
           <div
-            ref={
-              menuRef
-            }
+            ref={menuRef}
             className={
               styles.headerMenu
             }
@@ -810,6 +973,60 @@ const ChatHeader = () => {
                 Search messages
               </span>
             </button>
+
+            <button
+              type="button"
+              className={`${styles.headerMenuItem} ${!blockedByMe
+                  ? styles.dangerMenuItem
+                  : ""
+                }`}
+              onClick={() => {
+                void handleBlockToggle();
+              }}
+              disabled={
+                blockActionBusy
+              }
+              role="menuitem"
+            >
+              {blockedByMe ? (
+                <UserCheck
+                  size={18}
+                  aria-hidden="true"
+                />
+              ) : (
+                <Ban
+                  size={18}
+                  aria-hidden="true"
+                />
+              )}
+
+              <span>
+                {blockStatusLoading
+                  ? "Checking…"
+                  : blockActionLoading
+                    ? blockedByMe
+                      ? "Unblocking…"
+                      : "Blocking…"
+                    : blockedByMe
+                      ? "Unblock user"
+                      : "Block user"}
+              </span>
+            </button>
+
+            {(
+              blockActionError ||
+              blockStatusError
+            ) && (
+                <p
+                  className={
+                    styles.headerMenuError
+                  }
+                  role="alert"
+                >
+                  {blockActionError ||
+                    blockStatusError}
+                </p>
+              )}
           </div>
         )}
       </div>

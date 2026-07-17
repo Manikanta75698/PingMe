@@ -42,11 +42,16 @@ const MessageActionsMenu = ({
   open,
   anchorRef,
   isOwn = false,
+
+  canReply = true,
+  canReact = true,
+
   canCopy = false,
   canEdit = false,
   canForward = false,
   canPin = false,
   isPinned = false,
+
   selectedReaction = "",
   onClose,
   onReply,
@@ -473,11 +478,18 @@ const MessageActionsMenu = ({
   const handleReaction = (
     emoji
   ) => {
+    if (!canReact) {
+      return;
+    }
+
     onReact?.(emoji);
     closeImmediately();
   };
-
   const handleReply = () => {
+    if (!canReply) {
+      return;
+    }
+
     onReply?.();
     closeImmediately();
   };
@@ -585,93 +597,98 @@ const MessageActionsMenu = ({
         }}
       >
 
-        <div
-          className={
-            styles.reactionSection
-          }
-        >
-
+        {canReact && (
           <div
             className={
-              styles.reactionRow
+              styles.reactionSection
             }
-            role="group"
-            aria-label="Choose a reaction"
           >
-            {REACTIONS.map(
-              (emoji, index) => {
-                const isSelected =
-                  selectedReaction ===
-                  emoji;
-
-                return (
-                  <button
-                    key={emoji}
-                    ref={
-                      index === 0
-                        ? firstReactionRef
-                        : undefined
-                    }
-                    type="button"
-                    className={`${styles.reactionButton} ${isSelected
-                      ? styles.selectedReaction
-                      : ""
-                      }`}
-                    onClick={() =>
-                      handleReaction(
-                        emoji
-                      )
-                    }
-                    aria-label={
-                      isSelected
-                        ? `Remove ${emoji} reaction`
-                        : `React with ${emoji}`
-                    }
-                    aria-pressed={
-                      isSelected
-                    }
-                    role="menuitem"
-                  >
-                    <span
-                      aria-hidden="true"
-                    >
-                      {emoji}
-                    </span>
-                  </button>
-                );
+            <div
+              className={
+                styles.reactionRow
               }
-            )}
-          </div>
-        </div>
+              role="group"
+              aria-label="Choose a reaction"
+            >
+              {REACTIONS.map(
+                (emoji, index) => {
+                  const isSelected =
+                    selectedReaction ===
+                    emoji;
 
-        <div
-          className={
-            styles.divider
-          }
-        />
+                  return (
+                    <button
+                      key={emoji}
+                      ref={
+                        index === 0
+                          ? firstReactionRef
+                          : undefined
+                      }
+                      type="button"
+                      className={`${styles.reactionButton} ${isSelected
+                          ? styles.selectedReaction
+                          : ""
+                        }`}
+                      onClick={() =>
+                        handleReaction(
+                          emoji
+                        )
+                      }
+                      aria-label={
+                        isSelected
+                          ? `Remove ${emoji} reaction`
+                          : `React with ${emoji}`
+                      }
+                      aria-pressed={
+                        isSelected
+                      }
+                      role="menuitem"
+                    >
+                      <span
+                        aria-hidden="true"
+                      >
+                        {emoji}
+                      </span>
+                    </button>
+                  );
+                }
+              )}
+            </div>
+          </div>
+        )}
+
+        {canReact && (
+          <div
+            className={
+              styles.divider
+            }
+          />
+        )}
 
         <div
           className={
             styles.actions
           }
         >
-          <button
-            type="button"
-            className={
-              styles.actionButton
-            }
-            onClick={
-              handleReply
-            }
-            role="menuitem"
-          >
-            <Reply
-              size={19}
-              aria-hidden="true"
-            />
+          {canReply && (
+            <button
+              type="button"
+              className={
+                styles.actionButton
+              }
+              onClick={
+                handleReply
+              }
+              role="menuitem"
+            >
+              <Reply
+                size={19}
+                aria-hidden="true"
+              />
 
-            <span>Reply</span>
-          </button>
+              <span>Reply</span>
+            </button>
+          )}
 
           {canCopy && (
             <button

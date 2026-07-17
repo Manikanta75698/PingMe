@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 const streamifier = require("streamifier");
 
 const Message = require("../models/Message");
+
+const User = require(
+  "../models/User"
+);
+
 const ChatRequest = require("../models/ChatRequest");
 
 const cloudinary = require(
@@ -120,6 +125,117 @@ const normalizeId = (value) => {
     "[object Object]"
     ? ""
     : stringValue;
+};
+
+const getUserBlockState =
+  async (
+    firstUserId,
+    secondUserId
+  ) => {
+    const firstId =
+      normalizeId(firstUserId);
+
+    const secondId =
+      normalizeId(secondUserId);
+
+    if (
+      !firstId ||
+      !secondId
+    ) {
+      return {
+        blockedByFirst: false,
+        blockedBySecond: false,
+        isBlocked: false,
+      };
+    }
+
+    const users =
+      await User.find({
+        _id: {
+          $in: [
+            firstId,
+            secondId,
+          ],
+        },
+      })
+        .select(
+          "_id blockedUsers"
+        )
+        .lean();
+
+    const userMap =
+      new Map(
+        users.map((user) => [
+          normalizeId(user?._id),
+          user,
+        ])
+      );
+
+    const firstUser =
+      userMap.get(firstId);
+
+    const secondUser =
+      userMap.get(secondId);
+
+    const blockedByFirst =
+      Array.isArray(
+        firstUser?.blockedUsers
+      ) &&
+      firstUser.blockedUsers.some(
+        (userId) =>
+          normalizeId(userId) ===
+          secondId
+      );
+
+    const blockedBySecond =
+      Array.isArray(
+        secondUser?.blockedUsers
+      ) &&
+      secondUser.blockedUsers.some(
+        (userId) =>
+          normalizeId(userId) ===
+          firstId
+      );
+
+    return {
+      blockedByFirst,
+      blockedBySecond,
+
+      isBlocked:
+        blockedByFirst ||
+        blockedBySecond,
+    };
+  };
+
+const getOtherMessageParticipantId = (
+  message,
+  currentUserId
+) => {
+  const senderId =
+    normalizeId(
+      message?.sender
+    );
+
+  const receiverId =
+    normalizeId(
+      message?.receiver
+    );
+
+  if (
+    senderId ===
+    normalizeId(currentUserId)
+  ) {
+    return receiverId;
+  }
+
+  if (
+    receiverId ===
+    normalizeId(currentUserId)
+  ) {
+    return senderId;
+  }
+
+  return "";
 };
 
 const isValidObjectId = (value) =>
@@ -559,11 +675,29 @@ const sendMessage = async (
       });
     }
 
-    /*
-     * Vere conversation message ID ni
-     * replyTo ga manually pampinchakunda
-     * authorization check.
-     */
+
+    const blockState =
+      await getUserBlockState(
+        senderId,
+        receiverId
+      );
+
+    if (blockState.isBlocked) {
+      return res.status(403).json({
+        success: false,
+
+        message:
+          blockState.blockedByFirst
+            ? "Unblock this user to send messages"
+            : "You cannot send messages to this user",
+
+        code:
+          blockState.blockedByFirst
+            ? "USER_BLOCKED_BY_YOU"
+            : "USER_BLOCKED_YOU",
+      });
+    }
+
     if (replyToId) {
       const repliedMessageExists =
         await Message.exists({
@@ -1124,6 +1258,38 @@ const toggleReaction = async (
       });
     }
 
+    const reactionOtherUserId =
+      getOtherMessageParticipantId(
+        message,
+        currentUserId
+      );
+
+    const reactionBlockState =
+      await getUserBlockState(
+        currentUserId,
+        reactionOtherUserId
+      );
+
+    if (
+      reactionBlockState.isBlocked
+    ) {
+      return res.status(403).json({
+        success: false,
+
+        message:
+          reactionBlockState
+            .blockedByFirst
+            ? "Unblock this user to react to messages"
+            : "You cannot react to this user's messages",
+
+        code:
+          reactionBlockState
+            .blockedByFirst
+            ? "USER_BLOCKED_BY_YOU"
+            : "USER_BLOCKED_YOU",
+      });
+    }
+
     if (
       !Array.isArray(
         message.reactions
@@ -1349,6 +1515,35 @@ const editMessage = async (
       });
     }
 
+
+    const editOtherUserId =
+      getOtherMessageParticipantId(
+        message,
+        currentUserId
+      );
+
+    const editBlockState =
+      await getUserBlockState(
+        currentUserId,
+        editOtherUserId
+      );
+
+    if (editBlockState.isBlocked) {
+      return res.status(403).json({
+        success: false,
+
+        message:
+          editBlockState.blockedByFirst
+            ? "Unblock this user to edit messages"
+            : "You cannot edit messages in this conversation",
+
+        code:
+          editBlockState.blockedByFirst
+            ? "USER_BLOCKED_BY_YOU"
+            : "USER_BLOCKED_YOU",
+      });
+    }
+
     /*
      * Image-only message edit
      * disable chesthunnam.
@@ -1517,10 +1712,7 @@ const forwardMessage = async (
       });
     }
 
-    /*
-     * Current user original message
-     * sender or receiver ayyi undali.
-     */
+
     const sourceMessage =
       await Message.findOne({
         _id: sourceMessageId,
@@ -1567,10 +1759,7 @@ const forwardMessage = async (
       });
     }
 
-    /*
-     * Destination user tho accepted
-     * chat connection undali.
-     */
+
     const chatAllowed =
       await isChatAccepted(
         currentUserId,
@@ -1582,6 +1771,34 @@ const forwardMessage = async (
         success: false,
         message:
           "Chat request not accepted",
+      });
+    }
+
+    const forwardBlockState =
+      await getUserBlockState(
+        currentUserId,
+        receiverId
+      );
+
+    if (forwardBlockState.isBlocked) {
+      return res.status(403).json({
+        success: false,
+
+        message:
+          forwardBlockState
+            .blockedByFirst
+            ? "Unblock this user before forwarding messages"
+            : "You cannot forward messages to this user",
+
+        code:
+          forwardBlockState
+            .blockedByFirst
+            ? "USER_BLOCKED_BY_YOU"
+            : "USER_BLOCKED_YOU",
+
+        data: {
+          userId: receiverId,
+        },
       });
     }
 
@@ -1667,6 +1884,8 @@ const forwardMessage = async (
       });
   }
 };
+
+
 
 /* =========================
    TOGGLE PIN MESSAGE
@@ -1755,6 +1974,28 @@ const togglePinMessage = async (
         currentUserId
         ? receiverId
         : senderId;
+
+    const pinBlockState =
+      await getUserBlockState(
+        currentUserId,
+        otherUserId
+      );
+
+    if (pinBlockState.isBlocked) {
+      return res.status(403).json({
+        success: false,
+
+        message:
+          pinBlockState.blockedByFirst
+            ? "Unblock this user to pin messages"
+            : "You cannot pin messages in this conversation",
+
+        code:
+          pinBlockState.blockedByFirst
+            ? "USER_BLOCKED_BY_YOU"
+            : "USER_BLOCKED_YOU",
+      });
+    }
 
     const chatAllowed =
       await isChatAccepted(

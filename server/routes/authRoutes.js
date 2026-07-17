@@ -30,6 +30,9 @@ const {
   checkUsernameAvailability,
   setPassword,
   changePassword,
+  blockUser,
+  unblockUser,
+  getBlockStatus,
 } = require("../controllers/authController");
 
 // =========================
@@ -136,6 +139,9 @@ router.put("/change-password", protect, changePassword);
 
 router.post("/set-password", protect, setPassword);
 
+
+
+
 // =========================
 // USER ROUTES
 // =========================
@@ -144,6 +150,28 @@ router.get(
   "/search",
   protect,
   searchUsers
+);
+
+/* =========================
+   BLOCK USER
+========================= */
+
+router.get(
+  "/users/:userId/block-status",
+  protect,
+  getBlockStatus
+);
+
+router.post(
+  "/users/:userId/block",
+  protect,
+  blockUser
+);
+
+router.delete(
+  "/users/:userId/block",
+  protect,
+  unblockUser
 );
 
 router.get(

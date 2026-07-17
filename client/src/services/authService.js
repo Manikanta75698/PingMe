@@ -248,3 +248,54 @@ export const changePassword = async (data) => {
 
   return response.data;
 };
+
+export const getBlockStatus = async (
+  userId
+) => {
+  const normalizedUserId =
+    String(userId || "").trim();
+
+  if (!normalizedUserId) {
+    throw new Error(
+      "User ID is required"
+    );
+  }
+
+  return api.get(
+    `/auth/users/${normalizedUserId}/block-status`
+  );
+};
+
+export const blockUser = async (
+  userId
+) => {
+  const normalizedUserId =
+    String(userId || "").trim();
+
+  if (!normalizedUserId) {
+    throw new Error(
+      "User ID is required"
+    );
+  }
+
+  return api.post(
+    `/auth/users/${normalizedUserId}/block`
+  );
+};
+
+export const unblockUser = async (
+  userId
+) => {
+  const normalizedUserId =
+    String(userId || "").trim();
+
+  if (!normalizedUserId) {
+    throw new Error(
+      "User ID is required"
+    );
+  }
+
+  return api.delete(
+    `/auth/users/${normalizedUserId}/block`
+  );
+};
