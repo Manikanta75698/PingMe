@@ -1,8 +1,12 @@
 import {
-  Routes,
-  Route,
   Navigate,
+  Outlet,
+  Route,
+  Routes,
 } from "react-router-dom";
+
+import { useAuth } from "../context/AuthContext";
+import { ChatProvider } from "../context/ChatContext";
 
 import Login from "../pages/auth/login";
 import Register from "../pages/auth/register";
@@ -12,126 +16,188 @@ import ResetOtp from "../pages/auth/reset-otp/ResetOtp";
 import ResetPassword from "../pages/auth/reset-password";
 
 import Home from "../pages/home/Home";
-
 import Settings from "../pages/settings/Settings";
-
 import Chat from "../pages/chat/Chat";
-
 import Search from "../components/search/Search";
-
 import Activity from "../pages/activity/Activity";
-
 import Profile from "../pages/profile/Profile";
 import UserProfile from "../pages/profile/UserProfile";
 
+/* =========================
+   AUTH HELPERS
+========================= */
+
+const hasValidSession = (user) => {
+  const token =
+    localStorage.getItem("token");
+
+  return Boolean(user && token);
+};
+
+/* =========================
+   PUBLIC-ONLY ROUTES
+========================= */
+
+const PublicOnlyLayout = () => {
+  const { user } = useAuth();
+
+  if (hasValidSession(user)) {
+    return (
+      <Navigate
+        to="/home"
+        replace
+      />
+    );
+  }
+
+  return <Outlet />;
+};
+
+/* =========================
+   PROTECTED APP ROUTES
+========================= */
+
+const ProtectedAppLayout = () => {
+  const { user } = useAuth();
+
+  if (!hasValidSession(user)) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
+  }
+
+  return (
+    <ChatProvider>
+      <Outlet />
+    </ChatProvider>
+  );
+};
+
+/* =========================
+   APP ROUTES
+========================= */
 
 const AppRoutes = () => {
+  const { user } = useAuth();
+
   return (
     <Routes>
-      {/* =====================
-          DEFAULT
-      ====================== */}
+      {/* DEFAULT */}
       <Route
         path="/"
         element={
           <Navigate
-            to="/login"
+            to={
+              hasValidSession(user)
+                ? "/home"
+                : "/login"
+            }
             replace
           />
         }
       />
 
-      {/* =====================
-          AUTH ROUTES
-      ====================== */}
+      {/* PUBLIC AUTH ROUTES */}
       <Route
-        path="/login"
-        element={<Login />}
-      />
+        element={
+          <PublicOnlyLayout />
+        }
+      >
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+        <Route
+          path="/forgot-password"
+          element={
+            <ForgotPassword />
+          }
+        />
+
+        <Route
+          path="/otp"
+          element={<Otp />}
+        />
+
+        <Route
+          path="/reset-otp"
+          element={<ResetOtp />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={
+            <ResetPassword />
+          }
+        />
+      </Route>
+
+      {/* AUTHENTICATED ROUTES */}
       <Route
-        path="/register"
-        element={<Register />}
-      />
+        element={
+          <ProtectedAppLayout />
+        }
+      >
+        <Route
+          path="/home"
+          element={<Home />}
+        />
 
-      <Route
-        path="/forgot-password"
-        element={<ForgotPassword />}
-      />
+        <Route
+          path="/search"
+          element={<Search />}
+        />
 
-      <Route
-        path="/otp"
-        element={<Otp />}
-      />
+        <Route
+          path="/chat"
+          element={<Chat />}
+        />
 
-      <Route
-        path="/reset-otp"
-        element={<ResetOtp />}
-      />
+        <Route
+          path="/chat/:userId"
+          element={<Chat />}
+        />
 
-      <Route
-        path="/reset-password"
-        element={<ResetPassword />}
-      />
+        <Route
+          path="/profile"
+          element={<Profile />}
+        />
 
-      {/* =====================
-          MAIN ROUTES
-      ====================== */}
-      <Route
-        path="/home"
-        element={<Home />}
-      />
+        <Route
+          path="/settings"
+          element={<Settings />}
+        />
 
-      <Route
-        path="/search"
-        element={<Search />}
-      />
+        <Route
+          path="/activity"
+          element={<Activity />}
+        />
 
-      <Route
-        path="/chat"
-        element={<Chat />}
-      />
+        <Route
+          path="/user/:username"
+          element={<UserProfile />}
+        />
+      </Route>
 
-      <Route
-        path="/chat/:userId"
-        element={<Chat />}
-      />
-
-      {/* =====================
-          OWN PROFILE
-      ====================== */}
-      <Route
-        path="/profile"
-        element={<Profile />}
-      />
-
-      <Route
-        path="/settings"
-        element={<Settings />}
-      />
-
-      <Route
-        path="/activity"
-        element={<Activity />}
-      />
-
-      {/* =====================
-          OTHER USER PROFILE
-      ====================== */}
-      <Route
-        path="/user/:username"
-        element={<UserProfile />}
-      />
-
-      {/* =====================
-          FALLBACK
-          ALWAYS LAST
-      ====================== */}
+      {/* FALLBACK */}
       <Route
         path="*"
         element={
           <Navigate
-            to="/login"
+            to={
+              hasValidSession(user)
+                ? "/home"
+                : "/login"
+            }
             replace
           />
         }

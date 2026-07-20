@@ -591,15 +591,8 @@ export const ChatProvider = ({
     const currentUserId =
       normalizeId(currentUser);
 
-    if (
-      !token ||
-      !currentUserId
-    ) {
-      console.error(
-        "Socket connection skipped: token or user ID missing"
-      );
-
-      return undefined;
+    if (!token || !currentUserId) {
+      return;
     }
 
     const handleConnect = () => {

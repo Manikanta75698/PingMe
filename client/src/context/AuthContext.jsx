@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -13,14 +14,35 @@ import {
 const AuthContext =
   createContext(null);
 
+/* =========================
+   READ STORED USER
+========================= */
+
 const getStoredUser = () => {
   try {
     const storedUser =
       localStorage.getItem("user");
 
-    return storedUser
-      ? JSON.parse(storedUser)
-      : null;
+    if (!storedUser) {
+      return null;
+    }
+
+    const parsedUser =
+      JSON.parse(storedUser);
+
+    if (
+      !parsedUser ||
+      typeof parsedUser !==
+      "object"
+    ) {
+      localStorage.removeItem(
+        "user"
+      );
+
+      return null;
+    }
+
+    return parsedUser;
   } catch (error) {
     console.error(
       "Unable to read stored user:",
@@ -35,71 +57,141 @@ const getStoredUser = () => {
   }
 };
 
-const clearConversationCache = () => {
-  try {
-    const keysToRemove = [];
+/* =========================
+   CLEAR CHAT CACHE
+========================= */
 
-    for (
-      let index = 0;
-      index < localStorage.length;
-      index += 1
-    ) {
-      const key =
-        localStorage.key(index);
+const clearConversationCache =
+  () => {
+    try {
+      const keysToRemove = [];
 
-      if (
-        key?.startsWith(
-          "pingme:conversation:"
-        )
+      for (
+        let index = 0;
+        index <
+        localStorage.length;
+        index += 1
       ) {
-        keysToRemove.push(key);
-      }
-    }
+        const key =
+          localStorage.key(index);
 
-    keysToRemove.forEach((key) => {
-      localStorage.removeItem(key);
-    });
-  } catch (error) {
-    console.error(
-      "Unable to clear chat cache:",
-      error
-    );
-  }
-};
+        if (
+          key?.startsWith(
+            "pingme:conversation:"
+          )
+        ) {
+          keysToRemove.push(
+            key
+          );
+        }
+      }
+
+      keysToRemove.forEach(
+        (key) => {
+          localStorage.removeItem(
+            key
+          );
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Unable to clear chat cache:",
+        error
+      );
+    }
+  };
+
+/* =========================
+   AUTH PROVIDER
+========================= */
 
 export const AuthProvider = ({
   children,
 }) => {
   const [
     user,
-    setUser,
+    setUserState,
   ] = useState(
     () => getStoredUser()
+  );
+
+  /*
+   * Components can continue using:
+   *
+   * setUser(response.user)
+   *
+   * User state and localStorage are
+   * updated together automatically.
+   */
+  const setUser = useCallback(
+    (nextUser) => {
+      setUserState(
+        (previousUser) => {
+          const resolvedUser =
+            typeof nextUser ===
+              "function"
+              ? nextUser(
+                previousUser
+              )
+              : nextUser;
+
+          try {
+            if (resolvedUser) {
+              localStorage.setItem(
+                "user",
+                JSON.stringify(
+                  resolvedUser
+                )
+              );
+            } else {
+              localStorage.removeItem(
+                "user"
+              );
+            }
+          } catch (error) {
+            console.error(
+              "Unable to store user:",
+              error
+            );
+          }
+
+          return resolvedUser;
+        }
+      );
+    },
+    []
   );
 
   /* =========================
      LOGOUT
   ========================= */
 
-  const logout = useCallback(() => {
-    /*
-     * Token clear cheyyadam mundu
-     * active socket disconnect cheyyali.
-     */
-    disconnectSocket();
+  const logout = useCallback(
+    () => {
+      /*
+       * Disconnect before removing
+       * authentication information.
+       */
+      disconnectSocket();
 
-    localStorage.removeItem(
-      "token"
-    );
+      localStorage.removeItem(
+        "token"
+      );
 
-    localStorage.removeItem(
-      "user"
-    );
+      localStorage.removeItem(
+        "user"
+      );
 
-    clearConversationCache();
+      sessionStorage.removeItem(
+        "authRedirecting"
+      );
 
-    setUser(null);
-  }, []);
+      clearConversationCache();
+
+      setUserState(null);
+    },
+    []
+  );
 
   /* =========================
      DEFENSIVE SOCKET CLEANUP
@@ -107,12 +199,10 @@ export const AuthProvider = ({
 
   useEffect(() => {
     const token =
-      localStorage.getItem("token");
+      localStorage.getItem(
+        "token"
+      );
 
-    /*
-     * Vere component direct ga user/token
-     * clear chesina socket close avutundi.
-     */
     if (!user || !token) {
       disconnectSocket();
     }
@@ -127,30 +217,30 @@ export const AuthProvider = ({
       event
     ) => {
       /*
-       * Vere tab lo token remove ayithe
-       * current tab socket kuda close.
+       * Logout performed in another tab.
        */
       if (
         event.key === "token" &&
         !event.newValue
       ) {
         disconnectSocket();
-        setUser(null);
+        setUserState(null);
 
         return;
       }
 
       /*
-       * Vere tab lo user data change/logout
-       * ayithe current tab state sync.
+       * User data changed in another tab.
        */
-      if (event.key !== "user") {
+      if (
+        event.key !== "user"
+      ) {
         return;
       }
 
       if (!event.newValue) {
         disconnectSocket();
-        setUser(null);
+        setUserState(null);
 
         return;
       }
@@ -161,7 +251,19 @@ export const AuthProvider = ({
             event.newValue
           );
 
-        setUser(updatedUser);
+        if (
+          !updatedUser ||
+          typeof updatedUser !==
+          "object"
+        ) {
+          throw new Error(
+            "Invalid stored user"
+          );
+        }
+
+        setUserState(
+          updatedUser
+        );
       } catch (error) {
         console.error(
           "Unable to sync stored user:",
@@ -169,7 +271,16 @@ export const AuthProvider = ({
         );
 
         disconnectSocket();
-        setUser(null);
+
+        localStorage.removeItem(
+          "token"
+        );
+
+        localStorage.removeItem(
+          "user"
+        );
+
+        setUserState(null);
       }
     };
 
@@ -186,18 +297,42 @@ export const AuthProvider = ({
     };
   }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
+  const isAuthenticated =
+    Boolean(
+      user &&
+      localStorage.getItem(
+        "token"
+      )
+    );
+
+  const contextValue =
+    useMemo(
+      () => ({
         user,
         setUser,
         logout,
-      }}
+        isAuthenticated,
+      }),
+      [
+        user,
+        setUser,
+        logout,
+        isAuthenticated,
+      ]
+    );
+
+  return (
+    <AuthContext.Provider
+      value={contextValue}
     >
       {children}
     </AuthContext.Provider>
   );
 };
+
+/* =========================
+   AUTH HOOK
+========================= */
 
 export const useAuth = () => {
   const context =
