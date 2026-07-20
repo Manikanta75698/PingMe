@@ -17,6 +17,7 @@ const {
 const {
   createStory,
   getStories,
+  getStoryViewers,
   deleteStory,
   viewStory,
 } = require(
@@ -59,8 +60,23 @@ const uploadStoryImage = (
           .status(400)
           .json({
             success: false,
+
             message:
               "Story image must be smaller than 5MB",
+          });
+      }
+
+      if (
+        error.code ===
+        "LIMIT_UNEXPECTED_FILE"
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+
+            message:
+              "Invalid story image field",
           });
       }
 
@@ -68,6 +84,7 @@ const uploadStoryImage = (
         .status(400)
         .json({
           success: false,
+
           message:
             error.message ||
             "Unable to upload story image",
@@ -82,7 +99,8 @@ const uploadStoryImage = (
 
 /*
  * GET /api/stories
- * Fetch active stories.
+ *
+ * Fetch all active stories.
  */
 router.get(
   "/",
@@ -92,6 +110,7 @@ router.get(
 
 /*
  * POST /api/stories/create
+ *
  * Create a new image story.
  */
 router.post(
@@ -103,7 +122,8 @@ router.post(
 
 /*
  * PUT /api/stories/view/:id
- * Mark an active story as viewed.
+ *
+ * Mark story as viewed.
  */
 router.put(
   "/view/:id",
@@ -111,8 +131,16 @@ router.put(
   viewStory
 );
 
+
+router.get(
+  "/:id/viewers",
+  protect,
+  getStoryViewers
+);
+
 /*
  * DELETE /api/stories/:id
+ *
  * Delete own story.
  */
 router.delete(
@@ -121,4 +149,5 @@ router.delete(
   deleteStory
 );
 
-module.exports = router;
+module.exports =
+  router;

@@ -1,0 +1,1156 @@
+.page {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+  min-height: 0;
+
+  color: #fff;
+  background:
+    radial-gradient(circle at top,
+      #202020 0,
+      #101010 36%,
+      #090909 100%);
+
+  overflow: hidden;
+}
+
+/* =========================
+   TOP BAR
+========================= */
+
+.topBar {
+  position: relative;
+  z-index: 10;
+
+  min-height: 68px;
+
+  display: grid;
+  grid-template-columns:
+    48px 1fr 48px;
+  align-items: center;
+  gap: 12px;
+
+  padding:
+    10px 20px;
+
+  background:
+    rgba(15, 15, 15, 0.92);
+
+  border-bottom:
+    1px solid rgba(255,
+      255,
+      255,
+      0.1);
+
+  backdrop-filter:
+    blur(18px);
+}
+
+.heading {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  text-align: center;
+}
+
+.heading strong {
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.heading span {
+  margin-top: 2px;
+
+  color:
+    rgba(255,
+      255,
+      255,
+      0.58);
+
+  font-size: 11px;
+}
+
+.iconButton,
+.topShareButton {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  color: #fff;
+  background:
+    rgba(255,
+      255,
+      255,
+      0.1);
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.08);
+
+  border-radius: 50%;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.16s ease,
+    background 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.topShareButton {
+  background:
+    var(--primary,
+      #4f46e5);
+
+  border-color:
+    transparent;
+}
+
+.iconButton:hover,
+.topShareButton:hover {
+  transform:
+    scale(1.04);
+}
+
+.iconButton:active,
+.topShareButton:active {
+  transform:
+    scale(0.95);
+}
+
+.iconButton:disabled,
+.topShareButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.iconButton svg,
+.topShareButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* =========================
+   WORKSPACE
+========================= */
+
+.workspace {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr) 360px;
+
+  overflow: hidden;
+}
+
+/* =========================
+   CANVAS AREA
+========================= */
+
+.canvasSection {
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  overflow: hidden;
+}
+
+.canvasShell {
+  width:
+    min(430px,
+      100%);
+
+  height: 100%;
+  max-height:
+    calc(100vh - 116px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.storyCanvas {
+  position: relative;
+
+  width: 100%;
+  max-height: 100%;
+
+  aspect-ratio: 9 / 16;
+
+  overflow: hidden;
+
+  background: #000;
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.12);
+
+  border-radius: 20px;
+
+  box-shadow:
+    0 26px 80px rgba(0,
+      0,
+      0,
+      0.55);
+
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.storyCanvas:active {
+  cursor: grabbing;
+}
+
+.previewImage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-position: center;
+
+  transform-origin: center;
+  translate: -50% -50%;
+
+  pointer-events: none;
+  user-select: none;
+
+  transition:
+    transform 0.12s ease;
+}
+
+.previewFit {
+  object-fit: contain;
+}
+
+.previewFill {
+  object-fit: cover;
+}
+
+.canvasState {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  padding: 24px;
+
+  color:
+    rgba(255,
+      255,
+      255,
+      0.72);
+
+  background: #000;
+
+  text-align: center;
+}
+
+.canvasState svg {
+  width: 30px;
+  height: 30px;
+}
+
+.canvasState strong {
+  color: #fff;
+  font-size: 15px;
+}
+
+.canvasState span {
+  max-width: 280px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dragHint {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  z-index: 4;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  padding:
+    8px 12px;
+
+  color: #fff;
+  background:
+    rgba(0,
+      0,
+      0,
+      0.56);
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.14);
+
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 650;
+
+  pointer-events: none;
+
+  transform:
+    translateX(-50%);
+
+  backdrop-filter:
+    blur(10px);
+}
+
+.dragHint svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* =========================
+   EDITOR PANEL
+========================= */
+
+.editorPanel {
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+
+  padding:
+    24px 22px;
+
+  overflow-y: auto;
+  overscroll-behavior:
+    contain;
+
+  background:
+    rgba(18,
+      18,
+      18,
+      0.96);
+
+  border-left:
+    1px solid rgba(255,
+      255,
+      255,
+      0.1);
+
+  scrollbar-width: thin;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content:
+    space-between;
+  gap: 12px;
+}
+
+.panelHeader>div {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.panelHeader strong {
+  font-size: 17px;
+}
+
+.panelHeader span {
+  color:
+    rgba(255,
+      255,
+      255,
+      0.56);
+
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.resetButton {
+  flex-shrink: 0;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding:
+    7px 10px;
+
+  color:
+    rgba(255,
+      255,
+      255,
+      0.78);
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.08);
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.1);
+
+  border-radius: 9px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.resetButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+.resetButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* =========================
+   CONTROLS
+========================= */
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.controlGroup>label,
+.controlLabelRow label {
+  color:
+    rgba(255,
+      255,
+      255,
+      0.82);
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.controlLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content:
+    space-between;
+  gap: 12px;
+}
+
+.controlLabelRow span {
+  color:
+    rgba(255,
+      255,
+      255,
+      0.55);
+
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.segmentedControl {
+  display: grid;
+  grid-template-columns:
+    1fr 1fr;
+  gap: 10px;
+}
+
+.segmentedControl button {
+  min-height: 88px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+
+  padding:
+    14px;
+
+  color:
+    rgba(255,
+      255,
+      255,
+      0.74);
+
+  background:
+    rgba(255,
+      255,
+      255,
+      0.06);
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.1);
+
+  border-radius: 13px;
+
+  cursor: pointer;
+
+  font: inherit;
+  text-align: left;
+
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.segmentedControl button:hover {
+  background:
+    rgba(255,
+      255,
+      255,
+      0.1);
+}
+
+.segmentedControl button:active {
+  transform:
+    scale(0.98);
+}
+
+.segmentedControl button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.segmentedControl svg {
+  width: 19px;
+  height: 19px;
+}
+
+.segmentedControl span {
+  color: #fff;
+
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.segmentedControl small {
+  color:
+    rgba(255,
+      255,
+      255,
+      0.48);
+
+  font-size: 10px;
+}
+
+.segmentedControl .segmentActive {
+  background:
+    color-mix(in srgb,
+      var(--primary,
+        #4f46e5) 24%,
+      transparent);
+
+  border-color:
+    var(--primary,
+      #4f46e5);
+}
+
+.zoomControl {
+  display: grid;
+  grid-template-columns:
+    42px 1fr 42px;
+  align-items: center;
+  gap: 12px;
+}
+
+.zoomControl button {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  color: #fff;
+  background:
+    rgba(255,
+      255,
+      255,
+      0.08);
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.1);
+
+  border-radius: 50%;
+
+  cursor: pointer;
+}
+
+.zoomControl button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.zoomControl svg {
+  width: 18px;
+  height: 18px;
+}
+
+.zoomControl input {
+  width: 100%;
+
+  accent-color:
+    var(--primary,
+      #4f46e5);
+
+  cursor: pointer;
+}
+
+.rotationButtons {
+  display: grid;
+  grid-template-columns:
+    1fr 1fr;
+  gap: 10px;
+}
+
+.rotationButtons button {
+  min-height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding:
+    10px 12px;
+
+  color: #fff;
+  background:
+    rgba(255,
+      255,
+      255,
+      0.08);
+
+  border:
+    1px solid rgba(255,
+      255,
+      255,
+      0.11);
+
+  border-radius: 11px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rotationButtons button:hover {
+  background:
+    rgba(255,
+      255,
+      255,
+      0.12);
+}
+
+.rotationButtons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rotationButtons svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* =========================
+   SHARE
+========================= */
+
+.shareButton {
+  min-height: 48px;
+  margin-top: auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  padding:
+    12px 16px;
+
+  color: #fff;
+  background:
+    linear-gradient(135deg,
+      var(--primary,
+        #4f46e5),
+      #6d5dfc);
+
+  border: 0;
+  border-radius: 13px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+
+  box-shadow:
+    0 12px 30px color-mix(in srgb,
+      var(--primary,
+        #4f46e5) 28%,
+      transparent);
+
+  transition:
+    transform 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.shareButton:hover {
+  transform:
+    translateY(-1px);
+}
+
+.shareButton:active {
+  transform:
+    translateY(0) scale(0.99);
+}
+
+.shareButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+
+  box-shadow: none;
+}
+
+.helperText {
+  margin:
+    -12px 0 0;
+
+  color:
+    rgba(255,
+      255,
+      255,
+      0.44);
+
+  font-size: 10px;
+  text-align: center;
+}
+
+.errorMessage {
+  padding:
+    10px 12px;
+
+  color: #fecaca;
+  background:
+    rgba(239,
+      68,
+      68,
+      0.12);
+
+  border:
+    1px solid rgba(239,
+      68,
+      68,
+      0.24);
+
+  border-radius: 10px;
+
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* =========================
+   CANCEL DIALOG
+========================= */
+
+.confirmBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background:
+    rgba(0,
+      0,
+      0,
+      0.68);
+
+  backdrop-filter:
+    blur(8px);
+}
+
+.confirmDialog {
+  width:
+    min(360px,
+      100%);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding:
+    24px;
+
+  color:
+    var(--text-primary,
+      CanvasText);
+
+  background:
+    var(--surface,
+      Canvas);
+
+  border:
+    1px solid var(--border,
+      rgba(127,
+        127,
+        127,
+        0.2));
+
+  border-radius: 18px;
+
+  box-shadow:
+    0 24px 70px rgba(0,
+      0,
+      0,
+      0.4);
+
+  text-align: center;
+}
+
+.confirmIcon {
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 14px;
+
+  color: #dc2626;
+  background:
+    rgba(239,
+      68,
+      68,
+      0.12);
+
+  border-radius: 50%;
+}
+
+.confirmIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.confirmDialog strong {
+  font-size: 17px;
+}
+
+.confirmDialog p {
+  margin:
+    7px 0 20px;
+
+  color:
+    var(--text-secondary,
+      GrayText);
+
+  font-size: 12px;
+}
+
+.confirmActions {
+  width: 100%;
+
+  display: grid;
+  grid-template-columns:
+    1fr 1fr;
+  gap: 10px;
+}
+
+.confirmActions button {
+  min-height: 42px;
+
+  padding:
+    10px 14px;
+
+  color:
+    var(--text-primary,
+      CanvasText);
+
+  background:
+    var(--surface-light,
+      rgba(127,
+        127,
+        127,
+        0.1));
+
+  border:
+    1px solid var(--border,
+      rgba(127,
+        127,
+        127,
+        0.2));
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.confirmActions .discardButton {
+  color: #fff;
+  background: #dc2626;
+  border-color: transparent;
+}
+
+/* =========================
+   UTILITIES
+========================= */
+
+.spinning {
+  animation:
+    storyPreviewSpin 0.7s linear infinite;
+}
+
+@keyframes storyPreviewSpin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline:
+    2px solid var(--primary,
+      #4f46e5);
+
+  outline-offset: 3px;
+}
+
+/* =========================
+   TABLET
+========================= */
+
+@media (max-width: 980px) {
+  .workspace {
+    grid-template-columns:
+      minmax(0, 1fr) 320px;
+  }
+
+  .canvasSection {
+    padding: 18px;
+  }
+
+  .editorPanel {
+    padding:
+      20px 18px;
+  }
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 768px) {
+  .page {
+    overflow-y: auto;
+  }
+
+  .topBar {
+    position: sticky;
+    top: 0;
+
+    min-height: 62px;
+
+    padding:
+      calc(8px + env(safe-area-inset-top)) 14px 8px;
+
+    grid-template-columns:
+      42px 1fr 42px;
+  }
+
+  .iconButton,
+  .topShareButton {
+    width: 40px;
+    height: 40px;
+  }
+
+  .workspace {
+    display: flex;
+    flex-direction: column;
+
+    overflow: visible;
+  }
+
+  .canvasSection {
+    min-height: 0;
+
+    padding:
+      10px 12px 12px;
+
+    overflow: visible;
+  }
+
+  .canvasShell {
+    width: 100%;
+    height: auto;
+    max-height: none;
+  }
+
+  .storyCanvas {
+    width:
+      min(100%,
+        430px);
+
+    max-height: none;
+
+    border-radius: 16px;
+  }
+
+  .editorPanel {
+    min-height: auto;
+
+    padding:
+      18px 16px calc(18px + env(safe-area-inset-bottom));
+
+    overflow: visible;
+
+    border-top:
+      1px solid rgba(255,
+        255,
+        255,
+        0.1);
+
+    border-left: 0;
+  }
+
+  .panelHeader {
+    align-items: center;
+  }
+
+  .segmentedControl button {
+    min-height: 78px;
+  }
+
+  .shareButton {
+    position: sticky;
+    bottom:
+      calc(10px + env(safe-area-inset-bottom));
+
+    z-index: 10;
+  }
+
+  .dragHint {
+    bottom: 12px;
+  }
+}
+
+/* =========================
+   SMALL MOBILE
+========================= */
+
+@media (max-width: 420px) {
+  .canvasSection {
+    padding:
+      8px;
+  }
+
+  .storyCanvas {
+    border-radius: 12px;
+  }
+
+  .editorPanel {
+    gap: 18px;
+
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .rotationButtons {
+    grid-template-columns:
+      1fr;
+  }
+
+  .segmentedControl {
+    gap: 8px;
+  }
+
+  .segmentedControl button {
+    padding: 12px;
+  }
+}
+
+/* =========================
+   REDUCED MOTION
+========================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .previewImage,
+  .iconButton,
+  .topShareButton,
+  .segmentedControl button,
+  .shareButton,
+  .spinning {
+    transition: none;
+    animation: none;
+  }
+}

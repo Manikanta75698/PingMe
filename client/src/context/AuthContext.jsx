@@ -4,36 +4,64 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import {
+  getProfile,
+} from "../services/authService";
+
+import {
+  connectSocket,
   disconnectSocket,
+  refreshSocketAuth,
 } from "../socket/socket";
 
 const AuthContext =
   createContext(null);
 
 /* =========================
-   READ STORED USER
+   STORAGE HELPERS
 ========================= */
+
+const getStoredToken = () => {
+  try {
+    return (
+      localStorage
+        .getItem("token")
+        ?.trim() || ""
+    );
+  } catch (error) {
+    console.error(
+      "Unable to read stored token:",
+      error
+    );
+
+    return "";
+  }
+};
 
 const getStoredUser = () => {
   try {
     const storedUser =
-      localStorage.getItem("user");
+      localStorage.getItem(
+        "user"
+      );
 
     if (!storedUser) {
       return null;
     }
 
     const parsedUser =
-      JSON.parse(storedUser);
+      JSON.parse(
+        storedUser
+      );
 
     if (
       !parsedUser ||
       typeof parsedUser !==
-      "object"
+        "object"
     ) {
       localStorage.removeItem(
         "user"
@@ -57,6 +85,143 @@ const getStoredUser = () => {
   }
 };
 
+const storeUser = (
+  nextUser
+) => {
+  try {
+    if (nextUser) {
+      localStorage.setItem(
+        "user",
+        JSON.stringify(
+          nextUser
+        )
+      );
+
+      return;
+    }
+
+    localStorage.removeItem(
+      "user"
+    );
+  } catch (error) {
+    console.error(
+      "Unable to store user:",
+      error
+    );
+  }
+};
+
+/* =========================
+   USER NORMALIZER
+========================= */
+
+const normalizeUser = (
+  value
+) => {
+  if (
+    !value ||
+    typeof value !==
+      "object"
+  ) {
+    return null;
+  }
+
+  /*
+   * Different backend response shapes:
+   *
+   * response.user
+   * response.data.user
+   * response.profile
+   * response.data
+   */
+  const candidate =
+    value?.user ||
+    value?.profile ||
+    value?.data?.user ||
+    value?.data?.profile ||
+    value?.data ||
+    value;
+
+  if (
+    !candidate ||
+    typeof candidate !==
+      "object" ||
+    Array.isArray(candidate)
+  ) {
+    return null;
+  }
+
+  const profilePic =
+    candidate.profilePic ||
+    candidate.avatar ||
+    candidate.photoURL ||
+    "";
+
+  return {
+    ...candidate,
+
+    profilePic,
+
+    avatar:
+      candidate.avatar ||
+      profilePic,
+
+    photoURL:
+      candidate.photoURL ||
+      profilePic,
+  };
+};
+
+/* =========================
+   MERGE USER DATA
+========================= */
+
+const mergeUserData = (
+  previousUser,
+  nextUser
+) => {
+  const normalizedNextUser =
+    normalizeUser(
+      nextUser
+    );
+
+  if (!normalizedNextUser) {
+    return previousUser ||
+      null;
+  }
+
+  const mergedUser = {
+    ...(previousUser ||
+      {}),
+
+    ...normalizedNextUser,
+  };
+
+  const profilePic =
+    normalizedNextUser
+      .profilePic ||
+    normalizedNextUser.avatar ||
+    normalizedNextUser.photoURL ||
+    previousUser?.profilePic ||
+    previousUser?.avatar ||
+    previousUser?.photoURL ||
+    "";
+
+  return {
+    ...mergedUser,
+
+    profilePic,
+
+    avatar:
+      mergedUser.avatar ||
+      profilePic,
+
+    photoURL:
+      mergedUser.photoURL ||
+      profilePic,
+  };
+};
+
 /* =========================
    CLEAR CHAT CACHE
 ========================= */
@@ -64,7 +229,8 @@ const getStoredUser = () => {
 const clearConversationCache =
   () => {
     try {
-      const keysToRemove = [];
+      const keysToRemove =
+        [];
 
       for (
         let index = 0;
@@ -73,7 +239,9 @@ const clearConversationCache =
         index += 1
       ) {
         const key =
-          localStorage.key(index);
+          localStorage.key(
+            index
+          );
 
         if (
           key?.startsWith(
@@ -108,70 +276,228 @@ const clearConversationCache =
 export const AuthProvider = ({
   children,
 }) => {
+  const initialProfileLoadedRef =
+    useRef(false);
+
   const [
     user,
     setUserState,
-  ] = useState(
-    () => getStoredUser()
-  );
+  ] = useState(() => {
+    const storedUser =
+      getStoredUser();
 
-  /*
-   * Components can continue using:
-   *
-   * setUser(response.user)
-   *
-   * User state and localStorage are
-   * updated together automatically.
-   */
-  const setUser = useCallback(
-    (nextUser) => {
-      setUserState(
-        (previousUser) => {
-          const resolvedUser =
-            typeof nextUser ===
-              "function"
-              ? nextUser(
-                previousUser
-              )
-              : nextUser;
+    return normalizeUser(
+      storedUser
+    );
+  });
 
-          try {
-            if (resolvedUser) {
-              localStorage.setItem(
-                "user",
-                JSON.stringify(
-                  resolvedUser
+  const [
+    profileLoading,
+    setProfileLoading,
+  ] = useState(false);
+
+  /* =========================
+     SET USER
+  ========================= */
+
+  const setUser =
+    useCallback(
+      (nextUser) => {
+        setUserState(
+          (previousUser) => {
+            const resolvedValue =
+              typeof nextUser ===
+                "function"
+                ? nextUser(
+                  previousUser
                 )
-              );
-            } else {
-              localStorage.removeItem(
-                "user"
-              );
+                : nextUser;
+
+            if (
+              resolvedValue ===
+              null
+            ) {
+              storeUser(null);
+              return null;
             }
-          } catch (error) {
-            console.error(
-              "Unable to store user:",
-              error
+
+            const mergedUser =
+              mergeUserData(
+                previousUser,
+                resolvedValue
+              );
+
+            storeUser(
+              mergedUser
+            );
+
+            return mergedUser;
+          }
+        );
+      },
+      []
+    );
+
+  /* =========================
+     REFRESH PROFILE
+  ========================= */
+
+  const refreshProfile =
+    useCallback(
+      async ({
+        silent = true,
+      } = {}) => {
+        const token =
+          getStoredToken();
+
+        if (!token) {
+          return null;
+        }
+
+        if (!silent) {
+          setProfileLoading(
+            true
+          );
+        }
+
+        try {
+          const response =
+            await getProfile();
+
+          const freshUser =
+            normalizeUser(
+              response
+            );
+
+          if (!freshUser) {
+            throw new Error(
+              "Invalid profile response"
             );
           }
 
-          return resolvedUser;
+          let updatedUser =
+            null;
+
+          setUserState(
+            (previousUser) => {
+              updatedUser =
+                mergeUserData(
+                  previousUser,
+                  freshUser
+                );
+
+              storeUser(
+                updatedUser
+              );
+
+              return updatedUser;
+            }
+          );
+
+          return updatedUser;
+        } catch (
+          error
+        ) {
+          console.error(
+            "REFRESH PROFILE ERROR:",
+            error.response?.data ||
+            error.message
+          );
+
+          /*
+           * 401 handling api interceptor
+           * already chesthe ikkada logout
+           * duplicate ga cheyyamu.
+           */
+          return null;
+        } finally {
+          if (!silent) {
+            setProfileLoading(
+              false
+            );
+          }
         }
+      },
+      []
+    );
+
+  /* =========================
+     INITIAL PROFILE SYNC
+  ========================= */
+
+  useEffect(() => {
+    const token =
+      getStoredToken();
+
+    if (
+      !token ||
+      initialProfileLoadedRef
+        .current
+    ) {
+      return;
+    }
+
+    initialProfileLoadedRef.current =
+      true;
+
+    refreshSocketAuth();
+    connectSocket();
+
+    /*
+     * App load ayinappudu backend
+     * nunchi latest profile fetch.
+     *
+     * Sidebar, Header, Stories anni
+     * updated profilePic use chestayi.
+     */
+    void refreshProfile({
+      silent: true,
+    });
+  }, [refreshProfile]);
+
+  /* =========================
+     USER UPDATE EVENT
+  ========================= */
+
+  useEffect(() => {
+    const handleUserUpdated = (
+      event
+    ) => {
+      const updatedUser =
+        event?.detail;
+
+      if (
+        !updatedUser ||
+        typeof updatedUser !==
+          "object"
+      ) {
+        return;
+      }
+
+      setUser(
+        updatedUser
       );
-    },
-    []
-  );
+    };
+
+    window.addEventListener(
+      "auth:user-updated",
+      handleUserUpdated
+    );
+
+    return () => {
+      window.removeEventListener(
+        "auth:user-updated",
+        handleUserUpdated
+      );
+    };
+  }, [setUser]);
 
   /* =========================
      LOGOUT
   ========================= */
 
-  const logout = useCallback(
-    () => {
-      /*
-       * Disconnect before removing
-       * authentication information.
-       */
+  const logout =
+    useCallback(() => {
       disconnectSocket();
 
       localStorage.removeItem(
@@ -188,10 +514,11 @@ export const AuthProvider = ({
 
       clearConversationCache();
 
+      initialProfileLoadedRef.current =
+        false;
+
       setUserState(null);
-    },
-    []
-  );
+    }, []);
 
   /* =========================
      DEFENSIVE SOCKET CLEANUP
@@ -199,13 +526,15 @@ export const AuthProvider = ({
 
   useEffect(() => {
     const token =
-      localStorage.getItem(
-        "token"
-      );
+      getStoredToken();
 
     if (!user || !token) {
       disconnectSocket();
+      return;
     }
+
+    refreshSocketAuth();
+    connectSocket();
   }, [user]);
 
   /* =========================
@@ -216,30 +545,31 @@ export const AuthProvider = ({
     const handleStorageChange = (
       event
     ) => {
-      /*
-       * Logout performed in another tab.
-       */
       if (
-        event.key === "token" &&
+        event.key ===
+          "token" &&
         !event.newValue
       ) {
         disconnectSocket();
+
+        initialProfileLoadedRef.current =
+          false;
+
         setUserState(null);
 
         return;
       }
 
-      /*
-       * User data changed in another tab.
-       */
       if (
-        event.key !== "user"
+        event.key !==
+        "user"
       ) {
         return;
       }
 
       if (!event.newValue) {
         disconnectSocket();
+
         setUserState(null);
 
         return;
@@ -247,15 +577,13 @@ export const AuthProvider = ({
 
       try {
         const updatedUser =
-          JSON.parse(
-            event.newValue
+          normalizeUser(
+            JSON.parse(
+              event.newValue
+            )
           );
 
-        if (
-          !updatedUser ||
-          typeof updatedUser !==
-          "object"
-        ) {
+        if (!updatedUser) {
           throw new Error(
             "Invalid stored user"
           );
@@ -280,6 +608,9 @@ export const AuthProvider = ({
           "user"
         );
 
+        initialProfileLoadedRef.current =
+          false;
+
         setUserState(null);
       }
     };
@@ -297,33 +628,50 @@ export const AuthProvider = ({
     };
   }, []);
 
+  /* =========================
+     AUTH STATUS
+  ========================= */
+
   const isAuthenticated =
     Boolean(
       user &&
-      localStorage.getItem(
-        "token"
-      )
+      getStoredToken()
     );
+
+  /* =========================
+     CONTEXT VALUE
+  ========================= */
 
   const contextValue =
     useMemo(
       () => ({
         user,
+
         setUser,
+
         logout,
+
+        refreshProfile,
+
+        profileLoading,
+
         isAuthenticated,
       }),
       [
         user,
         setUser,
         logout,
+        refreshProfile,
+        profileLoading,
         isAuthenticated,
       ]
     );
 
   return (
     <AuthContext.Provider
-      value={contextValue}
+      value={
+        contextValue
+      }
     >
       {children}
     </AuthContext.Provider>
@@ -336,7 +684,9 @@ export const AuthProvider = ({
 
 export const useAuth = () => {
   const context =
-    useContext(AuthContext);
+    useContext(
+      AuthContext
+    );
 
   if (!context) {
     throw new Error(

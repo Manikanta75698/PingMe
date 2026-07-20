@@ -10,6 +10,7 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  Eye,
   Plus,
   Trash2,
   X,
@@ -27,6 +28,7 @@ import {
   createStory,
   deleteStory,
   getStories,
+  getStoryViewers,
   viewStory,
 } from "../../services/storyService";
 
@@ -35,6 +37,12 @@ import socket from "../../socket/socket";
 import DefaultAvatar from "../../assets/default-avatar.png";
 
 import styles from "./Stories.module.css";
+
+import StoryUploadPreview from "../stories/StoryUploadPreview";
+
+import StoryDeleteModal from "../stories/StoryDeleteModal";
+
+import StoryToast from "../stories/StoryToast";
 
 const STORY_DURATION_MS = 5000;
 
@@ -75,6 +83,33 @@ const formatStoryTime = (
   value
 ) => {
   if (!value) return "";
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "";
+  }
+
+  return date.toLocaleTimeString(
+    [],
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
+};
+
+const formatViewerTime = (
+  value
+) => {
+  if (!value) {
+    return "";
+  }
 
   const date =
     new Date(value);
@@ -317,9 +352,24 @@ const Stories = () => {
   ] = useState(false);
 
   const [
+    pendingStoryFile,
+    setPendingStoryFile,
+  ] = useState(null);
+
+  const [
     deleting,
     setDeleting,
   ] = useState(false);
+
+  const [
+    deleteModalOpen,
+    setDeleteModalOpen,
+  ] = useState(false);
+
+  const [
+    toast,
+    setToast,
+  ] = useState(null);
 
   const [
     storyPaused,
@@ -330,6 +380,31 @@ const Stories = () => {
     progressKey,
     setProgressKey,
   ] = useState(0);
+
+  const [
+    loadedStoryId,
+    setLoadedStoryId,
+  ] = useState("");
+
+  const [
+    viewersOpen,
+    setViewersOpen,
+  ] = useState(false);
+
+  const [
+    viewersLoading,
+    setViewersLoading,
+  ] = useState(false);
+
+  const [
+    storyViewers,
+    setStoryViewers,
+  ] = useState([]);
+
+  const [
+    viewersError,
+    setViewersError,
+  ] = useState("");
 
   const [
     error,
@@ -345,6 +420,35 @@ const Stories = () => {
     activeStoryIndex,
     setActiveStoryIndex,
   ] = useState(0);
+
+
+  const showToast =
+    useCallback(
+      ({
+        type = "info",
+        title = "",
+        message,
+        duration = 3500,
+      }) => {
+        if (!message) {
+          return;
+        }
+
+        setToast({
+          id: Date.now(),
+          type,
+          title,
+          message,
+          duration,
+        });
+      },
+      []
+    );
+
+  const closeToast =
+    useCallback(() => {
+      setToast(null);
+    }, []);
 
   /* =========================
      GROUPED STORIES
@@ -374,6 +478,15 @@ const Stories = () => {
     activeGroup?.stories?.[
     activeStoryIndex
     ] || null;
+
+  const activeStoryId =
+    normalizeId(activeStory);
+
+  const storyImageReady =
+    Boolean(
+      activeStoryId &&
+      loadedStoryId === activeStoryId
+    );
 
   const currentUserGroupIndex =
     storyGroups.findIndex(
@@ -562,6 +675,45 @@ const Stories = () => {
       }
     };
 
+    const handleStoryViewed = (
+      payload = {}
+    ) => {
+      const viewedStoryId =
+        normalizeId(
+          payload?.storyId
+        );
+
+      const viewersCount =
+        Number(
+          payload?.viewersCount
+        );
+
+      if (
+        !viewedStoryId ||
+        !Number.isFinite(
+          viewersCount
+        )
+      ) {
+        return;
+      }
+
+      setStories(
+        (currentStories) =>
+          currentStories.map(
+            (story) =>
+              normalizeId(
+                story
+              ) ===
+                viewedStoryId
+                ? {
+                  ...story,
+                  viewersCount,
+                }
+                : story
+          )
+      );
+    };
+
     const handleSocketConnect =
       () => {
         /*
@@ -593,6 +745,11 @@ const Stories = () => {
     );
 
     socket.on(
+      "storyViewed",
+      handleStoryViewed
+    );
+
+    socket.on(
       "connect",
       handleSocketConnect
     );
@@ -606,6 +763,11 @@ const Stories = () => {
       socket.off(
         "storyDeleted",
         handleStoryDeleted
+      );
+
+      socket.off(
+        "storyViewed",
+        handleStoryViewed
       );
 
       socket.off(
@@ -801,6 +963,11 @@ const Stories = () => {
       );
 
       setStoryPaused(false);
+      setViewersOpen(false);
+      setStoryViewers([]);
+      setViewersError("");
+      setDeleteModalOpen(false);
+      setDeleting(false);
     }, []);
 
   /* =========================
@@ -998,22 +1165,70 @@ const Stories = () => {
       closeViewer,
     ]);
 
+  useEffect(() => {
+    if (!activeStory || !activeGroup) {
+      return undefined;
+    }
+
+    let nextStory = null;
+
+    if (
+      activeStoryIndex <
+      activeGroup.stories.length - 1
+    ) {
+      nextStory =
+        activeGroup.stories[
+        activeStoryIndex + 1
+        ];
+    } else if (
+      activeGroupIndex <
+      storyGroups.length - 1
+    ) {
+      nextStory =
+        storyGroups[
+          activeGroupIndex + 1
+        ]?.stories?.[0];
+    }
+
+    if (!nextStory?.image) {
+      return undefined;
+    }
+
+    const preloadImage =
+      new Image();
+
+    preloadImage.src =
+      nextStory.image;
+
+    return () => {
+      preloadImage.onload = null;
+      preloadImage.onerror = null;
+    };
+  }, [
+    activeStory,
+    activeGroup,
+    activeStoryIndex,
+    activeGroupIndex,
+    storyGroups,
+  ]);
+
   /* =========================
      RESET PROGRESS
   ========================= */
 
   useEffect(() => {
-    if (!activeStory) {
+    if (!activeStoryId) {
+      setStoryPaused(false);
       return;
     }
+
+    setStoryPaused(false);
 
     setProgressKey(
       (currentKey) =>
         currentKey + 1
     );
-
-    setStoryPaused(false);
-  }, [activeStory]);
+  }, [activeStoryId]);
 
   /* =========================
      AUTO NEXT
@@ -1021,7 +1236,7 @@ const Stories = () => {
 
   useEffect(() => {
     if (
-      !activeStory ||
+      !activeStoryId ||
       storyPaused ||
       deleting
     ) {
@@ -1029,17 +1244,12 @@ const Stories = () => {
     }
 
     storyTimerRef.current =
-      window.setTimeout(
-        () => {
-          showNextStory();
-        },
-        STORY_DURATION_MS
-      );
+      window.setTimeout(() => {
+        showNextStory();
+      }, STORY_DURATION_MS);
 
     return () => {
-      if (
-        storyTimerRef.current
-      ) {
+      if (storyTimerRef.current) {
         window.clearTimeout(
           storyTimerRef.current
         );
@@ -1049,7 +1259,7 @@ const Stories = () => {
       }
     };
   }, [
-    activeStory,
+    activeStoryId,
     storyPaused,
     deleting,
     showNextStory,
@@ -1060,7 +1270,11 @@ const Stories = () => {
   ========================= */
 
   useEffect(() => {
-    if (!activeStory) {
+    if (
+      !activeStory ||
+      deleteModalOpen ||
+      viewersOpen
+    ) {
       return undefined;
     }
 
@@ -1115,6 +1329,8 @@ const Stories = () => {
     closeViewer,
     showPreviousStory,
     showNextStory,
+    deleteModalOpen,
+    viewersOpen,
   ]);
 
   /* =========================
@@ -1141,11 +1357,148 @@ const Stories = () => {
   }, [activeStory]);
 
   /* =========================
-     STORY UPLOAD
+     STORY VIEWERS
+  ========================= */
+
+  const loadStoryViewers =
+    useCallback(
+      async (
+        storyId,
+        {
+          silent = false,
+        } = {}
+      ) => {
+        const normalizedStoryId =
+          normalizeId(
+            storyId
+          );
+
+        if (!normalizedStoryId) {
+          return;
+        }
+
+        if (!silent) {
+          setViewersLoading(true);
+        }
+
+        try {
+          setViewersError("");
+
+          const response =
+            await getStoryViewers(
+              normalizedStoryId
+            );
+
+          setStoryViewers(
+            Array.isArray(
+              response?.viewers
+            )
+              ? response.viewers
+              : []
+          );
+        } catch (
+        viewersLoadError
+        ) {
+          console.error(
+            "LOAD STORY VIEWERS ERROR:",
+            viewersLoadError.response
+              ?.data ||
+            viewersLoadError.message
+          );
+
+          setViewersError(
+            viewersLoadError.userMessage ||
+            viewersLoadError.response
+              ?.data?.message ||
+            "Unable to load story viewers"
+          );
+        } finally {
+          if (!silent) {
+            setViewersLoading(false);
+          }
+        }
+      },
+      []
+    );
+
+  const openStoryViewers =
+    useCallback(
+      (event) => {
+        event?.stopPropagation?.();
+
+        if (
+          !activeStoryId ||
+          !activeStory?.isOwner
+        ) {
+          return;
+        }
+
+        setStoryPaused(true);
+        setViewersOpen(true);
+
+        void loadStoryViewers(
+          activeStoryId
+        );
+      },
+      [
+        activeStoryId,
+        activeStory,
+        loadStoryViewers,
+      ]
+    );
+
+  const closeStoryViewers =
+    useCallback(() => {
+      setViewersOpen(false);
+      setStoryPaused(false);
+      setViewersError("");
+    }, []);
+
+  const handleViewerRowClick =
+    useCallback(
+      (viewer) => {
+        const viewerId =
+          normalizeId(viewer);
+
+        closeStoryViewers();
+        closeViewer();
+
+        if (
+          viewerId ===
+          currentUserId
+        ) {
+          navigate("/profile");
+          return;
+        }
+
+        const username =
+          String(
+            viewer?.username ||
+            ""
+          ).trim();
+
+        if (username) {
+          navigate(
+            `/user/${encodeURIComponent(
+              username
+            )}`
+          );
+        }
+      },
+      [
+        closeStoryViewers,
+        closeViewer,
+        currentUserId,
+        navigate,
+      ]
+    );
+
+  /* =========================
+     STORY UPLOAD PREVIEW
   ========================= */
 
   const handleStoryUpload =
-    async (event) => {
+    (event) => {
       const file =
         event.target
           .files?.[0];
@@ -1160,95 +1513,179 @@ const Stories = () => {
         return;
       }
 
-      try {
-        setUploading(true);
-        setError("");
-
-        const response =
-          await createStory(
-            file
-          );
-
-        const createdStory =
-          normalizeIncomingStory(
-            response?.story,
-            currentUserId
-          );
-
-        if (createdStory) {
-          setStories(
-            (
-              currentStories
-            ) => {
-              const storyId =
-                normalizeId(
-                  createdStory
-                );
-
-              const alreadyExists =
-                currentStories.some(
-                  (story) =>
-                    normalizeId(
-                      story
-                    ) ===
-                    storyId
-                );
-
-              if (alreadyExists) {
-                return currentStories.map(
-                  (story) =>
-                    normalizeId(
-                      story
-                    ) ===
-                      storyId
-                      ? {
-                        ...story,
-                        ...createdStory,
-                        isOwner:
-                          true,
-                      }
-                      : story
-                );
-              }
-
-              return [
-                {
-                  ...createdStory,
-                  isOwner: true,
-                },
-                ...currentStories,
-              ];
-            }
-          );
-        }
-      } catch (
-      uploadError
-      ) {
-        console.error(
-          "CREATE STORY ERROR:",
-          uploadError.response
-            ?.data ||
-          uploadError.message
-        );
-
-        setError(
-          uploadError.userMessage ||
-          uploadError.response
-            ?.data?.message ||
-          uploadError.message ||
-          "Unable to upload story"
-        );
-      } finally {
-        setUploading(false);
-      }
+      setError("");
+      setPendingStoryFile(
+        file
+      );
     };
+
+  const handleCancelStoryPreview =
+    useCallback(() => {
+      if (uploading) {
+        return;
+      }
+
+      setPendingStoryFile(
+        null
+      );
+    }, [uploading]);
+
+  const handleConfirmStoryUpload =
+    useCallback(
+      async (preparedFile) => {
+        if (
+          !preparedFile ||
+          uploading
+        ) {
+          return;
+        }
+
+        try {
+          setUploading(true);
+          setError("");
+
+          const response =
+            await createStory(
+              preparedFile
+            );
+
+          const createdStory =
+            normalizeIncomingStory(
+              response?.story,
+              currentUserId
+            );
+
+          if (createdStory) {
+            setStories(
+              (
+                currentStories
+              ) => {
+                const storyId =
+                  normalizeId(
+                    createdStory
+                  );
+
+                const alreadyExists =
+                  currentStories.some(
+                    (story) =>
+                      normalizeId(
+                        story
+                      ) ===
+                      storyId
+                  );
+
+                if (alreadyExists) {
+                  return currentStories.map(
+                    (story) =>
+                      normalizeId(
+                        story
+                      ) ===
+                        storyId
+                        ? {
+                          ...story,
+                          ...createdStory,
+                          isOwner:
+                            true,
+                        }
+                        : story
+                  );
+                }
+
+                return [
+                  {
+                    ...createdStory,
+                    isOwner: true,
+                  },
+                  ...currentStories,
+                ];
+              }
+            );
+          }
+
+          setPendingStoryFile(
+            null
+          );
+          showToast({
+            type: "success",
+            title:
+              "Story shared",
+            message:
+              "Your story is now live for 24 hours.",
+          });
+        } catch (
+        uploadError
+        ) {
+          console.error(
+            "CREATE STORY ERROR:",
+            uploadError.response
+              ?.data ||
+            uploadError.message
+          );
+
+          const uploadMessage =
+            uploadError.userMessage ||
+            uploadError.response
+              ?.data?.message ||
+            uploadError.message ||
+            "Unable to upload story";
+
+          setError(
+            uploadMessage
+          );
+
+          showToast({
+            type: "error",
+            title:
+              "Upload failed",
+            message:
+              uploadMessage,
+            duration: 4500,
+          });
+        } finally {
+          setUploading(false);
+        }
+      },
+      [
+        currentUserId,
+        uploading,
+        showToast,
+      ]
+    );
 
   /* =========================
      DELETE STORY
   ========================= */
 
-  const handleDeleteStory =
-    async () => {
+  const requestDeleteStory =
+    useCallback(() => {
+      if (
+        !activeStoryId ||
+        !activeStory?.isOwner ||
+        deleting
+      ) {
+        return;
+      }
+
+      setStoryPaused(true);
+      setDeleteModalOpen(true);
+    }, [
+      activeStory,
+      activeStoryId,
+      deleting,
+    ]);
+
+  const cancelDeleteStory =
+    useCallback(() => {
+      if (deleting) {
+        return;
+      }
+
+      setDeleteModalOpen(false);
+      setStoryPaused(false);
+    }, [deleting]);
+
+  const confirmDeleteStory =
+    useCallback(async () => {
       const storyId =
         normalizeId(
           activeStory
@@ -1256,19 +1693,9 @@ const Stories = () => {
 
       if (
         !storyId ||
-        !activeStory
-          ?.isOwner ||
+        !activeStory?.isOwner ||
         deleting
       ) {
-        return;
-      }
-
-      const confirmed =
-        window.confirm(
-          "Delete this story?"
-        );
-
-      if (!confirmed) {
         return;
       }
 
@@ -1292,7 +1719,19 @@ const Stories = () => {
             )
         );
 
+        setDeleteModalOpen(
+          false
+        );
+
         closeViewer();
+
+        showToast({
+          type: "success",
+          title:
+            "Story deleted",
+          message:
+            "Your story was removed successfully.",
+        });
       } catch (
       deleteError
       ) {
@@ -1303,18 +1742,34 @@ const Stories = () => {
           deleteError.message
         );
 
-        alert(
-          deleteError.userMessage ||
-          deleteError.response
-            ?.data?.message ||
-          "Unable to delete story"
+        setDeleteModalOpen(
+          false
         );
 
-        setStoryPaused(false);
+        setStoryPaused(
+          false
+        );
+
+        showToast({
+          type: "error",
+          title:
+            "Delete failed",
+          message:
+            deleteError.userMessage ||
+            deleteError.response
+              ?.data?.message ||
+            "Unable to delete story.",
+          duration: 4500,
+        });
       } finally {
         setDeleting(false);
       }
-    };
+    }, [
+      activeStory,
+      closeViewer,
+      deleting,
+      showToast,
+    ]);
 
   /* =========================
      YOUR STORY ACTIONS
@@ -1392,6 +1847,18 @@ const Stories = () => {
 
   return (
     <>
+      <StoryToast
+        key={
+          toast?.id ||
+          "story-toast"
+        }
+        toast={
+          toast
+        }
+        onClose={
+          closeToast
+        }
+      />
       <section
         className={
           styles.container
@@ -1506,8 +1973,8 @@ const Stories = () => {
                   group.userId
                 }
                 className={`${styles.story} ${group.hasUnviewed
-                    ? ""
-                    : styles.viewed
+                  ? ""
+                  : styles.viewed
                   }`}
                 onClick={() =>
                   openStoryGroup(
@@ -1593,6 +2060,38 @@ const Stories = () => {
         </div>
       )}
 
+      <StoryDeleteModal
+        open={
+          deleteModalOpen
+        }
+        deleting={
+          deleting
+        }
+        onCancel={
+          cancelDeleteStory
+        }
+        onConfirm={
+          confirmDeleteStory
+        }
+      />
+
+      {pendingStoryFile && (
+        <StoryUploadPreview
+          file={
+            pendingStoryFile
+          }
+          uploading={
+            uploading
+          }
+          onCancel={
+            handleCancelStoryPreview
+          }
+          onConfirm={
+            handleConfirmStoryUpload
+          }
+        />
+      )}
+
       {activeStory && (
         <div
           className={
@@ -1606,39 +2105,24 @@ const Stories = () => {
           }
         >
           <div
-            className={
-              styles.viewer
-            }
-            onClick={(
-              event
-            ) =>
-              event.stopPropagation()
-            }
-            onMouseEnter={() =>
-              setStoryPaused(
-                true
-              )
-            }
-            onMouseLeave={() =>
-              setStoryPaused(
-                false
-              )
-            }
-            onPointerDown={() =>
-              setStoryPaused(
-                true
-              )
-            }
-            onPointerUp={() =>
-              setStoryPaused(
-                false
-              )
-            }
-            onPointerCancel={() =>
-              setStoryPaused(
-                false
-              )
-            }
+            className={styles.viewer}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+            onPointerDown={(event) => {
+              if (
+                event.pointerType === "touch" ||
+                event.pointerType === "pen"
+              ) {
+                setStoryPaused(true);
+              }
+            }}
+            onPointerUp={() => {
+              setStoryPaused(false);
+            }}
+            onPointerCancel={() => {
+              setStoryPaused(false);
+            }}
           >
             <div
               className={
@@ -1680,8 +2164,8 @@ const Stories = () => {
                             : storyId
                         }
                         className={`${styles.progressFill} ${isCompleted
-                            ? styles.progressCompleted
-                            : ""
+                          ? styles.progressCompleted
+                          : ""
                           } ${isActive
                             ? styles.progressActive
                             : ""
@@ -1711,7 +2195,7 @@ const Stories = () => {
                   handleViewerProfileClick
                 }
                 aria-label={`Open ${activeGroup?.user
-                    ?.name ||
+                  ?.name ||
                   activeGroup?.user
                     ?.username ||
                   "user"
@@ -1761,7 +2245,7 @@ const Stories = () => {
                   <button
                     type="button"
                     onClick={
-                      handleDeleteStory
+                      requestDeleteStory
                     }
                     disabled={
                       deleting
@@ -1786,15 +2270,75 @@ const Stories = () => {
               </div>
             </div>
 
-            <img
+            <div
               className={
-                styles.viewerImage
+                styles.viewerImageContainer
               }
-              src={
-                activeStory.image
-              }
-              alt="Story"
-            />
+            >
+              {!storyImageReady && (
+                <div
+                  className={
+                    styles.viewerImageLoader
+                  }
+                  role="status"
+                  aria-label="Loading story"
+                >
+                  <span
+                    className={
+                      styles.viewerSpinner
+                    }
+                  />
+                </div>
+              )}
+
+              <img
+                key={activeStoryId}
+                className={`${styles.viewerImage} ${storyImageReady
+                  ? styles.viewerImageReady
+                  : ""
+                  }`}
+                src={activeStory.image}
+                alt="Story"
+                onLoad={() => {
+                  setLoadedStoryId(
+                    activeStoryId
+                  );
+                }}
+                onError={() => {
+                  setLoadedStoryId(
+                    activeStoryId
+                  );
+                }}
+              />
+            </div>
+
+            {activeStory.isOwner && (
+              <button
+                type="button"
+                className={
+                  styles.seenByButton
+                }
+                onClick={
+                  openStoryViewers
+                }
+                aria-label={`Seen by ${Number(
+                  activeStory.viewersCount
+                ) || 0
+                  }`}
+              >
+                <Eye />
+
+                <span>
+                  {Number(
+                    activeStory.viewersCount
+                  ) > 0
+                    ? `Seen by ${Number(
+                      activeStory.viewersCount
+                    )}`
+                    : "No views yet"}
+                </span>
+              </button>
+            )}
 
             {(
               activeStoryIndex >
@@ -1835,6 +2379,204 @@ const Stories = () => {
                   <ChevronRight />
                 </button>
               )}
+
+            {viewersOpen && (
+              <div
+                className={
+                  styles.viewersBackdrop
+                }
+                onClick={
+                  closeStoryViewers
+                }
+              >
+                <section
+                  className={
+                    styles.viewersSheet
+                  }
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Story viewers"
+                  onClick={(event) =>
+                    event.stopPropagation()
+                  }
+                >
+                  <div
+                    className={
+                      styles.viewersSheetHeader
+                    }
+                  >
+                    <div>
+                      <strong>
+                        Viewers
+                      </strong>
+
+                      <span>
+                        {Number(
+                          activeStory.viewersCount
+                        ) || 0}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={
+                        closeStoryViewers
+                      }
+                      aria-label="Close viewers"
+                    >
+                      <X />
+                    </button>
+                  </div>
+
+                  <div
+                    className={
+                      styles.viewersSheetContent
+                    }
+                  >
+                    {viewersLoading && (
+                      <div
+                        className={
+                          styles.viewersLoading
+                        }
+                      >
+                        <span
+                          className={
+                            styles.viewerSpinner
+                          }
+                        />
+
+                        <span>
+                          Loading viewers...
+                        </span>
+                      </div>
+                    )}
+
+                    {!viewersLoading &&
+                      viewersError && (
+                        <div
+                          className={
+                            styles.viewersEmpty
+                          }
+                          role="alert"
+                        >
+                          <span>
+                            {viewersError}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void loadStoryViewers(
+                                activeStoryId
+                              )
+                            }
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      )}
+
+                    {!viewersLoading &&
+                      !viewersError &&
+                      storyViewers.length ===
+                      0 && (
+                        <div
+                          className={
+                            styles.viewersEmpty
+                          }
+                        >
+                          <Eye />
+
+                          <strong>
+                            No views yet
+                          </strong>
+
+                          <span>
+                            People who view this story will appear here.
+                          </span>
+                        </div>
+                      )}
+
+                    {!viewersLoading &&
+                      !viewersError &&
+                      storyViewers.map(
+                        (viewer) => {
+                          const viewerId =
+                            normalizeId(
+                              viewer
+                            );
+
+                          const viewerName =
+                            viewer?.name ||
+                            viewer?.username ||
+                            "User";
+
+                          return (
+                            <button
+                              type="button"
+                              key={
+                                viewerId
+                              }
+                              className={
+                                styles.viewerRow
+                              }
+                              onClick={() =>
+                                handleViewerRowClick(
+                                  viewer
+                                )
+                              }
+                            >
+                              <img
+                                src={getUserAvatar(
+                                  viewer
+                                )}
+                                alt=""
+                                onError={(
+                                  event
+                                ) => {
+                                  event.currentTarget.onerror =
+                                    null;
+
+                                  event.currentTarget.src =
+                                    DefaultAvatar;
+                                }}
+                              />
+
+                              <div
+                                className={
+                                  styles.viewerRowText
+                                }
+                              >
+                                <strong>
+                                  {viewerName}
+                                </strong>
+
+                                <span>
+                                  {viewer?.username
+                                    ? `@${viewer.username}`
+                                    : "View profile"}
+                                </span>
+                              </div>
+
+                              {viewer?.viewedAt && (
+                                <time
+                                  dateTime={
+                                    viewer.viewedAt
+                                  }
+                                >
+                                  {formatViewerTime(
+                                    viewer.viewedAt
+                                  )}
+                                </time>
+                              )}
+                            </button>
+                          );
+                        }
+                      )}
+                  </div>
+                </section>
+              </div>
+            )}
           </div>
         </div>
       )}

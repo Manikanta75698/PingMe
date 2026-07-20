@@ -16,14 +16,14 @@ const {
   "../socket/socketInstance"
 );
 
-const STORY_USER_FIELDS =
-  "name username profilePic";
-
 const STORY_DURATION_MS =
   24 * 60 * 60 * 1000;
 
+const STORY_USER_FIELDS =
+  "_id name username profilePic";
+
 /* =========================
-   HELPERS
+   ID NORMALIZER
 ========================= */
 
 const normalizeId = (
@@ -71,15 +71,6 @@ const normalizeId = (
     }
 
     if (
-      value.id &&
-      value.id !== value
-    ) {
-      return normalizeId(
-        value.id
-      );
-    }
-
-    if (
       value.userId &&
       value.userId !== value
     ) {
@@ -88,13 +79,58 @@ const normalizeId = (
       );
     }
 
+    if (
+      value.id &&
+      value.id !== value
+    ) {
+      return normalizeId(
+        value.id
+      );
+    }
+
     return "";
   }
 
-  return String(
-    value
-  ).trim();
+  const stringValue =
+    String(value).trim();
+
+  return stringValue ===
+    "[object Object]"
+    ? ""
+    : stringValue;
 };
+
+/* =========================
+   VALID OBJECT ID
+========================= */
+
+const isValidObjectId = (
+  value
+) =>
+  Boolean(
+    value &&
+    mongoose.isValidObjectId(
+      value
+    )
+  );
+
+/* =========================
+   AUTH USER ID
+========================= */
+
+const getCurrentUserId = (
+  req
+) =>
+  normalizeId(
+    req.user?._id ||
+    req.user?.id ||
+    req.user?.userId ||
+    req.user
+  );
+
+/* =========================
+   SOCKET EMITTER
+========================= */
 
 const emitStoryEvent = (
   eventName,
@@ -117,6 +153,61 @@ const emitStoryEvent = (
 };
 
 /* =========================
+   UNIQUE VIEWER IDS
+========================= */
+
+const getUniqueViewerIds = (
+  story
+) => {
+  const viewerIds =
+    new Set();
+
+  if (
+    Array.isArray(
+      story?.viewers
+    )
+  ) {
+    story.viewers.forEach(
+      (viewer) => {
+        const viewerId =
+          normalizeId(
+            viewer
+          );
+
+        if (viewerId) {
+          viewerIds.add(
+            viewerId
+          );
+        }
+      }
+    );
+  }
+
+  if (
+    Array.isArray(
+      story?.views
+    )
+  ) {
+    story.views.forEach(
+      (view) => {
+        const viewerId =
+          normalizeId(
+            view?.user
+          );
+
+        if (viewerId) {
+          viewerIds.add(
+            viewerId
+          );
+        }
+      }
+    );
+  }
+
+  return viewerIds;
+};
+
+/* =========================
    FORMAT STORY
 ========================= */
 
@@ -130,14 +221,9 @@ const formatStory = (
       ? story.toObject({
         virtuals: true,
       })
-      : story;
-
-  const viewers =
-    Array.isArray(
-      storyObject?.viewers
-    )
-      ? storyObject.viewers
-      : [];
+      : {
+        ...story,
+      };
 
   const normalizedCurrentUserId =
     normalizeId(
@@ -150,28 +236,54 @@ const formatStory = (
       storyObject?.user
     );
 
+  const viewerIds =
+    getUniqueViewerIds(
+      storyObject
+    );
+
   return {
     ...storyObject,
 
     viewersCount:
-      viewers.length,
+      viewerIds.size,
 
     isViewed:
       Boolean(
         normalizedCurrentUserId &&
-        viewers.some(
-          (viewerId) =>
-            normalizeId(
-              viewerId
-            ) ===
-            normalizedCurrentUserId
+        viewerIds.has(
+          normalizedCurrentUserId
         )
       ),
 
     isOwner:
-      ownerId ===
-      normalizedCurrentUserId,
+      Boolean(
+        normalizedCurrentUserId &&
+        ownerId ===
+        normalizedCurrentUserId
+      ),
   };
+};
+
+/* =========================
+   CLOUDINARY RESULT URL
+========================= */
+
+const getUploadedImageUrl = (
+  uploadResult
+) => {
+  if (
+    typeof uploadResult ===
+    "string"
+  ) {
+    return uploadResult.trim();
+  }
+
+  return String(
+    uploadResult?.secure_url ||
+    uploadResult?.url ||
+    uploadResult?.image ||
+    ""
+  ).trim();
 };
 
 /* =========================
@@ -184,13 +296,10 @@ const createStory = async (
 ) => {
   try {
     const currentUserId =
-      normalizeId(
-        req.user
-      );
+      getCurrentUserId(req);
 
     if (
-      !currentUserId ||
-      !mongoose.isValidObjectId(
+      !isValidObjectId(
         currentUserId
       )
     ) {
@@ -198,6 +307,7 @@ const createStory = async (
         .status(401)
         .json({
           success: false,
+
           message:
             "Authentication required",
         });
@@ -208,15 +318,21 @@ const createStory = async (
         .status(400)
         .json({
           success: false,
+
           message:
-            "Please upload an image",
+            "Please select a story image",
         });
     }
 
-    const image =
+    const uploadResult =
       await uploadImage(
         req.file.buffer,
         "pingme/stories"
+      );
+
+    const image =
+      getUploadedImageUrl(
+        uploadResult
       );
 
     if (!image) {
@@ -224,10 +340,17 @@ const createStory = async (
         .status(500)
         .json({
           success: false,
+
           message:
             "Unable to upload story image",
         });
     }
+
+    const expiresAt =
+      new Date(
+        Date.now() +
+        STORY_DURATION_MS
+      );
 
     const story =
       await Story.create({
@@ -236,11 +359,11 @@ const createStory = async (
 
         image,
 
-        expiresAt:
-          new Date(
-            Date.now() +
-            STORY_DURATION_MS
-          ),
+        viewers: [],
+
+        views: [],
+
+        expiresAt,
       });
 
     await story.populate(
@@ -248,26 +371,22 @@ const createStory = async (
       STORY_USER_FIELDS
     );
 
-    const formattedStory =
-      formatStory(
+    const ownerStory = {
+      ...formatStory(
         story,
         currentUserId
-      );
+      ),
 
-    /*
-     * Owner response lo isOwner=true.
-     */
-    const ownerStory = {
-      ...formattedStory,
       isOwner: true,
+      isViewed: false,
     };
 
-    /*
-     * Other connected users kosam
-     * owner/viewed flags false.
-     */
     const realtimeStory = {
-      ...formattedStory,
+      ...formatStory(
+        story,
+        ""
+      ),
+
       isOwner: false,
       isViewed: false,
     };
@@ -322,13 +441,10 @@ const getStories = async (
 ) => {
   try {
     const currentUserId =
-      normalizeId(
-        req.user
-      );
+      getCurrentUserId(req);
 
     if (
-      !currentUserId ||
-      !mongoose.isValidObjectId(
+      !isValidObjectId(
         currentUserId
       )
     ) {
@@ -336,16 +452,19 @@ const getStories = async (
         .status(401)
         .json({
           success: false,
+
           message:
             "Authentication required",
         });
     }
 
+    const now =
+      new Date();
+
     const stories =
       await Story.find({
         expiresAt: {
-          $gt:
-            new Date(),
+          $gt: now,
         },
       })
         .populate(
@@ -359,7 +478,7 @@ const getStories = async (
           virtuals: true,
         });
 
-    const validStories =
+    const formattedStories =
       stories
         .filter(
           (story) =>
@@ -379,10 +498,10 @@ const getStories = async (
         success: true,
 
         count:
-          validStories.length,
+          formattedStories.length,
 
         stories:
-          validStories,
+          formattedStories,
       });
   } catch (error) {
     console.error(
@@ -403,6 +522,510 @@ const getStories = async (
 };
 
 /* =========================
+   VIEW STORY
+========================= */
+
+const viewStory = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      getCurrentUserId(req);
+
+    const storyId =
+      normalizeId(
+        req.params?.id
+      );
+
+    if (
+      !isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res
+        .status(401)
+        .json({
+          success: false,
+
+          message:
+            "Authentication required",
+        });
+    }
+
+    if (
+      !isValidObjectId(
+        storyId
+      )
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+
+          message:
+            "Invalid story ID",
+        });
+    }
+
+    const existingStory =
+      await Story.findOne({
+        _id:
+          storyId,
+
+        expiresAt: {
+          $gt:
+            new Date(),
+        },
+      }).select(
+        "_id user viewers views expiresAt"
+      );
+
+    if (!existingStory) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+
+          message:
+            "Story not found or expired",
+        });
+    }
+
+    const ownerId =
+      normalizeId(
+        existingStory.user
+      );
+
+    /*
+     * Story owner own story open chesthe
+     * viewer record create cheyyamu.
+     */
+    if (
+      ownerId ===
+      currentUserId
+    ) {
+      return res
+        .status(200)
+        .json({
+          success: true,
+
+          message:
+            "Owner viewed own story",
+
+          data: {
+            storyId,
+
+            viewersCount:
+              getUniqueViewerIds(
+                existingStory
+              ).size,
+
+            isViewed: false,
+          },
+        });
+    }
+
+    const alreadyViewed =
+      getUniqueViewerIds(
+        existingStory
+      ).has(
+        currentUserId
+      );
+
+    let story =
+      existingStory;
+
+    if (!alreadyViewed) {
+      const viewedAt =
+        new Date();
+
+      /*
+       * Legacy field and new field
+       * rendu update chestham.
+       *
+       * $addToSet valla duplicate
+       * viewer ID create avvadu.
+       */
+      story =
+        await Story.findOneAndUpdate(
+          {
+            _id:
+              storyId,
+
+            expiresAt: {
+              $gt:
+                new Date(),
+            },
+
+            "views.user": {
+              $ne:
+                currentUserId,
+            },
+          },
+
+          {
+            $addToSet: {
+              viewers:
+                currentUserId,
+            },
+
+            $push: {
+              views: {
+                user:
+                  currentUserId,
+
+                viewedAt,
+              },
+            },
+          },
+
+          {
+            new: true,
+            runValidators:
+              true,
+          }
+        );
+
+      /*
+       * Race condition lo query match
+       * kakapothe latest story fetch.
+       */
+      if (!story) {
+        story =
+          await Story.findById(
+            storyId
+          ).select(
+            "_id user viewers views expiresAt"
+          );
+      }
+
+      const viewersCount =
+        getUniqueViewerIds(
+          story
+        ).size;
+
+      emitStoryEvent(
+        "storyViewed",
+        {
+          storyId,
+
+          ownerId,
+
+          viewerId:
+            currentUserId,
+
+          viewersCount,
+
+          viewedAt:
+            viewedAt.toISOString(),
+        }
+      );
+    }
+
+    const viewersCount =
+      getUniqueViewerIds(
+        story
+      ).size;
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+
+        message:
+          alreadyViewed
+            ? "Story already viewed"
+            : "Story viewed",
+
+        data: {
+          storyId,
+
+          viewersCount,
+
+          isViewed: true,
+        },
+      });
+  } catch (error) {
+    console.error(
+      "VIEW STORY ERROR:",
+      error
+    );
+
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          error.message ||
+          "Unable to view story",
+      });
+  }
+};
+
+/* =========================
+   GET STORY VIEWERS
+========================= */
+
+const getStoryViewers =
+  async (req, res) => {
+    try {
+      const currentUserId =
+        getCurrentUserId(req);
+
+      const storyId =
+        normalizeId(
+          req.params?.id
+        );
+
+      if (
+        !isValidObjectId(
+          currentUserId
+        )
+      ) {
+        return res
+          .status(401)
+          .json({
+            success: false,
+
+            message:
+              "Authentication required",
+          });
+      }
+
+      if (
+        !isValidObjectId(
+          storyId
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+
+            message:
+              "Invalid story ID",
+          });
+      }
+
+      const story =
+        await Story.findById(
+          storyId
+        )
+          .select(
+            "_id user viewers views createdAt expiresAt"
+          )
+          .populate(
+            "viewers",
+            STORY_USER_FIELDS
+          )
+          .populate(
+            "views.user",
+            STORY_USER_FIELDS
+          )
+          .lean();
+
+      if (!story) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+
+            message:
+              "Story not found",
+          });
+      }
+
+      const ownerId =
+        normalizeId(
+          story.user
+        );
+
+      if (
+        ownerId !==
+        currentUserId
+      ) {
+        return res
+          .status(403)
+          .json({
+            success: false,
+
+            message:
+              "Only the story owner can view this list",
+          });
+      }
+
+      const viewersMap =
+        new Map();
+
+      /*
+       * New timestamp-based views.
+       */
+      if (
+        Array.isArray(
+          story.views
+        )
+      ) {
+        story.views.forEach(
+          (view) => {
+            const viewer =
+              view?.user;
+
+            const viewerId =
+              normalizeId(
+                viewer
+              );
+
+            if (
+              !viewerId ||
+              !viewer
+            ) {
+              return;
+            }
+
+            viewersMap.set(
+              viewerId,
+              {
+                _id:
+                  viewerId,
+
+                name:
+                  viewer.name ||
+                  "",
+
+                username:
+                  viewer.username ||
+                  "",
+
+                profilePic:
+                  viewer.profilePic ||
+                  "",
+
+                viewedAt:
+                  view.viewedAt ||
+                  null,
+              }
+            );
+          }
+        );
+      }
+
+      /*
+       * Legacy viewer records.
+       * Timestamp unavailable kabatti null.
+       */
+      if (
+        Array.isArray(
+          story.viewers
+        )
+      ) {
+        story.viewers.forEach(
+          (viewer) => {
+            const viewerId =
+              normalizeId(
+                viewer
+              );
+
+            if (
+              !viewerId ||
+              !viewer
+            ) {
+              return;
+            }
+
+            if (
+              viewersMap.has(
+                viewerId
+              )
+            ) {
+              return;
+            }
+
+            viewersMap.set(
+              viewerId,
+              {
+                _id:
+                  viewerId,
+
+                name:
+                  viewer.name ||
+                  "",
+
+                username:
+                  viewer.username ||
+                  "",
+
+                profilePic:
+                  viewer.profilePic ||
+                  "",
+
+                viewedAt:
+                  null,
+              }
+            );
+          }
+        );
+      }
+
+      const viewers =
+        Array.from(
+          viewersMap.values()
+        ).sort(
+          (
+            firstViewer,
+            secondViewer
+          ) => {
+            const firstTime =
+              firstViewer.viewedAt
+                ? new Date(
+                  firstViewer.viewedAt
+                ).getTime()
+                : 0;
+
+            const secondTime =
+              secondViewer.viewedAt
+                ? new Date(
+                  secondViewer.viewedAt
+                ).getTime()
+                : 0;
+
+            return (
+              secondTime -
+              firstTime
+            );
+          }
+        );
+
+      return res
+        .status(200)
+        .json({
+          success: true,
+
+          count:
+            viewers.length,
+
+          viewers,
+        });
+    } catch (error) {
+      console.error(
+        "GET STORY VIEWERS ERROR:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          success: false,
+
+          message:
+            error.message ||
+            "Unable to load story viewers",
+        });
+    }
+  };
+
+/* =========================
    DELETE STORY
 ========================= */
 
@@ -412,9 +1035,7 @@ const deleteStory = async (
 ) => {
   try {
     const currentUserId =
-      normalizeId(
-        req.user
-      );
+      getCurrentUserId(req);
 
     const storyId =
       normalizeId(
@@ -422,8 +1043,7 @@ const deleteStory = async (
       );
 
     if (
-      !currentUserId ||
-      !mongoose.isValidObjectId(
+      !isValidObjectId(
         currentUserId
       )
     ) {
@@ -431,14 +1051,14 @@ const deleteStory = async (
         .status(401)
         .json({
           success: false,
+
           message:
             "Authentication required",
         });
     }
 
     if (
-      !storyId ||
-      !mongoose.isValidObjectId(
+      !isValidObjectId(
         storyId
       )
     ) {
@@ -446,6 +1066,7 @@ const deleteStory = async (
         .status(400)
         .json({
           success: false,
+
           message:
             "Invalid story ID",
         });
@@ -455,7 +1076,7 @@ const deleteStory = async (
       await Story.findById(
         storyId
       ).select(
-        "_id user image expiresAt"
+        "_id user image"
       );
 
     if (!story) {
@@ -463,20 +1084,26 @@ const deleteStory = async (
         .status(404)
         .json({
           success: false,
+
           message:
             "Story not found",
         });
     }
 
-    if (
+    const ownerId =
       normalizeId(
         story.user
-      ) !== currentUserId
+      );
+
+    if (
+      ownerId !==
+      currentUserId
     ) {
       return res
         .status(403)
         .json({
           success: false,
+
           message:
             "You cannot delete this story",
         });
@@ -525,142 +1152,13 @@ const deleteStory = async (
 };
 
 /* =========================
-   VIEW STORY
+   EXPORTS
 ========================= */
-
-const viewStory = async (
-  req,
-  res
-) => {
-  try {
-    const currentUserId =
-      normalizeId(
-        req.user
-      );
-
-    const storyId =
-      normalizeId(
-        req.params?.id
-      );
-
-    if (
-      !currentUserId ||
-      !mongoose.isValidObjectId(
-        currentUserId
-      )
-    ) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          message:
-            "Authentication required",
-        });
-    }
-
-    if (
-      !storyId ||
-      !mongoose.isValidObjectId(
-        storyId
-      )
-    ) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message:
-            "Invalid story ID",
-        });
-    }
-
-    const story =
-      await Story.findOneAndUpdate(
-        {
-          _id:
-            storyId,
-
-          expiresAt: {
-            $gt:
-              new Date(),
-          },
-        },
-
-        {
-          $addToSet: {
-            viewers:
-              currentUserId,
-          },
-        },
-
-        {
-          new: true,
-          runValidators:
-            true,
-        }
-      ).populate(
-        "user",
-        STORY_USER_FIELDS
-      );
-
-    if (!story) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message:
-            "Story not found or expired",
-        });
-    }
-
-    return res
-      .status(200)
-      .json({
-        success: true,
-
-        message:
-          "Story viewed",
-
-        data: {
-          storyId,
-
-          viewersCount:
-            Array.isArray(
-              story.viewers
-            )
-              ? story.viewers
-                .length
-              : 0,
-
-          isViewed: true,
-        },
-
-        story:
-          formatStory(
-            story,
-            currentUserId
-          ),
-      });
-  } catch (error) {
-    console.error(
-      "VIEW STORY ERROR:",
-      error
-    );
-
-    return res
-      .status(500)
-      .json({
-        success: false,
-
-        message:
-          error.message ||
-          "Unable to view story",
-      });
-  }
-};
 
 module.exports = {
   createStory,
   getStories,
-  deleteStory,
   viewStory,
+  getStoryViewers,
+  deleteStory,
 };

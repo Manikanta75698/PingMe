@@ -654,21 +654,6 @@
   opacity: 0.5;
 }
 
-/* =========================
-   VIEWER IMAGE
-========================= */
-
-.viewerImage {
-  width: 100%;
-  height: 100%;
-
-  display: block;
-
-  object-fit: contain;
-  object-position: center;
-
-  background: #000;
-}
 
 /* =========================
    VIEWER NAVIGATION
@@ -827,5 +812,635 @@
 
   .progressActive {
     animation-duration: 1ms;
+  }
+}
+
+/* =========================
+   SMOOTH STORY IMAGE
+========================= */
+
+.viewerImageContainer {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+  background: #000;
+}
+
+.viewerImage {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: contain;
+  object-position: center;
+
+  background: #000;
+
+  opacity: 0;
+  transform: scale(1.008);
+
+  transition:
+    opacity 0.18s ease,
+    transform 0.22s ease;
+}
+
+.viewerImageReady {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.viewerImageLoader {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #000;
+}
+
+.viewerSpinner {
+  width: 26px;
+  height: 26px;
+
+  border: 3px solid rgba(255, 255, 255, 0.24);
+
+  border-top-color: #fff;
+  border-radius: 50%;
+
+  animation:
+    viewerStorySpin 0.7s linear infinite;
+}
+
+@keyframes viewerStorySpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* =========================
+   SEEN BY BUTTON
+========================= */
+
+.seenByButton {
+  position: absolute;
+  left: 16px;
+  bottom: 18px;
+  z-index: 5;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  min-height: 38px;
+  max-width: calc(100% - 32px);
+
+  padding: 9px 13px;
+
+  color: #fff;
+  background:
+    rgba(0, 0, 0, 0.46);
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+
+  backdrop-filter:
+    blur(10px);
+
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.seenByButton:hover {
+  background:
+    rgba(0, 0, 0, 0.62);
+
+  border-color:
+    rgba(255, 255, 255, 0.28);
+}
+
+.seenByButton:active {
+  transform:
+    scale(0.97);
+}
+
+.seenByButton:focus-visible {
+  outline:
+    2px solid #fff;
+
+  outline-offset: 3px;
+}
+
+.seenByButton svg {
+  width: 17px;
+  height: 17px;
+
+  flex-shrink: 0;
+}
+
+.seenByButton span {
+  overflow: hidden;
+
+  text-overflow:
+    ellipsis;
+
+  white-space: nowrap;
+}
+
+/* =========================
+   VIEWERS BACKDROP
+========================= */
+
+.viewersBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+
+  background:
+    rgba(0, 0, 0, 0.5);
+
+  backdrop-filter:
+    blur(2px);
+
+  animation:
+    viewersBackdropIn
+    0.2s ease-out;
+}
+
+/* =========================
+   VIEWERS SHEET
+========================= */
+
+.viewersSheet {
+  width: 100%;
+  max-height: 68%;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface, Canvas);
+
+  border-radius:
+    22px 22px 0 0;
+
+  box-shadow:
+    0 -14px 40px
+    rgba(0, 0, 0, 0.28);
+
+  animation:
+    viewersSheetUp
+    0.24s ease-out;
+}
+
+/* =========================
+   VIEWERS HEADER
+========================= */
+
+.viewersSheetHeader {
+  display: flex;
+  align-items: center;
+  justify-content:
+    space-between;
+  gap: 12px;
+
+  padding:
+    15px 16px 13px;
+
+  border-bottom:
+    1px solid
+    var(--border);
+
+  background:
+    var(--surface, Canvas);
+}
+
+.viewersSheetHeader > div {
+  min-width: 0;
+
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.viewersSheetHeader strong {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.viewersSheetHeader span {
+  color:
+    var(--text-secondary);
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.viewersSheetHeader button {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface-light);
+
+  border: 0;
+  border-radius: 50%;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease;
+}
+
+.viewersSheetHeader button:hover {
+  background:
+    color-mix(
+      in srgb,
+      var(--surface-light) 78%,
+      var(--text-primary) 8%
+    );
+}
+
+.viewersSheetHeader button:active {
+  transform:
+    scale(0.94);
+}
+
+.viewersSheetHeader button:focus-visible {
+  outline:
+    2px solid
+    var(--primary);
+
+  outline-offset: 2px;
+}
+
+.viewersSheetHeader svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* =========================
+   VIEWERS CONTENT
+========================= */
+
+.viewersSheetContent {
+  min-height: 160px;
+  flex: 1;
+
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  padding:
+    6px 8px 12px;
+
+  scrollbar-width: thin;
+}
+
+.viewersSheetContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.viewersSheetContent::-webkit-scrollbar-thumb {
+  background:
+    var(--border);
+
+  border-radius: 999px;
+}
+
+/* =========================
+   VIEWERS LOADING
+========================= */
+
+.viewersLoading {
+  min-height: 180px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 13px;
+}
+
+.viewersLoading .viewerSpinner {
+  width: 24px;
+  height: 24px;
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--text-primary) 20%,
+      transparent
+    );
+
+  border-top-color:
+    var(--text-primary);
+}
+
+/* =========================
+   VIEWERS EMPTY / ERROR
+========================= */
+
+.viewersEmpty {
+  min-height: 180px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  padding: 24px;
+
+  color:
+    var(--text-secondary);
+
+  text-align: center;
+}
+
+.viewersEmpty > svg {
+  width: 30px;
+  height: 30px;
+
+  opacity: 0.72;
+}
+
+.viewersEmpty strong {
+  color:
+    var(--text-primary);
+
+  font-size: 15px;
+}
+
+.viewersEmpty span {
+  max-width: 280px;
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.viewersEmpty button {
+  margin-top: 4px;
+  padding: 8px 14px;
+
+  color: #fff;
+  background:
+    var(--primary);
+
+  border: 0;
+  border-radius: 9px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.viewersEmpty button:focus-visible {
+  outline:
+    2px solid
+    var(--primary);
+
+  outline-offset: 3px;
+}
+
+/* =========================
+   VIEWER ROW
+========================= */
+
+.viewerRow {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 10px;
+
+  color: inherit;
+  background:
+    transparent;
+
+  border: 0;
+  border-radius: 12px;
+
+  cursor: pointer;
+
+  font: inherit;
+  text-align: left;
+
+  transition:
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+
+.viewerRow:hover {
+  background:
+    var(--surface-light);
+}
+
+.viewerRow:active {
+  transform:
+    scale(0.992);
+}
+
+.viewerRow:focus-visible {
+  outline:
+    2px solid
+    var(--primary);
+
+  outline-offset: 1px;
+}
+
+.viewerRow > img {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+
+  display: block;
+
+  object-fit: cover;
+
+  background:
+    var(--surface-light);
+
+  border:
+    1px solid
+    var(--border);
+  border-radius: 50%;
+}
+
+.viewerRowText {
+  min-width: 0;
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viewerRowText strong {
+  overflow: hidden;
+
+  color:
+    var(--text-primary);
+
+  font-size: 14px;
+  font-weight: 650;
+
+  text-overflow:
+    ellipsis;
+
+  white-space: nowrap;
+}
+
+.viewerRowText span {
+  overflow: hidden;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 12px;
+
+  text-overflow:
+    ellipsis;
+
+  white-space: nowrap;
+}
+
+.viewerRow time {
+  flex-shrink: 0;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* =========================
+   VIEWERS ANIMATIONS
+========================= */
+
+@keyframes viewersBackdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes viewersSheetUp {
+  from {
+    opacity: 0;
+    transform:
+      translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translateY(0);
+  }
+}
+
+/* =========================
+   VIEWERS MOBILE
+========================= */
+
+@media (max-width: 768px) {
+  .seenByButton {
+    left: 14px;
+    bottom:
+      calc(16px + env(safe-area-inset-bottom));
+
+    min-height: 40px;
+  }
+
+  .viewersSheet {
+    max-height: 72%;
+
+    padding-bottom:
+      env(safe-area-inset-bottom);
+  }
+
+  .viewersSheetHeader {
+    padding:
+      16px 16px 14px;
+  }
+
+  .viewersSheetContent {
+    padding:
+      6px 8px 14px;
+  }
+
+  .viewerRow {
+    padding:
+      11px 10px;
+  }
+
+  .viewerRow > img {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+/* =========================
+   VIEWERS REDUCED MOTION
+========================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .seenByButton,
+  .viewerRow,
+  .viewersSheetHeader button {
+    transition: none;
+  }
+
+  .viewersBackdrop,
+  .viewersSheet {
+    animation: none;
   }
 }

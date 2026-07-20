@@ -1,0 +1,305 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1800;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background:
+    rgba(0, 0, 0, 0.7);
+
+  backdrop-filter:
+    blur(8px);
+
+  animation:
+    deleteBackdropIn 0.18s ease-out;
+}
+
+.modal {
+  position: relative;
+
+  width:
+    min(390px,
+      100%);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding:
+    30px 24px 24px;
+
+  color:
+    var(--text-primary,
+      CanvasText);
+
+  background:
+    var(--surface,
+      Canvas);
+
+  border:
+    1px solid var(--border,
+      rgba(127,
+        127,
+        127,
+        0.22));
+
+  border-radius: 20px;
+
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.46);
+
+  text-align: center;
+
+  animation:
+    deleteModalIn 0.2s ease-out;
+}
+
+.closeButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+
+  width: 36px;
+  height: 36px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  color:
+    var(--text-secondary,
+      GrayText);
+
+  background:
+    var(--surface-light,
+      rgba(127,
+        127,
+        127,
+        0.1));
+
+  border: 0;
+  border-radius: 50%;
+
+  cursor: pointer;
+}
+
+.closeButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+.closeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.iconWrapper {
+  width: 58px;
+  height: 58px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 17px;
+
+  color: #dc2626;
+
+  background:
+    rgba(239,
+      68,
+      68,
+      0.12);
+
+  border:
+    1px solid rgba(239,
+      68,
+      68,
+      0.18);
+
+  border-radius: 50%;
+}
+
+.iconWrapper svg {
+  width: 26px;
+  height: 26px;
+}
+
+.modal h2 {
+  margin: 0;
+
+  font-size: 20px;
+  font-weight: 760;
+  line-height: 1.25;
+}
+
+.modal p {
+  max-width: 300px;
+
+  margin:
+    10px 0 24px;
+
+  color:
+    var(--text-secondary,
+      GrayText);
+
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.actions {
+  width: 100%;
+
+  display: grid;
+  grid-template-columns:
+    1fr 1fr;
+  gap: 10px;
+}
+
+.actions button {
+  min-height: 45px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding:
+    10px 14px;
+
+  border-radius: 11px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 720;
+
+  transition:
+    transform 0.16s ease,
+    opacity 0.16s ease,
+    background 0.16s ease;
+}
+
+.actions button:active {
+  transform:
+    scale(0.98);
+}
+
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.cancelButton {
+  color:
+    var(--text-primary,
+      CanvasText);
+
+  background:
+    var(--surface-light,
+      rgba(127,
+        127,
+        127,
+        0.1));
+
+  border:
+    1px solid var(--border,
+      rgba(127,
+        127,
+        127,
+        0.2));
+}
+
+.deleteButton {
+  color: #fff;
+  background: #dc2626;
+
+  border:
+    1px solid transparent;
+}
+
+.deleteButton:hover:not( :disabled) {
+  background: #b91c1c;
+}
+
+.deleteButton svg {
+  width: 17px;
+  height: 17px;
+}
+
+.spinner {
+  animation:
+    deleteSpinner 0.7s linear infinite;
+}
+
+@keyframes deleteSpinner {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+@keyframes deleteBackdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes deleteModalIn {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(12px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 480px) {
+  .backdrop {
+    align-items: flex-end;
+
+    padding:
+      12px 12px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .modal {
+    width: 100%;
+
+    padding:
+      28px 20px 20px;
+
+    border-radius: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .backdrop,
+  .modal,
+  .spinner {
+    animation: none;
+  }
+
+  .actions button {
+    transition: none;
+  }
+}

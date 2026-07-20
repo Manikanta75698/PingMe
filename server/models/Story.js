@@ -5,6 +5,41 @@ const mongoose = require(
 const STORY_DURATION_MS =
   24 * 60 * 60 * 1000;
 
+/* =========================
+   VIEW SUBDOCUMENT
+========================= */
+
+const storyViewSchema =
+  new mongoose.Schema(
+    {
+      user: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+
+        ref: "User",
+
+        required: true,
+      },
+
+      viewedAt: {
+        type: Date,
+
+        default: Date.now,
+
+        required: true,
+      },
+    },
+    {
+      _id: false,
+      versionKey: false,
+    }
+  );
+
+/* =========================
+   STORY SCHEMA
+========================= */
+
 const storySchema =
   new mongoose.Schema(
     {
@@ -16,8 +51,6 @@ const storySchema =
         ref: "User",
 
         required: true,
-
-        index: true,
       },
 
       image: {
@@ -30,6 +63,7 @@ const storySchema =
 
         trim: true,
       },
+
 
       viewers: {
         type: [
@@ -45,6 +79,15 @@ const storySchema =
         default: [],
       },
 
+
+      views: {
+        type: [
+          storyViewSchema,
+        ],
+
+        default: [],
+      },
+
       expiresAt: {
         type: Date,
 
@@ -55,8 +98,6 @@ const storySchema =
           ),
 
         required: true,
-
-        index: true,
       },
     },
     {
@@ -81,28 +122,90 @@ const storySchema =
 storySchema.virtual(
   "isExpired"
 ).get(function getIsExpired() {
+  if (!this.expiresAt) {
+    return false;
+  }
+
+  const expiryTime =
+    new Date(
+      this.expiresAt
+    ).getTime();
+
+  if (
+    Number.isNaN(
+      expiryTime
+    )
+  ) {
+    return false;
+  }
+
   return (
-    this.expiresAt?.getTime?.() <=
+    expiryTime <=
     Date.now()
   );
 });
 
 /* =========================
-   VIEWER COUNT
+   VIEWERS COUNT
 ========================= */
 
 storySchema.virtual(
   "viewersCount"
 ).get(function getViewersCount() {
-  return Array.isArray(
-    this.viewers
-  )
-    ? this.viewers.length
-    : 0;
+  const viewerIds =
+    new Set();
+
+  if (
+    Array.isArray(
+      this.viewers
+    )
+  ) {
+    this.viewers.forEach(
+      (viewer) => {
+        const viewerId =
+          String(
+            viewer?._id ||
+            viewer ||
+            ""
+          ).trim();
+
+        if (viewerId) {
+          viewerIds.add(
+            viewerId
+          );
+        }
+      }
+    );
+  }
+
+  if (
+    Array.isArray(
+      this.views
+    )
+  ) {
+    this.views.forEach(
+      (view) => {
+        const viewerId =
+          String(
+            view?.user?._id ||
+            view?.user ||
+            ""
+          ).trim();
+
+        if (viewerId) {
+          viewerIds.add(
+            viewerId
+          );
+        }
+      }
+    );
+  }
+
+  return viewerIds.size;
 });
 
 /* =========================
-   INDEXES
+   TTL INDEX
 ========================= */
 
 storySchema.index(
@@ -111,25 +214,56 @@ storySchema.index(
   },
   {
     expireAfterSeconds: 0,
+
+    name:
+      "story_expiry_ttl",
   }
 );
 
-/*
- * Faster user story queries:
- * newest story first.
- */
-storySchema.index({
-  user: 1,
-  createdAt: -1,
-});
+/* =========================
+   USER STORIES INDEX
+========================= */
 
-/*
- * Faster active-story feed query.
- */
-storySchema.index({
-  expiresAt: 1,
-  createdAt: -1,
-});
+storySchema.index(
+  {
+    user: 1,
+    createdAt: -1,
+  },
+  {
+    name:
+      "story_user_created_at",
+  }
+);
+
+/* =========================
+   ACTIVE STORIES INDEX
+========================= */
+
+storySchema.index(
+  {
+    expiresAt: 1,
+    createdAt: -1,
+  },
+  {
+    name:
+      "story_expiry_created_at",
+  }
+);
+
+/* =========================
+   VIEWER LOOKUP INDEX
+========================= */
+
+storySchema.index(
+  {
+    _id: 1,
+    "views.user": 1,
+  },
+  {
+    name:
+      "story_view_user",
+  }
+);
 
 module.exports =
   mongoose.model(
