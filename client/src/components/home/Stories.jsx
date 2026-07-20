@@ -15,7 +15,13 @@ import {
   X,
 } from "lucide-react";
 
-import { useAuth } from "../../context/AuthContext";
+import {
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  useAuth,
+} from "../../context/AuthContext";
 
 import {
   createStory,
@@ -24,9 +30,17 @@ import {
   viewStory,
 } from "../../services/storyService";
 
+import socket from "../../socket/socket";
+
 import DefaultAvatar from "../../assets/default-avatar.png";
 
 import styles from "./Stories.module.css";
+
+const STORY_DURATION_MS = 5000;
+
+/* =========================
+   HELPERS
+========================= */
 
 const normalizeId = (value) =>
   String(
@@ -36,66 +50,183 @@ const normalizeId = (value) =>
     ""
   ).trim();
 
-const getStoryUserId = (story) =>
-  normalizeId(story?.user);
+const getStoryUserId = (
+  story
+) =>
+  normalizeId(
+    story?.user
+  );
 
-const getUserAvatar = (user) =>
-  user?.profilePic || DefaultAvatar;
+const getUserAvatar = (
+  user
+) => {
+  const profilePic =
+    user?.profilePic ||
+    user?.avatar ||
+    user?.photoURL;
+
+  return (
+    profilePic ||
+    DefaultAvatar
+  );
+};
+
+const formatStoryTime = (
+  value
+) => {
+  if (!value) return "";
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "";
+  }
+
+  return date.toLocaleTimeString(
+    [],
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
+};
+
+const normalizeIncomingStory = (
+  story,
+  currentUserId
+) => {
+  if (
+    !story ||
+    typeof story !== "object"
+  ) {
+    return null;
+  }
+
+  const storyId =
+    normalizeId(story);
+
+  const ownerId =
+    normalizeId(
+      story?.user
+    );
+
+  if (
+    !storyId ||
+    !ownerId ||
+    !story?.image
+  ) {
+    return null;
+  }
+
+  const isOwner =
+    ownerId ===
+    currentUserId;
+
+  return {
+    ...story,
+
+    _id: storyId,
+
+    isOwner,
+
+    isViewed:
+      isOwner
+        ? false
+        : Boolean(
+          story?.isViewed
+        ),
+  };
+};
+
+/* =========================
+   GROUP STORIES BY USER
+========================= */
 
 const groupStoriesByUser = (
   stories,
   currentUserId
 ) => {
-  const groupsMap = new Map();
+  const groupsMap =
+    new Map();
 
-  stories.forEach((story) => {
-    const userId =
-      getStoryUserId(story);
+  stories.forEach(
+    (story) => {
+      const userId =
+        getStoryUserId(
+          story
+        );
 
-    if (!userId) return;
+      if (!userId) return;
 
-    if (!groupsMap.has(userId)) {
-      groupsMap.set(userId, {
-        userId,
-        user: story.user,
-        stories: [],
-      });
+      if (
+        !groupsMap.has(
+          userId
+        )
+      ) {
+        groupsMap.set(
+          userId,
+          {
+            userId,
+            user:
+              story.user,
+            stories: [],
+          }
+        );
+      }
+
+      groupsMap
+        .get(userId)
+        .stories.push(
+          story
+        );
     }
+  );
 
-    groupsMap
-      .get(userId)
-      .stories.push(story);
-  });
+  const groups =
+    Array.from(
+      groupsMap.values()
+    ).map((group) => {
+      const orderedStories =
+        [
+          ...group.stories,
+        ].sort(
+          (
+            firstStory,
+            secondStory
+          ) =>
+            new Date(
+              firstStory.createdAt
+            ).getTime() -
+            new Date(
+              secondStory.createdAt
+            ).getTime()
+        );
 
-  const groups = Array.from(
-    groupsMap.values()
-  ).map((group) => {
-    const orderedStories = [
-      ...group.stories,
-    ].sort(
-      (firstStory, secondStory) =>
-        new Date(
-          firstStory.createdAt
-        ).getTime() -
-        new Date(
-          secondStory.createdAt
-        ).getTime()
-    );
+      return {
+        ...group,
 
-    return {
-      ...group,
-      stories: orderedStories,
-      hasUnviewed:
-        orderedStories.some(
-          (story) =>
-            !story.isViewed &&
-            !story.isOwner
-        ),
-    };
-  });
+        stories:
+          orderedStories,
+
+        hasUnviewed:
+          orderedStories.some(
+            (story) =>
+              !story.isViewed &&
+              !story.isOwner
+          ),
+      };
+    });
 
   return groups.sort(
-    (firstGroup, secondGroup) => {
+    (
+      firstGroup,
+      secondGroup
+    ) => {
       const firstIsCurrentUser =
         firstGroup.userId ===
         currentUserId;
@@ -144,26 +275,66 @@ const groupStoriesByUser = (
   );
 };
 
+/* =========================
+   STORIES COMPONENT
+========================= */
+
 const Stories = () => {
-  const { user } = useAuth();
+  const navigate =
+    useNavigate();
+
+  const { user } =
+    useAuth();
 
   const currentUserId =
     normalizeId(user);
 
+  const currentUserAvatar =
+    getUserAvatar(user);
+
   const fileInputRef =
     useRef(null);
 
-  const [stories, setStories] =
-    useState([]);
+  const storyTimerRef =
+    useRef(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const initialSocketConnectionRef =
+    useRef(false);
 
-  const [uploading, setUploading] =
-    useState(false);
+  const [
+    stories,
+    setStories,
+  ] = useState([]);
 
-  const [error, setError] =
-    useState("");
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    uploading,
+    setUploading,
+  ] = useState(false);
+
+  const [
+    deleting,
+    setDeleting,
+  ] = useState(false);
+
+  const [
+    storyPaused,
+    setStoryPaused,
+  ] = useState(false);
+
+  const [
+    progressKey,
+    setProgressKey,
+  ] = useState(0);
+
+  const [
+    error,
+    setError,
+  ] = useState("");
 
   const [
     activeGroupIndex,
@@ -175,17 +346,22 @@ const Stories = () => {
     setActiveStoryIndex,
   ] = useState(0);
 
-  const [deleting, setDeleting] =
-    useState(false);
+  /* =========================
+     GROUPED STORIES
+  ========================= */
 
-  const storyGroups = useMemo(
-    () =>
-      groupStoriesByUser(
+  const storyGroups =
+    useMemo(
+      () =>
+        groupStoriesByUser(
+          stories,
+          currentUserId
+        ),
+      [
         stories,
-        currentUserId
-      ),
-    [stories, currentUserId]
-  );
+        currentUserId,
+      ]
+    );
 
   const activeGroup =
     activeGroupIndex >= 0
@@ -199,78 +375,351 @@ const Stories = () => {
     activeStoryIndex
     ] || null;
 
+  const currentUserGroupIndex =
+    storyGroups.findIndex(
+      (group) =>
+        group.userId ===
+        currentUserId
+    );
+
+  /* =========================
+     LOAD STORIES
+  ========================= */
+
   const loadStories =
-    useCallback(async () => {
-      try {
-        setError("");
+    useCallback(
+      async ({
+        showLoading = false,
+      } = {}) => {
+        if (showLoading) {
+          setLoading(true);
+        }
 
-        const response =
-          await getStories();
+        try {
+          setError("");
 
-        setStories(
-          Array.isArray(
-            response?.stories
-          )
-            ? response.stories
-            : []
-        );
-      } catch (loadError) {
-        console.error(
-          "LOAD STORIES ERROR:",
-          loadError.response?.data ||
-          loadError.message
-        );
+          const response =
+            await getStories();
 
-        setError(
-          loadError.userMessage ||
-          loadError.response?.data
-            ?.message ||
-          "Unable to load stories"
-        );
-      } finally {
-        setLoading(false);
-      }
-    }, []);
+          const receivedStories =
+            Array.isArray(
+              response?.stories
+            )
+              ? response.stories
+              : [];
+
+          const normalizedStories =
+            receivedStories
+              .map((story) =>
+                normalizeIncomingStory(
+                  story,
+                  currentUserId
+                )
+              )
+              .filter(Boolean);
+
+          setStories(
+            normalizedStories
+          );
+        } catch (
+        loadError
+        ) {
+          console.error(
+            "LOAD STORIES ERROR:",
+            loadError.response
+              ?.data ||
+            loadError.message
+          );
+
+          setError(
+            loadError.userMessage ||
+            loadError.response
+              ?.data?.message ||
+            "Unable to load stories"
+          );
+        } finally {
+          setLoading(false);
+        }
+      },
+      [currentUserId]
+    );
 
   useEffect(() => {
-    void loadStories();
+    void loadStories({
+      showLoading: true,
+    });
   }, [loadStories]);
+
+  /* =========================
+     REALTIME STORY EVENTS
+  ========================= */
+
+  useEffect(() => {
+    const handleStoryCreated = (
+      payload = {}
+    ) => {
+      const incomingStory =
+        normalizeIncomingStory(
+          payload?.story,
+          currentUserId
+        );
+
+      if (!incomingStory) {
+        return;
+      }
+
+      const incomingStoryId =
+        normalizeId(
+          incomingStory
+        );
+
+      setStories(
+        (currentStories) => {
+          const existingIndex =
+            currentStories.findIndex(
+              (story) =>
+                normalizeId(
+                  story
+                ) ===
+                incomingStoryId
+            );
+
+          if (
+            existingIndex ===
+            -1
+          ) {
+            return [
+              incomingStory,
+              ...currentStories,
+            ];
+          }
+
+          return currentStories.map(
+            (story) =>
+              normalizeId(
+                story
+              ) ===
+                incomingStoryId
+                ? {
+                  ...story,
+                  ...incomingStory,
+
+                  isOwner:
+                    getStoryUserId(
+                      incomingStory
+                    ) ===
+                    currentUserId,
+
+                  isViewed:
+                    story.isViewed ||
+                    incomingStory
+                      .isViewed,
+                }
+                : story
+          );
+        }
+      );
+    };
+
+    const handleStoryDeleted = (
+      payload = {}
+    ) => {
+      const deletedStoryId =
+        normalizeId(
+          payload?.storyId
+        );
+
+      if (!deletedStoryId) {
+        return;
+      }
+
+      setStories(
+        (currentStories) =>
+          currentStories.filter(
+            (story) =>
+              normalizeId(
+                story
+              ) !==
+              deletedStoryId
+          )
+      );
+
+      if (
+        normalizeId(
+          activeStory
+        ) ===
+        deletedStoryId
+      ) {
+        setActiveGroupIndex(
+          -1
+        );
+
+        setActiveStoryIndex(
+          0
+        );
+
+        setStoryPaused(false);
+      }
+    };
+
+    const handleSocketConnect =
+      () => {
+        /*
+         * Initial socket connection time lo
+         * already initial API fetch run avutundi.
+         * Reconnect ayinappudu missed events sync.
+         */
+        if (
+          !initialSocketConnectionRef
+            .current
+        ) {
+          initialSocketConnectionRef
+            .current = true;
+
+          return;
+        }
+
+        void loadStories();
+      };
+
+    socket.on(
+      "storyCreated",
+      handleStoryCreated
+    );
+
+    socket.on(
+      "storyDeleted",
+      handleStoryDeleted
+    );
+
+    socket.on(
+      "connect",
+      handleSocketConnect
+    );
+
+    return () => {
+      socket.off(
+        "storyCreated",
+        handleStoryCreated
+      );
+
+      socket.off(
+        "storyDeleted",
+        handleStoryDeleted
+      );
+
+      socket.off(
+        "connect",
+        handleSocketConnect
+      );
+    };
+  }, [
+    currentUserId,
+    activeStory,
+    loadStories,
+  ]);
+
+  /* =========================
+     CLOSE INVALID VIEWER
+  ========================= */
+
+  useEffect(() => {
+    if (
+      activeGroupIndex <
+      0
+    ) {
+      return;
+    }
+
+    const group =
+      storyGroups[
+      activeGroupIndex
+      ];
+
+    if (
+      !group ||
+      !group.stories.length
+    ) {
+      setActiveGroupIndex(
+        -1
+      );
+
+      setActiveStoryIndex(
+        0
+      );
+
+      return;
+    }
+
+    if (
+      activeStoryIndex >=
+      group.stories.length
+    ) {
+      setActiveStoryIndex(
+        Math.max(
+          0,
+          group.stories.length -
+          1
+        )
+      );
+    }
+  }, [
+    storyGroups,
+    activeGroupIndex,
+    activeStoryIndex,
+  ]);
+
+  /* =========================
+     MARK STORY VIEWED
+  ========================= */
 
   const markStoryViewed =
     useCallback(
       async (story) => {
         const storyId =
-          normalizeId(story);
+          normalizeId(
+            story
+          );
 
         if (
           !storyId ||
-          story.isViewed ||
-          story.isOwner
+          story?.isViewed ||
+          story?.isOwner
         ) {
           return;
         }
 
         setStories(
-          (currentStories) =>
+          (
+            currentStories
+          ) =>
             currentStories.map(
-              (currentStory) =>
+              (
+                currentStory
+              ) =>
                 normalizeId(
                   currentStory
                 ) === storyId
                   ? {
                     ...currentStory,
-                    isViewed: true,
+                    isViewed:
+                      true,
                   }
                   : currentStory
             )
         );
 
         try {
-          await viewStory(storyId);
-        } catch (viewError) {
+          await viewStory(
+            storyId
+          );
+        } catch (
+        viewError
+        ) {
           console.error(
             "VIEW STORY ERROR:",
-            viewError.response?.data ||
+            viewError.response
+              ?.data ||
             viewError.message
           );
         }
@@ -278,11 +727,17 @@ const Stories = () => {
       []
     );
 
+  /* =========================
+     OPEN STORY GROUP
+  ========================= */
+
   const openStoryGroup =
     useCallback(
       (groupIndex) => {
         const group =
-          storyGroups[groupIndex];
+          storyGroups[
+          groupIndex
+          ];
 
         if (!group) return;
 
@@ -306,6 +761,8 @@ const Stories = () => {
           nextStoryIndex
         );
 
+        setStoryPaused(false);
+
         void markStoryViewed(
           group.stories[
           nextStoryIndex
@@ -318,71 +775,170 @@ const Stories = () => {
       ]
     );
 
+  /* =========================
+     CLOSE VIEWER
+  ========================= */
+
   const closeViewer =
     useCallback(() => {
-      setActiveGroupIndex(-1);
-      setActiveStoryIndex(0);
-    }, []);
+      if (
+        storyTimerRef.current
+      ) {
+        window.clearTimeout(
+          storyTimerRef.current
+        );
 
-  const showStory = useCallback(
-    (
-      nextGroupIndex,
-      nextStoryIndex
-    ) => {
-      const group =
-        storyGroups[
-        nextGroupIndex
-        ];
-
-      const story =
-        group?.stories?.[
-        nextStoryIndex
-        ];
-
-      if (!story) return;
+        storyTimerRef.current =
+          null;
+      }
 
       setActiveGroupIndex(
-        nextGroupIndex
+        -1
       );
 
       setActiveStoryIndex(
-        nextStoryIndex
+        0
       );
 
-      void markStoryViewed(story);
-    },
-    [
-      storyGroups,
-      markStoryViewed,
-    ]
-  );
+      setStoryPaused(false);
+    }, []);
 
-  const showPreviousStory =
+  /* =========================
+     PROFILE NAVIGATION
+  ========================= */
+
+  const handleViewerProfileClick =
     useCallback(() => {
-      if (!activeGroup) return;
+      const storyUser =
+        activeGroup?.user;
 
-      if (activeStoryIndex > 0) {
-        showStory(
-          activeGroupIndex,
-          activeStoryIndex - 1
+      if (!storyUser) {
+        return;
+      }
+
+      closeViewer();
+
+      const storyUserId =
+        normalizeId(
+          storyUser
+        );
+
+      if (
+        storyUserId ===
+        currentUserId
+      ) {
+        navigate(
+          "/profile"
         );
 
         return;
       }
 
-      if (activeGroupIndex > 0) {
+      const username =
+        String(
+          storyUser?.username ||
+          ""
+        ).trim();
+
+      if (username) {
+        navigate(
+          `/user/${encodeURIComponent(
+            username
+          )}`
+        );
+      }
+    }, [
+      activeGroup,
+      closeViewer,
+      currentUserId,
+      navigate,
+    ]);
+
+  /* =========================
+     SHOW STORY
+  ========================= */
+
+  const showStory =
+    useCallback(
+      (
+        nextGroupIndex,
+        nextStoryIndex
+      ) => {
+        const group =
+          storyGroups[
+          nextGroupIndex
+          ];
+
+        const story =
+          group?.stories?.[
+          nextStoryIndex
+          ];
+
+        if (!story) return;
+
+        setActiveGroupIndex(
+          nextGroupIndex
+        );
+
+        setActiveStoryIndex(
+          nextStoryIndex
+        );
+
+        setStoryPaused(false);
+
+        void markStoryViewed(
+          story
+        );
+      },
+      [
+        storyGroups,
+        markStoryViewed,
+      ]
+    );
+
+  /* =========================
+     PREVIOUS STORY
+  ========================= */
+
+  const showPreviousStory =
+    useCallback(() => {
+      if (!activeGroup) {
+        return;
+      }
+
+      if (
+        activeStoryIndex > 0
+      ) {
+        showStory(
+          activeGroupIndex,
+          activeStoryIndex -
+          1
+        );
+
+        return;
+      }
+
+      if (
+        activeGroupIndex > 0
+      ) {
         const previousGroupIndex =
-          activeGroupIndex - 1;
+          activeGroupIndex -
+          1;
 
         const previousGroup =
           storyGroups[
           previousGroupIndex
           ];
 
+        if (!previousGroup) {
+          return;
+        }
+
         showStory(
           previousGroupIndex,
-          previousGroup.stories
-            .length - 1
+          previousGroup
+            .stories.length -
+          1
         );
       }
     }, [
@@ -393,9 +949,15 @@ const Stories = () => {
       showStory,
     ]);
 
+  /* =========================
+     NEXT STORY
+  ========================= */
+
   const showNextStory =
     useCallback(() => {
-      if (!activeGroup) return;
+      if (!activeGroup) {
+        return;
+      }
 
       if (
         activeStoryIndex <
@@ -405,7 +967,8 @@ const Stories = () => {
       ) {
         showStory(
           activeGroupIndex,
-          activeStoryIndex + 1
+          activeStoryIndex +
+          1
         );
 
         return;
@@ -413,10 +976,12 @@ const Stories = () => {
 
       if (
         activeGroupIndex <
-        storyGroups.length - 1
+        storyGroups.length -
+        1
       ) {
         showStory(
-          activeGroupIndex + 1,
+          activeGroupIndex +
+          1,
           0
         );
 
@@ -433,30 +998,106 @@ const Stories = () => {
       closeViewer,
     ]);
 
+  /* =========================
+     RESET PROGRESS
+  ========================= */
+
   useEffect(() => {
-    if (!activeStory) return;
+    if (!activeStory) {
+      return;
+    }
 
-    const handleKeyDown = (
-      event
-    ) => {
-      if (event.key === "Escape") {
-        closeViewer();
-      }
+    setProgressKey(
+      (currentKey) =>
+        currentKey + 1
+    );
 
+    setStoryPaused(false);
+  }, [activeStory]);
+
+  /* =========================
+     AUTO NEXT
+  ========================= */
+
+  useEffect(() => {
+    if (
+      !activeStory ||
+      storyPaused ||
+      deleting
+    ) {
+      return undefined;
+    }
+
+    storyTimerRef.current =
+      window.setTimeout(
+        () => {
+          showNextStory();
+        },
+        STORY_DURATION_MS
+      );
+
+    return () => {
       if (
-        event.key ===
-        "ArrowLeft"
+        storyTimerRef.current
       ) {
-        showPreviousStory();
-      }
+        window.clearTimeout(
+          storyTimerRef.current
+        );
 
-      if (
-        event.key ===
-        "ArrowRight"
-      ) {
-        showNextStory();
+        storyTimerRef.current =
+          null;
       }
     };
+  }, [
+    activeStory,
+    storyPaused,
+    deleting,
+    showNextStory,
+  ]);
+
+  /* =========================
+     KEYBOARD CONTROLS
+  ========================= */
+
+  useEffect(() => {
+    if (!activeStory) {
+      return undefined;
+    }
+
+    const handleKeyDown =
+      (event) => {
+        if (
+          event.key ===
+          "Escape"
+        ) {
+          closeViewer();
+        }
+
+        if (
+          event.key ===
+          "ArrowLeft"
+        ) {
+          showPreviousStory();
+        }
+
+        if (
+          event.key ===
+          "ArrowRight"
+        ) {
+          showNextStory();
+        }
+
+        if (
+          event.key === " "
+        ) {
+          event.preventDefault();
+
+          setStoryPaused(
+            (current) =>
+              !current
+          );
+        }
+      };
 
     window.addEventListener(
       "keydown",
@@ -476,14 +1117,46 @@ const Stories = () => {
     showNextStory,
   ]);
 
+  /* =========================
+     LOCK BODY SCROLL
+  ========================= */
+
+  useEffect(() => {
+    if (!activeStory) {
+      return undefined;
+    }
+
+    const previousOverflow =
+      document.body.style
+        .overflow;
+
+    document.body.style
+      .overflow = "hidden";
+
+    return () => {
+      document.body.style
+        .overflow =
+        previousOverflow;
+    };
+  }, [activeStory]);
+
+  /* =========================
+     STORY UPLOAD
+  ========================= */
+
   const handleStoryUpload =
     async (event) => {
       const file =
-        event.target.files?.[0];
+        event.target
+          .files?.[0];
 
-      event.target.value = "";
+      event.target.value =
+        "";
 
-      if (!file || uploading) {
+      if (
+        !file ||
+        uploading
+      ) {
         return;
       }
 
@@ -492,27 +1165,76 @@ const Stories = () => {
         setError("");
 
         const response =
-          await createStory(file);
+          await createStory(
+            file
+          );
 
-        if (response?.story) {
+        const createdStory =
+          normalizeIncomingStory(
+            response?.story,
+            currentUserId
+          );
+
+        if (createdStory) {
           setStories(
-            (currentStories) => [
-              response.story,
-              ...currentStories,
-            ]
+            (
+              currentStories
+            ) => {
+              const storyId =
+                normalizeId(
+                  createdStory
+                );
+
+              const alreadyExists =
+                currentStories.some(
+                  (story) =>
+                    normalizeId(
+                      story
+                    ) ===
+                    storyId
+                );
+
+              if (alreadyExists) {
+                return currentStories.map(
+                  (story) =>
+                    normalizeId(
+                      story
+                    ) ===
+                      storyId
+                      ? {
+                        ...story,
+                        ...createdStory,
+                        isOwner:
+                          true,
+                      }
+                      : story
+                );
+              }
+
+              return [
+                {
+                  ...createdStory,
+                  isOwner: true,
+                },
+                ...currentStories,
+              ];
+            }
           );
         }
-      } catch (uploadError) {
+      } catch (
+      uploadError
+      ) {
         console.error(
           "CREATE STORY ERROR:",
-          uploadError.response?.data ||
+          uploadError.response
+            ?.data ||
           uploadError.message
         );
 
         setError(
           uploadError.userMessage ||
-          uploadError.response?.data
-            ?.message ||
+          uploadError.response
+            ?.data?.message ||
           uploadError.message ||
           "Unable to upload story"
         );
@@ -521,14 +1243,21 @@ const Stories = () => {
       }
     };
 
+  /* =========================
+     DELETE STORY
+  ========================= */
+
   const handleDeleteStory =
     async () => {
       const storyId =
-        normalizeId(activeStory);
+        normalizeId(
+          activeStory
+        );
 
       if (
         !storyId ||
-        !activeStory?.isOwner ||
+        !activeStory
+          ?.isOwner ||
         deleting
       ) {
         return;
@@ -539,17 +1268,22 @@ const Stories = () => {
           "Delete this story?"
         );
 
-      if (!confirmed) return;
+      if (!confirmed) {
+        return;
+      }
 
       try {
         setDeleting(true);
+        setStoryPaused(true);
 
         await deleteStory(
           storyId
         );
 
         setStories(
-          (currentStories) =>
+          (
+            currentStories
+          ) =>
             currentStories.filter(
               (story) =>
                 normalizeId(
@@ -559,35 +1293,38 @@ const Stories = () => {
         );
 
         closeViewer();
-      } catch (deleteError) {
+      } catch (
+      deleteError
+      ) {
         console.error(
           "DELETE STORY ERROR:",
-          deleteError.response?.data ||
+          deleteError.response
+            ?.data ||
           deleteError.message
         );
 
         alert(
           deleteError.userMessage ||
-          deleteError.response?.data
-            ?.message ||
+          deleteError.response
+            ?.data?.message ||
           "Unable to delete story"
         );
+
+        setStoryPaused(false);
       } finally {
         setDeleting(false);
       }
     };
 
-  const currentUserGroupIndex =
-    storyGroups.findIndex(
-      (group) =>
-        group.userId ===
-        currentUserId
-    );
+  /* =========================
+     YOUR STORY ACTIONS
+  ========================= */
 
   const handleOwnStoryClick =
     () => {
       if (
-        currentUserGroupIndex >= 0
+        currentUserGroupIndex >=
+        0
       ) {
         openStoryGroup(
           currentUserGroupIndex
@@ -596,8 +1333,25 @@ const Stories = () => {
         return;
       }
 
-      fileInputRef.current?.click();
+      fileInputRef.current
+        ?.click();
     };
+
+  const handleAddStoryClick =
+    (event) => {
+      event.stopPropagation();
+
+      if (uploading) {
+        return;
+      }
+
+      fileInputRef.current
+        ?.click();
+    };
+
+  /* =========================
+     LOADING
+  ========================= */
 
   if (loading) {
     return (
@@ -606,29 +1360,32 @@ const Stories = () => {
           styles.container
         }
         aria-label="Stories"
+        aria-busy="true"
       >
         {Array.from({
           length: 6,
-        }).map((_, index) => (
-          <div
-            key={index}
-            className={
-              styles.skeletonItem
-            }
-          >
+        }).map(
+          (_, index) => (
             <div
+              key={index}
               className={
-                styles.skeletonAvatar
+                styles.skeletonItem
               }
-            />
+            >
+              <div
+                className={
+                  styles.skeletonAvatar
+                }
+              />
 
-            <div
-              className={
-                styles.skeletonText
-              }
-            />
-          </div>
-        ))}
+              <div
+                className={
+                  styles.skeletonText
+                }
+              />
+            </div>
+          )
+        )}
       </section>
     );
   }
@@ -641,75 +1398,86 @@ const Stories = () => {
         }
         aria-label="Stories"
       >
-        <button
-          type="button"
-          className={`${styles.story} ${styles.ownStory}`}
-          onClick={
-            handleOwnStoryClick
+        <div
+          className={
+            styles.ownStoryItem
           }
-          disabled={uploading}
         >
-          <div
-            className={
-              styles.imageWrapper
+          <button
+            type="button"
+            className={`${styles.story} ${styles.ownStory}`}
+            onClick={
+              handleOwnStoryClick
+            }
+            disabled={
+              uploading
             }
           >
-            <img
-              src={getUserAvatar(
-                activeGroup?.user
-              )}
-              alt=""
-              onError={(event) => {
-                event.currentTarget.onerror =
-                  null;
-
-                event.currentTarget.src =
-                  DefaultAvatar;
-              }}
-            />
-
-            <span
+            <div
               className={
-                styles.addBadge
+                styles.imageWrapper
               }
-              aria-hidden="true"
-              onClick={(event) => {
-                if (
-                  currentUserGroupIndex >=
-                  0
-                ) {
-                  event.stopPropagation();
-
-                  fileInputRef.current?.click();
-                }
-              }}
             >
-              <Plus />
-            </span>
-
-            {uploading && (
-              <span
-                className={
-                  styles.uploadOverlay
+              <img
+                src={
+                  currentUserAvatar
                 }
-              >
+                alt="Your profile"
+                onError={(
+                  event
+                ) => {
+                  event.currentTarget.onerror =
+                    null;
+
+                  event.currentTarget.src =
+                    DefaultAvatar;
+                }}
+              />
+
+              {uploading && (
                 <span
                   className={
-                    styles.spinner
+                    styles.uploadOverlay
                   }
-                />
-              </span>
-            )}
-          </div>
+                  role="status"
+                  aria-label="Uploading story"
+                >
+                  <span
+                    className={
+                      styles.spinner
+                    }
+                    aria-hidden="true"
+                  />
+                </span>
+              )}
+            </div>
 
-          <p
+            <p
+              className={
+                styles.storyName
+              }
+            >
+              Your Story
+            </p>
+          </button>
+
+          <button
+            type="button"
             className={
-              styles.storyName
+              styles.addBadge
             }
+            onClick={
+              handleAddStoryClick
+            }
+            disabled={
+              uploading
+            }
+            aria-label="Add story"
+            title="Add story"
           >
-            Your Story
-          </p>
-        </button>
+            <Plus />
+          </button>
+        </div>
 
         {storyGroups
           .filter(
@@ -725,19 +1493,28 @@ const Stories = () => {
                   group.userId
               );
 
+            const displayName =
+              group.user?.name ||
+              group.user
+                ?.username ||
+              "User";
+
             return (
               <button
                 type="button"
-                key={group.userId}
+                key={
+                  group.userId
+                }
                 className={`${styles.story} ${group.hasUnviewed
-                  ? ""
-                  : styles.viewed
+                    ? ""
+                    : styles.viewed
                   }`}
                 onClick={() =>
                   openStoryGroup(
                     originalIndex
                   )
                 }
+                aria-label={`View ${displayName} story`}
               >
                 <div
                   className={
@@ -748,11 +1525,14 @@ const Stories = () => {
                     src={getUserAvatar(
                       group.user
                     )}
-                    alt=""
+                    alt={`${displayName} profile`}
                     loading="lazy"
                     onError={(
                       event
                     ) => {
+                      event.currentTarget.onerror =
+                        null;
+
                       event.currentTarget.src =
                         DefaultAvatar;
                     }}
@@ -764,18 +1544,16 @@ const Stories = () => {
                     styles.storyName
                   }
                 >
-                  {group.user
-                    ?.name ||
-                    group.user
-                      ?.username ||
-                    "User"}
+                  {displayName}
                 </p>
               </button>
             );
           })}
 
         <input
-          ref={fileInputRef}
+          ref={
+            fileInputRef
+          }
           className={
             styles.fileInput
           }
@@ -794,7 +1572,9 @@ const Stories = () => {
           }
           role="alert"
         >
-          <span>{error}</span>
+          <span>
+            {error}
+          </span>
 
           <button
             type="button"
@@ -802,8 +1582,10 @@ const Stories = () => {
               styles.retryButton
             }
             onClick={() => {
-              setLoading(true);
-              void loadStories();
+              void loadStories({
+                showLoading:
+                  true,
+              });
             }}
           >
             Retry
@@ -819,47 +1601,156 @@ const Stories = () => {
           role="dialog"
           aria-modal="true"
           aria-label="Story viewer"
-          onClick={closeViewer}
+          onClick={
+            closeViewer
+          }
         >
           <div
             className={
               styles.viewer
             }
-            onClick={(event) =>
+            onClick={(
+              event
+            ) =>
               event.stopPropagation()
             }
+            onMouseEnter={() =>
+              setStoryPaused(
+                true
+              )
+            }
+            onMouseLeave={() =>
+              setStoryPaused(
+                false
+              )
+            }
+            onPointerDown={() =>
+              setStoryPaused(
+                true
+              )
+            }
+            onPointerUp={() =>
+              setStoryPaused(
+                false
+              )
+            }
+            onPointerCancel={() =>
+              setStoryPaused(
+                false
+              )
+            }
           >
+            <div
+              className={
+                styles.progressContainer
+              }
+              aria-hidden="true"
+            >
+              {activeGroup.stories.map(
+                (
+                  story,
+                  index
+                ) => {
+                  const storyId =
+                    normalizeId(
+                      story
+                    );
+
+                  const isCompleted =
+                    index <
+                    activeStoryIndex;
+
+                  const isActive =
+                    index ===
+                    activeStoryIndex;
+
+                  return (
+                    <span
+                      key={
+                        storyId
+                      }
+                      className={
+                        styles.progressTrack
+                      }
+                    >
+                      <span
+                        key={
+                          isActive
+                            ? `${storyId}-${progressKey}`
+                            : storyId
+                        }
+                        className={`${styles.progressFill} ${isCompleted
+                            ? styles.progressCompleted
+                            : ""
+                          } ${isActive
+                            ? styles.progressActive
+                            : ""
+                          } ${isActive &&
+                            storyPaused
+                            ? styles.progressPaused
+                            : ""
+                          }`}
+                      />
+                    </span>
+                  );
+                }
+              )}
+            </div>
+
             <div
               className={
                 styles.viewerHeader
               }
             >
-              <div
+              <button
+                type="button"
                 className={
                   styles.viewerUser
                 }
+                onClick={
+                  handleViewerProfileClick
+                }
+                aria-label={`Open ${activeGroup?.user
+                    ?.name ||
+                  activeGroup?.user
+                    ?.username ||
+                  "user"
+                  } profile`}
               >
                 <img
                   src={getUserAvatar(
                     activeGroup?.user
                   )}
                   alt=""
+                  onError={(
+                    event
+                  ) => {
+                    event.currentTarget.onerror =
+                      null;
+
+                    event.currentTarget.src =
+                      DefaultAvatar;
+                  }}
                 />
 
                 <div>
                   <strong>
-                    {activeGroup?.user
+                    {activeGroup
+                      ?.user
                       ?.name ||
+                      activeGroup
+                        ?.user
+                        ?.username ||
                       "User"}
                   </strong>
 
                   <span>
-                    {new Date(
+                    {formatStoryTime(
                       activeStory.createdAt
-                    ).toLocaleString()}
+                    )}
                   </span>
                 </div>
-              </div>
+              </button>
 
               <div
                 className={
@@ -872,7 +1763,9 @@ const Stories = () => {
                     onClick={
                       handleDeleteStory
                     }
-                    disabled={deleting}
+                    disabled={
+                      deleting
+                    }
                     aria-label="Delete story"
                     title="Delete story"
                   >
@@ -886,6 +1779,7 @@ const Stories = () => {
                     closeViewer
                   }
                   aria-label="Close story"
+                  title="Close"
                 >
                   <X />
                 </button>
@@ -903,13 +1797,17 @@ const Stories = () => {
             />
 
             {(
-              activeStoryIndex > 0 ||
-              activeGroupIndex > 0
+              activeStoryIndex >
+              0 ||
+              activeGroupIndex >
+              0
             ) && (
                 <button
                   type="button"
                   className={`${styles.viewerNavigation} ${styles.previousButton}`}
-                  onClick={showPreviousStory}
+                  onClick={
+                    showPreviousStory
+                  }
                   aria-label="Previous story"
                 >
                   <ChevronLeft />
@@ -918,14 +1816,20 @@ const Stories = () => {
 
             {(
               activeStoryIndex <
-              activeGroup.stories.length - 1 ||
+              activeGroup
+                .stories
+                .length -
+              1 ||
               activeGroupIndex <
-              storyGroups.length - 1
+              storyGroups.length -
+              1
             ) && (
                 <button
                   type="button"
                   className={`${styles.viewerNavigation} ${styles.nextButton}`}
-                  onClick={showNextStory}
+                  onClick={
+                    showNextStory
+                  }
                   aria-label="Next story"
                 >
                   <ChevronRight />
@@ -938,4 +1842,6 @@ const Stories = () => {
   );
 };
 
-export default memo(Stories);
+export default memo(
+  Stories
+);

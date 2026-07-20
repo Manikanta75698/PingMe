@@ -1,24 +1,123 @@
-const mongoose = require("mongoose");
+const mongoose = require(
+  "mongoose"
+);
 
-const Story = require("../models/Story");
+const Story = require(
+  "../models/Story"
+);
 
 const uploadImage = require(
   "../utils/cloudinaryUpload"
 );
 
+const {
+  getIO,
+} = require(
+  "../socket/socketInstance"
+);
+
 const STORY_USER_FIELDS =
   "name username profilePic";
 
-const normalizeId = (value) =>
-  String(
-    value?._id ??
-    value?.id ??
-    value ??
-    ""
-  ).trim();
+const STORY_DURATION_MS =
+  24 * 60 * 60 * 1000;
 
 /* =========================
-   FORMAT STORY RESPONSE
+   HELPERS
+========================= */
+
+const normalizeId = (
+  value
+) => {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number"
+  ) {
+    return String(
+      value
+    ).trim();
+  }
+
+  if (
+    typeof value?.toHexString ===
+    "function"
+  ) {
+    try {
+      return String(
+        value.toHexString()
+      ).trim();
+    } catch {
+      return "";
+    }
+  }
+
+  if (
+    typeof value === "object"
+  ) {
+    if (
+      value._id &&
+      value._id !== value
+    ) {
+      return normalizeId(
+        value._id
+      );
+    }
+
+    if (
+      value.id &&
+      value.id !== value
+    ) {
+      return normalizeId(
+        value.id
+      );
+    }
+
+    if (
+      value.userId &&
+      value.userId !== value
+    ) {
+      return normalizeId(
+        value.userId
+      );
+    }
+
+    return "";
+  }
+
+  return String(
+    value
+  ).trim();
+};
+
+const emitStoryEvent = (
+  eventName,
+  payload
+) => {
+  try {
+    const io = getIO();
+
+    io.emit(
+      eventName,
+      payload
+    );
+  } catch (error) {
+    console.error(
+      `${eventName.toUpperCase()} SOCKET ERROR:`,
+      error?.message ||
+      error
+    );
+  }
+};
+
+/* =========================
+   FORMAT STORY
 ========================= */
 
 const formatStory = (
@@ -45,7 +144,7 @@ const formatStory = (
       currentUserId
     );
 
-  const storyOwnerId =
+  const ownerId =
     normalizeId(
       storyObject?.user?._id ||
       storyObject?.user
@@ -70,7 +169,7 @@ const formatStory = (
       ),
 
     isOwner:
-      storyOwnerId ===
+      ownerId ===
       normalizedCurrentUserId,
   };
 };
@@ -85,7 +184,9 @@ const createStory = async (
 ) => {
   try {
     const currentUserId =
-      normalizeId(req.user);
+      normalizeId(
+        req.user
+      );
 
     if (
       !currentUserId ||
@@ -93,19 +194,23 @@ const createStory = async (
         currentUserId
       )
     ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
+      return res
+        .status(401)
+        .json({
+          success: false,
+          message:
+            "Authentication required",
+        });
     }
 
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Please upload an image",
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            "Please upload an image",
+        });
     }
 
     const image =
@@ -115,11 +220,13 @@ const createStory = async (
       );
 
     if (!image) {
-      return res.status(500).json({
-        success: false,
-        message:
-          "Unable to upload story image",
-      });
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message:
+            "Unable to upload story image",
+        });
     }
 
     const story =
@@ -132,10 +239,7 @@ const createStory = async (
         expiresAt:
           new Date(
             Date.now() +
-            24 *
-            60 *
-            60 *
-            1000
+            STORY_DURATION_MS
           ),
       });
 
@@ -144,30 +248,67 @@ const createStory = async (
       STORY_USER_FIELDS
     );
 
-    return res.status(201).json({
-      success: true,
+    const formattedStory =
+      formatStory(
+        story,
+        currentUserId
+      );
 
-      message:
-        "Story uploaded successfully",
+    /*
+     * Owner response lo isOwner=true.
+     */
+    const ownerStory = {
+      ...formattedStory,
+      isOwner: true,
+    };
 
-      story:
-        formatStory(
-          story,
-          currentUserId
-        ),
-    });
+    /*
+     * Other connected users kosam
+     * owner/viewed flags false.
+     */
+    const realtimeStory = {
+      ...formattedStory,
+      isOwner: false,
+      isViewed: false,
+    };
+
+    emitStoryEvent(
+      "storyCreated",
+      {
+        story:
+          realtimeStory,
+
+        createdBy:
+          currentUserId,
+      }
+    );
+
+    return res
+      .status(201)
+      .json({
+        success: true,
+
+        message:
+          "Story uploaded successfully",
+
+        story:
+          ownerStory,
+      });
   } catch (error) {
     console.error(
       "CREATE STORY ERROR:",
       error
     );
 
-    return res.status(500).json({
-      success: false,
-      message:
-        error.message ||
-        "Unable to upload story",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          error.message ||
+          "Unable to upload story",
+      });
   }
 };
 
@@ -181,7 +322,9 @@ const getStories = async (
 ) => {
   try {
     const currentUserId =
-      normalizeId(req.user);
+      normalizeId(
+        req.user
+      );
 
     if (
       !currentUserId ||
@@ -189,17 +332,20 @@ const getStories = async (
         currentUserId
       )
     ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
+      return res
+        .status(401)
+        .json({
+          success: false,
+          message:
+            "Authentication required",
+        });
     }
 
     const stories =
       await Story.find({
         expiresAt: {
-          $gt: new Date(),
+          $gt:
+            new Date(),
         },
       })
         .populate(
@@ -227,27 +373,32 @@ const getStories = async (
           )
         );
 
-    return res.status(200).json({
-      success: true,
+    return res
+      .status(200)
+      .json({
+        success: true,
 
-      count:
-        validStories.length,
+        count:
+          validStories.length,
 
-      stories:
-        validStories,
-    });
+        stories:
+          validStories,
+      });
   } catch (error) {
     console.error(
       "GET STORIES ERROR:",
       error
     );
 
-    return res.status(500).json({
-      success: false,
-      message:
-        error.message ||
-        "Unable to load stories",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          error.message ||
+          "Unable to load stories",
+      });
   }
 };
 
@@ -261,7 +412,9 @@ const deleteStory = async (
 ) => {
   try {
     const currentUserId =
-      normalizeId(req.user);
+      normalizeId(
+        req.user
+      );
 
     const storyId =
       normalizeId(
@@ -274,11 +427,13 @@ const deleteStory = async (
         currentUserId
       )
     ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
+      return res
+        .status(401)
+        .json({
+          success: false,
+          message:
+            "Authentication required",
+        });
     }
 
     if (
@@ -287,11 +442,13 @@ const deleteStory = async (
         storyId
       )
     ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid story ID",
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            "Invalid story ID",
+        });
     }
 
     const story =
@@ -302,48 +459,68 @@ const deleteStory = async (
       );
 
     if (!story) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Story not found",
-      });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message:
+            "Story not found",
+        });
     }
 
     if (
-      normalizeId(story.user) !==
-      currentUserId
+      normalizeId(
+        story.user
+      ) !== currentUserId
     ) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "You cannot delete this story",
-      });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message:
+            "You cannot delete this story",
+        });
     }
 
     await story.deleteOne();
 
-    return res.status(200).json({
-      success: true,
-
-      message:
-        "Story deleted successfully",
-
-      data: {
+    emitStoryEvent(
+      "storyDeleted",
+      {
         storyId,
-      },
-    });
+
+        deletedBy:
+          currentUserId,
+      }
+    );
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+
+        message:
+          "Story deleted successfully",
+
+        data: {
+          storyId,
+        },
+      });
   } catch (error) {
     console.error(
       "DELETE STORY ERROR:",
       error
     );
 
-    return res.status(500).json({
-      success: false,
-      message:
-        error.message ||
-        "Unable to delete story",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          error.message ||
+          "Unable to delete story",
+      });
   }
 };
 
@@ -357,7 +534,9 @@ const viewStory = async (
 ) => {
   try {
     const currentUserId =
-      normalizeId(req.user);
+      normalizeId(
+        req.user
+      );
 
     const storyId =
       normalizeId(
@@ -370,11 +549,13 @@ const viewStory = async (
         currentUserId
       )
     ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
+      return res
+        .status(401)
+        .json({
+          success: false,
+          message:
+            "Authentication required",
+        });
     }
 
     if (
@@ -383,20 +564,24 @@ const viewStory = async (
         storyId
       )
     ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid story ID",
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            "Invalid story ID",
+        });
     }
 
     const story =
       await Story.findOneAndUpdate(
         {
-          _id: storyId,
+          _id:
+            storyId,
 
           expiresAt: {
-            $gt: new Date(),
+            $gt:
+              new Date(),
           },
         },
 
@@ -409,59 +594,67 @@ const viewStory = async (
 
         {
           new: true,
-          runValidators: true,
+          runValidators:
+            true,
         }
-      )
-        .populate(
-          "user",
-          STORY_USER_FIELDS
-        );
+      ).populate(
+        "user",
+        STORY_USER_FIELDS
+      );
 
     if (!story) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Story not found or expired",
-      });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message:
+            "Story not found or expired",
+        });
     }
 
-    return res.status(200).json({
-      success: true,
+    return res
+      .status(200)
+      .json({
+        success: true,
 
-      message:
-        "Story viewed",
+        message:
+          "Story viewed",
 
-      data: {
-        storyId,
+        data: {
+          storyId,
 
-        viewersCount:
-          Array.isArray(
-            story.viewers
-          )
-            ? story.viewers.length
-            : 0,
+          viewersCount:
+            Array.isArray(
+              story.viewers
+            )
+              ? story.viewers
+                .length
+              : 0,
 
-        isViewed: true,
-      },
+          isViewed: true,
+        },
 
-      story:
-        formatStory(
-          story,
-          currentUserId
-        ),
-    });
+        story:
+          formatStory(
+            story,
+            currentUserId
+          ),
+      });
   } catch (error) {
     console.error(
       "VIEW STORY ERROR:",
       error
     );
 
-    return res.status(500).json({
-      success: false,
-      message:
-        error.message ||
-        "Unable to view story",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          error.message ||
+          "Unable to view story",
+      });
   }
 };
 
