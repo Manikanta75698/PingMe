@@ -1,92 +1,601 @@
-/* =========================================
-   📖 STORIES CONTAINER (Horizontal Scroll)
-========================================= */
+/* =========================
+   STORIES CONTAINER
+========================= */
+
 .container {
+  width: 100%;
   display: flex;
-  gap: 16px;
-  padding: 12px 0;
+  align-items: flex-start;
+  gap: 14px;
+
+  margin: 0 0 8px;
+  padding: 12px 2px;
+
   overflow-x: auto;
+  overflow-y: hidden;
+
+  overscroll-behavior-x: contain;
   scroll-behavior: smooth;
-  /* Scrollbar hide cheyadaniki */
-  -ms-overflow-style: none;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
-  margin-bottom: 8px;
+
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Chrome/Safari lo scrollbar kanipinchakunda */
 .container::-webkit-scrollbar {
   display: none;
 }
 
-/* =========================================
-   🧑‍🤝‍🧑 INDIVIDUAL STORY ITEM
-========================================= */
+/* =========================
+   STORY ITEM
+========================= */
+
 .story {
+  min-width: 70px;
+  max-width: 70px;
+
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+
+  padding: 0;
+
+  color: inherit;
+  background: transparent;
+  border: 0;
+
   cursor: pointer;
-  min-width: max-content;
-  /* Name cut avvakunda */
+  scroll-snap-align: start;
+
+  font: inherit;
+  text-align: center;
+
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* 🚀 Magic Instagram Gradient Ring */
+.story:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.story:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+/* =========================
+   STORY RING
+========================= */
+
 .imageWrapper {
+  position: relative;
+
   width: 66px;
   height: 66px;
-  border-radius: 50%;
-  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-  padding: 2px;
-  /* Ring thickness */
+  flex-shrink: 0;
+
   display: flex;
-  justify-content: center;
   align-items: center;
-  transition: transform 0.2s ease;
+  justify-content: center;
+
+  padding: 3px;
+
+  background: linear-gradient(135deg,
+      #f09433,
+      #e6683c,
+      #dc2743,
+      #cc2366,
+      #bc1888);
+
+  border-radius: 50%;
+
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
 }
 
-/* Click chesinappudu chinna bounce effect */
-.story:active .imageWrapper {
-  transform: scale(0.92);
+.story:hover .imageWrapper {
+  transform: scale(1.035);
 }
+
+.story:active .imageWrapper {
+  transform: scale(0.94);
+}
+
+/* Already viewed story */
+
+.viewed .imageWrapper {
+  background: var(--border,
+      color-mix(in srgb,
+        CanvasText 18%,
+        transparent));
+}
+
+/* Current user's add-story item */
+
+.ownStory .imageWrapper {
+  background: var(--border,
+      color-mix(in srgb,
+        CanvasText 14%,
+        transparent));
+}
+
+/* =========================
+   AVATAR
+========================= */
 
 .imageWrapper img {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  /* 🚀 Idhi Ring ki Image ki madhyalo unna gap isthundi */
+
+  display: block;
+
+  background: var(--surface);
   border: 2px solid var(--background);
-  background-color: var(--surface);
+  border-radius: 50%;
+
+  object-fit: cover;
+  object-position: center;
 }
 
-/* Story Name Text */
-.story p {
-  font-size: 0.75rem;
-  color: var(--text-primary);
+/* =========================
+   ADD STORY ICON
+========================= */
+
+.addBadge {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+
+  width: 22px;
+  height: 22px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #fff;
+  background: var(--primary);
+
+  border: 2px solid var(--background);
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+.addBadge svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 3;
+}
+
+/* =========================
+   STORY NAME
+========================= */
+
+.storyName {
+  width: 100%;
   margin: 0;
-  max-width: 66px;
-  white-space: nowrap;
+
   overflow: hidden;
+
+  color: var(--text-primary);
+
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25;
+
+  text-align: center;
   text-overflow: ellipsis;
-  /* Pedda peru unte '...' vasthundi */
+  white-space: nowrap;
+}
+
+.viewed .storyName {
+  color: var(--text-secondary);
+}
+
+/* =========================
+   HIDDEN FILE INPUT
+========================= */
+
+.fileInput {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  padding: 0;
+  margin: -1px;
+
+  overflow: hidden;
+
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+
+  border: 0;
+}
+
+/* =========================
+   LOADING SKELETON
+========================= */
+
+.skeletonItem {
+  min-width: 70px;
+  max-width: 70px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+
+  scroll-snap-align: start;
+}
+
+.skeletonAvatar {
+  width: 66px;
+  height: 66px;
+
+  border-radius: 50%;
+
+  background: linear-gradient(90deg,
+      var(--surface-light) 25%,
+      var(--surface) 50%,
+      var(--surface-light) 75%);
+
+  background-size: 200% 100%;
+
+  animation:
+    storySkeletonLoading 1.25s ease-in-out infinite;
+}
+
+.skeletonText {
+  width: 48px;
+  height: 9px;
+
+  border-radius: 999px;
+
+  background: var(--surface-light);
+}
+
+/* =========================
+   UPLOAD OVERLAY
+========================= */
+
+.uploadOverlay {
+  position: absolute;
+  inset: 3px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--text-primary);
+
+  background: color-mix(in srgb,
+      var(--surface) 86%,
+      transparent);
+
+  border-radius: 50%;
+
+  backdrop-filter: blur(3px);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+
+  border: 2px solid color-mix(in srgb,
+      currentColor 20%,
+      transparent);
+
+  border-top-color: currentColor;
+  border-radius: 50%;
+
+  animation:
+    storySpinner 0.7s linear infinite;
+}
+
+/* =========================
+   ERROR STATE
+========================= */
+
+.errorState {
+  width: 100%;
+  min-height: 74px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  padding: 12px;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
   text-align: center;
 }
 
+.retryButton {
+  padding: 7px 11px;
 
-/* =========================================
-   📱 MOBILE ADJUSTMENTS
-========================================= */
+  color: var(--primary);
+  background: transparent;
+
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.retryButton:hover {
+  background: color-mix(in srgb,
+      var(--primary) 8%,
+      transparent);
+}
+
+/* =========================
+   ANIMATIONS
+========================= */
+
+@keyframes storySpinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes storySkeletonLoading {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* =========================
+   MOBILE
+========================= */
+
 @media (max-width: 768px) {
   .container {
     gap: 12px;
-    padding: 8px 16px 4px 16px; 
-    margin-bottom: 0 !important; 
-    border-bottom: 1px solid var(--border); 
+
+    margin-bottom: 0;
+    padding: 8px 16px 6px;
+
+    border-bottom: 1px solid var(--border);
+  }
+
+  .story,
+  .skeletonItem {
+    min-width: 64px;
+    max-width: 64px;
+  }
+
+  .imageWrapper,
+  .skeletonAvatar {
+    width: 60px;
+    height: 60px;
+  }
+
+  .storyName {
+    font-size: 0.72rem;
+  }
+
+  .addBadge {
+    width: 21px;
+    height: 21px;
+  }
+}
+
+/* =========================
+   REDUCED MOTION
+========================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .container {
+    scroll-behavior: auto;
   }
 
   .imageWrapper {
-    width: 60px;
-    height: 60px;
+    transition: none;
+  }
+
+  .spinner,
+  .skeletonAvatar {
+    animation: none;
+  }
+}
+
+.viewerBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(8px);
+}
+
+.viewer {
+  position: relative;
+
+  width: min(460px,
+      calc(100vw - 40px));
+
+  aspect-ratio: 9 / 16;
+  max-height: 88vh;
+
+  overflow: hidden;
+
+  background: #000;
+  border-radius: 18px;
+
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.viewerHeader {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 3;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 16px;
+
+  color: #fff;
+
+  background: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0.75),
+      transparent);
+}
+
+.viewerUser {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.viewerUser img {
+  width: 38px;
+  height: 38px;
+
+  flex-shrink: 0;
+
+  object-fit: cover;
+
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+}
+
+.viewerUser div {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.viewerUser strong {
+  overflow: hidden;
+
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewerUser span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+}
+
+.viewerActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.viewerActions button,
+.viewerNavigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #fff;
+  background: rgba(0, 0, 0, 0.38);
+
+  border: 0;
+  border-radius: 50%;
+
+  cursor: pointer;
+}
+
+.viewerActions button {
+  width: 36px;
+  height: 36px;
+}
+
+.viewerActions svg {
+  width: 19px;
+  height: 19px;
+}
+
+.viewerImage {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: contain;
+  object-position: center;
+
+  background: #000;
+}
+
+.viewerNavigation {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+
+  width: 42px;
+  height: 42px;
+
+  transform: translateY(-50%);
+}
+
+.previousButton {
+  left: 12px;
+}
+
+.nextButton {
+  right: 12px;
+}
+
+.viewerNavigation svg {
+  width: 25px;
+  height: 25px;
+}
+
+.viewerActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+  .viewerBackdrop {
+    padding: 0;
+  }
+
+  .viewer {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+    border-radius: 0;
+  }
+
+  .viewerNavigation {
+    width: 38px;
+    height: 38px;
   }
 }

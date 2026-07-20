@@ -1,136 +1,466 @@
+const mongoose = require("mongoose");
+
 const Story = require("../models/Story");
-const uploadImage = require("../utils/cloudinaryUpload");
 
+const uploadImage = require(
+  "../utils/cloudinaryUpload"
+);
 
-const createStory = async (req, res) => {
+const STORY_USER_FIELDS =
+  "name username profilePic";
+
+const normalizeId = (value) =>
+  String(
+    value?._id ??
+    value?.id ??
+    value ??
+    ""
+  ).trim();
+
+/* =========================
+   FORMAT STORY RESPONSE
+========================= */
+
+const formatStory = (
+  story,
+  currentUserId
+) => {
+  const storyObject =
+    typeof story?.toObject ===
+      "function"
+      ? story.toObject({
+        virtuals: true,
+      })
+      : story;
+
+  const viewers =
+    Array.isArray(
+      storyObject?.viewers
+    )
+      ? storyObject.viewers
+      : [];
+
+  const normalizedCurrentUserId =
+    normalizeId(
+      currentUserId
+    );
+
+  const storyOwnerId =
+    normalizeId(
+      storyObject?.user?._id ||
+      storyObject?.user
+    );
+
+  return {
+    ...storyObject,
+
+    viewersCount:
+      viewers.length,
+
+    isViewed:
+      Boolean(
+        normalizedCurrentUserId &&
+        viewers.some(
+          (viewerId) =>
+            normalizeId(
+              viewerId
+            ) ===
+            normalizedCurrentUserId
+        )
+      ),
+
+    isOwner:
+      storyOwnerId ===
+      normalizedCurrentUserId,
+  };
+};
+
+/* =========================
+   CREATE STORY
+========================= */
+
+const createStory = async (
+  req,
+  res
+) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({
+    const currentUserId =
+      normalizeId(req.user);
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
         success: false,
-        message: "Please upload an image",
+        message:
+          "Authentication required",
       });
     }
 
-    const image = await uploadImage(
-      req.file.buffer,
-      "pingme/stories"
-    );
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please upload an image",
+      });
+    }
 
-    const story = await Story.create({
-      user: req.user._id,
-      image,
-    });
+    const image =
+      await uploadImage(
+        req.file.buffer,
+        "pingme/stories"
+      );
+
+    if (!image) {
+      return res.status(500).json({
+        success: false,
+        message:
+          "Unable to upload story image",
+      });
+    }
+
+    const story =
+      await Story.create({
+        user:
+          currentUserId,
+
+        image,
+
+        expiresAt:
+          new Date(
+            Date.now() +
+            24 *
+            60 *
+            60 *
+            1000
+          ),
+      });
 
     await story.populate(
       "user",
-      "name username profilePic"
+      STORY_USER_FIELDS
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: "Story uploaded successfully",
-      story,
+
+      message:
+        "Story uploaded successfully",
+
+      story:
+        formatStory(
+          story,
+          currentUserId
+        ),
     });
-
   } catch (error) {
-    console.log(error);
+    console.error(
+      "CREATE STORY ERROR:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message ||
+        "Unable to upload story",
     });
   }
 };
 
-const getStories = async (req, res) => {
+/* =========================
+   GET ACTIVE STORIES
+========================= */
+
+const getStories = async (
+  req,
+  res
+) => {
   try {
-    const stories = await Story.find()
-      .populate(
-        "user",
-        "name username profilePic"
+    const currentUserId =
+      normalizeId(req.user);
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
       )
-      .sort({ createdAt: -1 });
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
 
-    res.json({
+    const stories =
+      await Story.find({
+        expiresAt: {
+          $gt: new Date(),
+        },
+      })
+        .populate(
+          "user",
+          STORY_USER_FIELDS
+        )
+        .sort({
+          createdAt: -1,
+        })
+        .lean({
+          virtuals: true,
+        });
+
+    const validStories =
+      stories
+        .filter(
+          (story) =>
+            story?.user &&
+            story?.image
+        )
+        .map((story) =>
+          formatStory(
+            story,
+            currentUserId
+          )
+        );
+
+    return res.status(200).json({
       success: true,
-      count: stories.length,
-      stories,
-    });
 
+      count:
+        validStories.length,
+
+      stories:
+        validStories,
+    });
   } catch (error) {
-    res.status(500).json({
+    console.error(
+      "GET STORIES ERROR:",
+      error
+    );
+
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message ||
+        "Unable to load stories",
     });
   }
 };
 
-const deleteStory = async (req, res) => {
-  try {
-    const story = await Story.findById(req.params.id);
+/* =========================
+   DELETE STORY
+========================= */
 
-    if (!story) {
-      return res.status(404).json({
+const deleteStory = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeId(req.user);
+
+    const storyId =
+      normalizeId(
+        req.params?.id
+      );
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
         success: false,
-        message: "Story not found",
+        message:
+          "Authentication required",
       });
     }
 
     if (
-      story.user.toString() !==
-      req.user._id.toString()
+      !storyId ||
+      !mongoose.isValidObjectId(
+        storyId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid story ID",
+      });
+    }
+
+    const story =
+      await Story.findById(
+        storyId
+      ).select(
+        "_id user image expiresAt"
+      );
+
+    if (!story) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Story not found",
+      });
+    }
+
+    if (
+      normalizeId(story.user) !==
+      currentUserId
     ) {
       return res.status(403).json({
         success: false,
-        message: "Not authorized",
+        message:
+          "You cannot delete this story",
       });
     }
 
     await story.deleteOne();
 
-    res.json({
+    return res.status(200).json({
       success: true,
-      message: "Story deleted successfully",
-    });
 
+      message:
+        "Story deleted successfully",
+
+      data: {
+        storyId,
+      },
+    });
   } catch (error) {
-    res.status(500).json({
+    console.error(
+      "DELETE STORY ERROR:",
+      error
+    );
+
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message ||
+        "Unable to delete story",
     });
   }
 };
 
-const viewStory = async (req, res) => {
+/* =========================
+   VIEW STORY
+========================= */
+
+const viewStory = async (
+  req,
+  res
+) => {
   try {
-    const story = await Story.findById(req.params.id);
+    const currentUserId =
+      normalizeId(req.user);
+
+    const storyId =
+      normalizeId(
+        req.params?.id
+      );
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
+      !storyId ||
+      !mongoose.isValidObjectId(
+        storyId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid story ID",
+      });
+    }
+
+    const story =
+      await Story.findOneAndUpdate(
+        {
+          _id: storyId,
+
+          expiresAt: {
+            $gt: new Date(),
+          },
+        },
+
+        {
+          $addToSet: {
+            viewers:
+              currentUserId,
+          },
+        },
+
+        {
+          new: true,
+          runValidators: true,
+        }
+      )
+        .populate(
+          "user",
+          STORY_USER_FIELDS
+        );
 
     if (!story) {
       return res.status(404).json({
         success: false,
-        message: "Story not found",
+        message:
+          "Story not found or expired",
       });
     }
 
-    const alreadyViewed = story.viewers.some(
-      (id) => id.toString() === req.user._id.toString()
+    return res.status(200).json({
+      success: true,
+
+      message:
+        "Story viewed",
+
+      data: {
+        storyId,
+
+        viewersCount:
+          Array.isArray(
+            story.viewers
+          )
+            ? story.viewers.length
+            : 0,
+
+        isViewed: true,
+      },
+
+      story:
+        formatStory(
+          story,
+          currentUserId
+        ),
+    });
+  } catch (error) {
+    console.error(
+      "VIEW STORY ERROR:",
+      error
     );
 
-    if (!alreadyViewed) {
-      story.viewers.push(req.user._id);
-      await story.save();
-    }
-
-    return res.json({
-      success: true,
-      message: "Story viewed",
-      viewers: story.viewers.length,
-    });
-
-  } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message ||
+        "Unable to view story",
     });
   }
 };
