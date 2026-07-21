@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import App from "./App.jsx";
+import { ToastProvider } from "./components/ui/toast/ToastProvider.jsx";
 
 import "./styles/variables.css";
 import "./styles/reset.css";
@@ -17,7 +18,9 @@ createRoot(document.getElementById("root")).render(
       clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
     >
       <BrowserRouter>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </BrowserRouter>
     </GoogleOAuthProvider>
   </StrictMode>

@@ -941,3 +941,152 @@
 
   border-radius: 8px;
 }
+
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+
+  display: grid;
+  place-items: center;
+
+  padding: 20px;
+
+  background:
+    color-mix(in srgb,
+      CanvasText 42%,
+      transparent);
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.confirmModal {
+  width: min(100%,
+      420px);
+
+  padding: 22px;
+
+  color: CanvasText;
+  background: Canvas;
+
+  border: 1px solid color-mix(in srgb,
+      CanvasText 14%,
+      transparent);
+
+  border-radius: 20px;
+
+  box-shadow:
+    0 24px 70px color-mix(in srgb,
+      CanvasText 24%,
+      transparent);
+
+  color-scheme: light dark;
+}
+
+.confirmTitle {
+  margin: 0 0 8px;
+
+  font-size: 20px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.confirmMessage {
+  margin: 0;
+
+  color:
+    color-mix(in srgb,
+      CanvasText 68%,
+      Canvas);
+
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.confirmError {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+
+  color: #dc2626;
+  background:
+    color-mix(in srgb,
+      #dc2626 10%,
+      Canvas);
+
+  border-radius: 10px;
+
+  font-size: 13px;
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+
+  margin-top: 22px;
+}
+
+.confirmCancel,
+.confirmDanger {
+  min-width: 96px;
+  min-height: 42px;
+  padding: 0 16px;
+
+  border-radius: 11px;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.confirmCancel {
+  color: CanvasText;
+  background:
+    color-mix(in srgb,
+      CanvasText 7%,
+      Canvas);
+
+  border: 1px solid color-mix(in srgb,
+      CanvasText 12%,
+      transparent);
+}
+
+.confirmDanger {
+  color: white;
+  background: #dc2626;
+  border: 1px solid #dc2626;
+}
+
+.confirmCancel:disabled,
+.confirmDanger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .confirmOverlay {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .confirmModal {
+    width: 100%;
+    padding: 20px;
+
+    border-radius:
+      20px 20px 16px 16px;
+  }
+
+  .confirmActions {
+    display: grid;
+    grid-template-columns:
+      1fr 1fr;
+  }
+
+  .confirmCancel,
+  .confirmDanger {
+    width: 100%;
+  }
+}

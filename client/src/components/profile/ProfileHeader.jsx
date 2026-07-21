@@ -12,9 +12,6 @@ import {
 
 import { useNavigate } from "react-router-dom";
 
-import SetPasswordModal from "./SetPasswordModal";
-
-
 import EditProfileModal from "./EditProfileModal";
 
 import DefaultAvatar from "../../assets/default-avatar.png";
@@ -23,6 +20,10 @@ import {
   getProfile,
   uploadProfilePicture,
 } from "../../services/authService";
+
+import {
+  useToastContext,
+} from "../ui/toast/ToastProvider";
 
 import styles from "./ProfileHeader.module.css";
 
@@ -45,8 +46,10 @@ const getStoredUser = () => {
 };
 
 const ProfileHeader = () => {
-
   const navigate = useNavigate();
+
+  const toast =
+    useToastContext();
 
   const [user, setUser] = useState(
     getStoredUser
@@ -66,10 +69,6 @@ const ProfileHeader = () => {
     useState(false);
 
   const fileInputRef = useRef(null);
-
-  const showSetPassword =
-    user?.provider === "google" &&
-    !user?.hasPassword;
 
   // =========================
   // FETCH FRESH PROFILE
@@ -159,70 +158,93 @@ const ProfileHeader = () => {
     );
   };
 
-  const handleProfilePictureChange = async (
-    e
-  ) => {
-    const file = e.target.files[0];
+  const handleProfilePictureChange =
+    async (event) => {
+      const file =
+        event.target.files?.[0];
 
-    if (!file) return;
+      if (!file) {
+        return;
+      }
 
-    if (!file.type.startsWith("image/")) {
-      return alert("Please select an image.");
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      return alert(
-        "Image must be below 5MB."
-      );
-    }
-
-    try {
-      setUploading(true);
-
-      const formData = new FormData();
-
-      formData.append(
-        "profilePic",
-        file
-      );
-
-      const response =
-        await uploadProfilePicture(
-          formData
+      if (
+        !file.type.startsWith(
+          "image/"
+        )
+      ) {
+        toast.warning(
+          "Please select an image"
         );
 
-      const updatedUser = {
-        ...user,
-        ...response.user,
-      };
-
-      setUser(updatedUser);
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(updatedUser)
-      );
-
-      alert(
-        "Profile picture updated successfully."
-      );
-
-    } catch (error) {
-      console.error(error);
-
-      alert(
-        error.response?.data?.message ||
-        "Upload failed."
-      );
-
-    } finally {
-      setUploading(false);
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        return;
       }
-    }
-  };
+
+      if (
+        file.size >
+        5 * 1024 * 1024
+      ) {
+        toast.warning(
+          "Image must be below 5 MB"
+        );
+
+        return;
+      }
+
+      try {
+        setUploading(true);
+
+        const formData =
+          new FormData();
+
+        formData.append(
+          "profilePic",
+          file
+        );
+
+        const response =
+          await uploadProfilePicture(
+            formData
+          );
+
+        const updatedUser = {
+          ...user,
+          ...response.user,
+        };
+
+        setUser(updatedUser);
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify(
+            updatedUser
+          )
+        );
+
+        toast.success(
+          "Profile picture updated successfully"
+        );
+      } catch (error) {
+        console.error(
+          "PROFILE PICTURE UPLOAD ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+        toast.error(
+          error.response?.data?.message ||
+          "Unable to upload profile picture"
+        );
+      } finally {
+        setUploading(false);
+
+        if (
+          fileInputRef.current
+        ) {
+          fileInputRef.current.value =
+            "";
+        }
+      }
+    };
 
   // =========================
   // INITIAL LOADING

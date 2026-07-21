@@ -29,6 +29,10 @@ import { sendChatRequest } from "../../services/chatRequestService";
 import { useChat } from "../../context/ChatContext";
 
 import {
+  useToastContext,
+} from "../../components/ui/toast/ToastProvider";
+
+import {
   getUserPosts,
 } from "../../services/postService";
 
@@ -78,8 +82,10 @@ const normalizeId = (value) => {
 
 
 const UserProfile = () => {
-
   const navigate = useNavigate();
+
+  const toast =
+    useToastContext();
 
   const {
     sentRequests,
@@ -338,7 +344,7 @@ const UserProfile = () => {
         error.message
       );
 
-      alert(
+      toast.error(
         error.response?.data?.message ||
         "Unable to update follow status"
       );
@@ -355,20 +361,26 @@ const UserProfile = () => {
     try {
       setRequestLoading(true);
 
-      const res = await sendChatRequest({
+      await sendChatRequest({
         receiver: profileUserId,
       });
 
       await loadRequests();
 
+      toast.success(
+        "Chat request sent"
+      );
     } catch (error) {
-      console.log("FULL ERROR:", error);
-
-      console.log("BACKEND:", error.response?.data);
-
-      alert(
-        error.response?.data?.message ||
+      console.error(
+        "SEND CHAT REQUEST ERROR:",
+        error.response?.data ||
         error.message
+      );
+
+      toast.error(
+        error.response?.data?.message ||
+        error.message ||
+        "Unable to send chat request"
       );
     } finally {
       setRequestLoading(false);

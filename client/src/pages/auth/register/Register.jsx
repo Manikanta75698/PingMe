@@ -15,17 +15,28 @@ import Button from "../../../components/ui/button";
 
 import GoogleLoginButton from "../../../components/auth/GoogleLoginButton";
 
-import styles from "./Register.module.css";
+import {
+  useToastContext,
+} from "../../../components/ui/toast/ToastProvider";
 
 import {
   registerUser,
   checkUsernameAvailability,
 } from "../../../services/authService";
 
-const Register = () => {
-  const navigate = useNavigate();
+import styles from "./Register.module.css";
 
-  const [formData, setFormData] = useState({
+const Register = () => {
+  const navigate =
+    useNavigate();
+
+  const toast =
+    useToastContext();
+
+  const [
+    formData,
+    setFormData,
+  ] = useState({
     name: "",
     username: "",
     email: "",
@@ -33,7 +44,10 @@ const Register = () => {
     confirmPassword: "",
   });
 
-  const [loading, setLoading] = useState(false);
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
   const [
     usernameStatus,
@@ -47,18 +61,25 @@ const Register = () => {
   // =========================
   // HANDLE INPUT CHANGE
   // =========================
-  const handleChange = (e) => {
+
+  const handleChange = (
+    event
+  ) => {
     const {
       name,
       value,
-    } = e.target;
+    } = event.target;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(
+      (previous) => ({
+        ...previous,
+        [name]: value,
+      })
+    );
 
-    if (name === "username") {
+    if (
+      name === "username"
+    ) {
       setUsernameStatus({
         checking: false,
         available: null,
@@ -71,9 +92,12 @@ const Register = () => {
   // LIVE USERNAME CHECK
   // 500ms DEBOUNCE
   // =========================
+
   useEffect(() => {
     const username =
-      formData.username.trim();
+      formData.username
+        .trim()
+        .toLowerCase();
 
     if (!username) {
       setUsernameStatus({
@@ -82,225 +106,315 @@ const Register = () => {
         message: "",
       });
 
-      return;
+      return undefined;
     }
 
     setUsernameStatus({
       checking: true,
       available: null,
-      message: "Checking username...",
+      message:
+        "Checking username...",
     });
 
     let cancelled = false;
 
-    const timer = setTimeout(async () => {
-      try {
-        const response =
-          await checkUsernameAvailability(
-            username
-          );
+    const timer =
+      window.setTimeout(
+        async () => {
+          try {
+            const response =
+              await checkUsernameAvailability(
+                username
+              );
 
-        if (cancelled) return;
+            if (cancelled) {
+              return;
+            }
 
-        setUsernameStatus({
-          checking: false,
-          available:
-            response?.available === true,
-          message:
-            response?.message ||
-            "Unable to check username",
-        });
-      } catch (error) {
-        if (cancelled) return;
+            setUsernameStatus({
+              checking: false,
 
-        console.error(
-          "USERNAME CHECK ERROR:",
-          error.response?.data ||
-          error.message
-        );
+              available:
+                response?.available ===
+                true,
 
-        setUsernameStatus({
-          checking: false,
-          available: null,
-          message:
-            "Unable to check username right now",
-        });
-      }
-    }, 500);
+              message:
+                response?.message ||
+                "Unable to check username",
+            });
+          } catch (error) {
+            if (cancelled) {
+              return;
+            }
+
+            console.error(
+              "USERNAME CHECK ERROR:",
+              error.response?.data ||
+              error.message
+            );
+
+            setUsernameStatus({
+              checking: false,
+              available: null,
+              message:
+                "Unable to check username right now",
+            });
+          }
+        },
+        500
+      );
 
     return () => {
       cancelled = true;
-      clearTimeout(timer);
+
+      window.clearTimeout(
+        timer
+      );
     };
   }, [formData.username]);
 
   // =========================
   // REGISTER
   // =========================
-  const handleSubmit = async (e) => {
-    e.preventDefault();
 
-    if (loading) return;
+  const handleSubmit =
+    async (event) => {
+      event.preventDefault();
 
-    const cleanName =
-      formData.name.trim();
+      if (loading) {
+        return;
+      }
 
-    const cleanUsername =
-      formData.username
-        .trim()
-        .toLowerCase();
+      const cleanName =
+        formData.name.trim();
 
-    const cleanEmail =
-      formData.email
-        .trim()
-        .toLowerCase();
+      const cleanUsername =
+        formData.username
+          .trim()
+          .toLowerCase();
 
-    if (
-      !cleanName ||
-      !cleanUsername ||
-      !cleanEmail ||
-      !formData.password ||
-      !formData.confirmPassword
-    ) {
-      return alert(
-        "Please fill in all fields"
-      );
-    }
-
-    if (usernameStatus.checking) {
-      return alert(
-        "Please wait while we check the username"
-      );
-    }
-
-    if (
-      usernameStatus.available !== true
-    ) {
-      return alert(
-        usernameStatus.message ||
-        "Please choose an available username"
-      );
-    }
-
-    if (
-      formData.password !==
-      formData.confirmPassword
-    ) {
-      return alert(
-        "Passwords do not match"
-      );
-    }
-
-    if (formData.password.length < 8) {
-      return alert(
-        "Password must be at least 8 characters"
-      );
-    }
-
-    if (
-      !/[A-Z]/.test(formData.password)
-    ) {
-      return alert(
-        "Password must contain at least one uppercase letter"
-      );
-    }
-
-    if (
-      !/[a-z]/.test(formData.password)
-    ) {
-      return alert(
-        "Password must contain at least one lowercase letter"
-      );
-    }
-
-    if (!/\d/.test(formData.password)) {
-      return alert(
-        "Password must contain at least one number"
-      );
-    }
-
-    try {
-      setLoading(true);
-
-      const response = await registerUser({
-        name: cleanName,
-        username: cleanUsername,
-        email: cleanEmail,
-        password: formData.password,
-      });
+      const cleanEmail =
+        formData.email
+          .trim()
+          .toLowerCase();
 
       if (
-        response?.requiresVerification
+        !cleanName ||
+        !cleanUsername ||
+        !cleanEmail ||
+        !formData.password ||
+        !formData.confirmPassword
       ) {
-        navigate("/otp", {
-          replace: true,
-          state: {
-            email: cleanEmail,
-          },
-        });
+        toast.warning(
+          "Please fill in all fields"
+        );
 
         return;
       }
 
-      alert(
-        response?.message ||
-        "Account created successfully"
-      );
-
-      navigate("/");
-    } catch (error) {
-      console.error(
-        "REGISTER ERROR:",
-        error.response?.data ||
-        error.message
-      );
-
-      const errorData =
-        error.response?.data;
-
       if (
-        errorData?.field === "username"
+        usernameStatus.checking
       ) {
-        setUsernameStatus({
-          checking: false,
-          available: false,
-          message:
-            errorData.message ||
-            "Username is already taken",
-        });
+        toast.info(
+          "Please wait while we check the username"
+        );
+
+        return;
       }
 
-      alert(
-        errorData?.message ||
-        "Register Failed"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (
+        usernameStatus.available !==
+        true
+      ) {
+        toast.warning(
+          usernameStatus.message ||
+          "Please choose an available username"
+        );
+
+        return;
+      }
+
+      if (
+        formData.password !==
+        formData.confirmPassword
+      ) {
+        toast.warning(
+          "Passwords do not match"
+        );
+
+        return;
+      }
+
+      if (
+        formData.password.length <
+        8
+      ) {
+        toast.warning(
+          "Password must be at least 8 characters"
+        );
+
+        return;
+      }
+
+      if (
+        !/[A-Z]/.test(
+          formData.password
+        )
+      ) {
+        toast.warning(
+          "Password must contain at least one uppercase letter"
+        );
+
+        return;
+      }
+
+      if (
+        !/[a-z]/.test(
+          formData.password
+        )
+      ) {
+        toast.warning(
+          "Password must contain at least one lowercase letter"
+        );
+
+        return;
+      }
+
+      if (
+        !/\d/.test(
+          formData.password
+        )
+      ) {
+        toast.warning(
+          "Password must contain at least one number"
+        );
+
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        const response =
+          await registerUser({
+            name: cleanName,
+            username:
+              cleanUsername,
+            email: cleanEmail,
+            password:
+              formData.password,
+          });
+
+        if (
+          response
+            ?.requiresVerification
+        ) {
+          toast.success(
+            response?.message ||
+            "Verification code sent to your email"
+          );
+
+          navigate(
+            "/otp",
+            {
+              replace: true,
+
+              state: {
+                email:
+                  cleanEmail,
+              },
+            }
+          );
+
+          return;
+        }
+
+        toast.success(
+          response?.message ||
+          "Account created successfully"
+        );
+
+        navigate(
+          "/",
+          {
+            replace: true,
+          }
+        );
+      } catch (error) {
+        console.error(
+          "REGISTER ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+        const errorData =
+          error.response?.data;
+
+        if (
+          errorData?.field ===
+          "username"
+        ) {
+          setUsernameStatus({
+            checking: false,
+            available: false,
+
+            message:
+              errorData.message ||
+              "Username is already taken",
+          });
+        }
+
+        toast.error(
+          errorData?.message ||
+          "Unable to create account"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   return (
     <AuthLayout>
-      <div className={styles.container}>
+      <div
+        className={
+          styles.container
+        }
+      >
         <Logo size="xl" />
 
-        <div className={styles.heading}>
-          <h1>Create Account</h1>
+        <div
+          className={
+            styles.heading
+          }
+        >
+          <h1>
+            Create Account
+          </h1>
 
           <p>
-            Join PingMe and connect with friends
+            Join Nexora and connect
+            with friends
           </p>
         </div>
 
         <form
-          className={styles.form}
-          onSubmit={handleSubmit}
+          className={
+            styles.form
+          }
+          onSubmit={
+            handleSubmit
+          }
+          noValidate
         >
           <Input
             label="Full Name"
             name="name"
-            value={formData.name}
-            onChange={handleChange}
+            value={
+              formData.name
+            }
+            onChange={
+              handleChange
+            }
             placeholder="Enter your full name"
             autoComplete="name"
             disabled={loading}
@@ -314,8 +428,12 @@ const Register = () => {
             <Input
               label="Username"
               name="username"
-              value={formData.username}
-              onChange={handleChange}
+              value={
+                formData.username
+              }
+              onChange={
+                handleChange
+              }
               placeholder="Choose username"
               autoComplete="username"
               disabled={loading}
@@ -333,6 +451,12 @@ const Register = () => {
                         false
                         ? styles.usernameTaken
                         : styles.usernameNeutral
+                }
+                role={
+                  usernameStatus.available ===
+                    false
+                    ? "alert"
+                    : "status"
                 }
               >
                 {usernameStatus.checking
@@ -352,8 +476,12 @@ const Register = () => {
             label="Email Address"
             name="email"
             type="email"
-            value={formData.email}
-            onChange={handleChange}
+            value={
+              formData.email
+            }
+            onChange={
+              handleChange
+            }
             placeholder="Enter your email"
             autoComplete="email"
             disabled={loading}
@@ -363,8 +491,12 @@ const Register = () => {
             label="Password"
             name="password"
             type="password"
-            value={formData.password}
-            onChange={handleChange}
+            value={
+              formData.password
+            }
+            onChange={
+              handleChange
+            }
             placeholder="Create password"
             autoComplete="new-password"
             disabled={loading}
@@ -374,8 +506,12 @@ const Register = () => {
             label="Confirm Password"
             name="confirmPassword"
             type="password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
+            value={
+              formData.confirmPassword
+            }
+            onChange={
+              handleChange
+            }
             placeholder="Confirm password"
             autoComplete="new-password"
             disabled={loading}
@@ -397,16 +533,30 @@ const Register = () => {
           </Button>
         </form>
 
-        <div className={styles.divider}>
+        <div
+          className={
+            styles.divider
+          }
+        >
           <span>OR</span>
         </div>
 
-        <div className={styles.googleLogin}>
+        <div
+          className={
+            styles.googleLogin
+          }
+        >
           <GoogleLoginButton />
         </div>
 
-        <p className={styles.footer}>
-          Already have an account?{" "}
+        <p
+          className={
+            styles.footer
+          }
+        >
+          Already have an
+          account?{" "}
+
           <Link to="/">
             Login
           </Link>

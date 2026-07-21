@@ -253,10 +253,16 @@ const ChatHeader = () => {
     setBlockActionLoading,
   ] = useState(false);
 
+
   const [
     blockActionError,
     setBlockActionError,
   ] = useState("");
+
+  const [
+    showBlockConfirm,
+    setShowBlockConfirm,
+  ] = useState(false);
 
   const menuButtonRef =
     useRef(null);
@@ -520,7 +526,9 @@ const ChatHeader = () => {
   };
 
   const handleBlockToggle =
-    async () => {
+    async ({
+      skipConfirmation = false,
+    } = {}) => {
       if (
         !selectedChatId ||
         blockActionBusy
@@ -528,15 +536,13 @@ const ChatHeader = () => {
         return;
       }
 
-      if (!blockedByMe) {
-        const confirmed =
-          window.confirm(
-            `Block ${displayName}? They will no longer be able to message or interact with you.`
-          );
-
-        if (!confirmed) {
-          return;
-        }
+      if (
+        !blockedByMe &&
+        !skipConfirmation
+      ) {
+        setShowHeaderMenu(false);
+        setShowBlockConfirm(true);
+        return;
       }
 
       setBlockActionLoading(true);
@@ -578,6 +584,7 @@ const ChatHeader = () => {
             ),
         });
 
+        setShowBlockConfirm(false);
         setShowHeaderMenu(false);
       } catch (error) {
         console.error(
@@ -597,6 +604,13 @@ const ChatHeader = () => {
       } finally {
         setBlockActionLoading(false);
       }
+    };
+
+  const handleConfirmBlock =
+    async () => {
+      await handleBlockToggle({
+        skipConfirmation: true,
+      });
     };
 
   const showPreviousMatch = () => {
@@ -654,45 +668,6 @@ const ChatHeader = () => {
             strokeWidth={2}
             aria-hidden="true"
           />
-        </button>
-
-        <button
-          type="button"
-          className={`${styles.headerMenuItem} ${!blockedByMe
-            ? styles.dangerMenuItem
-            : ""
-            }`}
-          onClick={() => {
-            void handleBlockToggle();
-          }}
-          disabled={
-            blockActionBusy
-          }
-          role="menuitem"
-        >
-          {blockedByMe ? (
-            <UserCheck
-              size={18}
-              aria-hidden="true"
-            />
-          ) : (
-            <Ban
-              size={18}
-              aria-hidden="true"
-            />
-          )}
-
-          <span>
-            {blockStatusLoading
-              ? "Checking…"
-              : blockActionLoading
-                ? blockedByMe
-                  ? "Unblocking…"
-                  : "Blocking…"
-                : blockedByMe
-                  ? "Unblock user"
-                  : "Block user"}
-          </span>
         </button>
 
         {(
@@ -820,217 +795,327 @@ const ChatHeader = () => {
   }
 
   return (
-    <header
-      className={styles.header}
-      aria-label={`Chat with ${displayName}`}
-    >
-      <div className={styles.left}>
-        <button
-          type="button"
-          className={
-            styles.backButton
-          }
-          onClick={handleBack}
-          aria-label="Back to chats"
-        >
-          <ArrowLeft
-            size={24}
-            strokeWidth={2}
-            aria-hidden="true"
-          />
-        </button>
-
-        <div
-          className={
-            styles.avatarWrapper
-          }
-        >
-          <img
-            src={profilePicture}
-            alt={`${displayName} profile`}
+    <>
+      <header
+        className={styles.header}
+        aria-label={`Chat with ${displayName}`}
+      >
+        <div className={styles.left}>
+          <button
+            type="button"
             className={
-              styles.avatar
+              styles.backButton
             }
-            loading="eager"
-            decoding="async"
-            onError={
-              handleAvatarError
-            }
-          />
-
-          {isOnline && (
-            <span
-              className={
-                styles.onlineDot
-              }
-              role="status"
-              aria-label={`${displayName} is online`}
-              title="Online"
+            onClick={handleBack}
+            aria-label="Back to chats"
+          >
+            <ArrowLeft
+              size={24}
+              strokeWidth={2}
+              aria-hidden="true"
             />
-          )}
-        </div>
+          </button>
 
-        <div
-          className={styles.info}
-        >
-          <h2
-            className={styles.name}
+          <div
+            className={
+              styles.avatarWrapper
+            }
           >
-            {displayName}
-          </h2>
-
-          <p
-            className={`
-              ${styles.status}
-              ${isTyping
-                ? styles.typing
-                : ""
+            <img
+              src={profilePicture}
+              alt={`${displayName} profile`}
+              className={
+                styles.avatar
               }
-            `}
-            aria-live="polite"
-          >
-            {isTyping ? (
+              loading="eager"
+              decoding="async"
+              onError={
+                handleAvatarError
+              }
+            />
+
+            {isOnline && (
               <span
                 className={
-                  styles.typingIndicator
+                  styles.onlineDot
                 }
-              >
-                <span>Typing</span>
+                role="status"
+                aria-label={`${displayName} is online`}
+                title="Online"
+              />
+            )}
+          </div>
 
+          <div
+            className={styles.info}
+          >
+            <h2
+              className={styles.name}
+            >
+              {displayName}
+            </h2>
+
+            <p
+              className={`
+              ${styles.status}
+              ${isTyping
+                  ? styles.typing
+                  : ""
+                }
+            `}
+              aria-live="polite"
+            >
+              {isTyping ? (
                 <span
                   className={
-                    styles.typingDots
+                    styles.typingIndicator
                   }
-                  aria-hidden="true"
                 >
-                  <i />
-                  <i />
-                  <i />
-                </span>
-              </span>
-            ) : (
-              statusText
-            )}
-          </p>
-        </div>
-      </div>
+                  <span>Typing</span>
 
-      <div
-        className={
-          styles.headerActions
-        }
-      >
-        <button
-          ref={
-            menuButtonRef
-          }
-          type="button"
+                  <span
+                    className={
+                      styles.typingDots
+                    }
+                    aria-hidden="true"
+                  >
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                </span>
+              ) : (
+                statusText
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div
           className={
-            styles.menuButton
-          }
-          onClick={() => {
-            setShowHeaderMenu(
-              (previous) =>
-                !previous
-            );
-          }}
-          aria-label="Chat options"
-          aria-haspopup="menu"
-          aria-expanded={
-            showHeaderMenu
+            styles.headerActions
           }
         >
-          <MoreVertical
-            size={22}
-            aria-hidden="true"
-          />
-        </button>
-
-        {showHeaderMenu && (
-          <div
-            ref={menuRef}
-            className={
-              styles.headerMenu
+          <button
+            ref={
+              menuButtonRef
             }
-            role="menu"
+            type="button"
+            className={
+              styles.menuButton
+            }
+            onClick={() => {
+              setShowHeaderMenu(
+                (previous) =>
+                  !previous
+              );
+            }}
+            aria-label="Chat options"
+            aria-haspopup="menu"
+            aria-expanded={
+              showHeaderMenu
+            }
           >
-            <button
-              type="button"
+            <MoreVertical
+              size={22}
+              aria-hidden="true"
+            />
+          </button>
+
+          {showHeaderMenu && (
+            <div
+              ref={menuRef}
               className={
-                styles.headerMenuItem
+                styles.headerMenu
               }
-              onClick={
-                openMessageSearch
-              }
-              role="menuitem"
+              role="menu"
             >
-              <Search
-                size={18}
-                aria-hidden="true"
-              />
+              <button
+                type="button"
+                className={
+                  styles.headerMenuItem
+                }
+                onClick={
+                  openMessageSearch
+                }
+                role="menuitem"
+              >
+                <Search
+                  size={18}
+                  aria-hidden="true"
+                />
 
-              <span>
-                Search messages
-              </span>
-            </button>
+                <span>
+                  Search messages
+                </span>
+              </button>
 
-            <button
-              type="button"
-              className={`${styles.headerMenuItem} ${!blockedByMe
+              <button
+                type="button"
+                className={`${styles.headerMenuItem} ${!blockedByMe
                   ? styles.dangerMenuItem
                   : ""
-                }`}
-              onClick={() => {
-                void handleBlockToggle();
-              }}
-              disabled={
-                blockActionBusy
+                  }`}
+                onClick={() => {
+                  void handleBlockToggle();
+                }}
+                disabled={
+                  blockActionBusy
+                }
+                role="menuitem"
+              >
+                {blockedByMe ? (
+                  <UserCheck
+                    size={18}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <Ban
+                    size={18}
+                    aria-hidden="true"
+                  />
+                )}
+
+                <span>
+                  {blockStatusLoading
+                    ? "Checking…"
+                    : blockActionLoading
+                      ? blockedByMe
+                        ? "Unblocking…"
+                        : "Blocking…"
+                      : blockedByMe
+                        ? "Unblock user"
+                        : "Block user"}
+                </span>
+              </button>
+
+              {(
+                blockActionError ||
+                blockStatusError
+              ) && (
+                  <p
+                    className={
+                      styles.headerMenuError
+                    }
+                    role="alert"
+                  >
+                    {blockActionError ||
+                      blockStatusError}
+                  </p>
+                )}
+            </div>
+          )}
+        </div>
+      </header>
+
+      {showBlockConfirm && (
+        <div
+          className={
+            styles.confirmOverlay
+          }
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget &&
+              !blockActionLoading
+            ) {
+              setShowBlockConfirm(
+                false
+              );
+
+              setBlockActionError(
+                ""
+              );
+            }
+          }}
+        >
+          <div
+            className={
+              styles.confirmModal
+            }
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="block-confirm-title"
+            aria-describedby="block-confirm-description"
+          >
+            <h2
+              id="block-confirm-title"
+              className={
+                styles.confirmTitle
               }
-              role="menuitem"
             >
-              {blockedByMe ? (
-                <UserCheck
-                  size={18}
-                  aria-hidden="true"
-                />
-              ) : (
-                <Ban
-                  size={18}
-                  aria-hidden="true"
-                />
-              )}
+              Block {displayName}?
+            </h2>
 
-              <span>
-                {blockStatusLoading
-                  ? "Checking…"
-                  : blockActionLoading
-                    ? blockedByMe
-                      ? "Unblocking…"
-                      : "Blocking…"
-                    : blockedByMe
-                      ? "Unblock user"
-                      : "Block user"}
-              </span>
-            </button>
+            <p
+              id="block-confirm-description"
+              className={
+                styles.confirmMessage
+              }
+            >
+              They will no longer be
+              able to message or
+              interact with you.
+            </p>
 
-            {(
-              blockActionError ||
-              blockStatusError
-            ) && (
-                <p
-                  className={
-                    styles.headerMenuError
-                  }
-                  role="alert"
-                >
-                  {blockActionError ||
-                    blockStatusError}
-                </p>
-              )}
+            {blockActionError && (
+              <p
+                className={
+                  styles.confirmError
+                }
+                role="alert"
+              >
+                {blockActionError}
+              </p>
+            )}
+
+            <div
+              className={
+                styles.confirmActions
+              }
+            >
+              <button
+                type="button"
+                className={
+                  styles.confirmCancel
+                }
+                onClick={() => {
+                  setShowBlockConfirm(
+                    false
+                  );
+
+                  setBlockActionError(
+                    ""
+                  );
+                }}
+                disabled={
+                  blockActionLoading
+                }
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className={
+                  styles.confirmDanger
+                }
+                onClick={() => {
+                  void handleConfirmBlock();
+                }}
+                disabled={
+                  blockActionLoading
+                }
+              >
+                {blockActionLoading
+                  ? "Blocking..."
+                  : "Block"}
+              </button>
+            </div>
           </div>
-        )}
-      </div>
-    </header>
+        </div>
+      )}
+    </>
   );
 };
 

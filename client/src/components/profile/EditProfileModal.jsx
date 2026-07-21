@@ -10,11 +10,18 @@ import {
   checkUsernameAvailability,
 } from "../../services/authService";
 
+import {
+  useToastContext,
+} from "../ui/toast/ToastProvider";
+
 const EditProfileModal = ({
   user,
   onClose,
   onUpdated,
 }) => {
+  const toast =
+    useToastContext();
+
   const originalUsername =
     user?.username?.trim().toLowerCase() || "";
 
@@ -160,31 +167,39 @@ const EditProfileModal = ({
         .toLowerCase();
 
     if (!cleanName) {
-      return alert(
+      toast.warning(
         "Name cannot be empty"
       );
+
+      return;
     }
 
     if (!cleanUsername) {
-      return alert(
+      toast.warning(
         "Username is required"
       );
+
+      return;
     }
 
     if (usernameStatus.checking) {
-      return alert(
+      toast.info(
         "Please wait while we check the username"
       );
+
+      return;
     }
 
     if (
       cleanUsername !== originalUsername &&
       usernameStatus.available !== true
     ) {
-      return alert(
+      toast.warning(
         usernameStatus.message ||
         "Please choose an available username"
       );
+
+      return;
     }
 
     try {
@@ -206,7 +221,7 @@ const EditProfileModal = ({
         onUpdated(response.user);
       }
 
-      alert(
+      toast.success(
         response?.message ||
         "Profile updated successfully"
       );
@@ -233,10 +248,11 @@ const EditProfileModal = ({
         });
       }
 
-      alert(
+      toast.error(
         errorData?.message ||
-        "Profile Update Failed"
+        "Profile update failed"
       );
+
     } finally {
       setLoading(false);
     }

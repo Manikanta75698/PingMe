@@ -1,15 +1,41 @@
 import { useState } from "react";
 
-import { changePassword } from "../../services/authService";
+import {
+  changePassword,
+} from "../../services/authService";
+
+import {
+  useToastContext,
+} from "../ui/toast/ToastProvider";
 
 import styles from "./ChangePasswordModal.module.css";
 
-const ChangePasswordModal = ({ onClose, onSuccess }) => {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+const ChangePasswordModal = ({
+  onClose,
+  onSuccess,
+}) => {
+  const toast =
+    useToastContext();
 
-  const [loading, setLoading] = useState(false);
+  const [
+    currentPassword,
+    setCurrentPassword,
+  ] = useState("");
+
+  const [
+    newPassword,
+    setNewPassword,
+  ] = useState("");
+
+  const [
+    confirmPassword,
+    setConfirmPassword,
+  ] = useState("");
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
   const handleSubmit = async () => {
     if (
@@ -17,29 +43,43 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
       !newPassword ||
       !confirmPassword
     ) {
-      return alert("Fill all fields");
+      toast.warning(
+        "Please fill in all fields"
+      );
+
+      return;
     }
 
-    if (newPassword !== confirmPassword) {
-      return alert("Passwords do not match");
+    if (
+      newPassword !==
+      confirmPassword
+    ) {
+      toast.warning(
+        "Passwords do not match"
+      );
+
+      return;
     }
 
     try {
       setLoading(true);
 
-      const response = await changePassword({
-        currentPassword,
-        newPassword,
-      });
+      const response =
+        await changePassword({
+          currentPassword,
+          newPassword,
+        });
 
-      alert(response.message);
+      toast.success(
+        response?.message ||
+        "Password changed successfully"
+      );
 
       onSuccess?.();
 
       onClose();
-
     } catch (error) {
-      alert(
+      toast.error(
         error.response?.data?.message ||
         "Unable to change password"
       );
@@ -51,7 +91,6 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
-
         <h2 className={styles.title}>
           Change Password
         </h2>
@@ -61,8 +100,10 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
           type="password"
           placeholder="Current Password"
           value={currentPassword}
-          onChange={(e) =>
-            setCurrentPassword(e.target.value)
+          onChange={(event) =>
+            setCurrentPassword(
+              event.target.value
+            )
           }
         />
 
@@ -71,8 +112,10 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
           type="password"
           placeholder="New Password"
           value={newPassword}
-          onChange={(e) =>
-            setNewPassword(e.target.value)
+          onChange={(event) =>
+            setNewPassword(
+              event.target.value
+            )
           }
         />
 
@@ -81,13 +124,16 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
           type="password"
           placeholder="Confirm Password"
           value={confirmPassword}
-          onChange={(e) =>
-            setConfirmPassword(e.target.value)
+          onChange={(event) =>
+            setConfirmPassword(
+              event.target.value
+            )
           }
         />
 
         <div className={styles.actions}>
           <button
+            type="button"
             className={styles.primaryBtn}
             onClick={handleSubmit}
             disabled={loading}
@@ -98,13 +144,14 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
           </button>
 
           <button
+            type="button"
             className={styles.secondaryBtn}
             onClick={onClose}
+            disabled={loading}
           >
             Cancel
           </button>
         </div>
-
       </div>
     </div>
   );

@@ -22,6 +22,10 @@ import {
 } from "../../context/AuthContext";
 
 import {
+  useToastContext,
+} from "../ui/toast/ToastProvider";
+
+import {
   Ban,
   Check,
   Smile,
@@ -52,6 +56,9 @@ const getUserId = (value) => {
 
 const MessageInput = () => {
   const { user } = useAuth();
+
+  const toast =
+    useToastContext();
 
   const [
     text,
@@ -441,7 +448,7 @@ const MessageInput = () => {
       }
 
       if (!currentText) {
-        alert(
+        toast.warning(
           "Edited message cannot be empty"
         );
 
@@ -452,7 +459,7 @@ const MessageInput = () => {
         currentText.length >
         MAX_MESSAGE_LENGTH
       ) {
-        alert(
+        toast.warning(
           `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`
         );
 
@@ -606,7 +613,7 @@ const MessageInput = () => {
           }
         );
 
-        alert(
+        toast.error(
           error.response?.data
             ?.message ||
           error.userMessage ||
@@ -643,7 +650,7 @@ const MessageInput = () => {
         currentText.length >
         MAX_MESSAGE_LENGTH
       ) {
-        alert(
+        toast.warning(
           `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`
         );
 
@@ -661,7 +668,7 @@ const MessageInput = () => {
           "MESSAGE SEND FAILED: Current user ID missing"
         );
 
-        alert(
+        toast.error(
           "Current user information is missing"
         );
 
@@ -673,7 +680,7 @@ const MessageInput = () => {
           "MESSAGE SEND FAILED: Receiver ID missing"
         );
 
-        alert(
+        toast.error(
           "Unable to identify the selected user"
         );
 
@@ -852,7 +859,7 @@ const MessageInput = () => {
           }
         );
 
-        alert(
+        toast.error(
           error.response?.data
             ?.message ||
           error.userMessage ||
@@ -1113,7 +1120,7 @@ const MessageInput = () => {
                   file.type
                 )
               ) {
-                alert(
+                toast.warning(
                   "Please select a JPG, PNG, or WebP image"
                 );
 
@@ -1130,7 +1137,7 @@ const MessageInput = () => {
                 file.size >
                 maximumImageSize
               ) {
-                alert(
+                toast.warning(
                   "Image size must be less than 5 MB"
                 );
 
