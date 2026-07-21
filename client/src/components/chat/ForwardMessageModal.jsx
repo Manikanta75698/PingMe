@@ -89,11 +89,18 @@ const ForwardMessageModal = ({
   const selectedChatId =
     normalizeId(selectedChat);
 
+  const hasSharedPost =
+    Boolean(
+      message?.sharedPost?.postId
+    );
+
   const previewText =
     message?.text?.trim() ||
-    (message?.image
-      ? "Photo"
-      : "Message");
+    (hasSharedPost
+      ? "Shared post"
+      : message?.image
+        ? "Photo"
+        : "Message");
 
   const availableChats =
     useMemo(() => {
@@ -397,12 +404,15 @@ const ForwardMessageModal = ({
             styles.messagePreview
           }
         >
-          {message?.image && (
-            <ImageIcon
-              size={16}
-              aria-hidden="true"
-            />
-          )}
+          {(
+            message?.image ||
+            hasSharedPost
+          ) && (
+              <ImageIcon
+                size={16}
+                aria-hidden="true"
+              />
+            )}
 
           <span>
             {previewText}

@@ -21,7 +21,11 @@ const userRoutes = require("./routes/userRoutes");
 const startDeleteExpiredMessages = require("./cron/deleteExpiredMessages");
 const chatRequestRoutes = require("./routes/chatRequestRoutes");
 
-connectDB();
+const {
+  startStoryCleanupJob,
+} = require(
+  "./cron/storyCleanup"
+);
 
 
 const app = express();
@@ -166,6 +170,34 @@ const io = new Server(server, {
 
 socketHandler(io);
 
-server.listen(PORT, () => {
-  console.log(`✅ Production Secure Engine running on port: ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    startDeleteExpiredMessages();
+    startStoryCleanupJob();
+
+    server.listen(PORT, () => {
+      console.log(
+        `✅ Production Secure Engine running on port: ${PORT}`
+      );
+
+      console.log(
+        "✅ Expired message cleanup started"
+      );
+
+      console.log(
+        "✅ Expired story cleanup started"
+      );
+    });
+  } catch (error) {
+    console.error(
+      "❌ SERVER STARTUP ERROR:",
+      error
+    );
+
+    process.exit(1);
+  }
+};
+
+startServer();

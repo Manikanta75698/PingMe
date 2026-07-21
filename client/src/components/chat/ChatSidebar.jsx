@@ -76,14 +76,21 @@ const getMessagePreview = (
     return "Start a conversation";
   }
 
-  const senderId = normalizeId(
-    lastMessage.sender
-  );
+  const senderId =
+    normalizeId(
+      lastMessage.sender
+    );
 
   const prefix =
     senderId === currentUserId
       ? "You: "
       : "";
+
+  if (
+    lastMessage?.sharedPost?.postId
+  ) {
+    return `${prefix}Shared a post`;
+  }
 
   if (lastMessage.text?.trim()) {
     return `${prefix}${lastMessage.text.trim()}`;
@@ -245,15 +252,15 @@ const ChatSidebar = () => {
       const firstDate =
         first?.lastMessage?.createdAt
           ? new Date(
-              first.lastMessage.createdAt
-            ).getTime()
+            first.lastMessage.createdAt
+          ).getTime()
           : 0;
 
       const secondDate =
         second?.lastMessage?.createdAt
           ? new Date(
-              second.lastMessage.createdAt
-            ).getTime()
+            second.lastMessage.createdAt
+          ).getTime()
           : 0;
 
       return secondDate - firstDate;
@@ -307,8 +314,16 @@ const ChatSidebar = () => {
         chatUser?.username || ""
       ).toLowerCase();
 
+      const lastMessageData =
+        summary?.lastMessage;
+
       const lastMessage = String(
-        summary?.lastMessage?.text || ""
+        lastMessageData?.sharedPost?.postId
+          ? "shared post"
+          : lastMessageData?.text ||
+          (lastMessageData?.image
+            ? "photo"
+            : "")
       ).toLowerCase();
 
       return (
@@ -338,11 +353,11 @@ const ChatSidebar = () => {
     setChatSummaries((previous) =>
       previous.map((item) =>
         normalizeId(item?.user) ===
-        chatUserId
+          chatUserId
           ? {
-              ...item,
-              unreadCount: 0,
-            }
+            ...item,
+            unreadCount: 0,
+          }
           : item
       )
     );
@@ -375,7 +390,7 @@ const ChatSidebar = () => {
 
       <div className={styles.userList}>
         {summariesLoading &&
-        chats.length === 0 ? (
+          chats.length === 0 ? (
           <p
             className={
               styles.emptyText
@@ -450,13 +465,11 @@ const ChatSidebar = () => {
                       summary
                     )
                   }
-                  className={`${
-                    styles.userItem
-                  } ${
-                    isSelected
+                  className={`${styles.userItem
+                    } ${isSelected
                       ? styles.active
                       : ""
-                  }`}
+                    }`}
                 >
                   <div
                     className={
@@ -535,17 +548,17 @@ const ChatSidebar = () => {
 
                       {unreadCount >
                         0 && (
-                        <span
-                          className={
-                            styles.unreadBadge
-                          }
-                        >
-                          {unreadCount >
-                          99
-                            ? "99+"
-                            : unreadCount}
-                        </span>
-                      )}
+                          <span
+                            className={
+                              styles.unreadBadge
+                            }
+                          >
+                            {unreadCount >
+                              99
+                              ? "99+"
+                              : unreadCount}
+                          </span>
+                        )}
                     </div>
                   </div>
                 </button>

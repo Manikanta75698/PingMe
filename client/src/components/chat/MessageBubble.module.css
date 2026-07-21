@@ -1434,3 +1434,60 @@
     transition: none;
   }
 }
+
+/* =========================
+   SHARED POST AVAILABILITY
+========================= */
+
+.sharedPostCard:disabled {
+  cursor: wait;
+  opacity: 0.78;
+}
+
+.sharedPostCardUnavailable {
+  cursor: default;
+}
+
+.sharedPostCardUnavailable .sharedPostImage {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+.sharedPostCardUnavailable .sharedPostArrow {
+  color:
+    var(--bubble-danger);
+
+  background:
+    color-mix(in srgb,
+      var(--bubble-danger) 12%,
+      transparent);
+}
+
+.sharedPostCardUnavailable .sharedPostBottom span {
+  color:
+    var(--bubble-danger);
+}
+
+.sharedPostError {
+  margin: 0;
+  padding: 0 10px 10px;
+
+  color:
+    var(--bubble-danger);
+
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.35;
+
+  background:
+    var(--bubble-surface);
+}
+
+@media (max-width: 768px) {
+  .sharedPostError {
+    padding:
+      0 9px 9px;
+
+    font-size: 10px;
+  }
+}

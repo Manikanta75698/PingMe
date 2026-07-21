@@ -3,6 +3,85 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const uploadImage = require("../utils/cloudinaryUpload");
 const mongoose = require("mongoose");
+const cloudinary = require(
+  "../config/cloudinary"
+);
+
+
+const getCloudinaryPublicId = (
+  imageUrl
+) => {
+  if (!imageUrl) {
+    return "";
+  }
+
+  try {
+    const parsedUrl =
+      new URL(imageUrl);
+
+    const uploadMarker =
+      "/upload/";
+
+    const uploadIndex =
+      parsedUrl.pathname.indexOf(
+        uploadMarker
+      );
+
+    if (uploadIndex === -1) {
+      return "";
+    }
+
+    let publicPath =
+      parsedUrl.pathname.slice(
+        uploadIndex +
+        uploadMarker.length
+      );
+
+    publicPath =
+      publicPath.replace(
+        /^v\d+\//,
+        ""
+      );
+
+    publicPath =
+      publicPath.replace(
+        /\.[^/.]+$/,
+        ""
+      );
+
+    return decodeURIComponent(
+      publicPath
+    );
+  } catch {
+    return "";
+  }
+};
+
+const deletePostImageFromCloudinary =
+  async (imageUrl) => {
+    const publicId =
+      getCloudinaryPublicId(
+        imageUrl
+      );
+
+    if (!publicId) {
+      return;
+    }
+
+    try {
+      await cloudinary.uploader.destroy(
+        publicId,
+        {
+          resource_type: "image",
+        }
+      );
+    } catch (error) {
+      console.error(
+        "POST IMAGE CLEANUP ERROR:",
+        error
+      );
+    }
+  };
 
 // Create Post
 const createPost = async (req, res) => {
@@ -438,6 +517,11 @@ const deletePost = async (req, res) => {
     // =========================
     // DELETE POST FIRST
     // =========================
+    const postImageUrl =
+      String(
+        post.image || ""
+      ).trim();
+
     await post.deleteOne();
 
     // =========================
@@ -463,6 +547,11 @@ const deletePost = async (req, res) => {
       post: post._id,
     });
 
+    if (postImageUrl) {
+      void deletePostImageFromCloudinary(
+        postImageUrl
+      );
+    }
     // =========================
     // SUCCESS
     // =========================

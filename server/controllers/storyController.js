@@ -10,6 +10,10 @@ const uploadImage = require(
   "../utils/cloudinaryUpload"
 );
 
+const cloudinary = require(
+  "../config/cloudinary"
+);
+
 const {
   getIO,
 } = require(
@@ -285,6 +289,82 @@ const getUploadedImageUrl = (
     ""
   ).trim();
 };
+
+
+const getCloudinaryPublicId = (
+  imageUrl
+) => {
+  if (!imageUrl) {
+    return "";
+  }
+
+  try {
+    const parsedUrl =
+      new URL(imageUrl);
+
+    const uploadMarker =
+      "/upload/";
+
+    const uploadIndex =
+      parsedUrl.pathname.indexOf(
+        uploadMarker
+      );
+
+    if (uploadIndex === -1) {
+      return "";
+    }
+
+    let publicPath =
+      parsedUrl.pathname.slice(
+        uploadIndex +
+        uploadMarker.length
+      );
+
+    publicPath =
+      publicPath.replace(
+        /^v\d+\//,
+        ""
+      );
+
+    publicPath =
+      publicPath.replace(
+        /\.[^/.]+$/,
+        ""
+      );
+
+    return decodeURIComponent(
+      publicPath
+    );
+  } catch {
+    return "";
+  }
+};
+
+const deleteStoryImageFromCloudinary =
+  async (imageUrl) => {
+    const publicId =
+      getCloudinaryPublicId(
+        imageUrl
+      );
+
+    if (!publicId) {
+      return;
+    }
+
+    try {
+      await cloudinary.uploader.destroy(
+        publicId,
+        {
+          resource_type: "image",
+        }
+      );
+    } catch (error) {
+      console.error(
+        "STORY IMAGE CLEANUP ERROR:",
+        error
+      );
+    }
+  };
 
 /* =========================
    CREATE STORY
@@ -1109,7 +1189,18 @@ const deleteStory = async (
         });
     }
 
+    const storyImageUrl =
+      String(
+        story.image || ""
+      ).trim();
+
     await story.deleteOne();
+
+    if (storyImageUrl) {
+      void deleteStoryImageFromCloudinary(
+        storyImageUrl
+      );
+    }
 
     emitStoryEvent(
       "storyDeleted",

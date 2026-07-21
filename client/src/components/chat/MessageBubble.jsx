@@ -26,6 +26,9 @@ import styles from "./MessageBubble.module.css";
 import DeleteMessageModal from "./DeleteMessageModal";
 import MessageActionsMenu from "./MessageActionsMenu";
 import DefaultAvatar from "../../assets/default-avatar.png";
+import {
+  getPostById,
+} from "../../services/postService";
 
 import {
   deleteMessage,
@@ -249,6 +252,21 @@ const MessageBubble = ({
   const [
     pinError,
     setPinError,
+  ] = useState("");
+
+  const [
+    checkingSharedPost,
+    setCheckingSharedPost,
+  ] = useState(false);
+
+  const [
+    sharedPostUnavailable,
+    setSharedPostUnavailable,
+  ] = useState(false);
+
+  const [
+    sharedPostError,
+    setSharedPostError,
   ] = useState("");
 
   const pressTimerRef =
@@ -483,20 +501,84 @@ const MessageBubble = ({
 
 
   const handleOpenSharedPost =
-    (event) => {
+    async (event) => {
+      event?.preventDefault();
       event?.stopPropagation();
 
-      if (!sharedPostId) {
+      if (
+        !sharedPostId ||
+        checkingSharedPost
+      ) {
         return;
       }
 
       setShowActions(false);
+      setSharedPostError("");
+      setCheckingSharedPost(true);
 
-      navigate(
-        `/home?post=${encodeURIComponent(
-          sharedPostId
-        )}`
-      );
+      try {
+        const response =
+          await getPostById(
+            sharedPostId
+          );
+
+        const post =
+          response?.post ||
+          response?.data?.post ||
+          response?.data ||
+          response;
+
+        const verifiedPostId =
+          normalizeId(post);
+
+        if (!verifiedPostId) {
+          throw new Error(
+            "Invalid post response"
+          );
+        }
+
+        setSharedPostUnavailable(false);
+
+        navigate(
+          `/home?post=${encodeURIComponent(
+            sharedPostId
+          )}`
+        );
+      } catch (error) {
+        console.error(
+          "OPEN SHARED POST ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+        const status =
+          Number(
+            error.response?.status
+          );
+
+        if (
+          status === 404 ||
+          status === 410
+        ) {
+          setSharedPostUnavailable(true);
+          setSharedPostError(
+            "This post is no longer available."
+          );
+
+          return;
+        }
+
+        setSharedPostError(
+          error.response?.data
+            ?.message ||
+          error.userMessage ||
+          "Unable to open this post. Tap to try again."
+        );
+      } finally {
+        if (mountedRef.current) {
+          setCheckingSharedPost(false);
+        }
+      }
     };
 
   /* =========================
@@ -1691,9 +1773,10 @@ const MessageBubble = ({
             {hasSharedPost && (
               <button
                 type="button"
-                className={
-                  styles.sharedPostCard
-                }
+                className={`${styles.sharedPostCard} ${sharedPostUnavailable
+                  ? styles.sharedPostCardUnavailable
+                  : ""
+                  }`}
                 onClick={
                   handleOpenSharedPost
                 }
@@ -1704,7 +1787,19 @@ const MessageBubble = ({
                 onPointerUp={(event) => {
                   event.stopPropagation();
                 }}
-                aria-label={`Open ${sharedPostOwnerName}'s post in feed`}
+                aria-label={
+                  sharedPostUnavailable
+                    ? "Shared post is no longer available"
+                    : `Open ${sharedPostOwnerName}'s post in feed`
+                }
+
+                disabled={
+                  checkingSharedPost ||
+                  sharedPostUnavailable
+                }
+                aria-busy={
+                  checkingSharedPost
+                }
               >
                 <div
                   className={
@@ -1749,7 +1844,11 @@ const MessageBubble = ({
                     }
                     aria-hidden="true"
                   >
-                    ›
+                    {checkingSharedPost
+                      ? "…"
+                      : sharedPostUnavailable
+                        ? "!"
+                        : "›"}
                   </span>
                 </div>
 
@@ -1790,9 +1889,30 @@ const MessageBubble = ({
                   }
                 >
                   <span>
-                    Tap to view in feed
+                    {checkingSharedPost
+                      ? "Checking post..."
+                      : sharedPostUnavailable
+                        ? "Post unavailable"
+                        : sharedPostError
+                          ? "Tap to try again"
+                          : "Tap to view in feed"}
                   </span>
                 </div>
+
+                {sharedPostError && (
+                  <p
+                    className={
+                      styles.sharedPostError
+                    }
+                    role={
+                      sharedPostUnavailable
+                        ? "status"
+                        : "alert"
+                    }
+                  >
+                    {sharedPostError}
+                  </p>
+                )}
               </button>
             )}
 

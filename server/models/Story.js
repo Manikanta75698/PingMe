@@ -213,7 +213,8 @@ storySchema.index(
     expiresAt: 1,
   },
   {
-    expireAfterSeconds: 0,
+    expireAfterSeconds:
+      60 * 60,
 
     name:
       "story_expiry_ttl",
