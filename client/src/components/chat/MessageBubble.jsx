@@ -9,6 +9,10 @@ import {
 } from "../../context/ChatContext";
 
 import {
+  useNavigate,
+} from "react-router-dom";
+
+import {
   Clock3,
   Check,
   CheckCheck,
@@ -21,6 +25,7 @@ import styles from "./MessageBubble.module.css";
 
 import DeleteMessageModal from "./DeleteMessageModal";
 import MessageActionsMenu from "./MessageActionsMenu";
+import DefaultAvatar from "../../assets/default-avatar.png";
 
 import {
   deleteMessage,
@@ -178,6 +183,9 @@ const MessageBubble = ({
   isPinnedScrollTarget = false,
 }) => {
 
+  const navigate =
+    useNavigate();
+
   const {
     setMessages,
     setPinnedMessage,
@@ -308,9 +316,12 @@ const MessageBubble = ({
 
   const repliedText =
     repliedMessage?.text?.trim() ||
-    (repliedMessage?.image
-      ? "Photo"
-      : "Original message unavailable");
+    (repliedMessage?.sharedPost
+      ?.postId
+      ? "Shared post"
+      : repliedMessage?.image
+        ? "Photo"
+        : "Original message unavailable");
 
   const canUseActions =
     Boolean(message?._id) &&
@@ -328,9 +339,56 @@ const MessageBubble = ({
       message?.text?.trim()
     );
 
+  const sharedPost =
+    message?.sharedPost &&
+      typeof message.sharedPost ===
+      "object"
+      ? message.sharedPost
+      : null;
+
+  const sharedPostId =
+    normalizeId(
+      sharedPost?.postId
+    );
+
+  const hasSharedPost =
+    Boolean(
+      sharedPost &&
+      sharedPostId
+    );
+
   const hasMessageContent =
     hasMessageText ||
-    Boolean(message?.image);
+    Boolean(message?.image) ||
+    hasSharedPost;
+
+  const sharedPostImage =
+    String(
+      sharedPost?.image || ""
+    ).trim();
+
+  const sharedPostCaption =
+    String(
+      sharedPost?.caption || ""
+    ).trim();
+
+  const sharedPostOwnerName =
+    String(
+      sharedPost?.ownerName ||
+      "User"
+    ).trim();
+
+  const sharedPostOwnerUsername =
+    String(
+      sharedPost?.ownerUsername ||
+      "user"
+    ).trim();
+
+  const sharedPostOwnerProfilePic =
+    String(
+      sharedPost?.ownerProfilePic ||
+      ""
+    ).trim();
 
   const canCopy =
     canUseActions &&
@@ -422,6 +480,24 @@ const MessageBubble = ({
     message?._id,
     message?.reactions,
   ]);
+
+
+  const handleOpenSharedPost =
+    (event) => {
+      event?.stopPropagation();
+
+      if (!sharedPostId) {
+        return;
+      }
+
+      setShowActions(false);
+
+      navigate(
+        `/post/${encodeURIComponent(
+          sharedPostId
+        )}`
+      );
+    };
 
   /* =========================
      REPLY
@@ -1575,8 +1651,11 @@ const MessageBubble = ({
                     styles.replyContent
                   }
                 >
-                  {repliedMessage
-                    ?.image && (
+                  {(
+                    repliedMessage?.image ||
+                    repliedMessage
+                      ?.sharedPost?.postId
+                  ) && (
                       <ImageIcon
                         size={13}
                         className={
@@ -1607,6 +1686,103 @@ const MessageBubble = ({
                 loading="lazy"
                 decoding="async"
               />
+            )}
+
+            {hasSharedPost && (
+              <button
+                type="button"
+                className={
+                  styles.sharedPostCard
+                }
+                onClick={
+                  handleOpenSharedPost
+                }
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                  clearLongPressTimer();
+                }}
+                onPointerUp={(event) => {
+                  event.stopPropagation();
+                }}
+                aria-label={`Open post shared by ${sharedPostOwnerName}`}
+              >
+                <div
+                  className={
+                    styles.sharedPostOwner
+                  }
+                >
+                  <img
+                    src={
+                      sharedPostOwnerProfilePic ||
+                      DefaultAvatar
+                    }
+                    alt=""
+                    className={
+                      styles.sharedPostAvatar
+                    }
+                    onError={(event) => {
+                      event.currentTarget.onerror =
+                        null;
+
+                      event.currentTarget.src =
+                        DefaultAvatar;
+                    }}
+                  />
+
+                  <span
+                    className={
+                      styles.sharedPostOwnerText
+                    }
+                  >
+                    <strong>
+                      {sharedPostOwnerName}
+                    </strong>
+
+                    <small>
+                      @{sharedPostOwnerUsername}
+                    </small>
+                  </span>
+                </div>
+
+                {sharedPostImage && (
+                  <img
+                    src={sharedPostImage}
+                    alt={
+                      sharedPostCaption ||
+                      "Shared post"
+                    }
+                    className={
+                      styles.sharedPostImage
+                    }
+                    loading="lazy"
+                    decoding="async"
+                  />
+                )}
+
+                <div
+                  className={
+                    styles.sharedPostBody
+                  }
+                >
+                  {sharedPostCaption ? (
+                    <p>
+                      {sharedPostCaption}
+                    </p>
+                  ) : (
+                    <p
+                      className={
+                        styles.sharedPostFallback
+                      }
+                    >
+                      View shared post
+                    </p>
+                  )}
+
+                  <span>
+                    View post
+                  </span>
+                </div>
+              </button>
             )}
 
             {message?.text && (

@@ -38,6 +38,64 @@ const reactionSchema =
     }
   );
 
+const sharedPostSchema =
+  new mongoose.Schema(
+    {
+      postId: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+        ref: "Post",
+        required: true,
+      },
+
+      image: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      caption: {
+        type: String,
+        default: "",
+        trim: true,
+        maxlength: [
+          2200,
+          "Shared post caption cannot exceed 2200 characters",
+        ],
+      },
+
+      owner: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+        ref: "User",
+        required: true,
+      },
+
+      ownerName: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      ownerUsername: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      ownerProfilePic: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+    },
+    {
+      _id: false,
+    }
+  );
+
 const messageSchema =
   new mongoose.Schema(
     {
@@ -102,6 +160,11 @@ const messageSchema =
         trim: true,
       },
 
+      sharedPost: {
+        type: sharedPostSchema,
+        default: null,
+      },
+
       status: {
         type: String,
         enum: [
@@ -152,9 +215,19 @@ messageSchema.pre(
       typeof this.image === "string" &&
       this.image.trim().length > 0;
 
-    if (!hasText && !hasImage) {
+    const hasSharedPost =
+      Boolean(
+        this.sharedPost &&
+        this.sharedPost.postId
+      );
+
+    if (
+      !hasText &&
+      !hasImage &&
+      !hasSharedPost
+    ) {
       throw new Error(
-        "Message must contain text or an image"
+        "Message must contain text, an image, or a shared post"
       );
     }
   }

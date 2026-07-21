@@ -18,6 +18,7 @@ import {
   MessageCircle,
   MoreHorizontal,
   Pencil,
+  Send,
   Trash2,
   X,
 } from "lucide-react";
@@ -25,6 +26,10 @@ import {
 import {
   useAuth,
 } from "../../context/AuthContext";
+
+import {
+  useChat,
+} from "../../context/ChatContext";
 
 import CommentModal from "./CommentModal";
 
@@ -38,6 +43,10 @@ import {
   unsavePost,
   updatePostCaption,
 } from "../../services/postService";
+
+import {
+  sendMessage,
+} from "../../services/chatService";
 
 import styles from "./PostCard.module.css";
 
@@ -204,6 +213,11 @@ const PostCard = ({
     user: authUser,
   } = useAuth();
 
+  const {
+    chatSummaries,
+    loadChatSummaries,
+  } = useChat();
+
   const storedUser =
     useMemo(
       () =>
@@ -299,6 +313,13 @@ const PostCard = ({
       : 0
   );
 
+  const [commentsCount, setCommentsCount] =
+    useState(
+      Array.isArray(post?.comments)
+        ? post.comments.length
+        : Number(post?.commentsCount) || 0
+    );
+
   useEffect(() => {
     const postLikes =
       Array.isArray(
@@ -322,6 +343,18 @@ const PostCard = ({
     post?._id,
     post?.likes,
     currentUserId,
+  ]);
+
+  useEffect(() => {
+    setCommentsCount(
+      Array.isArray(post?.comments)
+        ? post.comments.length
+        : Number(post?.commentsCount) || 0
+    );
+  }, [
+    post?._id,
+    post?.comments,
+    post?.commentsCount,
   ]);
 
   /* =========================
@@ -407,6 +440,86 @@ const PostCard = ({
     editCaptionError,
     setEditCaptionError,
   ] = useState("");
+
+  const [
+    showShareModal,
+    setShowShareModal,
+  ] = useState(false);
+
+  const [
+    shareSearch,
+    setShareSearch,
+  ] = useState("");
+
+  const [
+    selectedShareUsers,
+    setSelectedShareUsers,
+  ] = useState([]);
+
+  const [
+    sharingPost,
+    setSharingPost,
+  ] = useState(false);
+
+  const [
+    shareError,
+    setShareError,
+  ] = useState("");
+
+  const shareUsers =
+    useMemo(() => {
+      const safeSummaries =
+        Array.isArray(chatSummaries)
+          ? chatSummaries
+          : [];
+
+      const query =
+        shareSearch
+          .trim()
+          .toLowerCase();
+
+      return safeSummaries.filter(
+        (summary) => {
+          const chatUser =
+            summary?.user;
+
+          const chatUserId =
+            normalizeId(chatUser);
+
+          if (
+            !chatUser ||
+            !chatUserId ||
+            chatUserId ===
+            currentUserId
+          ) {
+            return false;
+          }
+
+          if (!query) {
+            return true;
+          }
+
+          const name =
+            String(
+              chatUser?.name || ""
+            ).toLowerCase();
+
+          const username =
+            String(
+              chatUser?.username || ""
+            ).toLowerCase();
+
+          return (
+            name.includes(query) ||
+            username.includes(query)
+          );
+        }
+      );
+    }, [
+      chatSummaries,
+      currentUserId,
+      shareSearch,
+    ]);
 
   const [
     showComments,
@@ -562,6 +675,18 @@ const PostCard = ({
         }
 
         if (
+          showShareModal &&
+          !sharingPost
+        ) {
+          setShowShareModal(false);
+          setShareSearch("");
+          setSelectedShareUsers([]);
+          setShareError("");
+
+          return;
+        }
+
+        if (
           showEditCaption &&
           !updatingCaption
         ) {
@@ -606,8 +731,10 @@ const PostCard = ({
   }, [
     deleting,
     menuOpen,
+    sharingPost,
     showDeleteConfirm,
     showEditCaption,
+    showShareModal,
     updatingCaption,
   ]);
 
@@ -618,7 +745,8 @@ const PostCard = ({
   useEffect(() => {
     const hasOpenModal =
       showDeleteConfirm ||
-      showEditCaption;
+      showEditCaption ||
+      showShareModal;
 
     if (!hasOpenModal) {
       return;
@@ -638,6 +766,7 @@ const PostCard = ({
   }, [
     showDeleteConfirm,
     showEditCaption,
+    showShareModal,
   ]);
 
   /* =========================
@@ -931,6 +1060,182 @@ const PostCard = ({
         setSaveLoading(
           false
         );
+      }
+    };
+
+  /* =========================
+     INTERNAL POST SHARE
+  ========================= */
+
+  const handleSharePost =
+    async () => {
+      if (!postId) {
+        showToastMessage(
+          "Unable to share post",
+          "error"
+        );
+
+        return;
+      }
+
+      setShareSearch("");
+      setSelectedShareUsers([]);
+      setShareError("");
+      setShowShareModal(true);
+
+      try {
+        await loadChatSummaries?.();
+      } catch (error) {
+        console.error(
+          "LOAD SHARE CHATS ERROR:",
+          error
+        );
+      }
+    };
+
+  const toggleShareUser = (
+    userId
+  ) => {
+    const normalizedUserId =
+      normalizeId(userId);
+
+    if (
+      !normalizedUserId ||
+      sharingPost
+    ) {
+      return;
+    }
+
+    setSelectedShareUsers(
+      (previous) =>
+        previous.includes(
+          normalizedUserId
+        )
+          ? previous.filter(
+            (id) =>
+              id !==
+              normalizedUserId
+          )
+          : [
+            ...previous,
+            normalizedUserId,
+          ]
+    );
+
+    setShareError("");
+  };
+
+  const closeShareModal =
+    () => {
+      if (sharingPost) {
+        return;
+      }
+
+      setShowShareModal(false);
+      setShareSearch("");
+      setSelectedShareUsers([]);
+      setShareError("");
+    };
+
+  const handleSendSharedPost =
+    async () => {
+      if (
+        sharingPost ||
+        !postId
+      ) {
+        return;
+      }
+
+      if (
+        selectedShareUsers.length ===
+        0
+      ) {
+        setShareError(
+          "Select at least one chat"
+        );
+
+        return;
+      }
+
+      try {
+        setSharingPost(true);
+        setShareError("");
+
+        const results =
+          await Promise.allSettled(
+            selectedShareUsers.map(
+              (receiverId) =>
+                sendMessage({
+                  receiver:
+                    receiverId,
+                  sharedPostId:
+                    postId,
+                })
+            )
+          );
+
+        const sentCount =
+          results.filter(
+            (result) =>
+              result.status ===
+              "fulfilled"
+          ).length;
+
+        const failedResults =
+          results.filter(
+            (result) =>
+              result.status ===
+              "rejected"
+          );
+
+        if (sentCount === 0) {
+          const firstError =
+            failedResults[0]
+              ?.reason;
+
+          throw firstError;
+        }
+
+        await loadChatSummaries?.();
+
+        setShowShareModal(false);
+        setShareSearch("");
+        setSelectedShareUsers([]);
+        setShareError("");
+
+        if (
+          failedResults.length > 0
+        ) {
+          showToastMessage(
+            `Post sent to ${sentCount} chat${sentCount === 1
+              ? ""
+              : "s"
+            }. Some sends failed.`,
+            "error"
+          );
+
+          return;
+        }
+
+        showToastMessage(
+          sentCount === 1
+            ? "Post sent"
+            : `Post sent to ${sentCount} chats`
+        );
+      } catch (error) {
+        console.error(
+          "SHARE POST ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+        setShareError(
+          error.response?.data
+            ?.message ||
+          "Unable to send post"
+        );
+      } finally {
+        setSharingPost(false);
       }
     };
 
@@ -1372,8 +1677,8 @@ const PostCard = ({
                 "Post"
               }
               className={`${styles.image} ${imagePop
-                  ? styles.imagePop
-                  : ""
+                ? styles.imagePop
+                : ""
                 }`}
               loading="lazy"
               decoding="async"
@@ -1430,21 +1735,40 @@ const PostCard = ({
                 }
               />
             </button>
+            <button
+              type="button"
+              className={`${styles.actionButton} ${styles.commentActionButton}`}
+              onClick={() =>
+                setShowComments(true)
+              }
+              aria-label={`Open comments, ${commentsCount} comments`}
+            >
+              <MessageCircle
+                size={22}
+                className={styles.icon}
+              />
+
+              {commentsCount > 0 && (
+                <span className={styles.commentIconCount}>
+                  {commentsCount > 99
+                    ? "99+"
+                    : commentsCount}
+                </span>
+              )}
+            </button>
 
             <button
               type="button"
               className={
                 styles.actionButton
               }
-              onClick={() =>
-                setShowComments(
-                  true
-                )
+              onClick={
+                handleSharePost
               }
-              aria-label="Open comments"
+              aria-label="Share post"
             >
-              <MessageCircle
-                size={22}
+              <Send
+                size={21}
                 className={
                   styles.icon
                 }
@@ -1505,6 +1829,21 @@ const PostCard = ({
               : "Likes"}
           </p>
 
+          {commentsCount > 0 && (
+            <button
+              type="button"
+              className={styles.commentsCount}
+              onClick={() =>
+                setShowComments(true)
+              }
+            >
+              View{" "}
+              {commentsCount === 1
+                ? "1 comment"
+                : `${commentsCount} comments`}
+            </button>
+          )}
+
           {caption && (
             <p
               className={
@@ -1521,6 +1860,296 @@ const PostCard = ({
           )}
         </div>
       </article>
+
+      {/* INTERNAL SHARE MODAL */}
+      {showShareModal && (
+        <div
+          className={
+            styles.shareOverlay
+          }
+          onMouseDown={(
+            event
+          ) => {
+            if (
+              event.target ===
+              event.currentTarget &&
+              !sharingPost
+            ) {
+              closeShareModal();
+            }
+          }}
+        >
+          <section
+            className={
+              styles.shareModal
+            }
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="share-post-title"
+          >
+            <div
+              className={
+                styles.shareHeader
+              }
+            >
+              <div>
+                <h3
+                  id="share-post-title"
+                >
+                  Send post
+                </h3>
+
+                <p>
+                  Share with people from
+                  your PingMe chats.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className={
+                  styles.modalCloseButton
+                }
+                onClick={
+                  closeShareModal
+                }
+                disabled={
+                  sharingPost
+                }
+                aria-label="Close share dialog"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div
+              className={
+                styles.sharedPostPreview
+              }
+            >
+              {post.image && (
+                <img
+                  src={post.image}
+                  alt=""
+                />
+              )}
+
+              <div>
+                <strong>
+                  @{user?.username ||
+                    "user"}
+                </strong>
+
+                <p>
+                  {caption ||
+                    "Shared a post"}
+                </p>
+              </div>
+            </div>
+
+            <div
+              className={
+                styles.shareSearchWrapper
+              }
+            >
+              <input
+                type="search"
+                value={
+                  shareSearch
+                }
+                onChange={(event) =>
+                  setShareSearch(
+                    event.target.value
+                  )
+                }
+                placeholder="Search chats"
+                disabled={
+                  sharingPost
+                }
+                aria-label="Search chats"
+              />
+            </div>
+
+            <div
+              className={
+                styles.shareChatList
+              }
+            >
+              {shareUsers.length >
+                0 ? (
+                shareUsers.map(
+                  (summary) => {
+                    const chatUser =
+                      summary.user;
+
+                    const chatUserId =
+                      normalizeId(
+                        chatUser
+                      );
+
+                    const selected =
+                      selectedShareUsers.includes(
+                        chatUserId
+                      );
+
+                    return (
+                      <button
+                        key={
+                          chatUserId
+                        }
+                        type="button"
+                        className={`${styles.shareChatItem} ${selected
+                          ? styles.shareChatItemSelected
+                          : ""
+                          }`}
+                        onClick={() =>
+                          toggleShareUser(
+                            chatUserId
+                          )
+                        }
+                        disabled={
+                          sharingPost
+                        }
+                        aria-pressed={
+                          selected
+                        }
+                      >
+                        <img
+                          src={
+                            chatUser
+                              ?.profilePic ||
+                            DefaultAvatar
+                          }
+                          alt={
+                            chatUser
+                              ?.name ||
+                            "User"
+                          }
+                          onError={(
+                            event
+                          ) => {
+                            event.currentTarget.onerror =
+                              null;
+
+                            event.currentTarget.src =
+                              DefaultAvatar;
+                          }}
+                        />
+
+                        <span
+                          className={
+                            styles.shareChatUser
+                          }
+                        >
+                          <strong>
+                            {chatUser
+                              ?.name ||
+                              "User"}
+                          </strong>
+
+                          <small>
+                            @
+                            {chatUser
+                              ?.username ||
+                              "user"}
+                          </small>
+                        </span>
+
+                        <span
+                          className={
+                            styles.shareCheck
+                          }
+                          aria-hidden="true"
+                        >
+                          {selected && (
+                            <CheckCircle2
+                              size={21}
+                            />
+                          )}
+                        </span>
+                      </button>
+                    );
+                  }
+                )
+              ) : (
+                <div
+                  className={
+                    styles.shareEmpty
+                  }
+                >
+                  <MessageCircle
+                    size={28}
+                  />
+
+                  <strong>
+                    {shareSearch.trim()
+                      ? "No chats found"
+                      : "No chats available"}
+                  </strong>
+
+                  <p>
+                    {shareSearch.trim()
+                      ? "Try another name or username."
+                      : "Accepted PingMe chats will appear here."}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div
+              className={
+                styles.shareFooter
+              }
+            >
+              <div>
+                {shareError ? (
+                  <span
+                    className={
+                      styles.shareError
+                    }
+                  >
+                    {shareError}
+                  </span>
+                ) : (
+                  <span
+                    className={
+                      styles.shareSelectionCount
+                    }
+                  >
+                    {selectedShareUsers.length >
+                      0
+                      ? `${selectedShareUsers.length} selected`
+                      : "Select chats"}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                className={
+                  styles.shareSendButton
+                }
+                onClick={
+                  handleSendSharedPost
+                }
+                disabled={
+                  sharingPost ||
+                  selectedShareUsers.length ===
+                  0
+                }
+              >
+                <Send size={18} />
+
+                <span>
+                  {sharingPost
+                    ? "Sending..."
+                    : "Send"}
+                </span>
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* EDIT CAPTION MODAL */}
       {showEditCaption && (
@@ -1820,9 +2449,10 @@ const PostCard = ({
             caption,
           }}
           onClose={() =>
-            setShowComments(
-              false
-            )
+            setShowComments(false)
+          }
+          onCommentCountChange={
+            setCommentsCount
           }
         />
       )}
@@ -1831,9 +2461,9 @@ const PostCard = ({
       {toast && (
         <div
           className={`${styles.toast} ${toast.type ===
-              "error"
-              ? styles.toastError
-              : styles.toastSuccess
+            "error"
+            ? styles.toastError
+            : styles.toastSuccess
             }`}
           role={
             toast.type ===

@@ -63,6 +63,64 @@ const getPosts = async (req, res) => {
   }
 };
 
+// =========================
+// GET SINGLE POST
+// =========================
+const getPostById = async (
+  req,
+  res
+) => {
+  try {
+    const { id: postId } =
+      req.params;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        postId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID",
+      });
+    }
+
+    const post =
+      await Post.findById(postId)
+        .populate(
+          "user",
+          "name username profilePic"
+        )
+        .populate(
+          "comments.user",
+          "name username profilePic"
+        );
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      post,
+    });
+  } catch (error) {
+    console.error(
+      "Get Single Post Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to load post",
+    });
+  }
+};
+
 const likePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -745,14 +803,123 @@ const getComments = async (req, res) => {
   }
 };
 
+// =========================
+// DELETE COMMENT
+// =========================
+const deleteComment = async (
+  req,
+  res
+) => {
+  try {
+    const {
+      id: postId,
+      commentId,
+    } = req.params;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        postId
+      ) ||
+      !mongoose.Types.ObjectId.isValid(
+        commentId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid post or comment ID",
+      });
+    }
+
+    const post =
+      await Post.findById(
+        postId
+      );
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Post not found",
+      });
+    }
+
+    const comment =
+      post.comments.id(
+        commentId
+      );
+
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Comment not found",
+      });
+    }
+
+    const isCommentOwner =
+      comment.user.toString() ===
+      req.user._id.toString();
+
+    const isPostOwner =
+      post.user.toString() ===
+      req.user._id.toString();
+
+    if (
+      !isCommentOwner &&
+      !isPostOwner
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You cannot delete this comment",
+      });
+    }
+
+    post.comments.pull(
+      commentId
+    );
+
+    await post.save();
+
+    await post.populate(
+      "comments.user",
+      "name username profilePic"
+    );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Comment deleted successfully",
+      deletedCommentId:
+        commentId,
+      comments:
+        post.comments,
+    });
+  } catch (error) {
+    console.error(
+      "Delete Comment Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to delete comment",
+    });
+  }
+};
+
 module.exports = {
   createPost,
   getPosts,
+  getPostById,
   getUserPosts,
   likePost,
   unlikePost,
   commentPost,
   getComments,
+  deleteComment,
   updatePostCaption,
   deletePost,
   savePost,

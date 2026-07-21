@@ -68,6 +68,29 @@ export const commentPost = async (postId, text) => {
   return response.data;
 };
 
+// Delete Comment
+export const deleteComment =
+  async (
+    postId,
+    commentId
+  ) => {
+    if (
+      !postId ||
+      !commentId
+    ) {
+      throw new Error(
+        "Post ID and comment ID are required"
+      );
+    }
+
+    const response =
+      await api.delete(
+        `/posts/comment/${postId}/${commentId}`
+      );
+
+    return response.data;
+  };
+
 // Get User Posts
 export const getUserPosts = async (username) => {
   const response = await api.get(
@@ -134,3 +157,20 @@ export const deletePost = async (postId) => {
 
   return response.data;
 };
+
+// Get Single Post
+export const getPostById =
+  async (postId) => {
+    if (!postId) {
+      throw new Error(
+        "Post ID is required"
+      );
+    }
+
+    const response =
+      await api.get(
+        `/posts/${postId}`
+      );
+
+    return response.data;
+  };

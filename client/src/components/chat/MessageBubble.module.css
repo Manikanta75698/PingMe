@@ -927,3 +927,287 @@
         transparent);
   }
 }
+
+/* =========================
+   SHARED POST MESSAGE
+========================= */
+
+.sharedPostCard {
+  display: block;
+
+  width: min(330px, 100%);
+  min-width: 230px;
+
+  margin: 0 0 7px;
+  padding: 0;
+
+  overflow: hidden;
+
+  border:
+    1px solid var(--bubble-border);
+  border-radius: 14px;
+
+  background:
+    var(--bubble-surface);
+  color:
+    var(--bubble-text);
+
+  font: inherit;
+  text-align: left;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 3px 12px rgba(0, 0, 0, 0.08);
+
+  touch-action: manipulation;
+
+  -webkit-tap-highlight-color:
+    transparent;
+
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.sharedPostCard:hover {
+  border-color:
+    color-mix(in srgb,
+      var(--bubble-primary) 40%,
+      var(--bubble-border));
+
+  box-shadow:
+    0 7px 20px rgba(0, 0, 0, 0.12);
+
+  transform:
+    translateY(-1px);
+}
+
+.sharedPostCard:active {
+  transform: scale(0.985);
+}
+
+.sharedPostCard:focus-visible {
+  outline:
+    2px solid var(--bubble-primary);
+
+  outline-offset: 2px;
+}
+
+/* Own bubble inner card */
+.ownBubble .sharedPostCard {
+  background:
+    color-mix(in srgb,
+      Canvas 94%,
+      transparent);
+
+  color:
+    CanvasText;
+
+  border-color:
+    color-mix(in srgb,
+      CanvasText 15%,
+      transparent);
+}
+
+/* Other bubble inner card */
+.otherBubble .sharedPostCard {
+  background:
+    var(--bubble-background);
+
+  color:
+    var(--bubble-text);
+}
+
+/* =========================
+   SHARED POST OWNER
+========================= */
+
+.sharedPostOwner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  min-width: 0;
+
+  padding: 10px;
+}
+
+.sharedPostAvatar {
+  width: 34px;
+  height: 34px;
+
+  flex: 0 0 auto;
+
+  border:
+    1px solid var(--bubble-border);
+  border-radius: 50%;
+
+  background:
+    var(--bubble-soft);
+
+  object-fit: cover;
+}
+
+.sharedPostOwnerText {
+  display: flex;
+
+  min-width: 0;
+  flex: 1;
+
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sharedPostOwnerText strong,
+.sharedPostOwnerText small {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sharedPostOwnerText strong {
+  color: inherit;
+
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.sharedPostOwnerText small {
+  color: inherit;
+
+  font-size: 11px;
+  line-height: 1.2;
+
+  opacity: 0.64;
+}
+
+/* =========================
+   SHARED POST IMAGE
+========================= */
+
+.sharedPostImage {
+  display: block;
+
+  width: 100%;
+  max-height: 300px;
+
+  border-top:
+    1px solid var(--bubble-border);
+  border-bottom:
+    1px solid var(--bubble-border);
+
+  background:
+    var(--bubble-soft);
+
+  object-fit: cover;
+}
+
+/* =========================
+   SHARED POST BODY
+========================= */
+
+.sharedPostBody {
+  padding: 10px;
+}
+
+.sharedPostBody p {
+  display: -webkit-box;
+
+  margin: 0;
+
+  overflow: hidden;
+
+  color: inherit;
+
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.42;
+
+  overflow-wrap: anywhere;
+
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.sharedPostBody>span {
+  display: inline-block;
+
+  margin-top: 7px;
+
+  color:
+    var(--bubble-primary);
+
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ownBubble .sharedPostBody>span {
+  color:
+    color-mix(in srgb,
+      Highlight 82%,
+      CanvasText);
+}
+
+.sharedPostFallback {
+  opacity: 0.72;
+}
+
+/* =========================
+   SHARED POST MOBILE
+========================= */
+
+@media (max-width: 768px) {
+  .sharedPostCard {
+    width: min(290px,
+        calc(100vw - 92px));
+
+    min-width: 205px;
+
+    border-radius: 13px;
+  }
+
+  .sharedPostOwner {
+    padding: 9px;
+  }
+
+  .sharedPostAvatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .sharedPostImage {
+    max-height: 260px;
+  }
+
+  .sharedPostBody {
+    padding: 9px;
+  }
+
+  .sharedPostBody p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .sharedPostCard {
+    width: min(260px,
+        calc(100vw - 72px));
+
+    min-width: 190px;
+  }
+
+  .sharedPostImage {
+    max-height: 230px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sharedPostCard {
+    transition: none;
+  }
+}

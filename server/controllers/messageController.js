@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const streamifier = require("streamifier");
 
 const Message = require("../models/Message");
+const Post = require("../models/Post");
 
 const User = require(
   "../models/User"
@@ -596,6 +597,11 @@ const sendMessage = async (
         req.body?.text || ""
       ).trim();
 
+    const sharedPostId =
+      normalizeId(
+        req.body?.sharedPostId
+      );
+
     if (
       !senderId ||
       !isValidObjectId(senderId)
@@ -640,13 +646,13 @@ const sendMessage = async (
 
     if (
       !normalizedText &&
-      !req.file
+      !req.file &&
+      !sharedPostId
     ) {
       return res.status(400).json({
         success: false,
-
         message:
-          "Message must contain text or an image",
+          "Message must contain text, an image, or a shared post",
       });
     }
 
@@ -658,6 +664,19 @@ const sendMessage = async (
         success: false,
         message:
           "Invalid reply message",
+      });
+    }
+
+    if (
+      sharedPostId &&
+      !isValidObjectId(
+        sharedPostId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid shared post",
       });
     }
 
@@ -696,6 +715,81 @@ const sendMessage = async (
             ? "USER_BLOCKED_BY_YOU"
             : "USER_BLOCKED_YOU",
       });
+    }
+
+    let sharedPostData =
+      null;
+
+    if (sharedPostId) {
+      const sharedPost =
+        await Post.findById(
+          sharedPostId
+        )
+          .populate(
+            "user",
+            "name username profilePic"
+          )
+          .lean();
+
+      if (!sharedPost) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Shared post not found",
+        });
+      }
+
+      const sharedPostOwner =
+        sharedPost.user || {};
+
+      const ownerId =
+        normalizeId(
+          sharedPostOwner
+        );
+
+      if (!ownerId) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Shared post owner is unavailable",
+        });
+      }
+
+      sharedPostData = {
+        postId:
+          sharedPost._id,
+
+        image:
+          String(
+            sharedPost.image || ""
+          ).trim(),
+
+        caption:
+          String(
+            sharedPost.caption || ""
+          ).trim(),
+
+        owner:
+          ownerId,
+
+        ownerName:
+          String(
+            sharedPostOwner.name ||
+            ""
+          ).trim(),
+
+        ownerUsername:
+          String(
+            sharedPostOwner.username ||
+            ""
+          ).trim(),
+
+        ownerProfilePic:
+          String(
+            sharedPostOwner.profilePic ||
+            ""
+          ).trim(),
+      };
     }
 
     if (replyToId) {
@@ -742,6 +836,9 @@ const sendMessage = async (
 
         text: normalizedText,
         image: uploadedImageUrl,
+
+        sharedPost:
+          sharedPostData,
 
         status: "sent",
 
@@ -1449,6 +1546,7 @@ const editMessage = async (
       String(
         req.body?.text || ""
       ).trim();
+
 
     if (
       !currentUserId ||
@@ -2451,7 +2549,7 @@ const getChatSummaries = async (
                   _id: -1,
                 })
                 .select(
-                  "text image sender receiver status createdAt"
+                  "text image sharedPost sender receiver status createdAt"
                 )
                 .lean(),
 

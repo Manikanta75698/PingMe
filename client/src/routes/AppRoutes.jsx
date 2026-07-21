@@ -23,6 +23,7 @@ import Activity from "../pages/activity/Activity";
 import Profile from "../pages/profile/Profile";
 import UserProfile from "../pages/profile/UserProfile";
 import CreatePost from "../components/home/CreatePost";
+import PostDetails from "../pages/post/PostDetails";
 
 /* =========================
    AUTH HELPERS
@@ -176,6 +177,11 @@ const AppRoutes = () => {
         <Route
           path="/create"
           element={<CreatePost />}
+        />
+
+        <Route
+          path="/post/:postId"
+          element={<PostDetails />}
         />
 
         <Route

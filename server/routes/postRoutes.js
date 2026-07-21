@@ -12,11 +12,13 @@ const {
 const {
   createPost,
   getPosts,
+  getPostById,
   getUserPosts,
   likePost,
   unlikePost,
   commentPost,
   getComments,
+  deleteComment,
   updatePostCaption,
   deletePost,
   savePost,
@@ -93,6 +95,12 @@ router.get(
   getComments
 );
 
+router.delete(
+  "/comment/:id/:commentId",
+  protect,
+  deleteComment
+);
+
 // =========================
 // SAVE / UNSAVE
 // =========================
@@ -115,6 +123,16 @@ router.patch(
   "/:id/caption",
   protect,
   updatePostCaption
+);
+
+// =========================
+// SINGLE POST
+// Keep after static routes
+// =========================
+router.get(
+  "/:id",
+  protect,
+  getPostById
 );
 
 // =========================
