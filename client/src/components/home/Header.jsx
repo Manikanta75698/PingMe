@@ -1,11 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Search, Heart, MessageCircle, SquarePlus, X } from "lucide-react";
+import {
+  Home,
+  Search,
+  Heart,
+  MessageCircle,
+  SquarePlus,
+} from "lucide-react";
 import styles from "./Header.module.css";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import Avatar from "../ui/avatar/Avatar";
-import CreatePost from "./CreatePost";
+
 
 const Header = ({ scrollY }) => {
   const { user } = useAuth();
@@ -34,8 +40,6 @@ const Header = ({ scrollY }) => {
   const openChat = () => {
     navigate("/chat");
   };
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-
 
   // 🚀 Scroll to Hide State
   const [showTopHeader, setShowTopHeader] = useState(true);
@@ -63,8 +67,20 @@ const Header = ({ scrollY }) => {
       {/* 📱 MOBILE TOP HEADER */}
       <div className={`${styles.mobileTopHeader} ${!showTopHeader ? styles.hideTopHeader : ""}`}>
         {/* Top Left Create Button */}
-        <button className={styles.topHeaderBtn} onClick={() => setIsCreateOpen(true)}>
-          <SquarePlus size={26} color="var(--text-primary)" />
+        <button
+          type="button"
+          className={
+            styles.topHeaderBtn
+          }
+          onClick={() =>
+            navigate("/create")
+          }
+          aria-label="Create post"
+        >
+          <SquarePlus
+            size={26}
+            color="var(--text-primary)"
+          />
         </button>
 
         {/* Center Logo */}
@@ -149,9 +165,26 @@ const Header = ({ scrollY }) => {
           </button>
 
           {/* Desktop Only Buttons */}
-          <button className={`${styles.navItem} ${styles.desktopOnly}`} onClick={() => setIsCreateOpen(true)}>
-            <SquarePlus className={styles.icon} />
-            <span className={styles.text}>Create</span>
+          <button
+            type="button"
+            className={`${styles.navItem} ${styles.desktopOnly}`}
+            onClick={() =>
+              navigate("/create")
+            }
+          >
+            <SquarePlus
+              className={
+                styles.icon
+              }
+            />
+
+            <span
+              className={
+                styles.text
+              }
+            >
+              Create
+            </span>
           </button>
 
           <button className={`${styles.navItem} ${styles.desktopOnly}`} onClick={() => navigate("/profile")}>
@@ -164,18 +197,6 @@ const Header = ({ scrollY }) => {
           </button>
         </div>
       </nav>
-
-      {/* 📝 CREATE POST MODAL */}
-      {isCreateOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <button className={styles.closeModalBtn} onClick={() => setIsCreateOpen(false)}>
-              <X size={28} />
-            </button>
-            <CreatePost onPostCreated={() => { setIsCreateOpen(false); window.dispatchEvent(new Event("postCreated")); }} />
-          </div>
-        </div>
-      )}
     </>
   );
 };

@@ -22,6 +22,7 @@ import Search from "../components/search/Search";
 import Activity from "../pages/activity/Activity";
 import Profile from "../pages/profile/Profile";
 import UserProfile from "../pages/profile/UserProfile";
+import CreatePost from "../components/home/CreatePost";
 
 /* =========================
    AUTH HELPERS
@@ -170,6 +171,11 @@ const AppRoutes = () => {
         <Route
           path="/profile"
           element={<Profile />}
+        />
+
+        <Route
+          path="/create"
+          element={<CreatePost />}
         />
 
         <Route

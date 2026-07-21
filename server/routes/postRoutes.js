@@ -17,6 +17,7 @@ const {
   unlikePost,
   commentPost,
   getComments,
+  updatePostCaption,
   deletePost,
   savePost,
   unsavePost,
@@ -105,6 +106,15 @@ router.put(
   "/unsave/:id",
   protect,
   unsavePost
+);
+
+// =========================
+// UPDATE POST CAPTION
+// =========================
+router.patch(
+  "/:id/caption",
+  protect,
+  updatePostCaption
 );
 
 // =========================

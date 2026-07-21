@@ -1,672 +1,1390 @@
-.composer {
-  width: 100%;
+/* =========================
+   MODAL
+========================= */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background:
+    rgba(0, 0, 0, 0.72);
+
+  backdrop-filter:
+    blur(9px);
+
+  animation:
+    backdropIn 0.18s ease-out;
+}
+
+.modal {
+  position: relative;
+
+  width:
+    min(1050px,
+      100%);
+
+  height:
+    min(760px,
+      calc(100vh - 40px));
+
+  display: flex;
+  flex-direction: column;
 
   overflow: hidden;
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface);
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 22px;
+
+  box-shadow:
+    0 34px 100px rgba(0, 0, 0, 0.5);
+
+  animation:
+    modalIn 0.22s ease-out;
+}
+
+.modalHeader {
+  min-height: 68px;
+
+  display: grid;
+  grid-template-columns:
+    48px 1fr auto;
+  align-items: center;
+  gap: 14px;
+
+  padding:
+    10px 18px;
+
+  background:
+    color-mix(in srgb,
+      var(--surface) 95%,
+      transparent);
+
+  border-bottom:
+    1px solid var(--border);
+}
+
+.headerIconButton {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface-secondary);
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 50%;
+
+  cursor: pointer;
+}
+
+.headerIconButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+.headerTitle {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.headerTitle strong {
+  font-size: 17px;
+  font-weight: 760;
+}
+
+.headerTitle span {
+  color:
+    var(--text-secondary);
+
+  font-size: 11px;
+}
+
+.headerPostButton {
+  min-height: 41px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding:
+    0 17px;
+
+  color: #fff;
+
+  background:
+    linear-gradient(135deg,
+      var(--primary),
+      #4f46e5);
+
+  border: 0;
+  border-radius: 11px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 730;
+}
+
+.headerPostButton svg {
+  width: 17px;
+  height: 17px;
+}
+
+.headerPostButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* =========================
+   BODY
+========================= */
+
+.modalBody {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr) 370px;
+
+  overflow: hidden;
+}
+
+.editorSide {
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background:
+    color-mix(in srgb,
+      var(--surface-secondary) 72%,
+      #000);
+
+  overflow: hidden;
+}
+
+.dropZone {
+  width:
+    min(520px,
+      100%);
+
+  min-height: 430px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+
+  padding: 30px;
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface);
+
+  border:
+    2px dashed color-mix(in srgb,
+      var(--primary) 32%,
+      var(--border));
+
+  border-radius: 20px;
+
+  cursor: pointer;
+
+  font: inherit;
+  text-align: center;
+
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.dropZone:hover,
+.dropZoneActive {
+  background:
+    color-mix(in srgb,
+      var(--primary) 6%,
+      var(--surface));
+
+  border-color:
+    var(--primary);
+
+  transform:
+    translateY(-2px);
+}
+
+.dropZone strong {
+  margin-top: 5px;
+
+  font-size: 17px;
+}
+
+.dropZone span {
+  max-width: 320px;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dropZone small {
+  color:
+    var(--text-secondary);
+
+  font-size: 11px;
+}
+
+.uploadIcon {
+  width: 64px;
+  height: 64px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color:
+    var(--primary);
+
+  background:
+    color-mix(in srgb,
+      var(--primary) 12%,
+      transparent);
+
+  border-radius: 50%;
+}
+
+.uploadIcon svg {
+  width: 30px;
+  height: 30px;
+}
+
+/* =========================
+   EDITOR CANVAS
+========================= */
+
+.editorCanvasShell {
+  width:
+    min(500px,
+      100%);
+
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.editorCanvas {
+  position: relative;
+
+  width: auto;
+  height:
+    min(590px,
+      100%);
+
+  max-width: 100%;
+
+  aspect-ratio: 4 / 5;
+
+  overflow: hidden;
+
+  background: #000;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.13);
+
+  border-radius: 18px;
+
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.35);
+
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.editorCanvas:active {
+  cursor: grabbing;
+}
+
+.previewImage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+
+  translate: -50% -50%;
+  transform-origin: center;
+
+  transition:
+    transform 0.12s ease;
+}
+
+.previewFit {
+  object-fit: contain;
+}
+
+.previewFill {
+  object-fit: cover;
+}
+
+.moveHint {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  padding:
+    7px 11px;
+
+  color: #fff;
+
+  background:
+    rgba(0, 0, 0, 0.58);
+
+  border:
+    1px solid rgba(255, 255, 255, 0.14);
+
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 650;
+
+  pointer-events: none;
+
+  transform:
+    translateX(-50%);
+
+  backdrop-filter:
+    blur(9px);
+}
+
+.moveHint svg {
+  width: 14px;
+  height: 14px;
+}
+
+.mediaActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+.mediaActions button {
+  min-height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  padding:
+    0 13px;
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface);
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.mediaActions svg {
+  width: 16px;
+  height: 16px;
+}
+
+.mediaActions .removeMediaButton {
+  color: #dc2626;
+}
+
+/* =========================
+   SETTINGS
+========================= */
+
+.settingsSide {
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 21px;
+
+  padding: 20px;
+
+  overflow-y: auto;
+  overscroll-behavior:
+    contain;
+
+  background:
+    var(--surface);
+
+  border-left:
+    1px solid var(--border);
+}
+
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.userRow img {
+  width: 42px;
+  height: 42px;
+
+  object-fit: cover;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 50%;
+}
+
+.userRow div {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.userRow strong {
+  overflow: hidden;
+
+  font-size: 13px;
+
+  text-overflow:
+    ellipsis;
+  white-space: nowrap;
+}
+
+.userRow span {
+  color:
+    var(--text-secondary);
+
+  font-size: 11px;
+}
+
+.captionSection {
+  border-bottom:
+    1px solid var(--border);
+}
+
+.captionSection textarea {
+  width: 100%;
+  min-height: 125px;
+
+  display: block;
+
+  padding: 0;
+
+  resize: none;
+
+  color:
+    var(--text-primary);
+
+  background:
+    transparent;
+
+  border: 0;
+  outline: 0;
+
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.captionSection textarea::placeholder {
+  color:
+    var(--text-secondary);
+}
+
+.captionMeta {
+  display: flex;
+  align-items: center;
+  justify-content:
+    space-between;
+  gap: 12px;
+
+  padding:
+    9px 0 12px;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 10.5px;
+}
+
+.captionLimit {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* =========================
+   CONTROLS
+========================= */
+
+.controlSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.controlHeading {
+  display: flex;
+  align-items: center;
+  justify-content:
+    space-between;
+  gap: 12px;
+}
+
+.controlHeading strong {
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.controlHeading span {
+  color:
+    var(--text-secondary);
+
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.controlHeading button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  padding: 0;
+
+  color:
+    var(--text-secondary);
+
+  background:
+    transparent;
+
+  border: 0;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.controlHeading button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.layoutOptions {
+  display: grid;
+  grid-template-columns:
+    1fr 1fr;
+  gap: 9px;
+}
+
+.layoutOptions>button {
+  min-height: 76px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+
+  padding: 12px;
+
+  color:
+    var(--text-secondary);
+
+  background:
+    var(--surface-secondary);
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 12px;
+
+  cursor: pointer;
+
+  font: inherit;
+  text-align: left;
+}
+
+.layoutOptions>button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.layoutOptions>button span {
+  color:
+    var(--text-primary);
+
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.layoutOptions>button small {
+  font-size: 9.5px;
+}
+
+.layoutOptions .layoutActive {
+  background:
+    color-mix(in srgb,
+      var(--primary) 11%,
+      var(--surface));
+
+  border-color:
+    var(--primary);
+}
+
+.zoomControl {
+  display: grid;
+  grid-template-columns:
+    38px 1fr 38px;
+  align-items: center;
+  gap: 10px;
+}
+
+.zoomControl button {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface-secondary);
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 50%;
+
+  cursor: pointer;
+}
+
+.zoomControl button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.zoomControl input {
+  width: 100%;
+
+  accent-color:
+    var(--primary);
+}
+
+.rotationButtons {
+  display: grid;
+  grid-template-columns:
+    1fr 1fr;
+  gap: 9px;
+}
+
+.rotationButtons button {
+  min-height: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface-secondary);
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.rotationButtons svg {
+  width: 16px;
+  height: 16px;
+}
+
+.errorMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  padding:
+    10px 11px;
+
+  color: #dc2626;
+
+  background:
+    rgba(239, 68, 68, 0.1);
+
+  border:
+    1px solid rgba(239, 68, 68, 0.2);
+
+  border-radius: 10px;
+
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.errorMessage svg {
+  width: 16px;
+  height: 16px;
+
+  flex-shrink: 0;
+}
+
+.mobilePostButton {
+  display: none;
+}
+
+/* =========================
+   PROCESSING
+========================= */
+
+.processingOverlay {
+  position: absolute;
+  inset: 68px 0 0;
+  z-index: 20;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  color:
+    var(--text-primary);
+
+  background:
+    color-mix(in srgb,
+      var(--surface) 82%,
+      transparent);
+
+  backdrop-filter:
+    blur(8px);
+}
+
+.processingOverlay svg {
+  width: 30px;
+  height: 30px;
+}
+
+.processingOverlay strong {
+  font-size: 14px;
+}
+
+.processingOverlay span {
+  color:
+    var(--text-secondary);
+
+  font-size: 11px;
+}
+
+/* =========================
+   CONFIRM DIALOG
+========================= */
+
+.confirmBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1700;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background:
+    rgba(0, 0, 0, 0.7);
+
+  backdrop-filter:
+    blur(8px);
+}
+
+.confirmDialog {
+  width:
+    min(370px,
+      100%);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 26px 22px 22px;
+
+  color:
+    var(--text-primary);
+
+  background:
+    var(--surface);
 
   border:
     1px solid var(--border);
 
   border-radius: 18px;
 
-  background: var(--surface);
-  color: var(--text-primary);
-
   box-shadow:
-    0 8px 28px
-    rgba(15, 23, 42, 0.08);
+    0 28px 80px rgba(0, 0, 0, 0.42);
 
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  text-align: center;
 }
 
-.composer:focus-within {
-  border-color:
-    color-mix(
-      in srgb,
-      var(--primary) 45%,
-      var(--border)
-    );
+.confirmIcon {
+  width: 52px;
+  height: 52px;
 
-  box-shadow:
-    0 12px 36px
-      rgba(15, 23, 42, 0.1),
-    0 0 0 3px
-      color-mix(
-        in srgb,
-        var(--primary) 10%,
-        transparent
-      );
-}
-
-
-/* =========================
-   TOP ROW
-========================= */
-
-.topRow {
   display: flex;
-
   align-items: center;
+  justify-content: center;
 
-  gap: 12px;
+  margin-bottom: 14px;
 
-  padding: 14px;
-}
+  color: #dc2626;
 
-.avatar {
-  width: 44px;
-  height: 44px;
-
-  flex-shrink: 0;
-
-  border:
-    1px solid var(--border);
+  background:
+    rgba(239, 68, 68, 0.12);
 
   border-radius: 50%;
-
-  background:
-    var(--surface-secondary);
-
-  object-fit: cover;
 }
 
+.confirmIcon svg {
+  width: 23px;
+  height: 23px;
+}
 
-/* =========================
-   PROMPT
-========================= */
+.confirmDialog h2 {
+  margin: 0;
 
-.promptButton {
-  display: flex;
+  font-size: 18px;
+}
 
-  flex: 1;
-
-  min-width: 0;
-  min-height: 44px;
-
-  align-items: center;
-
-  padding:
-    0 16px;
-
-  border:
-    1px solid var(--border);
-
-  border-radius: 999px;
-
-  background:
-    var(--surface-secondary);
+.confirmDialog p {
+  margin:
+    8px 0 20px;
 
   color:
     var(--text-secondary);
 
-  font: inherit;
-  font-size: 14px;
-
-  text-align: left;
-
-  cursor: text;
-
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
-.promptButton:hover {
-  border-color:
-    color-mix(
-      in srgb,
-      var(--primary) 25%,
-      var(--border)
-    );
-
-  background:
-    color-mix(
-      in srgb,
-      var(--surface-secondary) 92%,
-      var(--primary)
-    );
-}
-
-.promptButton span {
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-
-/* =========================
-   QUICK IMAGE BUTTON
-========================= */
-
-.quickImageButton {
-  display: inline-flex;
-
-  width: 42px;
-  height: 42px;
-
-  flex-shrink: 0;
-
-  align-items: center;
-  justify-content: center;
-
-  padding: 0;
-
-  border: 0;
-  border-radius: 50%;
-
-  background:
-    color-mix(
-      in srgb,
-      var(--primary) 11%,
-      transparent
-    );
-
-  color: var(--primary);
-
-  cursor: pointer;
-
-  transition:
-    background 0.2s ease,
-    transform 0.15s ease;
-}
-
-.quickImageButton:hover {
-  background:
-    color-mix(
-      in srgb,
-      var(--primary) 18%,
-      transparent
-    );
-
-  transform:
-    translateY(-1px);
-}
-
-.quickImageButton:active {
-  transform: scale(0.94);
-}
-
-
-/* =========================
-   EXPANDED AREA
-========================= */
-
-.expandedArea {
-  padding:
-    0 14px 14px;
-
-  border-top:
-    1px solid
-    color-mix(
-      in srgb,
-      var(--border) 65%,
-      transparent
-    );
-
-  animation:
-    composerOpen
-    0.2s ease-out;
-}
-
-@keyframes composerOpen {
-  from {
-    opacity: 0;
-
-    transform:
-      translateY(-5px);
-  }
-
-  to {
-    opacity: 1;
-
-    transform:
-      translateY(0);
-  }
-}
-
-
-/* =========================
-   TEXTAREA
-========================= */
-
-.caption {
-  display: block;
-
+.confirmActions {
   width: 100%;
 
-  min-height: 92px;
-
-  margin-top: 12px;
-
-  padding:
-    12px 4px;
-
-  resize: vertical;
-
-  border: 0;
-  outline: 0;
-
-  background: transparent;
-
-  color: var(--text-primary);
-
-  font: inherit;
-  font-size: 15px;
-  line-height: 1.55;
+  display: grid;
+  grid-template-columns:
+    1fr 1fr;
+  gap: 9px;
 }
 
-.caption::placeholder {
-  color: var(--text-secondary);
-}
-
-.caption:disabled {
-  opacity: 0.65;
-}
-
-
-/* =========================
-   CAPTION META
-========================= */
-
-.captionMeta {
-  display: flex;
-
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 12px;
-
-  margin-bottom: 10px;
-
-  color: var(--text-secondary);
-
-  font-size: 11.5px;
-  line-height: 1.4;
-}
-
-
-/* =========================
-   PREVIEW
-========================= */
-
-.previewWrapper {
-  position: relative;
-
-  width: 100%;
-
-  max-height: 460px;
-
-  overflow: hidden;
-
-  margin-top: 10px;
-
-  border:
-    1px solid var(--border);
-
-  border-radius: 14px;
-
-  background: #050505;
-}
-
-.preview {
-  display: block;
-
-  width: 100%;
-  height: auto;
-
-  max-height: 460px;
-
-  object-fit: contain;
-
-  margin: 0 auto;
-}
-
-.removeImageButton {
-  position: absolute;
-
-  top: 10px;
-  right: 10px;
-
-  display: inline-flex;
-
-  width: 36px;
-  height: 36px;
-
-  align-items: center;
-  justify-content: center;
-
-  padding: 0;
-
-  border:
-    1px solid
-    rgba(255, 255, 255, 0.18);
-
-  border-radius: 50%;
-
-  background:
-    rgba(15, 23, 42, 0.78);
-
-  color: #ffffff;
-
-  cursor: pointer;
-
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter:
-    blur(8px);
-
-  transition:
-    background 0.2s ease,
-    transform 0.15s ease;
-}
-
-.removeImageButton:hover {
-  background:
-    rgba(15, 23, 42, 0.95);
-
-  transform: scale(1.04);
-}
-
-
-/* =========================
-   ERROR
-========================= */
-
-.error {
-  margin:
-    10px 2px 0;
-
-  color: #ef4444;
-
-  font-size: 12.5px;
-  line-height: 1.45;
-}
-
-
-/* =========================
-   FOOTER
-========================= */
-
-.footer {
-  display: flex;
-
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 12px;
-
-  margin-top: 12px;
-
-  padding-top: 12px;
-
-  border-top:
-    1px solid var(--border);
-}
-
-.footerLeft {
-  display: flex;
-
-  min-width: 0;
-
-  align-items: center;
-}
-
-
-/* =========================
-   ADD IMAGE
-========================= */
-
-.addImageButton {
-  display: inline-flex;
-
-  min-height: 40px;
-
-  align-items: center;
-
-  gap: 8px;
+.confirmActions button {
+  min-height: 42px;
 
   padding:
     0 12px;
 
-  border: 0;
-  border-radius: 10px;
-
-  background:
-    color-mix(
-      in srgb,
-      var(--primary) 9%,
-      transparent
-    );
-
-  color: var(--primary);
-
-  font: inherit;
-  font-size: 13px;
-  font-weight: 650;
-
-  cursor: pointer;
-
-  transition:
-    background 0.2s ease;
-}
-
-.addImageButton:hover {
-  background:
-    color-mix(
-      in srgb,
-      var(--primary) 16%,
-      transparent
-    );
-}
-
-
-/* =========================
-   FOOTER ACTIONS
-========================= */
-
-.footerActions {
-  display: flex;
-
-  align-items: center;
-
-  gap: 8px;
-}
-
-.cancelButton,
-.postButton {
-  display: inline-flex;
-
-  min-height: 40px;
-
-  align-items: center;
-  justify-content: center;
-
-  border: 0;
-  border-radius: 10px;
-
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-
-  cursor: pointer;
-
-  transition:
-    transform 0.15s ease,
-    opacity 0.2s ease,
-    background 0.2s ease;
-}
-
-.cancelButton {
-  padding:
-    0 14px;
+  color:
+    var(--text-primary);
 
   background:
     var(--surface-secondary);
 
-  color:
-    var(--text-secondary);
+  border:
+    1px solid var(--border);
+
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.cancelButton:hover {
-  color:
-    var(--text-primary);
+.confirmActions .discardButton {
+  color: #fff;
+  background: #dc2626;
+  border-color: transparent;
 }
 
-.postButton {
-  gap: 7px;
+/* =========================
+   TOAST
+========================= */
 
-  min-width: 92px;
+.toast {
+  position: fixed;
+  top:
+    calc(15px + env(safe-area-inset-top));
+  left: 50%;
+  z-index: 1900;
+
+  width:
+    min(430px,
+      calc(100vw - 24px));
+
+  display: grid;
+  grid-template-columns:
+    34px 1fr 30px;
+  align-items: center;
+  gap: 10px;
 
   padding:
-    0 16px;
+    11px 12px;
+
+  color:
+    var(--text-primary);
 
   background:
-    linear-gradient(
-      135deg,
-      var(--primary),
-      #4f46e5
-    );
+    color-mix(in srgb,
+      var(--surface) 94%,
+      transparent);
 
-  color: #ffffff;
+  border:
+    1px solid var(--border);
+
+  border-radius: 13px;
 
   box-shadow:
-    0 7px 18px
-    color-mix(
-      in srgb,
-      var(--primary) 22%,
-      transparent
-    );
-}
+    0 18px 55px rgba(0, 0, 0, 0.26);
 
-.postButton:hover:not(:disabled) {
   transform:
-    translateY(-1px);
+    translateX(-50%);
+
+  backdrop-filter:
+    blur(16px);
+
+  animation:
+    toastIn 0.22s ease-out;
 }
 
-.postButton:active:not(:disabled) {
-  transform:
-    scale(0.97);
+.toast>svg {
+  width: 21px;
+  height: 21px;
 }
 
+.toastSuccess>svg {
+  color: #16a34a;
+}
+
+.toastError>svg {
+  color: #dc2626;
+}
+
+.toast div {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toast strong {
+  font-size: 12.5px;
+}
+
+.toast span {
+  overflow: hidden;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 11px;
+
+  text-overflow:
+    ellipsis;
+  white-space: nowrap;
+}
+
+.toast button {
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  color:
+    var(--text-secondary);
+
+  background:
+    transparent;
+
+  border: 0;
+  border-radius: 50%;
+
+  cursor: pointer;
+}
+
+.toast button svg {
+  width: 16px;
+  height: 16px;
+}
 
 /* =========================
-   DISABLED
+   STATES
 ========================= */
 
-.quickImageButton:disabled,
-.addImageButton:disabled,
-.cancelButton:disabled,
-.postButton:disabled,
-.removeImageButton:disabled {
-  opacity: 0.45;
+.spinner {
+  animation:
+    spin 0.7s linear infinite;
+}
 
+button:disabled {
   cursor: not-allowed;
-
-  transform: none;
+  opacity: 0.5;
 }
 
-
-/* =========================
-   KEYBOARD ACCESSIBILITY
-========================= */
-
-.promptButton:focus-visible,
-.quickImageButton:focus-visible,
-.addImageButton:focus-visible,
-.cancelButton:focus-visible,
-.postButton:focus-visible,
-.removeImageButton:focus-visible {
+button:focus-visible,
+textarea:focus-visible,
+input:focus-visible {
   outline:
     2px solid var(--primary);
 
   outline-offset: 2px;
 }
 
+@keyframes spin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(13px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0) scale(1);
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+
+    transform:
+      translateX(-50%) translateY(-12px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateX(-50%) translateY(0);
+  }
+}
+
+/* =========================
+   TABLET
+========================= */
+
+@media (max-width: 900px) {
+  .modal {
+    width: 100%;
+  }
+
+  .modalBody {
+    grid-template-columns:
+      minmax(0, 1fr) 330px;
+  }
+
+  .settingsSide {
+    padding: 17px;
+  }
+}
 
 /* =========================
    MOBILE
 ========================= */
 
-@media (max-width: 560px) {
-  .composer {
-    border-radius: 14px;
-  }
-
-  .topRow {
-    gap: 9px;
-
-    padding: 11px;
-  }
-
-  .avatar {
-    width: 40px;
-    height: 40px;
-  }
-
-  .promptButton {
-    min-height: 40px;
-
-    padding:
-      0 13px;
-
-    font-size: 13px;
-  }
-
-  .quickImageButton {
-    width: 40px;
-    height: 40px;
-  }
-
-  .expandedArea {
-    padding:
-      0 11px 11px;
-  }
-
-  .footer {
+@media (max-width: 700px) {
+  .modalBackdrop {
     align-items: stretch;
 
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    height: 100%;
+
+    border: 0;
+    border-radius: 0;
+  }
+
+  .modalHeader {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    min-height: 62px;
+
+    grid-template-columns:
+      42px 1fr auto;
+
+    padding:
+      calc(8px + env(safe-area-inset-top)) 12px 8px;
+  }
+
+  .headerIconButton {
+    width: 40px;
+    height: 40px;
+  }
+
+  .headerTitle {
+    align-items: center;
+
+    text-align: center;
+  }
+
+  .headerTitle span {
+    display: none;
+  }
+
+  .headerPostButton {
+    min-width: 42px;
+
+    padding:
+      0 11px;
+  }
+
+  .headerPostButton span {
+    display: none;
+  }
+
+  .modalBody {
+    display: flex;
     flex-direction: column;
+
+    overflow-y: auto;
   }
 
-  .footerLeft {
-    width: 100%;
+  .editorSide {
+    min-height: auto;
+
+    padding:
+      12px;
+
+    overflow: visible;
   }
 
-  .addImageButton {
-    width: 100%;
+  .dropZone {
+    min-height: 360px;
+  }
 
+  .editorCanvasShell {
+    width: 100%;
+    height: auto;
+  }
+
+  .editorCanvas {
+    width:
+      min(100%,
+        430px);
+
+    height: auto;
+
+    aspect-ratio: 4 / 5;
+
+    border-radius: 15px;
+  }
+
+  .settingsSide {
+    min-height: auto;
+
+    padding:
+      18px 15px calc(22px + env(safe-area-inset-bottom));
+
+    overflow: visible;
+
+    border-top:
+      1px solid var(--border);
+
+    border-left: 0;
+  }
+
+  .captionSection textarea {
+    min-height: 105px;
+  }
+
+  .mobilePostButton {
+    min-height: 47px;
+
+    display: flex;
+    align-items: center;
     justify-content: center;
+    gap: 8px;
+
+    margin-top: 4px;
+
+    color: #fff;
+
+    background:
+      linear-gradient(135deg,
+        var(--primary),
+        #4f46e5);
+
+    border: 0;
+    border-radius: 12px;
+
+    cursor: pointer;
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 730;
   }
 
-  .footerActions {
-    width: 100%;
+  .mobilePostButton svg {
+    width: 17px;
+    height: 17px;
   }
 
-  .cancelButton,
-  .postButton {
-    flex: 1;
+  .processingOverlay {
+    inset:
+      calc(62px + env(safe-area-inset-top)) 0 0;
   }
 }
 
+@media (max-width: 420px) {
+  .layoutOptions {
+    gap: 7px;
+  }
+
+  .rotationButtons {
+    grid-template-columns:
+      1fr;
+  }
+
+  .confirmBackdrop {
+    align-items: flex-end;
+
+    padding:
+      10px 10px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .confirmDialog {
+    width: 100%;
+  }
+}
 
 /* =========================
    REDUCED MOTION
 ========================= */
 
-@media (
-  prefers-reduced-motion:
-  reduce
-) {
-  .expandedArea {
-    animation: none;
-  }
+@media (prefers-reduced-motion: reduce) {
 
-  .composer,
-  .quickImageButton,
-  .removeImageButton,
-  .cancelButton,
-  .postButton {
+  .modalBackdrop,
+  .modal,
+  .toast,
+  .spinner,
+  .previewImage {
+    animation: none;
     transition: none;
   }
 }

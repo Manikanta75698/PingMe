@@ -8,7 +8,9 @@ import {
   useState,
 } from "react";
 
-import { useAuth } from "../../context/AuthContext";
+import {
+  useAuth,
+} from "../../context/AuthContext";
 
 import {
   getPosts,
@@ -25,19 +27,28 @@ import styles from "./Feed.module.css";
 const FEED_CACHE_PREFIX =
   "pingme:feed:";
 
+const NEW_POST_CACHE_KEY =
+  "pingme:new-post";
+
 const FEED_CACHE_MAX_AGE =
   30 * 60 * 1000;
 
 const MAX_CACHED_POSTS = 40;
 
 /*
- * Prevent duplicate getPosts requests,
- * especially during React StrictMode.
+ * React StrictMode lo duplicate
+ * getPosts requests prevent chesthundi.
  */
 const inFlightRequests =
   new Map();
 
-const normalizeId = (value) =>
+/* =========================
+   HELPERS
+========================= */
+
+const normalizeId = (
+  value
+) =>
   String(
     value?._id ??
     value?.id ??
@@ -52,6 +63,47 @@ const getFeedCacheKey = (
   "anonymous"
   }`;
 
+const prependUniquePost = (
+  currentPosts,
+  incomingPost
+) => {
+  const safeCurrentPosts =
+    Array.isArray(currentPosts)
+      ? currentPosts
+      : [];
+
+  if (
+    !incomingPost ||
+    typeof incomingPost !==
+    "object"
+  ) {
+    return safeCurrentPosts;
+  }
+
+  const incomingPostId =
+    normalizeId(
+      incomingPost
+    );
+
+  if (!incomingPostId) {
+    return safeCurrentPosts;
+  }
+
+  const remainingPosts =
+    safeCurrentPosts.filter(
+      (post) =>
+        normalizeId(
+          post
+        ) !==
+        incomingPostId
+    );
+
+  return [
+    incomingPost,
+    ...remainingPosts,
+  ];
+};
+
 /* =========================
    READ FEED CACHE
 ========================= */
@@ -61,7 +113,9 @@ const readFeedCache = (
 ) => {
   try {
     const cacheKey =
-      getFeedCacheKey(userId);
+      getFeedCacheKey(
+        userId
+      );
 
     const storedValue =
       sessionStorage.getItem(
@@ -73,7 +127,9 @@ const readFeedCache = (
     }
 
     const parsedValue =
-      JSON.parse(storedValue);
+      JSON.parse(
+        storedValue
+      );
 
     const savedAt =
       Number(
@@ -119,21 +175,25 @@ const writeFeedCache = (
 ) => {
   try {
     const cacheKey =
-      getFeedCacheKey(userId);
+      getFeedCacheKey(
+        userId
+      );
 
     sessionStorage.setItem(
       cacheKey,
       JSON.stringify({
-        savedAt: Date.now(),
+        savedAt:
+          Date.now(),
 
-        posts: Array.isArray(
-          posts
-        )
-          ? posts.slice(
-            0,
-            MAX_CACHED_POSTS
+        posts:
+          Array.isArray(
+            posts
           )
-          : [],
+            ? posts.slice(
+              0,
+              MAX_CACHED_POSTS
+            )
+            : [],
       })
     );
   } catch (error) {
@@ -143,6 +203,57 @@ const writeFeedCache = (
     );
   }
 };
+
+/* =========================
+   READ NEW POST CACHE
+========================= */
+
+const readPendingNewPost =
+  () => {
+    try {
+      const storedPost =
+        sessionStorage.getItem(
+          NEW_POST_CACHE_KEY
+        );
+
+      sessionStorage.removeItem(
+        NEW_POST_CACHE_KEY
+      );
+
+      if (!storedPost) {
+        return null;
+      }
+
+      const parsedPost =
+        JSON.parse(
+          storedPost
+        );
+
+      if (
+        !parsedPost ||
+        typeof parsedPost !==
+        "object" ||
+        !normalizeId(
+          parsedPost
+        )
+      ) {
+        return null;
+      }
+
+      return parsedPost;
+    } catch (error) {
+      console.warn(
+        "READ NEW POST CACHE ERROR:",
+        error
+      );
+
+      sessionStorage.removeItem(
+        NEW_POST_CACHE_KEY
+      );
+
+      return null;
+    }
+  };
 
 /* =========================
    DEDUPLICATED REQUEST
@@ -165,11 +276,13 @@ const requestPosts = (
   }
 
   const request =
-    getPosts().finally(() => {
-      inFlightRequests.delete(
-        requestKey
-      );
-    });
+    getPosts().finally(
+      () => {
+        inFlightRequests.delete(
+          requestKey
+        );
+      }
+    );
 
   inFlightRequests.set(
     requestKey,
@@ -185,7 +298,8 @@ const requestPosts = (
 
 const Feed = forwardRef(
   (_props, ref) => {
-    const { user } = useAuth();
+    const { user } =
+      useAuth();
 
     const userId =
       normalizeId(
@@ -193,6 +307,24 @@ const Feed = forwardRef(
         user?._id
       );
 
+    /*
+     * /create route nunchi vachina
+     * newly created post.
+     */
+    const pendingNewPostRef =
+      useRef(undefined);
+
+    if (
+      pendingNewPostRef.current ===
+      undefined
+    ) {
+      pendingNewPostRef.current =
+        readPendingNewPost();
+    }
+
+    /*
+     * Existing feed cache.
+     */
     const initialPostsRef =
       useRef(null);
 
@@ -200,29 +332,44 @@ const Feed = forwardRef(
       initialPostsRef.current ===
       null
     ) {
-      initialPostsRef.current =
+      const cachedPosts =
         readFeedCache(
           userId
         );
+
+      initialPostsRef.current =
+        pendingNewPostRef.current
+          ? prependUniquePost(
+            cachedPosts,
+            pendingNewPostRef.current
+          )
+          : cachedPosts;
     }
 
-    const [posts, setPosts] =
-      useState(
-        initialPostsRef.current
-      );
-
-    const [loading, setLoading] =
-      useState(
-        initialPostsRef.current
-          .length === 0
-      );
-
-    const [error, setError] =
-      useState("");
-
-    const postsRef = useRef(
+    const [
+      posts,
+      setPosts,
+    ] = useState(
       initialPostsRef.current
     );
+
+    const [
+      loading,
+      setLoading,
+    ] = useState(
+      initialPostsRef.current
+        .length === 0
+    );
+
+    const [
+      error,
+      setError,
+    ] = useState("");
+
+    const postsRef =
+      useRef(
+        initialPostsRef.current
+      );
 
     const mountedRef =
       useRef(false);
@@ -255,6 +402,23 @@ const Feed = forwardRef(
       postsRef.current =
         posts;
     }, [posts]);
+
+    /* =========================
+       STORE INITIAL PENDING POST
+    ========================= */
+
+    useEffect(() => {
+      if (
+        !pendingNewPostRef.current
+      ) {
+        return;
+      }
+
+      writeFeedCache(
+        userId,
+        postsRef.current
+      );
+    }, [userId]);
 
     /* =========================
        LOAD POSTS
@@ -292,23 +456,77 @@ const Feed = forwardRef(
               return;
             }
 
-            const nextPosts =
+            const receivedPosts =
               Array.isArray(
                 data?.posts
               )
                 ? data.posts
                 : [];
 
+            const pendingPost =
+              pendingNewPostRef.current;
+
+            const pendingPostId =
+              normalizeId(
+                pendingPost
+              );
+
+            const pendingPostExistsOnServer =
+              Boolean(
+                pendingPostId &&
+                receivedPosts.some(
+                  (post) =>
+                    normalizeId(
+                      post
+                    ) ===
+                    pendingPostId
+                )
+              );
+
+            let nextPosts =
+              receivedPosts;
+
+            /*
+             * Backend/API propagation slight delay
+             * unna newly created post disappear
+             * kakunda top lo retain chesthundi.
+             */
+            if (
+              pendingPost &&
+              !pendingPostExistsOnServer
+            ) {
+              nextPosts =
+                prependUniquePost(
+                  receivedPosts,
+                  pendingPost
+                );
+            }
+
+            /*
+             * Server response lo post vachaka
+             * temporary pending reference clear.
+             */
+            if (
+              pendingPostExistsOnServer
+            ) {
+              pendingNewPostRef.current =
+                null;
+            }
+
             postsRef.current =
               nextPosts;
 
-            setPosts(nextPosts);
+            setPosts(
+              nextPosts
+            );
 
             writeFeedCache(
               userId,
               nextPosts
             );
-          } catch (loadError) {
+          } catch (
+          loadError
+          ) {
             if (
               !mountedRef.current ||
               requestSequence !==
@@ -356,8 +574,48 @@ const Feed = forwardRef(
               postsRef.current
                 .length > 0,
           }),
+
+        prependPost: (
+          incomingPost
+        ) => {
+          if (
+            !incomingPost ||
+            typeof incomingPost !==
+            "object"
+          ) {
+            return;
+          }
+
+          pendingNewPostRef.current =
+            incomingPost;
+
+          setPosts(
+            (
+              currentPosts
+            ) => {
+              const nextPosts =
+                prependUniquePost(
+                  currentPosts,
+                  incomingPost
+                );
+
+              postsRef.current =
+                nextPosts;
+
+              writeFeedCache(
+                userId,
+                nextPosts
+              );
+
+              return nextPosts;
+            }
+          );
+        },
       }),
-      [loadPosts]
+      [
+        loadPosts,
+        userId,
+      ]
     );
 
     /* =========================
@@ -371,6 +629,71 @@ const Feed = forwardRef(
             .length > 0,
       });
     }, [loadPosts]);
+
+    /* =========================
+       POST CREATED EVENT
+    ========================= */
+
+    useEffect(() => {
+      const handlePostCreated =
+        (event) => {
+          const incomingPost =
+            event?.detail?.post ||
+            event?.detail;
+
+          if (
+            incomingPost &&
+            typeof incomingPost ===
+            "object"
+          ) {
+            pendingNewPostRef.current =
+              incomingPost;
+
+            setPosts(
+              (
+                currentPosts
+              ) => {
+                const nextPosts =
+                  prependUniquePost(
+                    currentPosts,
+                    incomingPost
+                  );
+
+                postsRef.current =
+                  nextPosts;
+
+                writeFeedCache(
+                  userId,
+                  nextPosts
+                );
+
+                return nextPosts;
+              }
+            );
+          }
+
+          void loadPosts({
+            silent:
+              postsRef.current
+                .length > 0,
+          });
+        };
+
+      window.addEventListener(
+        "postCreated",
+        handlePostCreated
+      );
+
+      return () => {
+        window.removeEventListener(
+          "postCreated",
+          handlePostCreated
+        );
+      };
+    }, [
+      loadPosts,
+      userId,
+    ]);
 
     /* =========================
        REMOVE DELETED POST
@@ -390,6 +713,17 @@ const Feed = forwardRef(
             !normalizedPostId
           ) {
             return;
+          }
+
+          if (
+            normalizeId(
+              pendingNewPostRef
+                .current
+            ) ===
+            normalizedPostId
+          ) {
+            pendingNewPostRef.current =
+              null;
           }
 
           setPosts(
@@ -467,7 +801,9 @@ const Feed = forwardRef(
             }
             role="alert"
           >
-            <p>{error}</p>
+            <p>
+              {error}
+            </p>
 
             <button
               type="button"
@@ -515,25 +851,68 @@ const Feed = forwardRef(
         className={
           styles.feed
         }
-        aria-busy={loading}
+        aria-busy={
+          loading
+        }
       >
+        {error && (
+          <div
+            className={
+              styles.state
+            }
+            role="alert"
+          >
+            <p>
+              {error}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => {
+                void loadPosts({
+                  silent: true,
+                });
+              }}
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
         {posts.map(
-          (post) => (
-            <PostCard
-              key={post._id}
-              post={post}
-              onDeleted={
-                handlePostDeleted
-              }
-            />
-          )
+          (post) => {
+            const postId =
+              normalizeId(
+                post
+              );
+
+            if (!postId) {
+              return null;
+            }
+
+            return (
+              <PostCard
+                key={
+                  postId
+                }
+                post={
+                  post
+                }
+                onDeleted={
+                  handlePostDeleted
+                }
+              />
+            );
+          }
         )}
       </div>
     );
   }
 );
 
-Feed.displayName = "Feed";
+Feed.displayName =
+  "Feed";
 
-
-export default memo(Feed);
+export default memo(
+  Feed
+);

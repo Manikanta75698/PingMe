@@ -205,6 +205,132 @@ const commentPost = async (req, res) => {
   }
 };
 
+// =========================
+// UPDATE POST CAPTION
+// =========================
+const updatePostCaption = async (
+  req,
+  res
+) => {
+  try {
+    const { id: postId } =
+      req.params;
+
+    const caption =
+      typeof req.body?.caption ===
+        "string"
+        ? req.body.caption.trim()
+        : "";
+
+    // =========================
+    // VALIDATE POST ID
+    // =========================
+
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        postId
+      )
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            "Invalid post ID",
+        });
+    }
+
+    // =========================
+    // CAPTION VALIDATION
+    // =========================
+
+    if (caption.length > 2200) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            "Caption cannot exceed 2200 characters",
+        });
+    }
+
+    // =========================
+    // FIND POST
+    // =========================
+
+    const post =
+      await Post.findById(
+        postId
+      );
+
+    if (!post) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message:
+            "Post not found",
+        });
+    }
+
+    // =========================
+    // OWNERSHIP CHECK
+    // =========================
+
+    if (
+      post.user.toString() !==
+      req.user._id.toString()
+    ) {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message:
+            "You can edit only your own posts",
+        });
+    }
+
+    // =========================
+    // UPDATE CAPTION
+    // =========================
+
+    post.caption = caption;
+
+    await post.save();
+
+    await post.populate(
+      "user",
+      "name username profilePic"
+    );
+
+    // =========================
+    // SUCCESS
+    // =========================
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message:
+          "Caption updated successfully",
+        post,
+      });
+  } catch (error) {
+    console.error(
+      "Update Post Caption Error:",
+      error
+    );
+
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message:
+          "Unable to update caption",
+      });
+  }
+};
+
 const deletePost = async (req, res) => {
   try {
     const { id: postId } = req.params;
@@ -627,6 +753,7 @@ module.exports = {
   unlikePost,
   commentPost,
   getComments,
+  updatePostCaption,
   deletePost,
   savePost,
   unsavePost,
