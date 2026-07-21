@@ -1846,10 +1846,45 @@ const forwardMessage = async (
         sourceMessage.image || ""
       ).trim();
 
+    const sourceSharedPost =
+      sourceMessage.sharedPost
+        ? {
+          postId:
+            sourceMessage.sharedPost
+              .postId,
+
+          image:
+            sourceMessage.sharedPost
+              .image || "",
+
+          caption:
+            sourceMessage.sharedPost
+              .caption || "",
+
+          owner:
+            sourceMessage.sharedPost
+              .owner,
+
+          ownerName:
+            sourceMessage.sharedPost
+              .ownerName || "",
+
+          ownerUsername:
+            sourceMessage.sharedPost
+              .ownerUsername || "",
+
+          ownerProfilePic:
+            sourceMessage.sharedPost
+              .ownerProfilePic || "",
+        }
+        : null;
+
     if (
       !sourceText &&
-      !sourceImage
+      !sourceImage &&
+      !sourceSharedPost?.postId
     ) {
+
       return res.status(400).json({
         success: false,
         message:
@@ -1913,6 +1948,9 @@ const forwardMessage = async (
 
         image:
           sourceImage,
+
+        sharedPost:
+          sourceSharedPost,
 
         status:
           "sent",

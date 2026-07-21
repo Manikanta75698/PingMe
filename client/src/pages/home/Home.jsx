@@ -5,6 +5,10 @@ import {
   useState,
 } from "react";
 
+import {
+  useSearchParams,
+} from "react-router-dom";
+
 import styles from "./Home.module.css";
 
 import Header from "../../components/home/Header";
@@ -20,8 +24,17 @@ const Home = () => {
   const pendingScrollPositionRef =
     useRef(0);
 
+  const [searchParams] =
+    useSearchParams();
+
   const [scrollPos, setScrollPos] =
     useState(0);
+
+  const targetPostId =
+    String(
+      searchParams.get("post") ||
+      ""
+    ).trim();
 
   /* =========================
      REFRESH FEED AFTER POST
@@ -44,6 +57,28 @@ const Home = () => {
       );
     };
   }, []);
+
+  /* =========================
+     OPEN TARGET POST
+  ========================= */
+
+  useEffect(() => {
+    if (!targetPostId) {
+      return;
+    }
+
+    const timer =
+      window.setTimeout(() => {
+        feedRef.current
+          ?.scrollToPost?.(
+            targetPostId
+          );
+      }, 100);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [targetPostId]);
 
   /* =========================
      OPTIMIZED SCROLL HANDLER
@@ -113,10 +148,15 @@ const Home = () => {
       >
         <Stories />
 
-        <Feed ref={feedRef} />
+        <Feed
+          ref={feedRef}
+          targetPostId={
+            targetPostId
+          }
+        />
       </div>
     </div>
   );
 };
 
-export default Home;  
+export default Home;

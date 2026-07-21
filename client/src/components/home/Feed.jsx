@@ -297,7 +297,12 @@ const requestPosts = (
 ========================= */
 
 const Feed = forwardRef(
-  (_props, ref) => {
+  (
+    {
+      targetPostId = "",
+    },
+    ref
+  ) => {
     const { user } =
       useAuth();
 
@@ -377,6 +382,22 @@ const Feed = forwardRef(
     const requestSequenceRef =
       useRef(0);
 
+    const targetScrollTimerRef =
+      useRef(null);
+
+    const highlightTimerRef =
+      useRef(null);
+
+    const pendingTargetPostRef =
+      useRef(
+        normalizeId(targetPostId)
+      );
+
+    const [
+      highlightedPostId,
+      setHighlightedPostId,
+    ] = useState("");
+
     /* =========================
        MOUNT STATE
     ========================= */
@@ -391,8 +412,99 @@ const Feed = forwardRef(
 
         requestSequenceRef.current +=
           1;
+
+        if (
+          targetScrollTimerRef.current
+        ) {
+          window.clearTimeout(
+            targetScrollTimerRef.current
+          );
+        }
+
+        if (
+          highlightTimerRef.current
+        ) {
+          window.clearTimeout(
+            highlightTimerRef.current
+          );
+        }
       };
     }, []);
+
+    /* =========================
+       SCROLL TO TARGET POST
+    ========================= */
+
+    const scrollToPost =
+      useCallback(
+        (postId) => {
+          const normalizedPostId =
+            normalizeId(postId);
+
+          if (!normalizedPostId) {
+            return false;
+          }
+
+          pendingTargetPostRef.current =
+            normalizedPostId;
+
+          const escapedPostId =
+            typeof CSS !==
+              "undefined" &&
+              typeof CSS.escape ===
+              "function"
+              ? CSS.escape(
+                normalizedPostId
+              )
+              : normalizedPostId.replace(
+                /["\\]/g,
+                "\\$&"
+              );
+
+          const targetElement =
+            document.querySelector(
+              `[data-feed-post-id="${escapedPostId}"]`
+            );
+
+          if (!targetElement) {
+            return false;
+          }
+
+          targetElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "nearest",
+          });
+
+          setHighlightedPostId(
+            normalizedPostId
+          );
+
+          if (
+            highlightTimerRef.current
+          ) {
+            window.clearTimeout(
+              highlightTimerRef.current
+            );
+          }
+
+          highlightTimerRef.current =
+            window.setTimeout(() => {
+              if (mountedRef.current) {
+                setHighlightedPostId("");
+              }
+
+              highlightTimerRef.current =
+                null;
+            }, 2200);
+
+          pendingTargetPostRef.current =
+            "";
+
+          return true;
+        },
+        []
+      );
 
     /* =========================
        KEEP POSTS REF UPDATED
@@ -401,7 +513,85 @@ const Feed = forwardRef(
     useEffect(() => {
       postsRef.current =
         posts;
-    }, [posts]);
+
+      const pendingPostId =
+        normalizeId(
+          pendingTargetPostRef.current
+        );
+
+      if (!pendingPostId) {
+        return;
+      }
+
+      const postExists =
+        posts.some(
+          (post) =>
+            normalizeId(post) ===
+            pendingPostId
+        );
+
+      if (!postExists) {
+        return;
+      }
+
+      const frame =
+        window.requestAnimationFrame(
+          () => {
+            scrollToPost(
+              pendingPostId
+            );
+          }
+        );
+
+      return () => {
+        window.cancelAnimationFrame(
+          frame
+        );
+      };
+    }, [
+      posts,
+      scrollToPost,
+    ]);
+
+
+    useEffect(() => {
+      const normalizedTargetPostId =
+        normalizeId(targetPostId);
+
+      if (!normalizedTargetPostId) {
+        return;
+      }
+
+      pendingTargetPostRef.current =
+        normalizedTargetPostId;
+
+      /*
+       * Cached posts already render ayithe
+       * next frame lo scroll.
+       */
+      targetScrollTimerRef.current =
+        window.setTimeout(() => {
+          scrollToPost(
+            normalizedTargetPostId
+          );
+        }, 80);
+
+      return () => {
+        if (
+          targetScrollTimerRef.current
+        ) {
+          window.clearTimeout(
+            targetScrollTimerRef.current
+          );
+
+          targetScrollTimerRef.current =
+            null;
+        }
+      };
+    }, [
+      targetPostId,
+      scrollToPost,
+    ]);
 
     /* =========================
        STORE INITIAL PENDING POST
@@ -575,6 +765,31 @@ const Feed = forwardRef(
                 .length > 0,
           }),
 
+        scrollToPost: (
+          postId
+        ) => {
+          const didScroll =
+            scrollToPost(postId);
+
+          /*
+           * Current DOM lo post lekapothe
+           * latest feed refresh chesi,
+           * posts effect dwara scroll.
+           */
+          if (!didScroll) {
+            pendingTargetPostRef.current =
+              normalizeId(postId);
+
+            void loadPosts({
+              silent:
+                postsRef.current
+                  .length > 0,
+            });
+          }
+
+          return didScroll;
+        },
+
         prependPost: (
           incomingPost
         ) => {
@@ -590,9 +805,7 @@ const Feed = forwardRef(
             incomingPost;
 
           setPosts(
-            (
-              currentPosts
-            ) => {
+            (currentPosts) => {
               const nextPosts =
                 prependUniquePost(
                   currentPosts,
@@ -614,6 +827,7 @@ const Feed = forwardRef(
       }),
       [
         loadPosts,
+        scrollToPost,
         userId,
       ]
     );
@@ -891,17 +1105,24 @@ const Feed = forwardRef(
             }
 
             return (
-              <PostCard
-                key={
+              <div
+                key={postId}
+                data-feed-post-id={
                   postId
                 }
-                post={
-                  post
-                }
-                onDeleted={
-                  handlePostDeleted
-                }
-              />
+                className={`${styles.postAnchor} ${highlightedPostId ===
+                  postId
+                  ? styles.postHighlighted
+                  : ""
+                  }`}
+              >
+                <PostCard
+                  post={post}
+                  onDeleted={
+                    handlePostDeleted
+                  }
+                />
+              </div>
             );
           }
         )}

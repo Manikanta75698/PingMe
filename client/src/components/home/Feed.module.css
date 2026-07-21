@@ -1,37 +1,35 @@
-.feed{
+.feed {
+  width: 100%;
 
-    width:100%;
+  max-width: 650px;
 
-    max-width:650px;
+  margin: 30px auto;
 
-    margin:30px auto;
+  display: flex;
 
-    display:flex;
+  flex-direction: column;
 
-    flex-direction:column;
-
-    gap:24px;
-
+  gap: 24px;
 }
 
-@media(max-width:768px){
+@media (max-width: 768px) {
+  .feed {
+    max-width: 100%;
 
-.feed{
-
-max-width:100%;
-
-padding:0 15px;
-
-}
-
+    padding: 0 15px;
+  }
 }
 
 .state {
   width: 100%;
+
   padding: 48px 20px;
+
   color: #94a3b8;
+
   font-size: 14px;
   line-height: 1.5;
+
   text-align: center;
 }
 
@@ -41,16 +39,122 @@ padding:0 15px;
 
 .state button {
   padding: 9px 16px;
+
   border: 0;
   border-radius: 8px;
+
   background: #2563eb;
   color: #ffffff;
+
   font: inherit;
   font-weight: 600;
+
   cursor: pointer;
 }
 
 .state button:disabled {
   opacity: 0.55;
+
   cursor: not-allowed;
+}
+
+/* =========================
+   TARGET POST NAVIGATION
+========================= */
+
+.postAnchor {
+  position: relative;
+
+  width: 100%;
+
+  scroll-margin-top: 92px;
+
+  border-radius: 18px;
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.postHighlighted {
+  z-index: 1;
+
+  animation:
+    targetPostHighlight 2.2s ease-out;
+}
+
+@keyframes targetPostHighlight {
+  0% {
+    transform: scale(0.985);
+
+    box-shadow:
+      0 0 0 0 color-mix(in srgb,
+        var(--primary, #2563eb) 0%,
+        transparent);
+  }
+
+  20% {
+    transform: scale(1.008);
+
+    box-shadow:
+      0 0 0 4px color-mix(in srgb,
+        var(--primary, #2563eb) 34%,
+        transparent),
+      0 14px 36px rgba(0, 0, 0, 0.12);
+  }
+
+  70% {
+    transform: scale(1);
+
+    box-shadow:
+      0 0 0 2px color-mix(in srgb,
+        var(--primary, #2563eb) 18%,
+        transparent);
+  }
+
+  100% {
+    transform: scale(1);
+
+    box-shadow:
+      0 0 0 0 transparent;
+  }
+}
+
+@media (max-width: 768px) {
+  .postAnchor {
+    scroll-margin-top: 78px;
+
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .feed {
+    padding: 0 10px;
+
+    gap: 18px;
+  }
+
+  .postAnchor {
+    scroll-margin-top: 70px;
+
+    border-radius: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .postAnchor {
+    transition: none;
+  }
+
+  .postHighlighted {
+    animation: none;
+
+    outline:
+      3px solid color-mix(in srgb,
+        var(--primary, #2563eb) 45%,
+        transparent);
+
+    outline-offset: 3px;
+  }
 }

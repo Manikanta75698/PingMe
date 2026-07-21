@@ -1196,12 +1196,12 @@ const PostCard = ({
           throw firstError;
         }
 
-        await loadChatSummaries?.();
-
         setShowShareModal(false);
         setShareSearch("");
         setSelectedShareUsers([]);
         setShareError("");
+
+        void loadChatSummaries?.();
 
         if (
           failedResults.length > 0

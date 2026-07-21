@@ -493,7 +493,7 @@ const MessageBubble = ({
       setShowActions(false);
 
       navigate(
-        `/post/${encodeURIComponent(
+        `/home?post=${encodeURIComponent(
           sharedPostId
         )}`
       );
@@ -1704,11 +1704,11 @@ const MessageBubble = ({
                 onPointerUp={(event) => {
                   event.stopPropagation();
                 }}
-                aria-label={`Open post shared by ${sharedPostOwnerName}`}
+                aria-label={`Open ${sharedPostOwnerName}'s post in feed`}
               >
                 <div
                   className={
-                    styles.sharedPostOwner
+                    styles.sharedPostTop
                   }
                 >
                   <img
@@ -1731,7 +1731,7 @@ const MessageBubble = ({
 
                   <span
                     className={
-                      styles.sharedPostOwnerText
+                      styles.sharedPostUser
                     }
                   >
                     <strong>
@@ -1742,44 +1742,55 @@ const MessageBubble = ({
                       @{sharedPostOwnerUsername}
                     </small>
                   </span>
+
+                  <span
+                    className={
+                      styles.sharedPostArrow
+                    }
+                    aria-hidden="true"
+                  >
+                    ›
+                  </span>
                 </div>
 
                 {sharedPostImage && (
-                  <img
-                    src={sharedPostImage}
-                    alt={
-                      sharedPostCaption ||
-                      "Shared post"
-                    }
+                  <div
                     className={
-                      styles.sharedPostImage
+                      styles.sharedPostMedia
                     }
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  >
+                    <img
+                      src={sharedPostImage}
+                      alt={
+                        sharedPostCaption ||
+                        "Shared post"
+                      }
+                      className={
+                        styles.sharedPostImage
+                      }
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                )}
+
+                {sharedPostCaption && (
+                  <p
+                    className={
+                      styles.sharedPostCaption
+                    }
+                  >
+                    {sharedPostCaption}
+                  </p>
                 )}
 
                 <div
                   className={
-                    styles.sharedPostBody
+                    styles.sharedPostBottom
                   }
                 >
-                  {sharedPostCaption ? (
-                    <p>
-                      {sharedPostCaption}
-                    </p>
-                  ) : (
-                    <p
-                      className={
-                        styles.sharedPostFallback
-                      }
-                    >
-                      View shared post
-                    </p>
-                  )}
-
                   <span>
-                    View post
+                    Tap to view in feed
                   </span>
                 </div>
               </button>
