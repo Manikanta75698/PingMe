@@ -2170,3 +2170,49 @@
     transition: none;
   }
 }
+
+.captionBlock {
+  margin-top: 6px;
+}
+
+.caption {
+  margin: 0;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+
+  line-height: 1.45;
+}
+
+.captionCollapsed {
+  display: -webkit-box;
+  overflow: hidden;
+
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.captionExpanded {
+  display: block;
+}
+
+.captionToggle {
+  margin-top: 3px;
+  padding: 0;
+
+  color: var(--text-secondary,
+      #6b7280);
+
+  background: transparent;
+  border: none;
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.captionToggle:hover {
+  text-decoration: underline;
+}

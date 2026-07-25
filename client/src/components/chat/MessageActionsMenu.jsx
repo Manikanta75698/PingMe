@@ -626,8 +626,8 @@ const MessageActionsMenu = ({
                       }
                       type="button"
                       className={`${styles.reactionButton} ${isSelected
-                          ? styles.selectedReaction
-                          : ""
+                        ? styles.selectedReaction
+                        : ""
                         }`}
                       onClick={() =>
                         handleReaction(
@@ -781,23 +781,24 @@ const MessageActionsMenu = ({
             </button>
           )}
 
-          {isOwn && (
-            <button
-              type="button"
-              className={`${styles.actionButton} ${styles.deleteButton}`}
-              onClick={
-                handleDelete
-              }
-              role="menuitem"
-            >
-              <Trash2
-                size={19}
-                aria-hidden="true"
-              />
+          {typeof onDelete ===
+            "function" && (
+              <button
+                type="button"
+                className={`${styles.actionButton} ${styles.deleteButton}`}
+                onClick={
+                  handleDelete
+                }
+                role="menuitem"
+              >
+                <Trash2
+                  size={19}
+                  aria-hidden="true"
+                />
 
-              <span>Delete</span>
-            </button>
-          )}
+                <span>Delete</span>
+              </button>
+            )}
         </div>
       </div>
     </div>,

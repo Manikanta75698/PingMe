@@ -1002,15 +1002,27 @@ const getMessages = async (
     const conversationQuery = {
       $or: [
         {
-          sender: currentUserId,
-          receiver: otherUserId,
+          sender:
+            currentUserId,
+
+          receiver:
+            otherUserId,
         },
         {
-          sender: otherUserId,
+          sender:
+            otherUserId,
+
           receiver:
             currentUserId,
         },
       ],
+
+
+      deletedFor: {
+        $nin: [
+          currentUserId,
+        ],
+      },
     };
 
     if (before) {
@@ -1207,16 +1219,27 @@ const getPinnedMessage = async (
           $ne: null,
         },
 
+        deletedForEveryone:
+          false,
+
+        deletedFor: {
+          $nin: [
+            currentUserId,
+          ],
+        },
+
         $or: [
           {
             sender:
               currentUserId,
+
             receiver:
               otherUserId,
           },
           {
             sender:
               otherUserId,
+
             receiver:
               currentUserId,
           },
@@ -1333,6 +1356,15 @@ const toggleReaction = async (
     const message =
       await Message.findOne({
         _id: messageId,
+
+        deletedForEveryone:
+          false,
+
+        deletedFor: {
+          $nin: [
+            currentUserId,
+          ],
+        },
 
         $or: [
           {
@@ -1594,14 +1626,19 @@ const editMessage = async (
       });
     }
 
-    /*
-     * Sender matrame own message
-     * edit cheyyagaladu.
-     */
     const message =
       await Message.findOne({
         _id: messageId,
         sender: currentUserId,
+
+        deletedForEveryone:
+          false,
+
+        deletedFor: {
+          $nin: [
+            currentUserId,
+          ],
+        },
       });
 
     if (!message) {
@@ -1813,7 +1850,17 @@ const forwardMessage = async (
 
     const sourceMessage =
       await Message.findOne({
-        _id: sourceMessageId,
+        _id:
+          sourceMessageId,
+
+        deletedForEveryone:
+          false,
+
+        deletedFor: {
+          $nin: [
+            currentUserId,
+          ],
+        },
 
         $or: [
           {
@@ -2066,13 +2113,18 @@ const togglePinMessage = async (
       });
     }
 
-    /*
-     * Sender or receiver matrame
-     * message pin/unpin cheyyagalaru.
-     */
     const message =
       await Message.findOne({
         _id: messageId,
+
+        deletedForEveryone:
+          false,
+
+        deletedFor: {
+          $nin: [
+            currentUserId,
+          ],
+        },
 
         $or: [
           {
@@ -2343,6 +2395,22 @@ const deleteMessage = async (
         req.params?.messageId
       );
 
+    const requestedMode =
+      String(
+        req.body?.mode ||
+        "forEveryone"
+      )
+        .trim()
+        .toLowerCase();
+
+    const deleteMode =
+      requestedMode === "forme"
+        ? "forMe"
+        : requestedMode ===
+          "foreveryone"
+          ? "forEveryone"
+          : "";
+
     if (
       !currentUserId ||
       !isValidObjectId(
@@ -2351,6 +2419,7 @@ const deleteMessage = async (
     ) {
       return res.status(401).json({
         success: false,
+
         message:
           "Authentication required",
       });
@@ -2364,19 +2433,39 @@ const deleteMessage = async (
     ) {
       return res.status(400).json({
         success: false,
+
         message:
           "Invalid message ID",
       });
     }
 
+    if (!deleteMode) {
+      return res.status(400).json({
+        success: false,
+
+        message:
+          "Delete mode must be forMe or forEveryone",
+      });
+    }
+
     /*
-     * Sender matrame delete
-     * cheyyagaladu.
+     * Sender or receiver rendu
+     * Delete for me use cheyyachu.
      */
     const message =
       await Message.findOne({
         _id: messageId,
-        sender: currentUserId,
+
+        $or: [
+          {
+            sender:
+              currentUserId,
+          },
+          {
+            receiver:
+              currentUserId,
+          },
+        ],
       });
 
     if (!message) {
@@ -2398,31 +2487,196 @@ const deleteMessage = async (
         message.receiver
       );
 
+    const isSender =
+      senderId ===
+      currentUserId;
+
+    /*
+     * =========================
+     * DELETE FOR ME
+     * =========================
+     */
+    if (deleteMode === "forMe") {
+      const deletedForIds =
+        Array.isArray(message.deletedFor)
+          ? message.deletedFor.map(
+            (userId) =>
+              normalizeId(userId)
+          )
+          : [];
+
+      if (
+        !deletedForIds.includes(
+          currentUserId
+        )
+      ) {
+        message.deletedFor = [
+          ...(Array.isArray(
+            message.deletedFor
+          )
+            ? message.deletedFor
+            : []),
+
+          currentUserId,
+        ];
+
+        message.markModified(
+          "deletedFor"
+        );
+
+        await message.save({
+          validateModifiedOnly: true,
+        });
+      }
+
+      const payload = {
+        messageId:
+          normalizeId(message._id),
+
+        mode: "forMe",
+        userId: currentUserId,
+      };
+
+      const io = getSafeIO();
+
+      if (io) {
+        io.to(currentUserId).emit(
+          "messageDeleted",
+          payload
+        );
+      }
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Message deleted for you",
+        data: payload,
+      });
+    }
+    /*
+     * =========================
+     * DELETE FOR EVERYONE
+     * =========================
+     */
+
+    if (!isSender) {
+      return res.status(403).json({
+        success: false,
+
+        message:
+          "Only the sender can delete this message for everyone",
+      });
+    }
+
+    /*
+     * Already deleted ayithe
+     * idempotent success return.
+     */
+    if (
+      message.deletedForEveryone
+    ) {
+      return res.status(200).json({
+        success: true,
+
+        message:
+          "Message was already deleted for everyone",
+
+        data: {
+          messageId:
+            normalizeId(
+              message._id
+            ),
+
+          mode:
+            "forEveryone",
+
+          deletedAt:
+            message.deletedAt ||
+            null,
+
+          message:
+            message.toObject(),
+        },
+      });
+    }
+
     const imageUrl =
-      message.image || "";
+      String(
+        message.image || ""
+      ).trim();
 
-    await Message.deleteOne({
-      _id: message._id,
-    });
+    /*
+     * Placeholder preserve cheyyadaniki
+     * document hard delete cheyyam.
+     */
+    message.text = "";
+    message.image = "";
+    message.sharedPost = null;
 
-    const deletePayload = {
+    message.replyTo = null;
+    message.reactions = [];
+
+    message.editedAt = null;
+
+    message.pinnedAt = null;
+    message.pinnedBy = null;
+
+    message.deletedForEveryone =
+      true;
+
+    message.deletedAt =
+      new Date();
+
+    message.deletedBy =
+      currentUserId;
+
+    message.markModified(
+      "reactions"
+    );
+
+    await message.save();
+
+    await populateMessage(
+      message
+    );
+
+    const messagePayload =
+      message.toObject();
+
+    const payload = {
       messageId:
         normalizeId(
-          message._id
+          messagePayload._id
         ),
+
+      mode:
+        "forEveryone",
+
+      deletedAt:
+        messagePayload.deletedAt,
+
+      deletedBy:
+        currentUserId,
+
+      message:
+        messagePayload,
     };
 
     /*
-     * Both participants UI nunchi
-     * immediate removal.
+     * Sender + receiver UI lo
+     * placeholder immediate update.
      */
     emitToParticipants(
       senderId,
       receiverId,
       "messageDeleted",
-      deletePayload
+      payload
     );
 
+    /*
+     * DB save complete ayyaka
+     * media cleanup background lo.
+     */
     if (imageUrl) {
       void deleteCloudinaryImageIfUnused(
         imageUrl
@@ -2433,10 +2687,9 @@ const deleteMessage = async (
       success: true,
 
       message:
-        "Message deleted successfully",
+        "Message deleted for everyone",
 
-      messageId:
-        deletePayload.messageId,
+      data: payload,
     });
   } catch (error) {
     console.error(
@@ -2509,11 +2762,7 @@ const getChatSummaries = async (
         )
         .lean();
 
-    /*
-     * Duplicate accepted requests unte
-     * same user duplicate summary
-     * create kakunda Map use chestham.
-     */
+
     const uniqueUsers =
       new Map();
 
@@ -2563,16 +2812,24 @@ const getChatSummaries = async (
                 {
                   sender:
                     currentUserId,
+
                   receiver:
                     otherUserId,
                 },
                 {
                   sender:
                     otherUserId,
+
                   receiver:
                     currentUserId,
                 },
               ],
+
+              deletedFor: {
+                $nin: [
+                  currentUserId,
+                ],
+              },
             };
 
             const [
@@ -2587,7 +2844,18 @@ const getChatSummaries = async (
                   _id: -1,
                 })
                 .select(
-                  "text image sharedPost sender receiver status createdAt"
+                  [
+                    "text",
+                    "image",
+                    "sharedPost",
+                    "sender",
+                    "receiver",
+                    "status",
+                    "createdAt",
+                    "deletedForEveryone",
+                    "deletedAt",
+                    "deletedBy",
+                  ].join(" ")
                 )
                 .lean(),
 

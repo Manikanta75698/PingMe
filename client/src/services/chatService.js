@@ -121,10 +121,15 @@ export const toggleMessageReaction =
 ========================= */
 
 export const deleteMessage = (
-  messageId
+  messageId,
+  mode = "forMe"
 ) => {
   const safeMessageId =
     normalizeId(messageId);
+
+  const safeMode =
+    String(mode || "")
+      .trim();
 
   if (!safeMessageId) {
     throw new Error(
@@ -132,8 +137,22 @@ export const deleteMessage = (
     );
   }
 
+  if (
+    safeMode !== "forMe" &&
+    safeMode !== "forEveryone"
+  ) {
+    throw new Error(
+      "Delete mode must be forMe or forEveryone"
+    );
+  }
+
   return api.delete(
-    `/messages/${safeMessageId}`
+    `/messages/${safeMessageId}`,
+    {
+      data: {
+        mode: safeMode,
+      },
+    }
   );
 };
 

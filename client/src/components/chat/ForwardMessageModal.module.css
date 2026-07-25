@@ -9,7 +9,8 @@
         Canvas));
 
   --modal-text:
-    var(--text-primary, CanvasText);
+    var(--text-primary,
+      CanvasText);
 
   --modal-muted:
     var(--text-secondary,
@@ -39,14 +40,12 @@
 
   padding: 14px;
 
-  color:
-    var(--modal-text);
+  color: var(--modal-text);
 
   background:
     rgba(0, 0, 0, 0.4);
 
-  color-scheme:
-    light dark;
+  color-scheme: light dark;
 
   animation:
     backdropIn 0.15s ease-out;
@@ -57,13 +56,15 @@
   flex-direction: column;
 
   width:
-    min(100%, 390px);
+    min(100%, 410px);
 
   max-height:
-    min(620px, calc(100dvh - 28px));
+    min(650px,
+      calc(100dvh - 28px));
 
   overflow: hidden;
 
+  color: var(--modal-text);
   background:
     var(--modal-surface);
 
@@ -99,8 +100,7 @@
 }
 
 .subtitle {
-  margin:
-    3px 0 0;
+  margin: 3px 0 0;
 
   color:
     var(--modal-muted);
@@ -131,11 +131,32 @@
   border-radius: 50%;
 
   cursor: pointer;
+
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.closeButton:hover:not(:disabled) {
+  color:
+    var(--modal-text);
+}
+
+.closeButton:active:not(:disabled) {
+  transform: scale(0.92);
 }
 
 .closeButton:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.closeButton:focus-visible {
+  outline:
+    2px solid var(--modal-primary);
+
+  outline-offset: 2px;
 }
 
 .messagePreview {
@@ -180,13 +201,13 @@
 
   gap: 8px;
 
+  min-height: 42px;
+
   margin:
     0 14px 10px;
 
   padding:
     0 11px;
-
-  min-height: 40px;
 
   color:
     var(--modal-muted);
@@ -198,11 +219,17 @@
     1px solid transparent;
 
   border-radius: 12px;
+
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .searchBox:focus-within {
   border-color:
     var(--modal-primary);
+
+  box-shadow: none;
 }
 
 .searchBox input {
@@ -220,34 +247,71 @@
 
   border: none;
   outline: none;
+  box-shadow: none;
 
   font: inherit;
   font-size: 14px;
 }
 
+.searchBox input,
+.searchBox input:hover,
+.searchBox input:focus,
+.searchBox input:focus-visible,
+.searchBox input:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .searchBox input::placeholder {
   color:
     var(--modal-muted);
+
+  opacity: 1;
+}
+
+.searchBox input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .error {
   margin:
-    0 14px 8px;
+    0 14px 9px;
+
+  padding:
+    8px 10px;
 
   color:
     var(--modal-danger);
 
+  background:
+    color-mix(in srgb,
+      var(--modal-danger) 8%,
+      transparent);
+
+  border:
+    1px solid color-mix(in srgb,
+      var(--modal-danger) 18%,
+      transparent);
+
+  border-radius: 9px;
+
   font-size: 12px;
+  font-weight: 550;
   line-height: 1.35;
 }
 
 .chatList {
   flex: 1 1 auto;
 
-  min-height: 120px;
+  min-height: 130px;
 
   padding:
-    2px 7px 8px;
+    5px 7px 8px;
 
   overflow-y: auto;
 
@@ -256,6 +320,8 @@
 
   overscroll-behavior:
     contain;
+
+  scrollbar-width: thin;
 }
 
 .chatButton {
@@ -278,12 +344,23 @@
   border: none;
   border-radius: 11px;
 
+  box-shadow:
+    inset 0 0 0 1px transparent;
+
+  font: inherit;
   text-align: left;
 
   cursor: pointer;
 
+  touch-action: manipulation;
+
+  -webkit-tap-highlight-color:
+    transparent;
+
   transition:
-    background-color 0.12s ease;
+    background-color 0.12s ease,
+    box-shadow 0.12s ease,
+    transform 0.12s ease;
 }
 
 .chatButton:hover:not(:disabled) {
@@ -292,13 +369,38 @@
 }
 
 .chatButton:active:not(:disabled) {
-  background:
-    var(--modal-soft);
+  transform: scale(0.99);
 }
 
 .chatButton:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+.chatButton:focus-visible {
+  outline:
+    2px solid var(--modal-primary);
+
+  outline-offset: -2px;
+}
+
+.chatButtonSelected {
+  background:
+    color-mix(in srgb,
+      var(--modal-primary) 10%,
+      var(--modal-surface));
+
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb,
+      var(--modal-primary) 38%,
+      transparent);
+}
+
+.chatButtonSelected:hover:not(:disabled) {
+  background:
+    color-mix(in srgb,
+      var(--modal-primary) 13%,
+      var(--modal-surface));
 }
 
 .avatar {
@@ -313,8 +415,7 @@
 
   overflow: hidden;
 
-  color:
-    HighlightText;
+  color: HighlightText;
 
   background:
     var(--modal-primary);
@@ -353,6 +454,7 @@
 .userInfo strong {
   font-size: 14px;
   font-weight: 650;
+  line-height: 1.25;
 }
 
 .userInfo small {
@@ -362,25 +464,165 @@
     var(--modal-muted);
 
   font-size: 12px;
+  line-height: 1.2;
 }
 
-.forwardIcon {
+.selectionIndicator {
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
   flex: 0 0 auto;
 
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
+
+  color: transparent;
+
+  background:
+    var(--modal-surface);
+
+  border:
+    1.5px solid var(--modal-border);
+
+  border-radius: 50%;
+
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.selectionIndicatorSelected {
+  color: HighlightText;
+
+  background:
+    var(--modal-primary);
+
+  border-color:
+    var(--modal-primary);
+
+  transform: scale(1.04);
+}
+
+.empty {
+  margin:
+    30px 12px;
 
   color:
+    var(--modal-muted);
+
+  font-size: 13px;
+  text-align: center;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  flex: 0 0 auto;
+
+  gap: 12px;
+
+  min-height: 64px;
+
+  padding:
+    11px 14px calc(11px + env(safe-area-inset-bottom));
+
+  background:
+    var(--modal-surface);
+
+  border-top:
+    1px solid var(--modal-border);
+}
+
+.selectedCount {
+  min-width: 0;
+
+  overflow: hidden;
+
+  color:
+    var(--modal-muted);
+
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.forwardButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 auto;
+
+  gap: 7px;
+
+  min-height: 40px;
+
+  padding:
+    0 15px;
+
+  color: HighlightText;
+
+  background:
     var(--modal-primary);
+
+  border: none;
+  border-radius: 11px;
+
+  box-shadow:
+    0 5px 14px color-mix(in srgb,
+      var(--modal-primary) 22%,
+      transparent);
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  touch-action: manipulation;
+
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.forwardButton:hover:not(:disabled) {
+  transform:
+    translateY(-1px);
+}
+
+.forwardButton:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.forwardButton:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+.forwardButton:focus-visible {
+  outline:
+    2px solid var(--modal-primary);
+
+  outline-offset: 2px;
 }
 
 .spinner {
   width: 17px;
   height: 17px;
+
+  flex: 0 0 auto;
 
   border:
     2px solid var(--modal-border);
@@ -394,15 +636,17 @@
     spin 0.7s linear infinite;
 }
 
-.empty {
-  margin:
-    28px 12px;
+.forwardButton .spinner {
+  width: 15px;
+  height: 15px;
 
-  color:
-    var(--modal-muted);
+  border-color:
+    color-mix(in srgb,
+      HighlightText 40%,
+      transparent);
 
-  font-size: 13px;
-  text-align: center;
+  border-top-color:
+    HighlightText;
 }
 
 @media (max-width: 768px) {
@@ -417,7 +661,7 @@
     width: 100%;
 
     max-height:
-      min(70dvh, 620px);
+      min(76dvh, 650px);
 
     border-radius:
       20px 20px 14px 14px;
@@ -429,8 +673,54 @@
         1);
   }
 
+  .header {
+    padding:
+      14px 14px 10px;
+  }
+
+  .messagePreview {
+    margin:
+      0 12px 10px;
+  }
+
+  .searchBox {
+    margin:
+      0 12px 10px;
+  }
+
   .chatButton {
     min-height: 58px;
+  }
+
+  .footer {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .backdrop {
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+  }
+
+  .modal {
+    max-height: 80dvh;
+
+    border-right: none;
+    border-bottom: none;
+    border-left: none;
+
+    border-radius:
+      20px 20px 0 0;
+  }
+
+  .forwardButton {
+    min-height: 39px;
+
+    padding:
+      0 13px;
   }
 }
 
@@ -454,7 +744,6 @@
 
   to {
     opacity: 1;
-
     transform: none;
   }
 }
@@ -469,7 +758,6 @@
 
   to {
     opacity: 1;
-
     transform: none;
   }
 }
@@ -485,7 +773,12 @@
 
   .backdrop,
   .modal,
+  .closeButton,
+  .chatButton,
+  .selectionIndicator,
+  .forwardButton,
   .spinner {
     animation: none;
+    transition: none;
   }
 }

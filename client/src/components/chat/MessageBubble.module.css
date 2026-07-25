@@ -928,162 +928,6 @@
   }
 }
 
-/* =========================
-   SHARED POST MESSAGE
-========================= */
-
-.sharedPostCard {
-  display: block;
-
-  width: min(330px, 100%);
-  min-width: 230px;
-
-  margin: 0 0 7px;
-  padding: 0;
-
-  overflow: hidden;
-
-  border:
-    1px solid var(--bubble-border);
-  border-radius: 14px;
-
-  background:
-    var(--bubble-surface);
-  color:
-    var(--bubble-text);
-
-  font: inherit;
-  text-align: left;
-
-  cursor: pointer;
-
-  box-shadow:
-    0 3px 12px rgba(0, 0, 0, 0.08);
-
-  touch-action: manipulation;
-
-  -webkit-tap-highlight-color:
-    transparent;
-
-  transition:
-    transform 0.16s ease,
-    box-shadow 0.16s ease,
-    border-color 0.16s ease;
-}
-
-.sharedPostCard:hover {
-  border-color:
-    color-mix(in srgb,
-      var(--bubble-primary) 40%,
-      var(--bubble-border));
-
-  box-shadow:
-    0 7px 20px rgba(0, 0, 0, 0.12);
-
-  transform:
-    translateY(-1px);
-}
-
-.sharedPostCard:active {
-  transform: scale(0.985);
-}
-
-.sharedPostCard:focus-visible {
-  outline:
-    2px solid var(--bubble-primary);
-
-  outline-offset: 2px;
-}
-
-/* Own bubble inner card */
-.ownBubble .sharedPostCard {
-  background:
-    color-mix(in srgb,
-      Canvas 94%,
-      transparent);
-
-  color:
-    CanvasText;
-
-  border-color:
-    color-mix(in srgb,
-      CanvasText 15%,
-      transparent);
-}
-
-/* Other bubble inner card */
-.otherBubble .sharedPostCard {
-  background:
-    var(--bubble-background);
-
-  color:
-    var(--bubble-text);
-}
-
-/* =========================
-   SHARED POST OWNER
-========================= */
-
-.sharedPostOwner {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-
-  min-width: 0;
-
-  padding: 10px;
-}
-
-.sharedPostAvatar {
-  width: 34px;
-  height: 34px;
-
-  flex: 0 0 auto;
-
-  border:
-    1px solid var(--bubble-border);
-  border-radius: 50%;
-
-  background:
-    var(--bubble-soft);
-
-  object-fit: cover;
-}
-
-.sharedPostOwnerText {
-  display: flex;
-
-  min-width: 0;
-  flex: 1;
-
-  flex-direction: column;
-  gap: 2px;
-}
-
-.sharedPostOwnerText strong,
-.sharedPostOwnerText small {
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sharedPostOwnerText strong {
-  color: inherit;
-
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.sharedPostOwnerText small {
-  color: inherit;
-
-  font-size: 11px;
-  line-height: 1.2;
-
-  opacity: 0.64;
-}
 
 /* =========================
    SHARED POST MESSAGE
@@ -1092,32 +936,32 @@
 .sharedPostCard {
   display: block;
 
-  width: min(300px, 100%);
-  min-width: 215px;
+  width: 310px;
+  max-width: 100%;
+  min-width: 0;
 
   margin: 0 0 5px;
   padding: 0;
 
   overflow: hidden;
 
-  border:
-    1px solid var(--bubble-border);
-  border-radius: 15px;
+  color: var(--bubble-text);
+  background: var(--bubble-surface);
 
-  background:
-    var(--bubble-surface);
-  color:
-    var(--bubble-text);
+  border: 1px solid var(--bubble-border);
+  border-radius: 14px;
+
+  box-shadow:
+    0 2px 9px rgba(0, 0, 0, 0.08);
+
+  box-sizing: border-box;
 
   font: inherit;
   text-align: left;
 
   cursor: pointer;
-
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.07);
-
   touch-action: manipulation;
+
   -webkit-tap-highlight-color:
     transparent;
 
@@ -1134,7 +978,9 @@
       var(--bubble-border));
 
   box-shadow:
-    0 5px 16px rgba(0, 0, 0, 0.1);
+    0 6px 18px rgba(0, 0, 0, 0.11);
+
+  transform: translateY(-1px);
 }
 
 .sharedPostCard:active {
@@ -1148,10 +994,15 @@
   outline-offset: 2px;
 }
 
-/* =========================
-   TOP USER ROW
-========================= */
+/* Own and other cards same appearance */
+.ownBubble .sharedPostCard,
+.otherBubble .sharedPostCard {
+  color: var(--bubble-text);
+  background: var(--bubble-surface);
+  border-color: var(--bubble-border);
+}
 
+/* Owner row */
 .sharedPostTop {
   display: flex;
   align-items: center;
@@ -1159,7 +1010,7 @@
 
   min-width: 0;
 
-  padding: 10px 11px;
+  padding: 9px 10px;
 
   background:
     var(--bubble-surface);
@@ -1173,6 +1024,7 @@
 
   border:
     1px solid var(--bubble-border);
+
   border-radius: 50%;
 
   background:
@@ -1183,12 +1035,11 @@
 
 .sharedPostUser {
   display: flex;
-
-  min-width: 0;
   flex: 1;
-
   flex-direction: column;
   gap: 2px;
+
+  min-width: 0;
 }
 
 .sharedPostUser strong,
@@ -1208,8 +1059,7 @@
 }
 
 .sharedPostUser small {
-  color:
-    var(--bubble-muted);
+  color: var(--bubble-muted);
 
   font-size: 11px;
   font-weight: 500;
@@ -1218,64 +1068,61 @@
 
 .sharedPostArrow {
   display: inline-flex;
-
-  width: 28px;
-  height: 28px;
-
-  flex: 0 0 auto;
-
   align-items: center;
   justify-content: center;
 
+  width: 27px;
+  height: 27px;
+
+  flex: 0 0 auto;
+
+  color: var(--bubble-muted);
+
   border-radius: 50%;
 
-  color:
-    var(--bubble-muted);
-
-  font-size: 25px;
+  font-size: 24px;
   font-weight: 300;
   line-height: 1;
 
   transition:
-    background 0.15s ease,
     color 0.15s ease,
+    background-color 0.15s ease,
     transform 0.15s ease;
 }
 
 .sharedPostCard:hover .sharedPostArrow {
+  color: var(--bubble-primary);
+
   background:
     var(--bubble-soft);
 
-  color:
-    var(--bubble-primary);
-
-  transform:
-    translateX(2px);
+  transform: translateX(2px);
 }
 
-/* =========================
-   POST IMAGE
-========================= */
-
+/* Image */
 .sharedPostMedia {
   position: relative;
 
-  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 1 / 1;
 
-  border-top:
-    1px solid var(--bubble-border);
-  border-bottom:
-    1px solid var(--bubble-border);
+  overflow: hidden;
 
   background:
     var(--bubble-soft);
+
+  border-top:
+    1px solid var(--bubble-border);
+
+  border-bottom:
+    1px solid var(--bubble-border);
 }
 
 .sharedPostImage {
   display: block;
 
   width: 100%;
-  max-height: 260px;
+  height: 100%;
 
   object-fit: cover;
 
@@ -1285,6 +1132,154 @@
 
 .sharedPostCard:hover .sharedPostImage {
   transform: scale(1.01);
+}
+
+/* Caption */
+.sharedPostCaption {
+  display: -webkit-box;
+
+  margin: 0;
+  padding: 8px 10px 4px;
+
+  overflow: hidden;
+
+  color: inherit;
+
+  font-size: 12px;
+  font-weight: 450;
+  line-height: 1.4;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Bottom hint */
+.sharedPostBottom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  padding: 5px 10px 8px;
+}
+
+.sharedPostBottom span {
+  color:
+    var(--bubble-primary);
+
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Availability */
+.sharedPostCard:disabled {
+  cursor: wait;
+  opacity: 0.78;
+}
+
+.sharedPostCardUnavailable {
+  cursor: default;
+}
+
+.sharedPostCardUnavailable .sharedPostImage {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+.sharedPostCardUnavailable .sharedPostArrow {
+  color:
+    var(--bubble-danger);
+
+  background:
+    color-mix(in srgb,
+      var(--bubble-danger) 12%,
+      transparent);
+}
+
+.sharedPostCardUnavailable .sharedPostBottom span {
+  color:
+    var(--bubble-danger);
+}
+
+.sharedPostError {
+  margin: 0;
+  padding: 0 10px 9px;
+
+  color:
+    var(--bubble-danger);
+
+  background:
+    var(--bubble-surface);
+
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .sharedPostCard {
+    width:
+      min(78vw,
+        300px);
+  }
+
+  .sharedPostTop {
+    gap: 8px;
+    padding: 8px 9px;
+  }
+
+  .sharedPostAvatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .sharedPostUser strong {
+    font-size: 12.5px;
+  }
+
+  .sharedPostUser small {
+    font-size: 10.5px;
+  }
+
+  .sharedPostCaption {
+    padding:
+      7px 9px 4px;
+
+    font-size: 11.5px;
+  }
+
+  .sharedPostBottom {
+    padding:
+      5px 9px 7px;
+  }
+
+  .sharedPostError {
+    padding:
+      0 9px 8px;
+
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .sharedPostCard {
+    width:
+      min(80vw,
+        280px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .sharedPostCard,
+  .sharedPostArrow,
+  .sharedPostImage {
+    transition: none;
+  }
 }
 
 /* =========================
@@ -1489,5 +1484,566 @@
       0 9px 9px;
 
     font-size: 10px;
+  }
+}
+
+.sharedPostOnlyBubble {
+  padding: 0;
+
+  overflow: visible;
+
+  color: var(--bubble-text);
+  background: transparent;
+
+  border: none;
+  border-radius: 0;
+
+  box-shadow: none;
+}
+
+.sharedPostOnlyBubble .sharedPostCard {
+  margin-bottom: 4px;
+}
+
+.sharedPostOnlyBubble .meta {
+  margin-top: 0;
+  margin-right: 4px;
+  margin-left: 4px;
+}
+
+/* Own message time/status readable ga */
+.ownWrapper .sharedPostOnlyBubble .meta {
+  color: var(--bubble-muted);
+}
+
+/* Other message time readable ga */
+.otherWrapper .sharedPostOnlyBubble .meta {
+  color: var(--bubble-muted);
+}
+
+.deletedBubble {
+  min-width: 0;
+
+  padding:
+    9px 11px 6px;
+
+  background:
+    color-mix(in srgb,
+      CanvasText 5%,
+      Canvas);
+
+  border:
+    1px solid color-mix(in srgb,
+      CanvasText 12%,
+      transparent);
+
+  box-shadow: none;
+}
+
+.deletedMessage {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  color:
+    color-mix(in srgb,
+      CanvasText 58%,
+      transparent);
+
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.35;
+
+  white-space: nowrap;
+}
+
+.deletedMessage svg {
+  flex: 0 0 auto;
+}
+
+.deletedBubble .meta {
+  margin-top: 3px;
+
+  color:
+    color-mix(in srgb,
+      CanvasText 48%,
+      transparent);
+}
+
+@media (max-width: 768px) {
+  .deletedBubble {
+    padding:
+      8px 10px 5px;
+  }
+
+  .deletedMessage {
+    gap: 6px;
+
+    font-size: 12.5px;
+  }
+}
+
+/* =========================
+   COMPACT TEXT-ONLY BUBBLE
+========================= */
+
+.textOnlyBubble {
+  min-width: 0;
+
+  max-width:
+    min(100%, 560px);
+
+  padding:
+    8px 10px 5px;
+
+  border-radius: 17px;
+}
+
+.textOnlyBubble .text {
+  margin: 0;
+
+  font-size: 14px;
+  line-height: 1.42;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+
+  white-space: pre-wrap;
+}
+
+.textOnlyBubble .meta {
+  min-height: 15px;
+
+  margin-top: 2px;
+
+  gap: 4px;
+}
+
+.textOnlyBubble .time {
+  font-size: 10.5px;
+  line-height: 1;
+}
+
+.textOnlyBubble .status {
+  display: inline-flex;
+  align-items: center;
+
+  height: 14px;
+}
+
+.textOnlyBubble .status svg {
+  width: 13px;
+  height: 13px;
+}
+
+
+.textOnlyBubble:has(.text) {
+  width: fit-content;
+}
+
+
+.textOnlyBubble .text {
+  max-width: 52ch;
+}
+
+
+.ownBubble.textOnlyBubble {
+  border-bottom-right-radius: 5px;
+}
+
+.otherBubble.textOnlyBubble {
+  border-bottom-left-radius: 5px;
+}
+
+@media (max-width: 768px) {
+  .textOnlyBubble {
+    max-width:
+      min(100%, 82vw);
+
+    padding:
+      7px 9px 5px;
+
+    border-radius: 16px;
+  }
+
+  .textOnlyBubble .text {
+    max-width: 44ch;
+
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
+
+  .textOnlyBubble .meta {
+    margin-top: 2px;
+  }
+
+  .ownBubble.textOnlyBubble {
+    border-bottom-right-radius: 5px;
+  }
+
+  .otherBubble.textOnlyBubble {
+    border-bottom-left-radius: 5px;
+  }
+}
+
+@media (max-width: 420px) {
+  .textOnlyBubble {
+    max-width: 84vw;
+  }
+}
+
+/* =========================================
+   SMART MESSAGE BUBBLE UI
+========================================= */
+
+.ownWrapper,
+.otherWrapper {
+  display: flex;
+  width: 100%;
+
+  padding:
+    2px 18px;
+
+  box-sizing: border-box;
+}
+
+.ownWrapper {
+  justify-content: flex-end;
+}
+
+.otherWrapper {
+  justify-content: flex-start;
+}
+
+.messageGroup {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  max-width:
+    min(72%, 620px);
+
+  margin: 2px 0;
+}
+
+.ownWrapper .messageGroup {
+  align-items: flex-end;
+}
+
+.otherWrapper .messageGroup {
+  align-items: flex-start;
+}
+
+/* =========================
+   DEFAULT BUBBLE
+========================= */
+
+.bubble {
+  position: relative;
+
+  width: fit-content;
+  min-width: 76px;
+  max-width: 100%;
+
+  padding:
+    9px 11px 6px;
+
+  border-radius: 17px;
+
+  box-sizing: border-box;
+
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08);
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.bubble:hover {
+  box-shadow:
+    0 3px 10px rgba(15, 23, 42, 0.1);
+}
+
+.ownBubble {
+  border-bottom-right-radius: 5px;
+}
+
+.otherBubble {
+  border-bottom-left-radius: 5px;
+}
+
+/* =========================
+   TEXT MESSAGE
+========================= */
+
+.textOnlyBubble {
+  min-width: 92px;
+
+  padding:
+    9px 11px 6px;
+}
+
+.textOnlyBubble .text {
+  margin: 0;
+
+  max-width: 52ch;
+
+  font-size: 14px;
+  font-weight: 450;
+  line-height: 1.42;
+
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* =========================
+   FORWARDED LABEL
+========================= */
+
+.forwardedLabel {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 4px;
+
+  margin-bottom: 3px;
+
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1;
+
+  opacity: 0.68;
+}
+
+/* =========================
+   MESSAGE META
+========================= */
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  min-height: 14px;
+
+  gap: 4px;
+
+  margin-top: 3px;
+
+  line-height: 1;
+}
+
+.time {
+  font-size: 10px;
+  font-weight: 500;
+
+  opacity: 0.65;
+
+  white-space: nowrap;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 13px;
+  height: 13px;
+}
+
+.status svg {
+  width: 13px;
+  height: 13px;
+}
+
+.seen {
+  font-size: 9.5px;
+  font-weight: 650;
+}
+
+/* =========================
+   THREE DOT BUTTON
+========================= */
+
+.moreButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 20px;
+  height: 20px;
+
+  margin-right: -5px;
+
+  padding: 0;
+
+  color: inherit;
+
+  background: transparent;
+
+  border: none;
+  border-radius: 50%;
+
+  opacity: 0;
+
+  cursor: pointer;
+
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.messageGroup:hover .moreButton,
+.moreButton[data-open="true"],
+.moreButton:focus-visible {
+  opacity: 0.72;
+}
+
+.moreButton:hover {
+  opacity: 1;
+
+  background:
+    color-mix(in srgb,
+      currentColor 10%,
+      transparent);
+}
+
+.moreButton:active {
+  transform: scale(0.9);
+}
+
+/* =========================
+   DELETED MESSAGE
+========================= */
+
+.deletedBubble {
+  min-width: 180px;
+
+  padding:
+    10px 12px 6px;
+
+  background:
+    color-mix(in srgb,
+      CanvasText 4%,
+      Canvas);
+
+  border:
+    1px solid color-mix(in srgb,
+      CanvasText 11%,
+      transparent);
+
+  box-shadow: none;
+}
+
+.deletedMessage {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  color:
+    color-mix(in srgb,
+      CanvasText 58%,
+      transparent);
+
+  font-size: 12.5px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.3;
+
+  white-space: nowrap;
+}
+
+.deletedMessage svg {
+  flex: 0 0 auto;
+
+  opacity: 0.8;
+}
+
+.deletedBubble .meta {
+  margin-top: 5px;
+}
+
+/* =========================
+   REACTIONS
+========================= */
+
+.reactionSummary {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 4px;
+
+  margin-top: -2px;
+
+  z-index: 2;
+}
+
+.reactionChip {
+  min-width: 30px;
+  min-height: 24px;
+
+  padding:
+    2px 7px;
+
+  border-radius: 999px;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 768px) {
+
+  .ownWrapper,
+  .otherWrapper {
+    padding:
+      2px 10px;
+  }
+
+  .messageGroup {
+    max-width: 82%;
+  }
+
+  .bubble {
+    padding:
+      8px 10px 5px;
+  }
+
+  .textOnlyBubble {
+    min-width: 82px;
+  }
+
+  .textOnlyBubble .text {
+    max-width: 42ch;
+
+    font-size: 13.5px;
+  }
+
+  .moreButton {
+    width: 22px;
+    height: 22px;
+
+    opacity: 0.72;
+  }
+
+  .deletedBubble {
+    min-width: 165px;
+  }
+
+  .deletedMessage {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .messageGroup {
+    max-width: 86%;
   }
 }

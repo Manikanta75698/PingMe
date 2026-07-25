@@ -86,17 +86,45 @@ const getMessagePreview = (
       ? "You: "
       : "";
 
+  /*
+   * Delete for everyone preview.
+   */
   if (
-    lastMessage?.sharedPost?.postId
+    lastMessage
+      ?.deletedForEveryone
+  ) {
+    return `${prefix}This message was deleted`;
+  }
+
+  if (
+    lastMessage
+      ?.sharedPost?.postId
   ) {
     return `${prefix}Shared a post`;
   }
 
-  if (lastMessage.text?.trim()) {
-    return `${prefix}${lastMessage.text.trim()}`;
+  const messageText =
+    String(
+      lastMessage?.text || ""
+    ).trim();
+
+  if (messageText) {
+    
+    const maxLength = 42;
+
+    const shortText =
+      messageText.length >
+        maxLength
+        ? `${messageText.slice(
+          0,
+          maxLength
+        ).trim()}…`
+        : messageText;
+
+    return `${prefix}${shortText}`;
   }
 
-  if (lastMessage.image) {
+  if (lastMessage?.image) {
     return `${prefix}Photo`;
   }
 
@@ -318,12 +346,16 @@ const ChatSidebar = () => {
         summary?.lastMessage;
 
       const lastMessage = String(
-        lastMessageData?.sharedPost?.postId
-          ? "shared post"
-          : lastMessageData?.text ||
-          (lastMessageData?.image
-            ? "photo"
-            : "")
+        lastMessageData
+          ?.deletedForEveryone
+          ? "this message was deleted"
+          : lastMessageData
+            ?.sharedPost?.postId
+            ? "shared post"
+            : lastMessageData?.text ||
+            (lastMessageData?.image
+              ? "photo"
+              : "")
       ).toLowerCase();
 
       return (

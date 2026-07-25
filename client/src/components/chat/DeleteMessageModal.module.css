@@ -1,139 +1,538 @@
 .overlay {
+  --delete-surface:
+    var(--surface, Canvas);
+
+  --delete-soft:
+    var(--surface-light,
+      color-mix(in srgb,
+        CanvasText 6%,
+        Canvas));
+
+  --delete-text:
+    var(--text-primary,
+      CanvasText);
+
+  --delete-muted:
+    var(--text-secondary,
+      color-mix(in srgb,
+        CanvasText 58%,
+        transparent));
+
+  --delete-border:
+    var(--border,
+      color-mix(in srgb,
+        CanvasText 13%,
+        transparent));
+
+  --delete-primary:
+    var(--primary, Highlight);
+
+  --delete-danger:
+    var(--danger, #dc2626);
+
   position: fixed;
   inset: 0;
   z-index: 9999;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(5px);
-  animation: overlayFade 0.2s ease;
+
+  padding: 18px;
+
+  color:
+    var(--delete-text);
+
+  background:
+    rgba(15, 23, 42, 0.5);
+
+  backdrop-filter:
+    blur(5px);
+
+  color-scheme:
+    light dark;
+
+  animation:
+    overlayFade 0.16s ease-out;
 }
 
 .modal {
   position: relative;
-  width: 100%;
-  max-width: 420px;
-  padding: 30px;
-  text-align: center;
-  background: var(--surface, #ffffff);
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 22px;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.25);
-  animation: modalPopup 0.25s ease;
+
+  width:
+    min(100%, 430px);
+
+  padding:
+    26px 24px 20px;
+
+  overflow: hidden;
+
+  color:
+    var(--delete-text);
+
+  background:
+    var(--delete-surface);
+
+  border:
+    1px solid var(--delete-border);
+
+  border-radius: 20px;
+
+  box-shadow:
+    0 24px 70px rgba(15, 23, 42, 0.26);
+
+  box-sizing: border-box;
+
+  animation:
+    modalPopup 0.18s ease-out;
 }
 
 .closeButton {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
+  top: 12px;
+  right: 12px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 34px;
+  height: 34px;
+
   padding: 0;
-  color: #64748b;
-  cursor: pointer;
-  background: transparent;
+
+  color:
+    var(--delete-muted);
+
+  background:
+    var(--delete-soft);
+
   border: none;
   border-radius: 50%;
-  transition: background 0.2s ease;
+
+  cursor: pointer;
+
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
 }
 
-.closeButton:hover {
-  background: #f1f5f9;
+.closeButton:hover:not(:disabled) {
+  color:
+    var(--delete-text);
+}
+
+.closeButton:active:not(:disabled) {
+  transform:
+    scale(0.92);
+}
+
+.closeButton:focus-visible {
+  outline:
+    2px solid var(--delete-primary);
+
+  outline-offset: 2px;
+}
+
+.closeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .iconWrapper {
   display: grid;
   place-items: center;
-  width: 62px;
-  height: 62px;
-  margin: 0 auto 18px;
-  color: #dc2626;
-  background: #fee2e2;
+
+  width: 58px;
+  height: 58px;
+
+  margin:
+    2px auto 16px;
+
+  color:
+    var(--delete-danger);
+
+  background:
+    color-mix(in srgb,
+      var(--delete-danger) 12%,
+      var(--delete-surface));
+
+  border:
+    1px solid color-mix(in srgb,
+      var(--delete-danger) 20%,
+      transparent);
+
   border-radius: 50%;
 }
 
 .modal h2 {
-  margin: 0 0 10px;
-  color: var(--text-primary, #0f172a);
-  font-size: 22px;
-  font-weight: 700;
+  margin:
+    0 38px 8px;
+
+  color:
+    var(--delete-text);
+
+  font-size: 21px;
+  font-weight: 750;
+  line-height: 1.2;
+
+  text-align: center;
 }
 
-.modal p {
-  margin: 0;
-  color: var(--text-secondary, #64748b);
-  font-size: 15px;
-  line-height: 1.6;
+.description {
+  margin:
+    0 auto;
+
+  max-width: 330px;
+
+  color:
+    var(--delete-muted);
+
+  font-size: 14px;
+  line-height: 1.5;
+
+  text-align: center;
 }
 
 .error {
-  padding: 10px 12px;
-  margin-top: 16px;
-  color: #b91c1c;
-  font-size: 14px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  margin-top: 15px;
+
+  padding:
+    9px 11px;
+
+  color:
+    var(--delete-danger);
+
+  background:
+    color-mix(in srgb,
+      var(--delete-danger) 8%,
+      transparent);
+
+  border:
+    1px solid color-mix(in srgb,
+      var(--delete-danger) 18%,
+      transparent);
+
   border-radius: 10px;
+
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.deleteOptions {
+  display: flex;
+  flex-direction: column;
+
+  gap: 9px;
+
+  margin-top: 20px;
+}
+
+.optionButton {
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+
+  gap: 11px;
+
+  padding:
+    11px 12px;
+
+  color:
+    var(--delete-text);
+
+  background:
+    var(--delete-soft);
+
+  border:
+    1px solid transparent;
+
+  border-radius: 13px;
+
+  box-sizing: border-box;
+
+  font: inherit;
+  text-align: left;
+
+  cursor: pointer;
+
+  touch-action: manipulation;
+
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.optionButton:hover:not(:disabled) {
+  border-color:
+    var(--delete-border);
+}
+
+.optionButton:active:not(:disabled) {
+  transform:
+    scale(0.99);
+}
+
+.optionButton:focus-visible {
+  outline:
+    2px solid var(--delete-primary);
+
+  outline-offset: 2px;
+}
+
+.optionButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.optionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 auto;
+
+  width: 38px;
+  height: 38px;
+
+  color:
+    var(--delete-primary);
+
+  background:
+    var(--delete-surface);
+
+  border:
+    1px solid var(--delete-border);
+
+  border-radius: 50%;
+}
+
+.dangerOption {
+  background:
+    color-mix(in srgb,
+      var(--delete-danger) 7%,
+      var(--delete-surface));
+}
+
+.dangerOption:hover:not(:disabled) {
+  border-color:
+    color-mix(in srgb,
+      var(--delete-danger) 28%,
+      transparent);
+}
+
+.dangerIcon {
+  color:
+    var(--delete-danger);
+
+  border-color:
+    color-mix(in srgb,
+      var(--delete-danger) 20%,
+      transparent);
+}
+
+.optionText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+
+  min-width: 0;
+}
+
+.optionText strong {
+  color: inherit;
+
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.optionText small {
+  margin-top: 3px;
+
+  color:
+    var(--delete-muted);
+
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .actions {
   display: flex;
-  gap: 12px;
-  margin-top: 26px;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  margin-top: 18px;
 }
 
 .cancelButton,
 .deleteButton {
-  display: flex;
-  flex: 1;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+
   gap: 7px;
-  height: 46px;
-  padding: 0 18px;
-  font-size: 15px;
-  font-weight: 600;
+
+  min-height: 42px;
+
+  padding:
+    0 16px;
+
+  border-radius: 11px;
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+
   cursor: pointer;
-  border-radius: 12px;
+
+  touch-action: manipulation;
+
   transition:
-    transform 0.2s ease,
-    background 0.2s ease;
+    background-color 0.15s ease,
+    transform 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .cancelButton {
-  color: #334155;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  color:
+    var(--delete-text);
+
+  background:
+    var(--delete-soft);
+
+  border:
+    1px solid var(--delete-border);
 }
 
-.cancelButton:hover {
-  background: #e2e8f0;
+.cancelButton:hover:not(:disabled) {
+  background:
+    color-mix(in srgb,
+      CanvasText 9%,
+      Canvas);
 }
 
 .deleteButton {
-  color: #ffffff;
-  background: #dc2626;
-  border: 1px solid #dc2626;
+  color: white;
+
+  background:
+    var(--delete-danger);
+
+  border:
+    1px solid var(--delete-danger);
 }
 
-.deleteButton:hover {
-  background: #b91c1c;
+.deleteButton:hover:not(:disabled) {
+  background:
+    color-mix(in srgb,
+      var(--delete-danger) 86%,
+      black);
+}
+
+.cancelButton:active:not(:disabled),
+.deleteButton:active:not(:disabled) {
+  transform:
+    scale(0.97);
+}
+
+.cancelButton:focus-visible,
+.deleteButton:focus-visible {
+  outline:
+    2px solid var(--delete-primary);
+
+  outline-offset: 2px;
 }
 
 .cancelButton:disabled,
-.deleteButton:disabled,
-.closeButton:disabled {
+.deleteButton:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.58;
 }
 
-.cancelButton:active,
-.deleteButton:active {
-  transform: scale(0.97);
+.spinner {
+  width: 16px;
+  height: 16px;
+
+  flex: 0 0 auto;
+
+  border:
+    2px solid color-mix(in srgb,
+      currentColor 30%,
+      transparent);
+
+  border-top-color:
+    currentColor;
+
+  border-radius: 50%;
+
+  animation:
+    spin 0.7s linear infinite;
+}
+
+@media (max-width: 768px) {
+  .overlay {
+    align-items: flex-end;
+
+    padding:
+      8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .modal {
+    width: 100%;
+
+    padding:
+      25px 16px calc(16px + env(safe-area-inset-bottom));
+
+    border-radius:
+      20px 20px 14px 14px;
+
+    animation:
+      mobileModalPopup 0.2s cubic-bezier(0.22,
+        1,
+        0.36,
+        1);
+  }
+
+  .deleteOptions {
+    margin-top: 18px;
+  }
+
+  .optionButton {
+    min-height: 64px;
+  }
+}
+
+@media (max-width: 420px) {
+  .overlay {
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+  }
+
+  .modal {
+    border-right: none;
+    border-bottom: none;
+    border-left: none;
+
+    border-radius:
+      20px 20px 0 0;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancelButton,
+  .deleteButton {
+    width: 100%;
+  }
 }
 
 @keyframes overlayFade {
@@ -149,28 +548,52 @@
 @keyframes modalPopup {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.96);
+
+    transform:
+      translateY(8px) scale(0.97);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+
+    transform:
+      translateY(0) scale(1);
   }
 }
 
-@media (max-width: 480px) {
-  .modal {
-    padding: 26px 20px 20px;
-    border-radius: 18px;
+@keyframes mobileModalPopup {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(22px);
   }
 
-  .actions {
-    flex-direction: column-reverse;
-  }
+  to {
+    opacity: 1;
 
+    transform:
+      translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .overlay,
+  .modal,
+  .closeButton,
+  .optionButton,
   .cancelButton,
-  .deleteButton {
-    width: 100%;
-    flex: none;
+  .deleteButton,
+  .spinner {
+    animation: none;
+    transition: none;
   }
 }

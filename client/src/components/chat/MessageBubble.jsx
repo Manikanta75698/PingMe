@@ -13,9 +13,10 @@ import {
 } from "react-router-dom";
 
 import {
-  Clock3,
   Check,
   CheckCheck,
+  CircleSlash2,
+  Clock3,
   Forward as ForwardIcon,
   MoreVertical,
   Image as ImageIcon,
@@ -221,6 +222,11 @@ const MessageBubble = ({
   ] = useState("");
 
   const [
+    deleteLoadingMode,
+    setDeleteLoadingMode,
+  ] = useState("");
+
+  const [
     localReactions,
     setLocalReactions,
   ] = useState(() =>
@@ -341,12 +347,29 @@ const MessageBubble = ({
         ? "Photo"
         : "Original message unavailable");
 
+  const isDeletedForEveryone =
+    Boolean(
+      message?.deletedForEveryone
+    );
+
+  useEffect(() => {
+    if (!isDeletedForEveryone) {
+      return;
+    }
+
+    setShowActions(false);
+    setShowDeleteModal(false);
+    setReactionError("");
+    setCopyFeedback("");
+    setPinError("");
+  }, [isDeletedForEveryone]);
+
   const canUseActions =
     Boolean(message?._id) &&
     !String(message._id).startsWith(
       "temp-"
-    );
-
+    ) &&
+    !isDeletedForEveryone;
 
   const canInteract =
     canUseActions &&
@@ -374,6 +397,13 @@ const MessageBubble = ({
       sharedPost &&
       sharedPostId
     );
+
+  const isTextOnlyMessage =
+    hasMessageText &&
+    !message?.image &&
+    !hasSharedPost &&
+    !repliedMessage &&
+    !isDeletedForEveryone;
 
   const hasMessageContent =
     hasMessageText ||
@@ -1117,62 +1147,210 @@ const MessageBubble = ({
   ========================= */
 
   const handleDelete = () => {
+    if (!canUseActions) {
+      return;
+    }
+
+    setShowActions(false);
+    setDeleteError("");
+    setDeleteLoadingMode("");
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async (
+    mode
+  ) => {
+    const messageId =
+      normalizeId(message?._id);
+
     if (
-      !isOwn ||
-      !canUseActions
+      !messageId ||
+      deleteLoadingMode
     ) {
       return;
     }
 
-    setShowActions(false);
-    setDeleteError("");
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = () => {
-    if (!message?._id) {
+    if (
+      mode !== "forMe" &&
+      mode !== "forEveryone"
+    ) {
       return;
     }
+
+    if (
+      mode === "forEveryone" &&
+      !isOwn
+    ) {
+      return;
+    }
+
+    const previousMessage = {
+      ...message,
+    };
 
     setShowDeleteModal(false);
     setShowActions(false);
     setDeleteError("");
+    setDeleteLoadingMode(mode);
 
     /*
-     * Immediate optimistic removal.
+     * Cache-first optimistic UI.
      */
-    setIsDeleted(true);
+    if (mode === "forMe") {
+      setIsDeleted(true);
 
-    deleteMessage(message._id).catch(
-      (error) => {
-        console.error(
-          "DELETE MESSAGE ERROR:",
-          error.response?.data ||
-          error.message
-        );
+      setMessages(
+        (previous) =>
+          Array.isArray(previous)
+            ? previous.filter(
+              (item) =>
+                normalizeId(
+                  item?._id
+                ) !== messageId
+            )
+            : []
+      );
 
-        if (!mountedRef.current) {
-          return;
-        }
+      setPinnedMessage(
+        (previous) =>
+          normalizeId(
+            previous?._id
+          ) === messageId
+            ? null
+            : previous
+      );
+    } else {
+      const optimisticDeletedMessage = {
+        ...previousMessage,
 
-        /*
-         * API fail ayithe message restore.
-         */
+        text: "",
+        image: "",
+        sharedPost: null,
+        replyTo: null,
+        reactions: [],
+
+        editedAt: null,
+        pinnedAt: null,
+        pinnedBy: null,
+
+        deletedForEveryone: true,
+        deletedAt:
+          new Date().toISOString(),
+      };
+
+      setMessages(
+        (previous) =>
+          Array.isArray(previous)
+            ? previous.map(
+              (item) =>
+                normalizeId(
+                  item?._id
+                ) === messageId
+                  ? {
+                    ...item,
+                    ...optimisticDeletedMessage,
+                  }
+                  : item
+            )
+            : []
+      );
+
+      setPinnedMessage(
+        (previous) =>
+          normalizeId(
+            previous?._id
+          ) === messageId
+            ? null
+            : previous
+      );
+    }
+
+    try {
+      await deleteMessage(
+        messageId,
+        mode
+      );
+    } catch (error) {
+      console.error(
+        "DELETE MESSAGE ERROR:",
+        error.response?.data ||
+        error.message
+      );
+
+      /*
+       * Request fail ayithe
+       * optimistic state rollback.
+       */
+      if (mode === "forMe") {
         setIsDeleted(false);
 
-        setDeleteError(
-          error.response?.data
-            ?.message ||
-          error.userMessage ||
-          "Unable to delete this message. Please try again."
-        );
+        setMessages(
+          (previous) => {
+            const safeMessages =
+              Array.isArray(previous)
+                ? previous
+                : [];
 
-        setShowDeleteModal(true);
+            const alreadyExists =
+              safeMessages.some(
+                (item) =>
+                  normalizeId(
+                    item?._id
+                  ) === messageId
+              );
+
+            if (alreadyExists) {
+              return safeMessages;
+            }
+
+            return [
+              ...safeMessages,
+              previousMessage,
+            ].sort(
+              (first, second) =>
+                new Date(
+                  first?.createdAt || 0
+                ).getTime() -
+                new Date(
+                  second?.createdAt || 0
+                ).getTime()
+            );
+          }
+        );
+      } else {
+        setMessages(
+          (previous) =>
+            Array.isArray(previous)
+              ? previous.map(
+                (item) =>
+                  normalizeId(
+                    item?._id
+                  ) === messageId
+                    ? previousMessage
+                    : item
+              )
+              : []
+        );
       }
-    );
+
+      setDeleteError(
+        error.response?.data
+          ?.message ||
+        error.userMessage ||
+        "Unable to delete this message. Please try again."
+      );
+
+      setShowDeleteModal(true);
+    } finally {
+      setDeleteLoadingMode("");
+    }
   };
 
   const closeDeleteModal = () => {
+    if (deleteLoadingMode) {
+      return;
+    }
+
     setShowDeleteModal(false);
     setDeleteError("");
   };
@@ -1465,6 +1643,7 @@ const MessageBubble = ({
 
     if (
       isOwn ||
+      isDeletedForEveryone ||
       !message?._id ||
       String(message._id).startsWith(
         "temp-"
@@ -1578,6 +1757,7 @@ const MessageBubble = ({
   }, [
     message?._id,
     message?.status,
+    message?.deletedForEveryone,
     isOwn,
     onVisible,
     visibilityRoot,
@@ -1682,14 +1862,27 @@ const MessageBubble = ({
             className={`${styles.bubble} ${isOwn
               ? styles.ownBubble
               : styles.otherBubble
-              } ${isSearchMatch
+              } ${hasSharedPost &&
+                !hasMessageText &&
+                !message?.image
+                ? styles.sharedPostOnlyBubble
+                : ""
+              } 
+              ${isTextOnlyMessage
+                ? styles.textOnlyBubble
+                : ""
+              }
+              ${isSearchMatch
                 ? styles.searchMatch
                 : ""
-              } ${isActiveSearchMatch
+              }${isActiveSearchMatch
                 ? styles.activeSearchMatch
                 : ""
               } ${isPinnedScrollTarget
                 ? styles.pinnedScrollTarget
+                : ""
+              } ${isDeletedForEveryone
+                ? styles.deletedBubble
                 : ""
               }`}
             aria-current={
@@ -1698,339 +1891,368 @@ const MessageBubble = ({
                 : undefined
             }
           >
-            {isForwarded && (
+            {isDeletedForEveryone && (
               <div
                 className={
-                  styles.forwardedLabel
+                  styles.deletedMessage
                 }
+                role="status"
+                aria-label="This message was deleted"
               >
-                <ForwardIcon
-                  size={12}
-                  strokeWidth={2}
+                <CircleSlash2
+                  size={16}
+                  strokeWidth={1.8}
                   aria-hidden="true"
                 />
 
-                <span>Forwarded</span>
-              </div>
-            )}
-
-            {repliedMessage && (
-              <div
-                className={
-                  styles.replyPreview
-                }
-              >
-                <span
-                  className={
-                    styles.replySender
-                  }
-                >
-                  {repliedSenderName}
+                <span>
+                  This message was deleted
                 </span>
-
-                <div
-                  className={
-                    styles.replyContent
-                  }
-                >
-                  {(
-                    repliedMessage?.image ||
-                    repliedMessage
-                      ?.sharedPost?.postId
-                  ) && (
-                      <ImageIcon
-                        size={13}
-                        className={
-                          styles.replyIcon
-                        }
-                        aria-hidden="true"
-                      />
-                    )}
-
-                  <span
-                    className={
-                      styles.replyText
-                    }
-                  >
-                    {repliedText}
-                  </span>
-                </div>
               </div>
             )}
 
-            {message?.image && (
-              <img
-                src={message.image}
-                alt="Message attachment"
-                className={
-                  styles.image
-                }
-                loading="lazy"
-                decoding="async"
-              />
-            )}
-
-            {hasSharedPost && (
-              <button
-                type="button"
-                className={`${styles.sharedPostCard} ${sharedPostUnavailable
-                  ? styles.sharedPostCardUnavailable
-                  : ""
-                  }`}
-                onClick={
-                  handleOpenSharedPost
-                }
-                onPointerDown={(event) => {
-                  event.stopPropagation();
-                  clearLongPressTimer();
-                }}
-                onPointerUp={(event) => {
-                  event.stopPropagation();
-                }}
-                aria-label={
-                  sharedPostUnavailable
-                    ? "Shared post is no longer available"
-                    : `Open ${sharedPostOwnerName}'s post in feed`
-                }
-
-                disabled={
-                  checkingSharedPost ||
-                  sharedPostUnavailable
-                }
-                aria-busy={
-                  checkingSharedPost
-                }
-              >
+            {!isDeletedForEveryone &&
+              isForwarded && (
                 <div
                   className={
-                    styles.sharedPostTop
+                    styles.forwardedLabel
                   }
                 >
-                  <img
-                    src={
-                      sharedPostOwnerProfilePic ||
-                      DefaultAvatar
-                    }
-                    alt=""
-                    className={
-                      styles.sharedPostAvatar
-                    }
-                    onError={(event) => {
-                      event.currentTarget.onerror =
-                        null;
-
-                      event.currentTarget.src =
-                        DefaultAvatar;
-                    }}
+                  <ForwardIcon
+                    size={12}
+                    strokeWidth={2}
+                    aria-hidden="true"
                   />
 
-                  <span
-                    className={
-                      styles.sharedPostUser
-                    }
-                  >
-                    <strong>
-                      {sharedPostOwnerName}
-                    </strong>
-
-                    <small>
-                      @{sharedPostOwnerUsername}
-                    </small>
-                  </span>
-
-                  <span
-                    className={
-                      styles.sharedPostArrow
-                    }
-                    aria-hidden="true"
-                  >
-                    {checkingSharedPost
-                      ? "…"
-                      : sharedPostUnavailable
-                        ? "!"
-                        : "›"}
-                  </span>
+                  <span>Forwarded</span>
                 </div>
+              )}
 
-                {sharedPostImage && (
+            {!isDeletedForEveryone &&
+              repliedMessage && (
+                <div
+                  className={
+                    styles.replyPreview
+                  }
+                >
+                  <span
+                    className={
+                      styles.replySender
+                    }
+                  >
+                    {repliedSenderName}
+                  </span>
+
                   <div
                     className={
-                      styles.sharedPostMedia
+                      styles.replyContent
+                    }
+                  >
+                    {(
+                      repliedMessage?.image ||
+                      repliedMessage
+                        ?.sharedPost?.postId
+                    ) && (
+                        <ImageIcon
+                          size={13}
+                          className={
+                            styles.replyIcon
+                          }
+                          aria-hidden="true"
+                        />
+                      )}
+
+                    <span
+                      className={
+                        styles.replyText
+                      }
+                    >
+                      {repliedText}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+            {!isDeletedForEveryone &&
+              message?.image && (
+                <img
+                  src={message.image}
+                  alt="Message attachment"
+                  className={
+                    styles.image
+                  }
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
+
+            {!isDeletedForEveryone &&
+              hasSharedPost && (
+                <button
+                  type="button"
+                  className={`${styles.sharedPostCard} ${sharedPostUnavailable
+                    ? styles.sharedPostCardUnavailable
+                    : ""
+                    }`}
+                  onClick={
+                    handleOpenSharedPost
+                  }
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    clearLongPressTimer();
+                  }}
+                  onPointerUp={(event) => {
+                    event.stopPropagation();
+                  }}
+                  aria-label={
+                    sharedPostUnavailable
+                      ? "Shared post is no longer available"
+                      : `Open ${sharedPostOwnerName}'s post in feed`
+                  }
+
+                  disabled={
+                    checkingSharedPost ||
+                    sharedPostUnavailable
+                  }
+                  aria-busy={
+                    checkingSharedPost
+                  }
+                >
+                  <div
+                    className={
+                      styles.sharedPostTop
                     }
                   >
                     <img
-                      src={sharedPostImage}
-                      alt={
-                        sharedPostCaption ||
-                        "Shared post"
+                      src={
+                        sharedPostOwnerProfilePic ||
+                        DefaultAvatar
                       }
+                      alt=""
                       className={
-                        styles.sharedPostImage
+                        styles.sharedPostAvatar
                       }
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </div>
-                )}
+                      onError={(event) => {
+                        event.currentTarget.onerror =
+                          null;
 
-                {sharedPostCaption && (
-                  <p
+                        event.currentTarget.src =
+                          DefaultAvatar;
+                      }}
+                    />
+
+                    <span
+                      className={
+                        styles.sharedPostUser
+                      }
+                    >
+                      <strong>
+                        {sharedPostOwnerName}
+                      </strong>
+
+                      <small>
+                        @{sharedPostOwnerUsername}
+                      </small>
+                    </span>
+
+                    <span
+                      className={
+                        styles.sharedPostArrow
+                      }
+                      aria-hidden="true"
+                    >
+                      {checkingSharedPost
+                        ? "…"
+                        : sharedPostUnavailable
+                          ? "!"
+                          : "›"}
+                    </span>
+                  </div>
+
+                  {sharedPostImage && (
+                    <div
+                      className={
+                        styles.sharedPostMedia
+                      }
+                    >
+                      <img
+                        src={sharedPostImage}
+                        alt={
+                          sharedPostCaption ||
+                          "Shared post"
+                        }
+                        className={
+                          styles.sharedPostImage
+                        }
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                  )}
+
+                  {sharedPostCaption && (
+                    <p
+                      className={
+                        styles.sharedPostCaption
+                      }
+                    >
+                      {sharedPostCaption}
+                    </p>
+                  )}
+
+                  <div
                     className={
-                      styles.sharedPostCaption
+                      styles.sharedPostBottom
                     }
                   >
-                    {sharedPostCaption}
-                  </p>
-                )}
+                    <span>
+                      {checkingSharedPost
+                        ? "Checking post..."
+                        : sharedPostUnavailable
+                          ? "Post unavailable"
+                          : sharedPostError
+                            ? "Tap to try again"
+                            : "Tap to view in feed"}
+                    </span>
+                  </div>
 
-                <div
+                  {sharedPostError && (
+                    <p
+                      className={
+                        styles.sharedPostError
+                      }
+                      role={
+                        sharedPostUnavailable
+                          ? "status"
+                          : "alert"
+                      }
+                    >
+                      {sharedPostError}
+                    </p>
+                  )}
+                </button>
+              )}
+
+            {!isDeletedForEveryone &&
+              message?.text && (
+                <p
                   className={
-                    styles.sharedPostBottom
+                    styles.text
                   }
                 >
-                  <span>
-                    {checkingSharedPost
-                      ? "Checking post..."
-                      : sharedPostUnavailable
-                        ? "Post unavailable"
-                        : sharedPostError
-                          ? "Tap to try again"
-                          : "Tap to view in feed"}
-                  </span>
-                </div>
-
-                {sharedPostError && (
-                  <p
-                    className={
-                      styles.sharedPostError
-                    }
-                    role={
-                      sharedPostUnavailable
-                        ? "status"
-                        : "alert"
-                    }
-                  >
-                    {sharedPostError}
-                  </p>
-                )}
-              </button>
-            )}
-
-            {message?.text && (
-              <p
-                className={
-                  styles.text
-                }
-              >
-                {isSearchMatch
-                  ? highlightMessageText(
-                    message.text,
-                    searchQuery
-                  )
-                  : message.text}
-              </p>
-            )}
+                  {isSearchMatch
+                    ? highlightMessageText(
+                      message.text,
+                      searchQuery
+                    )
+                    : message.text}
+                </p>
+              )}
 
             <div className={styles.meta}>
-              {isEdited && (
-                <span
-                  className={
-                    styles.edited
-                  }
-                  title="This message was edited"
-                >
-                  Edited
-                </span>
-              )}
+              {!isDeletedForEveryone &&
+                isEdited && (
+                  <span
+                    className={
+                      styles.edited
+                    }
+                    title="This message was edited"
+                  >
+                    Edited
+                  </span>
+                )}
 
               <span className={styles.time}>
                 {time}
               </span>
 
-              {isOwn && (
-                <span
-                  className={styles.status}
-                  aria-label={
-                    message?.status || "sent"
-                  }
-                >
-                  {message?.status ===
-                    "sending" && (
-                      <Clock3
-                        size={14}
-                        aria-hidden="true"
-                      />
-                    )}
+              {isOwn &&
+                !isDeletedForEveryone && (
+                  <span
+                    className={styles.status}
+                    aria-label={
+                      message?.status || "sent"
+                    }
+                  >
+                    {message?.status ===
+                      "sending" && (
+                        <Clock3
+                          size={14}
+                          aria-hidden="true"
+                        />
+                      )}
 
-                  {message?.status ===
-                    "sent" && (
-                      <Check
-                        size={14}
-                        aria-hidden="true"
-                      />
-                    )}
+                    {message?.status ===
+                      "sent" && (
+                        <Check
+                          size={14}
+                          aria-hidden="true"
+                        />
+                      )}
 
-                  {message?.status ===
-                    "delivered" && (
-                      <CheckCheck
-                        size={14}
-                        aria-hidden="true"
-                      />
-                    )}
+                    {message?.status ===
+                      "delivered" && (
+                        <CheckCheck
+                          size={14}
+                          aria-hidden="true"
+                        />
+                      )}
 
-                  {message?.status ===
-                    "read" && (
-                      <span className={styles.seen}>
-                        Seen
-                      </span>
-                    )}
+                    {message?.status ===
+                      "read" && (
+                        <span className={styles.seen}>
+                          Seen
+                        </span>
+                      )}
 
-                  {![
-                    "sending",
-                    "sent",
-                    "delivered",
-                    "read",
-                  ].includes(message?.status) && (
-                      <Check
-                        size={14}
-                        aria-hidden="true"
-                      />
-                    )}
-                </span>
-              )}
+                    {![
+                      "sending",
+                      "sent",
+                      "delivered",
+                      "read",
+                    ].includes(message?.status) && (
+                        <Check
+                          size={14}
+                          aria-hidden="true"
+                        />
+                      )}
+                  </span>
+                )}
 
               {/* THREE-DOTS MESSAGE MENU BUTTON */}
-              <button
-                ref={optionsButtonRef}
-                type="button"
-                className={styles.moreButton}
-                onPointerDown={(event) => {
-                  event.stopPropagation();
-                  clearLongPressTimer();
-                }}
-                onPointerUp={(event) => {
-                  event.stopPropagation();
-                }}
-                onClick={openActions}
-                aria-label="Message options"
-                aria-haspopup="menu"
-                aria-expanded={showActions}
-                data-open={
-                  showActions
-                    ? "true"
-                    : "false"
-                }
-              >
-                <MoreVertical
-                  size={16}
-                  aria-hidden="true"
-                />
-              </button>
+              {canUseActions && (
+                <button
+                  ref={optionsButtonRef}
+                  type="button"
+                  className={styles.moreButton}
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    clearLongPressTimer();
+                  }}
+                  onPointerUp={(event) => {
+                    event.stopPropagation();
+                  }}
+                  onClick={openActions}
+                  aria-label="Message options"
+                  aria-haspopup="menu"
+                  aria-expanded={showActions}
+                  data-open={
+                    showActions
+                      ? "true"
+                      : "false"
+                  }
+                >
+                  <MoreVertical
+                    size={16}
+                    aria-hidden="true"
+                  />
+                </button>
+              )}
             </div>
           </div>
 
-          {reactionGroups.length >
-            0 && (
+          {!isDeletedForEveryone &&
+            reactionGroups.length > 0 && (
               <div
                 className={`${styles.reactionSummary} ${isOwn
                   ? styles.ownReactions
@@ -2174,15 +2396,23 @@ const MessageBubble = ({
         open={
           showDeleteModal
         }
-        loading={false}
+        isOwn={isOwn}
+        loadingMode={
+          deleteLoadingMode
+        }
         error={
           deleteError
         }
         onClose={
           closeDeleteModal
         }
-        onConfirm={
-          confirmDelete
+        onDeleteForMe={() =>
+          confirmDelete("forMe")
+        }
+        onDeleteForEveryone={() =>
+          confirmDelete(
+            "forEveryone"
+          )
         }
       />
     </>

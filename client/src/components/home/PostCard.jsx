@@ -226,8 +226,8 @@ const PostCard = ({
     );
 
   const currentUser =
-    authUser ||
     storedUser ||
+    authUser ||
     null;
 
   const user =
@@ -364,22 +364,29 @@ const PostCard = ({
   const [
     saved,
     setSaved,
-  ] = useState(() =>
-    (
-      currentUser?.savedPosts ||
+  ] = useState(() => {
+    const latestUser =
+      getStoredUser() ||
+      currentUser;
+
+    return (
+      latestUser?.savedPosts ||
       []
     ).some(
       (id) =>
         normalizeId(id) ===
         postId
-    )
-  );
+    );
+  });
 
   useEffect(() => {
+    const latestUser =
+      getStoredUser() ||
+      currentUser;
+
     setSaved(
       (
-        currentUser
-          ?.savedPosts ||
+        latestUser?.savedPosts ||
         []
       ).some(
         (id) =>
@@ -388,8 +395,8 @@ const PostCard = ({
       )
     );
   }, [
-    currentUser?.savedPosts,
     postId,
+    currentUser?.savedPosts,
   ]);
 
   /* =========================
@@ -440,6 +447,11 @@ const PostCard = ({
     editCaptionError,
     setEditCaptionError,
   ] = useState("");
+
+  const [
+    captionExpanded,
+    setCaptionExpanded,
+  ] = useState(false);
 
   const [
     showShareModal,
@@ -803,6 +815,14 @@ const PostCard = ({
       );
     };
   }, [showEditCaption]);
+
+
+  useEffect(() => {
+    setCaptionExpanded(false);
+  }, [
+    post?._id,
+    caption,
+  ]);
 
   /* =========================
      LIKE / UNLIKE
@@ -1845,18 +1865,42 @@ const PostCard = ({
           )}
 
           {caption && (
-            <p
+            <div
               className={
-                styles.caption
+                styles.captionBlock
               }
             >
-              <strong>
-                @
-                {user.username ||
-                  "user"}
-              </strong>{" "}
-              {caption}
-            </p>
+              <p
+                className={`${styles.caption} ${captionExpanded
+                    ? styles.captionExpanded
+                    : styles.captionCollapsed
+                  }`}
+              >
+                <strong>
+                  @{user.username || "user"}
+                </strong>{" "}
+                {caption}
+              </p>
+
+              {caption.length > 140 && (
+                <button
+                  type="button"
+                  className={
+                    styles.captionToggle
+                  }
+                  onClick={() =>
+                    setCaptionExpanded(
+                      (previous) =>
+                        !previous
+                    )
+                  }
+                >
+                  {captionExpanded
+                    ? "less"
+                    : "more"}
+                </button>
+              )}
+            </div>
           )}
         </div>
       </article>

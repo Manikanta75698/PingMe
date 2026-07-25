@@ -10,6 +10,7 @@ import {
 } from "react-dom";
 
 import {
+  Check,
   Forward,
   Image as ImageIcon,
   Search,
@@ -68,9 +69,14 @@ const ForwardMessageModal = ({
   ] = useState("");
 
   const [
-    forwardingToId,
-    setForwardingToId,
-  ] = useState("");
+    selectedUserIds,
+    setSelectedUserIds,
+  ] = useState([]);
+
+  const [
+    forwarding,
+    setForwarding,
+  ] = useState(false);
 
   const [
     error,
@@ -80,8 +86,8 @@ const ForwardMessageModal = ({
   const searchInputRef =
     useRef(null);
 
-  const forwardingToIdRef =
-    useRef("");
+  const forwardingRef =
+    useRef(false);
 
   const messageId =
     normalizeId(message);
@@ -115,13 +121,12 @@ const ForwardMessageModal = ({
           .toLowerCase();
 
       return safeSummaries
-        .filter(
-          (summary) =>
-            Boolean(
-              normalizeId(
-                summary?.user
-              )
+        .filter((summary) =>
+          Boolean(
+            normalizeId(
+              summary?.user
             )
+          )
         )
         .filter((summary) => {
           if (!normalizedSearch) {
@@ -132,8 +137,8 @@ const ForwardMessageModal = ({
             summary?.user;
 
           const searchableText =
-            `${user?.name || ""} ${user?.username || ""}`
-              .toLowerCase();
+            `${user?.name || ""} ${user?.username || ""
+              }`.toLowerCase();
 
           return searchableText.includes(
             normalizedSearch
@@ -145,24 +150,24 @@ const ForwardMessageModal = ({
     ]);
 
   useEffect(() => {
-    forwardingToIdRef.current =
-      forwardingToId;
-  }, [forwardingToId]);
+    forwardingRef.current =
+      forwarding;
+  }, [forwarding]);
 
-  /* =========================
-     OPEN RESET
-  ========================= */
-
+  /*
+   * Modal open reset,
+   * focus and body scroll lock.
+   */
   useEffect(() => {
     if (!open) {
       return undefined;
     }
 
-    forwardingToIdRef.current =
-      "";
+    forwardingRef.current = false;
 
     setSearchText("");
-    setForwardingToId("");
+    setSelectedUserIds([]);
+    setForwarding(false);
     setError("");
 
     const previousOverflow =
@@ -182,7 +187,7 @@ const ForwardMessageModal = ({
     ) => {
       if (
         event.key === "Escape" &&
-        !forwardingToIdRef.current
+        !forwardingRef.current
       ) {
         onClose?.();
       }
@@ -219,106 +224,233 @@ const ForwardMessageModal = ({
     return null;
   }
 
-  /* =========================
-     FORWARD
-  ========================= */
-
-  const handleForward = async (
+  const toggleSelectedUser = (
     user
   ) => {
-    const receiverId =
-      normalizeId(user);
-
-    if (
-      !receiverId ||
-      forwardingToId
-    ) {
+    if (forwarding) {
       return;
     }
 
-    setForwardingToId(
-      receiverId
+    const userId =
+      normalizeId(user);
+
+    if (!userId) {
+      return;
+    }
+
+    setSelectedUserIds(
+      (previous) =>
+        previous.includes(userId)
+          ? previous.filter(
+            (id) =>
+              id !== userId
+          )
+          : [
+            ...previous,
+            userId,
+          ]
     );
 
     setError("");
+  };
 
-    try {
-      const response =
-        await forwardMessageRequest(
-          messageId,
-          receiverId
+  const appendForwardedMessage = (
+    forwardedMessage
+  ) => {
+    if (!forwardedMessage?._id) {
+      return;
+    }
+
+    setMessages((previous) => {
+      const safeMessages =
+        Array.isArray(previous)
+          ? previous
+          : [];
+
+      const forwardedMessageId =
+        normalizeId(
+          forwardedMessage
         );
 
-      const forwardedMessage =
-        response?.data?.data;
-
-      if (!forwardedMessage?._id) {
-        throw new Error(
-          "Invalid forward response from server"
+      const alreadyExists =
+        safeMessages.some(
+          (item) =>
+            normalizeId(item) ===
+            forwardedMessageId
         );
+
+      return alreadyExists
+        ? safeMessages
+        : [
+          ...safeMessages,
+          forwardedMessage,
+        ];
+    });
+  };
+
+  const handleForwardSelected =
+    async () => {
+      if (
+        forwarding ||
+        selectedUserIds.length === 0
+      ) {
+        return;
       }
 
-      /*
-       * Destination currently open chat ayithe
-       * sender UI lo immediate ga append.
-       */
-      if (
-        receiverId ===
-        selectedChatId
-      ) {
-        setMessages(
-          (previous) => {
-            const safeMessages =
-              Array.isArray(previous)
-                ? previous
-                : [];
+      forwardingRef.current = true;
 
-            const alreadyExists =
-              safeMessages.some(
-                (item) =>
-                  normalizeId(item) ===
-                  normalizeId(
-                    forwardedMessage
-                  )
+      setForwarding(true);
+      setError("");
+
+      try {
+         
+        const results =
+          await Promise.all(
+            selectedUserIds.map(
+              async (receiverId) => {
+                try {
+                  const response =
+                    await forwardMessageRequest(
+                      messageId,
+                      receiverId
+                    );
+
+                  const forwardedMessage =
+                    response?.data?.data;
+
+                  if (
+                    !forwardedMessage?._id
+                  ) {
+                    throw new Error(
+                      "Invalid forward response from server"
+                    );
+                  }
+
+                  return {
+                    success: true,
+                    receiverId,
+                    forwardedMessage,
+                    error: null,
+                  };
+                } catch (
+                forwardError
+                ) {
+                  return {
+                    success: false,
+                    receiverId,
+                    forwardedMessage:
+                      null,
+                    error:
+                      forwardError,
+                  };
+                }
+              }
+            )
+          );
+
+        const successfulResults =
+          results.filter(
+            (result) =>
+              result.success
+          );
+
+        const failedResults =
+          results.filter(
+            (result) =>
+              !result.success
+          );
+
+        /*
+         * Destination currently open
+         * chat ayithe immediate append.
+         */
+        successfulResults.forEach(
+          (result) => {
+            if (
+              result.receiverId ===
+              selectedChatId
+            ) {
+              appendForwardedMessage(
+                result.forwardedMessage
               );
-
-            return alreadyExists
-              ? safeMessages
-              : [
-                ...safeMessages,
-                forwardedMessage,
-              ];
+            }
           }
         );
-      }
 
-      loadChatSummaries()
-        .catch((summaryError) => {
-          console.error(
-            "FORWARD SUMMARY REFRESH ERROR:",
-            summaryError.response?.data ||
-            summaryError.message
+        if (
+          successfulResults.length ===
+          0
+        ) {
+          const firstError =
+            failedResults[0]?.error;
+
+          throw (
+            firstError ||
+            new Error(
+              "Unable to forward message"
+            )
           );
-        });
+        }
 
-      onClose?.();
-    } catch (forwardError) {
-      console.error(
-        "FORWARD MESSAGE ERROR:",
-        forwardError.response?.data ||
-        forwardError.message
-      );
+       void loadChatSummaries?.()
+  .catch((summaryError) => {
+    console.error(
+      "FORWARD SUMMARY REFRESH ERROR:",
+      summaryError
+        ?.response?.data ||
+      summaryError?.message
+    );
+  });
 
-      setError(
-        forwardError.response?.data
-          ?.message ||
-        forwardError.userMessage ||
-        "Unable to forward message"
-      );
-    } finally {
-      setForwardingToId("");
-    }
-  };
+        
+        if (
+          failedResults.length > 0
+        ) {
+          setSelectedUserIds(
+            failedResults.map(
+              (result) =>
+                result.receiverId
+            )
+          );
+
+          setError(
+            `Forwarded to ${successfulResults.length
+            } chat${successfulResults.length ===
+              1
+              ? ""
+              : "s"
+            }. ${failedResults.length
+            } failed. Try again.`
+          );
+
+          return;
+        }
+
+        onClose?.();
+      } catch (forwardError) {
+        console.error(
+          "FORWARD MESSAGE ERROR:",
+          forwardError
+            ?.response?.data ||
+          forwardError?.message
+        );
+
+        setError(
+          forwardError
+            ?.response?.data
+            ?.message ||
+          forwardError
+            ?.userMessage ||
+          forwardError?.message ||
+          "Unable to forward message"
+        );
+      } finally {
+        forwardingRef.current =
+          false;
+
+        setForwarding(false);
+      }
+    };
 
   const handleBackdropClick = (
     event
@@ -326,7 +458,7 @@ const ForwardMessageModal = ({
     if (
       event.target ===
       event.currentTarget &&
-      !forwardingToId
+      !forwarding
     ) {
       onClose?.();
     }
@@ -334,18 +466,14 @@ const ForwardMessageModal = ({
 
   return createPortal(
     <div
-      className={
-        styles.backdrop
-      }
+      className={styles.backdrop}
       onClick={
         handleBackdropClick
       }
       role="presentation"
     >
       <section
-        className={
-          styles.modal
-        }
+        className={styles.modal}
         role="dialog"
         aria-modal="true"
         aria-labelledby="forward-message-title"
@@ -354,16 +482,12 @@ const ForwardMessageModal = ({
         }}
       >
         <header
-          className={
-            styles.header
-          }
+          className={styles.header}
         >
           <div>
             <h2
               id="forward-message-title"
-              className={
-                styles.title
-              }
+              className={styles.title}
             >
               Forward message
             </h2>
@@ -373,7 +497,7 @@ const ForwardMessageModal = ({
                 styles.subtitle
               }
             >
-              Select a chat
+              Select one or more chats
             </p>
           </div>
 
@@ -382,14 +506,8 @@ const ForwardMessageModal = ({
             className={
               styles.closeButton
             }
-            onClick={
-              onClose
-            }
-            disabled={
-              Boolean(
-                forwardingToId
-              )
-            }
+            onClick={onClose}
+            disabled={forwarding}
             aria-label="Close forward message"
           >
             <X
@@ -430,13 +548,9 @@ const ForwardMessageModal = ({
           />
 
           <input
-            ref={
-              searchInputRef
-            }
+            ref={searchInputRef}
             type="search"
-            value={
-              searchText
-            }
+            value={searchText}
             onChange={(event) => {
               setSearchText(
                 event.target.value
@@ -444,14 +558,13 @@ const ForwardMessageModal = ({
             }}
             placeholder="Search chats"
             aria-label="Search chats"
+            disabled={forwarding}
           />
         </div>
 
         {error && (
           <p
-            className={
-              styles.error
-            }
+            className={styles.error}
             role="alert"
           >
             {error}
@@ -493,28 +606,27 @@ const ForwardMessageModal = ({
                     ? `@${chatUser.username}`
                     : "";
 
-                const isLoading =
-                  forwardingToId ===
-                  userId;
+                const selected =
+                  selectedUserIds.includes(
+                    userId
+                  );
 
                 return (
                   <button
-                    key={
-                      userId
-                    }
+                    key={userId}
                     type="button"
-                    className={
-                      styles.chatButton
-                    }
+                    className={`${styles.chatButton} ${selected
+                        ? styles.chatButtonSelected
+                        : ""
+                      }`}
                     onClick={() => {
-                      void handleForward(
+                      toggleSelectedUser(
                         chatUser
                       );
                     }}
-                    disabled={
-                      Boolean(
-                        forwardingToId
-                      )
+                    disabled={forwarding}
+                    aria-pressed={
+                      selected
                     }
                   >
                     <span
@@ -529,6 +641,13 @@ const ForwardMessageModal = ({
                             chatUser.profilePic
                           }
                           alt=""
+                          onError={(
+                            event
+                          ) => {
+                            event.currentTarget.style
+                              .display =
+                              "none";
+                          }}
                         />
                       ) : (
                         name
@@ -554,21 +673,16 @@ const ForwardMessageModal = ({
                     </span>
 
                     <span
-                      className={
-                        styles.forwardIcon
-                      }
+                      className={`${styles.selectionIndicator} ${selected
+                          ? styles.selectionIndicatorSelected
+                          : ""
+                        }`}
+                      aria-hidden="true"
                     >
-                      {isLoading ? (
-                        <span
-                          className={
-                            styles.spinner
-                          }
-                          aria-label="Forwarding"
-                        />
-                      ) : (
-                        <Forward
-                          size={18}
-                          aria-hidden="true"
+                      {selected && (
+                        <Check
+                          size={16}
+                          strokeWidth={3}
                         />
                       )}
                     </span>
@@ -578,6 +692,60 @@ const ForwardMessageModal = ({
             )
           )}
         </div>
+
+        <footer
+          className={styles.footer}
+        >
+          <span
+            className={
+              styles.selectedCount
+            }
+          >
+            {selectedUserIds.length ===
+              0
+              ? "Select chats"
+              : `${selectedUserIds.length} selected`}
+          </span>
+
+          <button
+            type="button"
+            className={
+              styles.forwardButton
+            }
+            onClick={() => {
+              void handleForwardSelected();
+            }}
+            disabled={
+              forwarding ||
+              selectedUserIds.length ===
+              0
+            }
+          >
+            {forwarding ? (
+              <span
+                className={
+                  styles.spinner
+                }
+                aria-hidden="true"
+              />
+            ) : (
+              <Forward
+                size={17}
+                aria-hidden="true"
+              />
+            )}
+
+            <span>
+              {forwarding
+                ? "Forwarding..."
+                : `Forward${selectedUserIds.length >
+                  0
+                  ? ` (${selectedUserIds.length})`
+                  : ""
+                }`}
+            </span>
+          </button>
+        </footer>
       </section>
     </div>,
     document.body

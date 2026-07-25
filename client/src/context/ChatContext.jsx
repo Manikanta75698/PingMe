@@ -689,12 +689,6 @@ export const ChatProvider = ({
       );
 
 
-
-
-      /*
-       * User offline ayinappudu backend
-       * pampina lastSeen save chestham.
-       */
       if (
         !isOnline &&
         payload?.lastSeen
@@ -2156,68 +2150,356 @@ export const ChatProvider = ({
   ========================= */
 
   useEffect(() => {
-    const handleDelete = ({
-      messageId,
-    } = {}) => {
-      const deletedMessageId =
-        normalizeId(messageId);
+    const handleDelete = (
+      payload = {}
+    ) => {
+      const messageId =
+        normalizeId(
+          payload?.messageId ||
+          payload?.message?._id
+        );
 
-      if (!deletedMessageId) {
+      const mode =
+        String(
+          payload?.mode ||
+          "forEveryone"
+        ).trim();
+
+      const targetUserId =
+        normalizeId(
+          payload?.userId
+        );
+
+      const currentUserId =
+        normalizeId(
+          getStoredUser()
+        );
+
+      if (!messageId) {
         return;
       }
 
-      setMessages((previous) =>
-        Array.isArray(previous)
-          ? previous.filter(
-            (message) =>
-              normalizeId(
-                message?._id
-              ) !==
-              deletedMessageId
-          )
-          : []
+      /*
+       * Delete-for-me event vere user
+       * kosam ayithe current client ignore.
+       */
+      if (
+        mode === "forMe" &&
+        targetUserId &&
+        currentUserId &&
+        targetUserId !== currentUserId
+      ) {
+        return;
+      }
+
+      /*
+       * =========================
+       * DELETE FOR ME
+       * =========================
+       */
+      if (mode === "forMe") {
+        let latestRemainingMessage =
+          null;
+
+        setMessages(
+          (previous) => {
+            const safeMessages =
+              Array.isArray(previous)
+                ? previous
+                : [];
+
+            const nextMessages =
+              safeMessages.filter(
+                (message) =>
+                  normalizeId(
+                    message?._id
+                  ) !== messageId
+              );
+
+            latestRemainingMessage =
+              nextMessages.length > 0
+                ? nextMessages[
+                nextMessages.length - 1
+                ]
+                : null;
+
+            return nextMessages;
+          }
+        );
+
+        setPinnedMessage(
+          (previous) =>
+            normalizeId(
+              previous?._id
+            ) === messageId
+              ? null
+              : previous
+        );
+
+        setReplyingTo(
+          (previous) =>
+            normalizeId(
+              previous?._id
+            ) === messageId
+              ? null
+              : previous
+        );
+
+        setEditingMessage(
+          (previous) =>
+            normalizeId(
+              previous?._id
+            ) === messageId
+              ? null
+              : previous
+        );
+
+        /*
+         * Sidebar cache immediate update.
+         * Server refresh background lo
+         * correct previous message resolve chesthundi.
+         */
+        setChatSummaries(
+          (previous) =>
+            Array.isArray(previous)
+              ? previous.map(
+                (summary) => {
+                  const lastMessageId =
+                    normalizeId(
+                      summary
+                        ?.lastMessage
+                        ?._id
+                    );
+
+                  if (
+                    lastMessageId !==
+                    messageId
+                  ) {
+                    return summary;
+                  }
+
+                  return {
+                    ...summary,
+
+                    lastMessage:
+                      latestRemainingMessage,
+                  };
+                }
+              )
+              : []
+        );
+
+        loadChatSummaries().catch(
+          (error) => {
+            console.error(
+              "DELETE FOR ME SUMMARY REFRESH ERROR:",
+              error.response?.data ||
+              error.message
+            );
+          }
+        );
+
+        return;
+      }
+
+      /*
+       * =========================
+       * DELETE FOR EVERYONE
+       * =========================
+       */
+
+      const serverMessage =
+        payload?.message &&
+          typeof payload.message ===
+          "object"
+          ? payload.message
+          : null;
+
+      const deletedAt =
+        payload?.deletedAt ||
+        serverMessage?.deletedAt ||
+        new Date().toISOString();
+
+      const createDeletedMessage = (
+        existingMessage = {}
+      ) => ({
+        ...existingMessage,
+        ...(serverMessage || {}),
+
+        _id:
+          serverMessage?._id ||
+          existingMessage?._id ||
+          messageId,
+
+        text: "",
+        image: "",
+        sharedPost: null,
+
+        replyTo: null,
+        reactions: [],
+
+        editedAt: null,
+
+        pinnedAt: null,
+        pinnedBy: null,
+
+        deletedForEveryone: true,
+        deletedAt,
+
+        deletedBy:
+          payload?.deletedBy ||
+          serverMessage?.deletedBy ||
+          null,
+      });
+
+      setMessages(
+        (previous) =>
+          Array.isArray(previous)
+            ? previous.map(
+              (message) => {
+                const currentMessageId =
+                  normalizeId(
+                    message?._id
+                  );
+
+                /*
+                 * Original message ni
+                 * deleted placeholder ga convert.
+                 */
+                if (
+                  currentMessageId ===
+                  messageId
+                ) {
+                  return createDeletedMessage(
+                    message
+                  );
+                }
+
+                /*
+                 * Vere messages reply preview lo
+                 * deleted message referenced unte
+                 * preview ni kuda tombstone cheyyi.
+                 */
+                const replyToId =
+                  normalizeId(
+                    message?.replyTo
+                  );
+
+                if (
+                  replyToId !== messageId ||
+                  !message?.replyTo ||
+                  typeof message.replyTo !==
+                  "object"
+                ) {
+                  return message;
+                }
+
+                return {
+                  ...message,
+
+                  replyTo: {
+                    ...message.replyTo,
+
+                    text: "",
+                    image: "",
+                    sharedPost: null,
+
+                    deletedForEveryone:
+                      true,
+
+                    deletedAt,
+                  },
+                };
+              }
+            )
+            : []
       );
 
       /*
-       * Deleted message pinned message
-       * ayithe banner immediate ga hide.
+       * Deleted message pinned unte
+       * header banner clear.
        */
       setPinnedMessage(
         (previous) =>
           normalizeId(
             previous?._id
-          ) === deletedMessageId
+          ) === messageId
             ? null
             : previous
       );
 
       /*
-       * Reply/Edit composer lo deleted
-       * message selected unte clear.
+       * Reply composer lo selected
+       * message deleted ayithe clear.
        */
       setReplyingTo(
         (previous) =>
           normalizeId(
             previous?._id
-          ) === deletedMessageId
+          ) === messageId
             ? null
             : previous
       );
 
+      /*
+       * Edit composer lo selected
+       * message deleted ayithe clear.
+       */
       setEditingMessage(
         (previous) =>
           normalizeId(
             previous?._id
-          ) === deletedMessageId
+          ) === messageId
             ? null
             : previous
       );
 
+      /*
+       * Sidebar last message immediate
+       * deleted placeholder ga update.
+       */
+      setChatSummaries(
+        (previous) =>
+          Array.isArray(previous)
+            ? previous.map(
+              (summary) => {
+                const lastMessageId =
+                  normalizeId(
+                    summary
+                      ?.lastMessage
+                      ?._id
+                  );
+
+                if (
+                  lastMessageId !==
+                  messageId
+                ) {
+                  return summary;
+                }
+
+                return {
+                  ...summary,
+
+                  lastMessage:
+                    createDeletedMessage(
+                      summary.lastMessage
+                    ),
+                };
+              }
+            )
+            : []
+      );
+
+      /*
+       * Backend summary state tho
+       * background synchronization.
+       */
       loadChatSummaries().catch(
         (error) => {
           console.error(
-            "DELETE SUMMARY REFRESH ERROR:",
-            error
+            "DELETE FOR EVERYONE SUMMARY REFRESH ERROR:",
+            error.response?.data ||
+            error.message
           );
         }
       );

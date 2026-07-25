@@ -127,33 +127,6 @@ const messageSchema =
         ],
       },
 
-      editedAt: {
-        type: Date,
-        default: null,
-      },
-
-      isForwarded: {
-        type: Boolean,
-        default: false,
-      },
-
-      forwardedFrom: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Message",
-        default: null,
-      },
-
-      pinnedAt: {
-        type: Date,
-        default: null,
-      },
-
-      pinnedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        default: null,
-      },
-
       image: {
         type: String,
         default: "",
@@ -189,6 +162,78 @@ const messageSchema =
         default: [],
       },
 
+      editedAt: {
+        type: Date,
+        default: null,
+      },
+
+      isForwarded: {
+        type: Boolean,
+        default: false,
+      },
+
+      forwardedFrom: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+        ref: "Message",
+        default: null,
+      },
+
+      pinnedAt: {
+        type: Date,
+        default: null,
+      },
+
+      pinnedBy: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+        ref: "User",
+        default: null,
+      },
+
+      /*
+       * Delete for me:
+       * Ee array lo unna users ki
+       * message conversation lo hide avuthundi.
+       */
+      deletedFor: {
+        type: [
+          {
+            type:
+              mongoose.Schema.Types
+                .ObjectId,
+            ref: "User",
+          },
+        ],
+        default: [],
+      },
+
+      /*
+       * Delete for everyone:
+       * Document retain chestham,
+       * content matrame clear chestham.
+       */
+      deletedForEveryone: {
+        type: Boolean,
+        default: false,
+        index: true,
+      },
+
+      deletedAt: {
+        type: Date,
+        default: null,
+      },
+
+      deletedBy: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+        ref: "User",
+        default: null,
+      },
+
       expiresAt: {
         type: Date,
         default: null,
@@ -207,6 +252,14 @@ const messageSchema =
 messageSchema.pre(
   "validate",
   function validateMessage() {
+    /*
+     * Delete-for-everyone placeholder
+     * ki original content compulsory kaadhu.
+     */
+    if (this.deletedForEveryone) {
+      return;
+    }
+
     const hasText =
       typeof this.text === "string" &&
       this.text.trim().length > 0;
@@ -233,15 +286,20 @@ messageSchema.pre(
   }
 );
 
-
 messageSchema.path(
   "reactions"
 ).validate({
   validator(reactions) {
-    const userIds = reactions.map(
-      (reaction) =>
-        String(reaction.user)
-    );
+    const safeReactions =
+      Array.isArray(reactions)
+        ? reactions
+        : [];
+
+    const userIds =
+      safeReactions.map(
+        (reaction) =>
+          String(reaction.user)
+      );
 
     return (
       new Set(userIds).size ===
@@ -252,6 +310,10 @@ messageSchema.path(
   message:
     "A user can have only one reaction per message",
 });
+
+/* =========================
+   INDEXES
+========================= */
 
 messageSchema.index({
   sender: 1,
@@ -270,6 +332,10 @@ messageSchema.index({
   status: 1,
 });
 
+messageSchema.index({
+  deletedFor: 1,
+  createdAt: -1,
+});
 
 messageSchema.index(
   {
@@ -277,6 +343,7 @@ messageSchema.index(
   },
   {
     expireAfterSeconds: 0,
+
     partialFilterExpression: {
       expiresAt: {
         $type: "date",
@@ -289,7 +356,8 @@ messageSchema.index(
    MODEL HELPERS
 ========================= */
 
-messageSchema.statics.getAllowedReactions =
+messageSchema.statics
+  .getAllowedReactions =
   function getAllowedReactions() {
     return [
       ...ALLOWED_REACTIONS,
