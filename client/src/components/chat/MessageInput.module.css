@@ -160,11 +160,20 @@
 
 .inputWrapper:focus-within {
   border-color: var(--composer-primary);
+  box-shadow: none;
+}
 
-  box-shadow:
-    0 0 0 3px color-mix(in srgb,
-      var(--composer-primary) 18%,
-      transparent);
+
+.input,
+.input:hover,
+.input:focus,
+.input:focus-visible,
+.input:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 /* =========================

@@ -253,7 +253,22 @@ const likePost = async (req, res) => {
 
 const unlikePost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const postId = req.params.id;
+    const userId = req.user._id;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        postId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID",
+      });
+    }
+
+    const post =
+      await Post.findById(postId);
 
     if (!post) {
       return res.status(404).json({
@@ -262,9 +277,12 @@ const unlikePost = async (req, res) => {
       });
     }
 
-    const alreadyLiked = post.likes.some(
-      (id) => id.toString() === req.user._id.toString()
-    );
+    const alreadyLiked =
+      post.likes.some(
+        (id) =>
+          id.toString() ===
+          userId.toString()
+      );
 
     if (!alreadyLiked) {
       return res.status(400).json({
@@ -273,17 +291,34 @@ const unlikePost = async (req, res) => {
       });
     }
 
+    post.likes.pull(userId);
+
+    await post.save();
+
+    await Notification.deleteMany({
+      sender: userId,
+      receiver: post.user,
+      post: post._id,
+      type: "like",
+    });
+
     return res.status(200).json({
       success: true,
       likes: post.likes.length,
-      liked: false
-    })
+      liked: false,
+      message:
+        "Post unliked successfully",
+    });
   } catch (error) {
-    console.error("Unlike Post Error:", error);
+    console.error(
+      "Unlike Post Error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        "Unable to unlike post",
     });
   }
 };
