@@ -41,19 +41,17 @@ const socket = io(
   {
     autoConnect: false,
 
-    /*
-     * Initial authentication payload.
-     * connectSocket() every connection mundu
-     * latest token malli set chesthundi.
-     */
+    transports: [
+      "websocket",
+      "polling",
+    ],
+
+    upgrade: true,
+
     auth: {
       token: getStoredToken(),
     },
 
-    /*
-     * Default polling -> WebSocket upgrade
-     * Render/Vercel environment ki reliable.
-     */
     reconnection: true,
     reconnectionAttempts:
       Infinity,

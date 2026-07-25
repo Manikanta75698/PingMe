@@ -93,6 +93,7 @@ const MessageInput = () => {
   const {
     selectedChat,
     setMessages,
+    setChatSummaries,
 
     blockStatus,
     blockStatusLoading,
@@ -132,7 +133,6 @@ const MessageInput = () => {
     );
 
   const composerDisabled =
-    loading ||
     !selectedChat ||
     blockStatusLoading ||
     isBlocked;
@@ -572,10 +572,7 @@ const MessageInput = () => {
           error.message
         );
 
-        /*
-         * API fail ayithe previous
-         * message restore.
-         */
+
         setMessages(
           (previous) =>
             Array.isArray(previous)
@@ -633,13 +630,18 @@ const MessageInput = () => {
       const currentText =
         text.trim();
 
+      const imageToSend =
+        selectedImage;
+
+      const replyToSend =
+        replyingTo;
+
       if (
         (
           !currentText &&
-          !selectedImage
+          !imageToSend
         ) ||
         !selectedChat ||
-        loading ||
         blockStatusLoading ||
         isBlocked
       ) {
@@ -664,10 +666,6 @@ const MessageInput = () => {
         getUserId(selectedChat);
 
       if (!currentUserId) {
-        console.error(
-          "MESSAGE SEND FAILED: Current user ID missing"
-        );
-
         toast.error(
           "Current user information is missing"
         );
@@ -676,10 +674,6 @@ const MessageInput = () => {
       }
 
       if (!receiverId) {
-        console.error(
-          "MESSAGE SEND FAILED: Receiver ID missing"
-        );
-
         toast.error(
           "Unable to identify the selected user"
         );
@@ -690,7 +684,17 @@ const MessageInput = () => {
       stopTyping();
 
       const tempId =
-        `temp-${Date.now()}`;
+        `temp-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`;
+
+
+      const optimisticImageUrl =
+        imageToSend
+          ? URL.createObjectURL(
+            imageToSend
+          )
+          : "";
 
       const tempMessage = {
         _id: tempId,
@@ -726,74 +730,186 @@ const MessageInput = () => {
           "sending",
 
         image:
-          previewUrl,
+          optimisticImageUrl,
 
         replyTo:
-          replyingTo
+          replyToSend
             ? {
               _id:
-                replyingTo._id,
+                replyToSend._id,
 
               text:
-                replyingTo.text ||
+                replyToSend.text ||
                 "",
 
               image:
-                replyingTo.image ||
+                replyToSend.image ||
                 "",
 
               sender:
-                replyingTo.sender,
+                replyToSend.sender,
             }
             : null,
 
         reactions: [],
       };
 
+      let previousSidebarMessage =
+        null;
+
+      setChatSummaries(
+        (previous) => {
+          const safeSummaries =
+            Array.isArray(previous)
+              ? previous
+              : [];
+
+          const matchingSummary =
+            safeSummaries.find(
+              (summary) =>
+                getUserId(
+                  summary?.user
+                ) === receiverId
+            );
+
+          previousSidebarMessage =
+            matchingSummary
+              ?.lastMessage ||
+            null;
+
+          return safeSummaries;
+        }
+      );
+
       setMessages(
         (previous) => [
-          ...previous,
+          ...(Array.isArray(previous)
+            ? previous
+            : []),
+
           tempMessage,
         ]
       );
 
+      setChatSummaries(
+        (previous) => {
+          const safeSummaries =
+            Array.isArray(previous)
+              ? previous
+              : [];
+
+          const updatedSummaries =
+            safeSummaries.map(
+              (summary) => {
+                const summaryUserId =
+                  getUserId(
+                    summary?.user
+                  );
+
+                if (
+                  summaryUserId !==
+                  receiverId
+                ) {
+                  return summary;
+                }
+
+                return {
+                  ...summary,
+                  lastMessage:
+                    tempMessage,
+                };
+              }
+            );
+
+          return updatedSummaries.sort(
+            (first, second) => {
+              const firstTime =
+                new Date(
+                  first?.lastMessage
+                    ?.createdAt || 0
+                ).getTime();
+
+              const secondTime =
+                new Date(
+                  second?.lastMessage
+                    ?.createdAt || 0
+                ).getTime();
+
+              return (
+                secondTime -
+                firstTime
+              );
+            }
+          );
+        }
+      );
+
       setText("");
+      setReplyingTo(null);
+
+      if (imageToSend) {
+        resetImage();
+      }
 
       resetTextareaHeight();
 
-      setLoading(true);
+      window.requestAnimationFrame(
+        () => {
+          textareaRef.current
+            ?.focus();
+        }
+      );
 
       try {
-        const formData =
-          new FormData();
+        let requestData;
 
-        formData.append(
-          "receiver",
-          receiverId
-        );
+        if (imageToSend) {
+          const formData =
+            new FormData();
 
-        formData.append(
-          "text",
-          currentText
-        );
-
-        if (replyingTo?._id) {
           formData.append(
-            "replyTo",
-            replyingTo._id
+            "receiver",
+            receiverId
           );
-        }
 
-        if (selectedImage) {
+          formData.append(
+            "text",
+            currentText
+          );
+
+          if (replyToSend?._id) {
+            formData.append(
+              "replyTo",
+              replyToSend._id
+            );
+          }
+
           formData.append(
             "image",
-            selectedImage
+            imageToSend
           );
+
+          requestData = formData;
+        } else {
+          requestData = {
+            receiver:
+              receiverId,
+
+            text:
+              currentText,
+
+            ...(replyToSend?._id
+              ? {
+                replyTo:
+                  replyToSend._id,
+              }
+              : {}),
+          };
         }
 
         const response =
           await sendMessage(
-            formData
+            requestData
           );
 
         const realMessage =
@@ -807,27 +923,56 @@ const MessageInput = () => {
 
         setMessages(
           (previous) =>
-            previous.map(
-              (message) =>
-                message?._id ===
-                  tempId
-                  ? realMessage
-                  : message
-            )
+            Array.isArray(previous)
+              ? previous.map(
+                (message) =>
+                  message?._id ===
+                    tempId
+                    ? realMessage
+                    : message
+              )
+              : []
         );
 
-        setReplyingTo(null);
+        setChatSummaries(
+          (previous) =>
+            Array.isArray(previous)
+              ? previous.map(
+                (summary) => {
+                  const summaryUserId =
+                    getUserId(
+                      summary?.user
+                    );
 
-        resetImage();
+                  if (
+                    summaryUserId !==
+                    receiverId
+                  ) {
+                    return summary;
+                  }
 
-        loadChatSummaries()
-          .catch((error) => {
-            console.error(
-              "LOAD CHAT SUMMARIES ERROR:",
-              error.response?.data ||
-              error.message
-            );
-          });
+                  const lastMessageId =
+                    getUserId(
+                      summary?.lastMessage
+                    );
+
+                  if (
+                    lastMessageId !==
+                    tempId
+                  ) {
+                    return summary;
+                  }
+
+                  return {
+                    ...summary,
+                    lastMessage:
+                      realMessage,
+                  };
+                }
+              )
+              : []
+        );
+
       } catch (error) {
         console.error(
           "SEND MESSAGE ERROR:",
@@ -837,18 +982,69 @@ const MessageInput = () => {
 
         setMessages(
           (previous) =>
-            previous.filter(
-              (message) =>
-                message?._id !==
-                tempId
-            )
+            Array.isArray(previous)
+              ? previous.filter(
+                (message) =>
+                  message?._id !==
+                  tempId
+              )
+              : []
+        );
+
+        setChatSummaries(
+          (previous) =>
+            Array.isArray(previous)
+              ? previous.map(
+                (summary) => {
+                  const summaryUserId =
+                    getUserId(
+                      summary?.user
+                    );
+
+                  const lastMessageId =
+                    getUserId(
+                      summary?.lastMessage
+                    );
+
+                  if (
+                    summaryUserId !==
+                    receiverId ||
+                    lastMessageId !==
+                    tempId
+                  ) {
+                    return summary;
+                  }
+
+                  return {
+                    ...summary,
+
+                    lastMessage:
+                      previousSidebarMessage,
+                  };
+                }
+              )
+              : []
+        );
+
+
+        setText(
+          (currentValue) =>
+            currentValue.trim()
+              ? currentValue
+              : currentText
         );
 
         /*
-         * API fail ayithe typed text
-         * and selected image preserve.
+         * Vere image select cheyyakapothe
+         * failed image restore.
          */
-        setText(currentText);
+        if (imageToSend) {
+          setSelectedImage(
+            (currentImage) =>
+              currentImage ||
+              imageToSend
+          );
+        }
 
         window.requestAnimationFrame(
           () => {
@@ -866,7 +1062,11 @@ const MessageInput = () => {
           "Unable to send message"
         );
       } finally {
-        setLoading(false);
+        if (optimisticImageUrl) {
+          URL.revokeObjectURL(
+            optimisticImageUrl
+          );
+        }
       }
     };
 

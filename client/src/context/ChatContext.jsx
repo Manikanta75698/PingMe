@@ -1118,16 +1118,6 @@ export const ChatProvider = ({
           }
         );
       }
-
-      loadChatSummaries().catch(
-        (error) => {
-          console.error(
-            "MESSAGE SUMMARY REFRESH ERROR:",
-            error.response?.data ||
-            error.message
-          );
-        }
-      );
     };
 
     socket.on(
@@ -1141,7 +1131,7 @@ export const ChatProvider = ({
         handleMessage
       );
     };
-  }, [loadChatSummaries]);
+  }, []);
 
 
   /* =========================

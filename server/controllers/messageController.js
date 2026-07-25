@@ -537,6 +537,40 @@ const populateMessage = async (
   return message;
 };
 
+const populateSentMessage =
+  async (message) => {
+    const populateOptions = [
+      {
+        path: "sender",
+        select:
+          "name username profilePic",
+      },
+      {
+        path: "receiver",
+        select:
+          "name username profilePic",
+      },
+    ];
+
+    if (message?.replyTo) {
+      populateOptions.push({
+        path: "replyTo",
+
+        populate: {
+          path: "sender",
+          select:
+            "name username profilePic",
+        },
+      });
+    }
+
+    await message.populate(
+      populateOptions
+    );
+
+    return message;
+  };
+
 const getControllerErrorResponse = (
   error,
   fallbackMessage
@@ -570,11 +604,20 @@ const sendMessage = async (
   req,
   res
 ) => {
-  /*
-   * Image upload success ayyi
-   * database save fail ayithe,
-   * orphan Cloudinary image cleanup.
-   */
+
+  const requestStartedAt =
+    Date.now();
+
+  const logSendTiming = (
+    stage
+  ) => {
+    console.log(
+      `[MESSAGE SEND] ${stage}:`,
+      `${Date.now() -
+      requestStartedAt}ms`
+    );
+  };
+
   let uploadedImageUrl = "";
   let persistedMessage = null;
 
@@ -680,26 +723,29 @@ const sendMessage = async (
       });
     }
 
-    const chatAllowed =
-      await isChatAccepted(
+    const [
+      chatAllowed,
+      blockState,
+    ] = await Promise.all([
+      isChatAccepted(
         senderId,
         receiverId
-      );
+      ),
+
+      getUserBlockState(
+        senderId,
+        receiverId
+      ),
+    ]);
 
     if (!chatAllowed) {
       return res.status(403).json({
         success: false,
+
         message:
           "Chat request not accepted",
       });
     }
-
-
-    const blockState =
-      await getUserBlockState(
-        senderId,
-        receiverId
-      );
 
     if (blockState.isBlocked) {
       return res.status(403).json({
@@ -716,6 +762,9 @@ const sendMessage = async (
             : "USER_BLOCKED_YOU",
       });
     }
+    logSendTiming(
+      "access checks complete"
+    );
 
     let sharedPostData =
       null;
@@ -848,8 +897,16 @@ const sendMessage = async (
         reactions: [],
       });
 
-    await populateMessage(
+    logSendTiming(
+      "message saved"
+    );
+
+    await populateSentMessage(
       persistedMessage
+    );
+
+    logSendTiming(
+      "message populated"
     );
 
     const messagePayload =
@@ -858,15 +915,16 @@ const sendMessage = async (
     const io = getSafeIO();
 
     if (io) {
-      /*
-       * Authenticated receiver room ki
-       * real-time message emit.
-       */
+
       io.to(receiverId).emit(
         "newMessage",
         messagePayload
       );
     }
+
+    logSendTiming(
+      "response ready"
+    );
 
     return res.status(201).json({
       success: true,

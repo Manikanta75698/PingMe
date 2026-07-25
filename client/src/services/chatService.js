@@ -65,9 +65,22 @@ export const sendMessage = (
     );
   }
 
+  const isFormData =
+    typeof FormData !==
+    "undefined" &&
+    data instanceof FormData;
+
   return api.post(
     "/messages/send",
-    data
+    data,
+    isFormData
+      ? undefined
+      : {
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+      }
   );
 };
 
