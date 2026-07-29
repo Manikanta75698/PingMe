@@ -11,10 +11,7 @@ import socket, {
   connectSocket,
 } from "../socket/socket";
 
-import {
-  getReceivedRequests,
-  getSentRequests,
-} from "../services/chatRequestService";
+
 
 import {
   getChatSummaries,
@@ -2474,61 +2471,7 @@ export const ChatProvider = ({
     };
   }, [loadChatSummaries]);
 
-  /* =========================
-     CHAT REQUEST EVENTS
-  ========================= */
 
-  useEffect(() => {
-    const refreshChatData =
-      async () => {
-        try {
-          await Promise.all([
-            loadRequests(),
-            loadChatSummaries(),
-          ]);
-        } catch (error) {
-          console.error(
-            "REFRESH CHAT DATA ERROR:",
-            error
-          );
-        }
-      };
-
-    socket.on(
-      "newChatRequest",
-      refreshChatData
-    );
-
-    socket.on(
-      "chatRequestAccepted",
-      refreshChatData
-    );
-
-    socket.on(
-      "chatRequestDeclined",
-      refreshChatData
-    );
-
-    return () => {
-      socket.off(
-        "newChatRequest",
-        refreshChatData
-      );
-
-      socket.off(
-        "chatRequestAccepted",
-        refreshChatData
-      );
-
-      socket.off(
-        "chatRequestDeclined",
-        refreshChatData
-      );
-    };
-  }, [
-    loadRequests,
-    loadChatSummaries,
-  ]);
 
 
   const pinnedMessageFromMessages =

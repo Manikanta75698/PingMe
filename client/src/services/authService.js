@@ -269,26 +269,6 @@ export const uploadProfilePicture =
     return response.data;
   };
 
-// =========================
-// UPLOAD COVER PHOTO
-// =========================
-export const uploadCoverPhoto =
-  async (
-    formData
-  ) => {
-    const response = await api.put(
-      "/auth/cover-photo",
-      formData,
-      {
-        headers: {
-          "Content-Type":
-            "multipart/form-data",
-        },
-      }
-    );
-
-    return response.data;
-  };
 
 // =========================
 // SEARCH USERS

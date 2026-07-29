@@ -1,6 +1,6 @@
 const User = require("../models/User");
 
-const ChatRequest = require("../models/ChatRequest");
+
 
 const getUsers = async (req, res) => {
   try {

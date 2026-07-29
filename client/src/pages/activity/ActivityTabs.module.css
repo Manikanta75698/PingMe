@@ -7,21 +7,28 @@
   gap: 8px;
   padding: 6px;
   margin-bottom: 20px;
+
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
 }
 
 .tab {
+  position: relative;
+
   flex: 1;
   min-height: 46px;
   padding: 10px 16px;
+
   border: none;
   border-radius: 12px;
+
   background: transparent;
   color: var(--text-secondary);
+
   font-size: 14px;
   font-weight: 650;
+
   cursor: pointer;
 
   display: flex;
@@ -47,7 +54,9 @@
 .active {
   background: #2563eb;
   color: #ffffff;
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.2);
+
+  box-shadow:
+    0 6px 18px rgba(37, 99, 235, 0.2);
 }
 
 .active:hover {
@@ -55,17 +64,250 @@
   color: #ffffff;
 }
 
+/* =========================
+   REQUEST COUNT BADGE
+========================= */
+
+.badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+
+  border-radius: 999px;
+
+  background: #dc2626;
+  color: #ffffff;
+
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.active .badge {
+  background: #ffffff;
+  color: #2563eb;
+}
+
+/* =========================
+   TAB CONTENT
+========================= */
+
 .content {
   width: 100%;
 }
 
+/* =========================
+   FOLLOW REQUEST LIST
+========================= */
+
+.requestList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.requestCard {
+  width: 100%;
+  padding: 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 18px;
+
+  background: var(--surface);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.requestCard:hover {
+  border-color:
+    color-mix(in srgb,
+      #2563eb 35%,
+      var(--border));
+
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.06);
+
+  transform: translateY(-1px);
+}
+
+.requestUser {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+
+  flex: 0 0 52px;
+
+  border: 1px solid var(--border);
+  border-radius: 50%;
+
+  object-fit: cover;
+  background: var(--background);
+}
+
+.userDetails {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.userDetails strong {
+  overflow: hidden;
+
+  color: var(--text-primary);
+
+  font-size: 15px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userDetails span {
+  margin-top: 2px;
+
+  overflow: hidden;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userDetails p {
+  margin: 5px 0 0;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+}
+
+/* =========================
+   REQUEST ACTIONS
+========================= */
+
+.requestActions {
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.acceptButton,
+.declineButton,
+.retryButton {
+  min-height: 40px;
+  padding: 9px 14px;
+
+  border-radius: 11px;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.acceptButton {
+  border: 1px solid #2563eb;
+
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.acceptButton:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.declineButton {
+  border: 1px solid var(--border);
+
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.declineButton:hover:not(:disabled) {
+  border-color: #dc2626;
+
+  background:
+    color-mix(in srgb,
+      #dc2626 9%,
+      transparent);
+
+  color: #dc2626;
+}
+
+.retryButton {
+  margin-top: 16px;
+
+  border: 1px solid #2563eb;
+
+  background: transparent;
+  color: #2563eb;
+}
+
+.retryButton:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.acceptButton:active:not(:disabled),
+.declineButton:active:not(:disabled),
+.retryButton:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.acceptButton:disabled,
+.declineButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* =========================
+   EMPTY / LOADING
+========================= */
+
 .empty {
   min-height: 260px;
   padding: 40px 20px;
+
   border: 1px solid var(--border);
   border-radius: 18px;
+
   background: var(--surface);
   color: var(--text-secondary);
+
   text-align: center;
 
   display: flex;
@@ -76,28 +318,127 @@
 
 .empty h3 {
   margin: 14px 0 5px;
+
   color: var(--text-primary);
 }
 
 .empty p {
+  max-width: 420px;
   margin: 0;
+
   font-size: 14px;
+  line-height: 1.55;
 }
+
+.spinner {
+  animation:
+    activitySpin 0.8s linear infinite;
+}
+
+@keyframes activitySpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================
+   TABLET
+========================= */
+
+@media (max-width: 768px) {
+  .requestCard {
+    align-items: flex-start;
+  }
+
+  .requestActions {
+    flex-direction: column;
+  }
+
+  .acceptButton,
+  .declineButton {
+    width: 112px;
+  }
+}
+
+/* =========================
+   MOBILE
+========================= */
 
 @media (max-width: 600px) {
   .tabs {
     gap: 4px;
     padding: 5px;
+
     overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .tab {
     flex: 0 0 auto;
+
     min-width: max-content;
-    padding: 10px 13px;
+    min-height: 43px;
+
+    padding: 9px 12px;
   }
 
   .tab span {
     font-size: 13px;
+  }
+
+  .requestCard {
+    padding: 14px;
+
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .requestUser {
+    width: 100%;
+  }
+
+  .avatar {
+    width: 48px;
+    height: 48px;
+
+    flex-basis: 48px;
+  }
+
+  .requestActions {
+    width: 100%;
+
+    flex-direction: row;
+  }
+
+  .acceptButton,
+  .declineButton {
+    flex: 1;
+    width: auto;
+    min-height: 42px;
+  }
+
+  .empty {
+    min-height: 230px;
+    padding: 34px 18px;
+  }
+}
+
+/* =========================
+   SMALL MOBILE
+========================= */
+
+@media (max-width: 380px) {
+  .requestActions {
+    flex-direction: column;
+  }
+
+  .acceptButton,
+  .declineButton {
+    width: 100%;
   }
 }

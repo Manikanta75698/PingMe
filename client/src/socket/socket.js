@@ -19,6 +19,10 @@ const SOCKET_URL = String(
   .trim()
   .replace(/\/+$/, "");
 
+/* =========================
+   TOKEN HELPER
+========================= */
+
 const getStoredToken = () => {
   try {
     return (
@@ -36,12 +40,20 @@ const getStoredToken = () => {
   }
 };
 
+/* =========================
+   SOCKET INSTANCE
+========================= */
+
 const socket = io(
   SOCKET_URL,
   {
     autoConnect: false,
 
-    transports: ["polling", "websocket"],
+    transports: [
+      "polling",
+      "websocket",
+    ],
+
     upgrade: true,
 
     auth: {
@@ -49,15 +61,52 @@ const socket = io(
     },
 
     reconnection: true,
+
     reconnectionAttempts:
       Infinity,
+
     reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    randomizationFactor: 0.5,
+
+    reconnectionDelayMax:
+      5000,
+
+    randomizationFactor:
+      0.5,
 
     timeout: 20000,
   }
 );
+
+/* =========================
+   WINDOW EVENT BRIDGE
+========================= */
+
+/*
+ * Socket events ni React components
+ * direct socket dependency lekunda
+ * window CustomEvent dwara receive
+ * chesukovachu.
+ */
+const dispatchAppEvent = (
+  eventName,
+  detail = null
+) => {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(
+      eventName,
+      {
+        detail,
+      }
+    )
+  );
+};
 
 /* =========================
    AUTH HELPERS
@@ -81,9 +130,11 @@ export const connectSocket =
       refreshSocketAuth();
 
     if (!token) {
-      console.warn(
-        "Socket connection skipped: token missing"
-      );
+      if (isDevelopment) {
+        console.warn(
+          "Socket connection skipped: token missing"
+        );
+      }
 
       return false;
     }
@@ -113,14 +164,29 @@ export const disconnectSocket =
    CONNECTION EVENTS
 ========================= */
 
-socket.on("connect", () => {
-  if (isDevelopment) {
-    console.log(
-      "GLOBAL SOCKET CONNECTED:",
-      socket.id
+socket.on(
+  "connect",
+  () => {
+    if (isDevelopment) {
+      console.log(
+        "GLOBAL SOCKET CONNECTED:",
+        socket.id
+      );
+    }
+
+    /*
+     * Reconnect / fresh connect tarvatha
+     * components server data ni
+     * re-sync chesukovachu.
+     */
+    dispatchAppEvent(
+      "socket:connected",
+      {
+        socketId: socket.id,
+      }
     );
   }
-});
+);
 
 socket.on(
   "disconnect",
@@ -131,6 +197,13 @@ socket.on(
         reason
       );
     }
+
+    dispatchAppEvent(
+      "socket:disconnected",
+      {
+        reason,
+      }
+    );
   }
 );
 
@@ -172,6 +245,134 @@ socket.on(
 );
 
 /* =========================
+   FOLLOW REQUEST EVENTS
+========================= */
+
+/*
+ * Private account owner ki
+ * new request vachinappudu.
+ */
+socket.on(
+  "followRequestReceived",
+  (payload) => {
+    if (isDevelopment) {
+      console.log(
+        "FOLLOW REQUEST RECEIVED:",
+        payload
+      );
+    }
+
+    dispatchAppEvent(
+      "follow-request:received",
+      payload
+    );
+  }
+);
+
+/*
+ * Request sender ki:
+ * owner request accept chesadu.
+ */
+socket.on(
+  "followRequestAccepted",
+  (payload) => {
+    if (isDevelopment) {
+      console.log(
+        "FOLLOW REQUEST ACCEPTED:",
+        payload
+      );
+    }
+
+    dispatchAppEvent(
+      "follow-request:accepted",
+      payload
+    );
+  }
+);
+
+/*
+ * Request sender ki:
+ * owner request decline chesadu.
+ */
+socket.on(
+  "followRequestDeclined",
+  (payload) => {
+    if (isDevelopment) {
+      console.log(
+        "FOLLOW REQUEST DECLINED:",
+        payload
+      );
+    }
+
+    dispatchAppEvent(
+      "follow-request:declined",
+      payload
+    );
+  }
+);
+
+/*
+ * Owner Activity list nundi
+ * handled request remove cheyyadaniki.
+ */
+socket.on(
+  "followRequestRemoved",
+  (payload) => {
+    if (isDevelopment) {
+      console.log(
+        "FOLLOW REQUEST REMOVED:",
+        payload
+      );
+    }
+
+    dispatchAppEvent(
+      "follow-request:removed",
+      payload
+    );
+  }
+);
+
+/* =========================
+   FOLLOW STATUS EVENTS
+========================= */
+
+/*
+ * Public follow / unfollow,
+ * accepted request tarvatha other
+ * components state sync kosam.
+ */
+socket.on(
+  "userFollowStatusUpdated",
+  (payload) => {
+    if (isDevelopment) {
+      console.log(
+        "FOLLOW STATUS UPDATED:",
+        payload
+      );
+    }
+
+    dispatchAppEvent(
+      "follow-status:updated",
+      payload
+    );
+  }
+);
+
+/* =========================
+   BLOCK STATUS EVENTS
+========================= */
+
+socket.on(
+  "userBlockStatusUpdated",
+  (payload) => {
+    dispatchAppEvent(
+      "user-block:updated",
+      payload
+    );
+  }
+);
+
+/* =========================
    RECONNECTION EVENTS
 ========================= */
 
@@ -179,8 +380,8 @@ socket.io.on(
   "reconnect_attempt",
   (attemptNumber) => {
     /*
-     * Token refresh/login jarigina tarvata
-     * latest token use chesthundi.
+     * Login/token refresh jarigina
+     * tarvatha latest token use chesthundi.
      */
     refreshSocketAuth();
 
@@ -203,6 +404,14 @@ socket.io.on(
         socket.id
       );
     }
+
+    dispatchAppEvent(
+      "socket:reconnected",
+      {
+        attemptNumber,
+        socketId: socket.id,
+      }
+    );
   }
 );
 

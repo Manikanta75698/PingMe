@@ -2077,7 +2077,15 @@ const followUser = async (
     ] = await Promise.all([
       User.findById(currentUserId)
         .select(
-          "_id following blockedUsers"
+          [
+            "_id",
+            "name",
+            "username",
+            "profilePic",
+            "bio",
+            "following",
+            "blockedUsers",
+          ].join(" ")
         )
         .lean(),
 
@@ -2216,19 +2224,14 @@ const followUser = async (
                 },
               },
               {
-                new: true,
+                returnDocument: "after",
                 upsert: true,
                 runValidators: true,
-                setDefaultsOnInsert:
-                  true,
+                setDefaultsOnInsert: true,
               }
             );
       } catch (error) {
-        /*
-         * Simultaneous duplicate requests
-         * unique index ni hit chesthe
-         * existing request return chestham.
-         */
+
         if (error?.code === 11000) {
           followRequest =
             await FollowRequest.findOne({
@@ -2255,6 +2258,12 @@ const followUser = async (
 
             sender: {
               _id: currentUser._id,
+              id: currentUser._id,
+              name: currentUser.name,
+              username: currentUser.username,
+              profilePic:
+                currentUser.profilePic || "",
+              bio: currentUser.bio || "",
             },
 
             status: "pending",

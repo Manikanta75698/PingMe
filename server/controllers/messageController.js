@@ -8,7 +8,7 @@ const User = require(
   "../models/User"
 );
 
-const ChatRequest = require("../models/ChatRequest");
+
 
 const cloudinary = require(
   "../config/cloudinary"
@@ -313,24 +313,6 @@ const emitToParticipants = (
   );
 };
 
-const isChatAccepted = async (
-  firstUserId,
-  secondUserId
-) =>
-  ChatRequest.exists({
-    status: "accepted",
-
-    $or: [
-      {
-        sender: firstUserId,
-        receiver: secondUserId,
-      },
-      {
-        sender: secondUserId,
-        receiver: firstUserId,
-      },
-    ],
-  });
 
 const canSendMessageToUser =
   async (
@@ -882,15 +864,9 @@ const sendMessage = async (
     }
 
     const [
-      chatAllowed,
       blockState,
       messagePermissionResult,
     ] = await Promise.all([
-      isChatAccepted(
-        senderId,
-        receiverId
-      ),
-
       getUserBlockState(
         senderId,
         receiverId
@@ -902,14 +878,6 @@ const sendMessage = async (
       ),
     ]);
 
-    if (!chatAllowed) {
-      return res.status(403).json({
-        success: false,
-
-        message:
-          "Chat request not accepted",
-      });
-    }
 
     if (blockState.isBlocked) {
       return res.status(403).json({
@@ -1245,20 +1213,6 @@ const getMessages = async (
     const before =
       req.query?.before;
 
-    const chatAllowed =
-      await isChatAccepted(
-        currentUserId,
-        otherUserId
-      );
-
-    if (!chatAllowed) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "Chat request not accepted",
-      });
-    }
-
     const conversationQuery = {
       $or: [
         {
@@ -1456,20 +1410,6 @@ const getPinnedMessage = async (
         success: false,
         message:
           "Invalid conversation",
-      });
-    }
-
-    const chatAllowed =
-      await isChatAccepted(
-        currentUserId,
-        otherUserId
-      );
-
-    if (!chatAllowed) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "Chat request not accepted",
       });
     }
 
@@ -2199,21 +2139,6 @@ const forwardMessage = async (
       });
     }
 
-
-    const chatAllowed =
-      await isChatAccepted(
-        currentUserId,
-        receiverId
-      );
-
-    if (!chatAllowed) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "Chat request not accepted",
-      });
-    }
-
     const forwardBlockState =
       await getUserBlockState(
         currentUserId,
@@ -2486,20 +2411,6 @@ const togglePinMessage = async (
           pinBlockState.blockedByFirst
             ? "USER_BLOCKED_BY_YOU"
             : "USER_BLOCKED_YOU",
-      });
-    }
-
-    const chatAllowed =
-      await isChatAccepted(
-        currentUserId,
-        otherUserId
-      );
-
-    if (!chatAllowed) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "Chat request not accepted",
       });
     }
 
@@ -3041,183 +2952,311 @@ const getChatSummaries = async (
       });
     }
 
-    const acceptedRequests =
-      await ChatRequest.find({
-        status: "accepted",
+    const currentUserObjectId =
+      new mongoose.Types.ObjectId(
+        currentUserId
+      );
 
-        $or: [
-          {
-            sender:
-              currentUserId,
+    /*
+     * ChatRequest system remove chesam.
+     *
+     * Ippudu current user sender/receiver
+     * ga unna existing messages base meeda
+     * conversations build chestham.
+     */
+    const conversationResults =
+      await Message.aggregate([
+        {
+          $match: {
+            $or: [
+              {
+                sender:
+                  currentUserObjectId,
+              },
+              {
+                receiver:
+                  currentUserObjectId,
+              },
+            ],
+
+            /*
+             * Current user "Delete for me"
+             * chesina messages summaries lo
+             * consider cheyyakudadhu.
+             */
+            deletedFor: {
+              $nin: [
+                currentUserObjectId,
+              ],
+            },
           },
-          {
-            receiver:
-              currentUserId,
+        },
+
+        /*
+         * Latest message first.
+         * Group lo $first latest message
+         * avvadaniki sort mundu chestham.
+         */
+        {
+          $sort: {
+            createdAt: -1,
+            _id: -1,
           },
-        ],
-      })
-        .populate(
-          "sender",
-          "name username profilePic"
+        },
+
+        /*
+         * Conversation other participant
+         * identify chestham.
+         */
+        {
+          $addFields: {
+            otherUserId: {
+              $cond: [
+                {
+                  $eq: [
+                    "$sender",
+                    currentUserObjectId,
+                  ],
+                },
+
+                "$receiver",
+                "$sender",
+              ],
+            },
+          },
+        },
+
+        /*
+         * One result per conversation.
+         */
+        {
+          $group: {
+            _id: "$otherUserId",
+
+            lastMessage: {
+              $first: {
+                _id: "$_id",
+                sender: "$sender",
+                receiver: "$receiver",
+                text: "$text",
+                image: "$image",
+                sharedPost:
+                  "$sharedPost",
+                status: "$status",
+                createdAt:
+                  "$createdAt",
+                updatedAt:
+                  "$updatedAt",
+                editedAt:
+                  "$editedAt",
+                isForwarded:
+                  "$isForwarded",
+                deletedForEveryone:
+                  "$deletedForEveryone",
+                deletedAt:
+                  "$deletedAt",
+                deletedBy:
+                  "$deletedBy",
+              },
+            },
+
+            /*
+             * Other user pampina
+             * sent/delivered messages unread.
+             */
+            unreadCount: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      {
+                        $eq: [
+                          "$sender",
+                          "$otherUserId",
+                        ],
+                      },
+
+                      {
+                        $eq: [
+                          "$receiver",
+                          currentUserObjectId,
+                        ],
+                      },
+
+                      {
+                        $in: [
+                          "$status",
+                          [
+                            "sent",
+                            "delivered",
+                          ],
+                        ],
+                      },
+
+                      {
+                        $ne: [
+                          "$deletedForEveryone",
+                          true,
+                        ],
+                      },
+                    ],
+                  },
+
+                  1,
+                  0,
+                ],
+              },
+            },
+          },
+        },
+
+        /*
+         * Latest conversation first.
+         */
+        {
+          $sort: {
+            "lastMessage.createdAt":
+              -1,
+            "lastMessage._id": -1,
+          },
+        },
+      ]);
+
+    if (
+      conversationResults.length ===
+      0
+    ) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        chats: [],
+      });
+    }
+
+    const otherUserIds =
+      conversationResults
+        .map(
+          (conversation) =>
+            conversation?._id
         )
-        .populate(
-          "receiver",
-          "name username profilePic"
+        .filter(Boolean);
+
+    const users =
+      await User.find({
+        _id: {
+          $in: otherUserIds,
+        },
+      })
+        .select(
+          [
+            "_id",
+            "name",
+            "username",
+            "profilePic",
+            "isOnline",
+            "lastSeen",
+            "privacySettings.showOnlineStatus",
+            "privacySettings.showLastSeen",
+          ].join(" ")
         )
         .lean();
 
-
-    const uniqueUsers =
-      new Map();
-
-    acceptedRequests.forEach(
-      (request) => {
-        const requestSenderId =
-          normalizeId(
-            request.sender
-          );
-
-        const otherUser =
-          requestSenderId ===
-            currentUserId
-            ? request.receiver
-            : request.sender;
-
-        const otherUserId =
-          normalizeId(
-            otherUser
-          );
-
-        if (
-          otherUserId &&
-          !uniqueUsers.has(
-            otherUserId
-          )
-        ) {
-          uniqueUsers.set(
-            otherUserId,
-            otherUser
-          );
-        }
-      }
-    );
-
-    const summaries =
-      await Promise.all(
-        Array.from(
-          uniqueUsers.entries()
-        ).map(
-          async ([
-            otherUserId,
-            otherUser,
-          ]) => {
-            const conversationFilter = {
-              $or: [
-                {
-                  sender:
-                    currentUserId,
-
-                  receiver:
-                    otherUserId,
-                },
-                {
-                  sender:
-                    otherUserId,
-
-                  receiver:
-                    currentUserId,
-                },
-              ],
-
-              deletedFor: {
-                $nin: [
-                  currentUserId,
-                ],
-              },
-            };
-
-            const [
-              lastMessage,
-              unreadCount,
-            ] = await Promise.all([
-              Message.findOne(
-                conversationFilter
-              )
-                .sort({
-                  createdAt: -1,
-                  _id: -1,
-                })
-                .select(
-                  [
-                    "text",
-                    "image",
-                    "sharedPost",
-                    "sender",
-                    "receiver",
-                    "status",
-                    "createdAt",
-                    "deletedForEveryone",
-                    "deletedAt",
-                    "deletedBy",
-                  ].join(" ")
-                )
-                .lean(),
-
-              Message.countDocuments({
-                sender:
-                  otherUserId,
-
-                receiver:
-                  currentUserId,
-
-                status: {
-                  $in: [
-                    "sent",
-                    "delivered",
-                  ],
-                },
-              }),
-            ]);
-
-            return {
-              user: otherUser,
-              lastMessage,
-              unreadCount,
-            };
-          }
-        )
+    const userMap =
+      new Map(
+        users.map((user) => [
+          normalizeId(user?._id),
+          user,
+        ])
       );
 
-    summaries.sort(
-      (first, second) => {
-        const firstTime =
-          first.lastMessage
-            ?.createdAt
-            ? new Date(
-              first.lastMessage
-                .createdAt
-            ).getTime()
-            : 0;
+    const chats =
+      conversationResults
+        .map((conversation) => {
+          const otherUserId =
+            normalizeId(
+              conversation?._id
+            );
 
-        const secondTime =
-          second.lastMessage
-            ?.createdAt
-            ? new Date(
-              second.lastMessage
-                .createdAt
-            ).getTime()
-            : 0;
+          const otherUser =
+            userMap.get(
+              otherUserId
+            );
 
-        return (
-          secondTime -
-          firstTime
-        );
-      }
-    );
+          /*
+           * Deleted/missing account ni
+           * chat list lo show cheyyamu.
+           */
+          if (!otherUser) {
+            return null;
+          }
+
+          const showOnlineStatus =
+            otherUser
+              ?.privacySettings
+              ?.showOnlineStatus !==
+            false;
+
+          const showLastSeen =
+            otherUser
+              ?.privacySettings
+              ?.showLastSeen !==
+            false;
+
+          const safeUser = {
+            _id:
+              otherUser._id,
+
+            id:
+              otherUser._id,
+
+            name:
+              otherUser.name ||
+              "User",
+
+            username:
+              otherUser.username ||
+              "user",
+
+            profilePic:
+              otherUser.profilePic ||
+              "",
+
+            isOnline:
+              showOnlineStatus
+                ? Boolean(
+                  otherUser.isOnline
+                )
+                : false,
+
+            lastSeen:
+              showLastSeen
+                ? otherUser.lastSeen ||
+                null
+                : null,
+          };
+
+          return {
+            user: safeUser,
+
+            lastMessage:
+              conversation
+                .lastMessage ||
+              null,
+
+            unreadCount:
+              Number(
+                conversation
+                  .unreadCount ||
+                0
+              ),
+          };
+        })
+        .filter(Boolean);
 
     return res.status(200).json({
       success: true,
-      chats: summaries,
+      count: chats.length,
+      chats,
     });
   } catch (error) {
     console.error(

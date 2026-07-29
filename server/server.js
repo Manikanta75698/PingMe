@@ -19,7 +19,7 @@ const messageRoutes = require("./routes/messageRoutes");
 
 const userRoutes = require("./routes/userRoutes");
 const startDeleteExpiredMessages = require("./cron/deleteExpiredMessages");
-const chatRequestRoutes = require("./routes/chatRequestRoutes");
+
 
 const {
   startStoryCleanupJob,
@@ -118,7 +118,7 @@ app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/stories", storyRoutes);
 app.use("/api/messages", messageRoutes);
-app.use("/api/chat-requests", chatRequestRoutes);
+
 app.use("/api/users", userRoutes);
 
 
@@ -176,34 +176,12 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    try {
-    
-
-      console.log(
-        "✅ SMTP mail server verified"
-      );
-    } catch (mailerError) {
-      console.error(
-        "❌ SMTP verification failed:",
-        mailerError?.message ||
-        mailerError
-      );
-    }
-
     startDeleteExpiredMessages();
     startStoryCleanupJob();
 
     server.listen(PORT, () => {
       console.log(
         `✅ Production Secure Engine running on port: ${PORT}`
-      );
-
-      console.log(
-        "✅ Expired message cleanup started"
-      );
-
-      console.log(
-        "✅ Expired story cleanup started"
       );
     });
   } catch (error) {

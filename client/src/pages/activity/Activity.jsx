@@ -10,7 +10,7 @@ const Activity = () => {
           <h1>Activity</h1>
 
           <p>
-            Manage chat requests and view your recent activity.
+            Manage follow requests and view your recent activity.
           </p>
         </header>
 

@@ -1,52 +1,64 @@
 const express = require("express");
+
 const router = express.Router();
 
 const {
   protect,
-} = require("../middleware/authMiddleware");
+} = require(
+  "../middleware/authMiddleware"
+);
 
 const {
   singleProfileUpload,
-  singleCoverUpload,
-} = require("../middleware/uploadMiddleware");
+} = require(
+  "../middleware/uploadMiddleware"
+);
 
 const {
   registerUser,
   loginUser,
   verifyOtp,
   resendOtp,
+
   forgotPassword,
   verifyPasswordResetOtp,
   resetPassword,
+
   googleLogin,
+
+  setPassword,
+  changePassword,
+
   getProfile,
-  getPrivacySettings,
-  updatePrivacySettings,
   updateProfile,
   uploadProfilePicture,
-  uploadCoverPhoto,
+
+  getPrivacySettings,
+  updatePrivacySettings,
 
   followUser,
   unfollowUser,
+
   getReceivedFollowRequests,
   getSentFollowRequests,
   acceptFollowRequest,
   declineFollowRequest,
   cancelFollowRequest,
 
-  getUserProfile,
   searchUsers,
   checkUsernameAvailability,
-  setPassword,
-  changePassword,
+  getUserProfile,
+
   blockUser,
   unblockUser,
   getBlockStatus,
-} = require("../controllers/authController");
+} = require(
+  "../controllers/authController"
+);
 
-// =========================
-// AUTH ROUTES
-// =========================
+/* =========================
+   AUTHENTICATION
+========================= */
 
 router.post(
   "/register",
@@ -59,6 +71,15 @@ router.post(
 );
 
 router.post(
+  "/google",
+  googleLogin
+);
+
+/* =========================
+   EMAIL VERIFICATION
+========================= */
+
+router.post(
   "/verify-otp",
   verifyOtp
 );
@@ -67,6 +88,10 @@ router.post(
   "/resend-otp",
   resendOtp
 );
+
+/* =========================
+   PASSWORD RESET
+========================= */
 
 router.post(
   "/forgot-password",
@@ -83,24 +108,38 @@ router.post(
   resetPassword
 );
 
+/* =========================
+   PASSWORD MANAGEMENT
+========================= */
+
 router.post(
-  "/google",
-  googleLogin
+  "/set-password",
+  protect,
+  setPassword
 );
 
-// =========================
-// PUBLIC USERNAME ROUTES
-// =========================
+router.put(
+  "/change-password",
+  protect,
+  changePassword
+);
 
-// Must stay public for Register page
+/* =========================
+   PUBLIC USERNAME CHECK
+========================= */
+
+/*
+ * Register page nundi token lekunda
+ * username availability check cheyyali.
+ */
 router.get(
   "/username-availability",
   checkUsernameAvailability
 );
 
-// =========================
-// PROFILE ROUTES
-// =========================
+/* =========================
+   CURRENT USER PROFILE
+========================= */
 
 router.get(
   "/profile",
@@ -121,9 +160,9 @@ router.put(
   uploadProfilePicture
 );
 
-// =========================
-// PRIVACY SETTINGS ROUTES
-// =========================
+/* =========================
+   PRIVACY SETTINGS
+========================= */
 
 router.get(
   "/privacy-settings",
@@ -137,17 +176,20 @@ router.patch(
   updatePrivacySettings
 );
 
-router.put(
-  "/cover-photo",
-  protect,
-  singleCoverUpload,
-  uploadCoverPhoto
-);
+/* =========================
+   FOLLOW / UNFOLLOW
+========================= */
 
-// =========================
-// FOLLOW ROUTES
-// =========================
-
+/*
+ * Public account:
+ * → direct follow
+ *
+ * Private account:
+ * → pending follow request
+ *
+ * Ee decision followUser controller
+ * lopala jaruguthundi.
+ */
 router.post(
   "/follow/:id",
   protect,
@@ -160,56 +202,63 @@ router.delete(
   unfollowUser
 );
 
-// =========================
-// FOLLOW REQUEST ROUTES
-// =========================
+/* =========================
+   FOLLOW REQUESTS
+========================= */
 
+/*
+ * Current user ki vachina
+ * pending follow requests.
+ */
 router.get(
   "/follow-requests/received",
   protect,
   getReceivedFollowRequests
 );
 
+/*
+ * Current user pampina
+ * pending follow requests.
+ */
 router.get(
   "/follow-requests/sent",
   protect,
   getSentFollowRequests
 );
 
+/*
+ * Private-account owner
+ * request accept chesthadu.
+ */
 router.patch(
   "/follow-requests/:requestId/accept",
   protect,
   acceptFollowRequest
 );
 
+/*
+ * Private-account owner
+ * request decline chesthadu.
+ */
 router.patch(
   "/follow-requests/:requestId/decline",
   protect,
   declineFollowRequest
 );
 
+/*
+ * Request pampina user
+ * pending request cancel chesthadu.
+ */
 router.delete(
   "/follow-requests/:requestId",
   protect,
   cancelFollowRequest
 );
 
-router.put(
-  "/change-password",
-  protect,
-  changePassword
-);
-
-router.post(
-  "/set-password",
-  protect,
-  setPassword
-);
-
-
-// =========================
-// USER ROUTES
-// =========================
+/* =========================
+   USER SEARCH
+========================= */
 
 router.get(
   "/search",
@@ -218,7 +267,7 @@ router.get(
 );
 
 /* =========================
-   BLOCK USER
+   BLOCK MANAGEMENT
 ========================= */
 
 router.get(
@@ -239,6 +288,14 @@ router.delete(
   unblockUser
 );
 
+/* =========================
+   PUBLIC USER PROFILE
+========================= */
+
+/*
+ * Dynamic route kabatti fixed routes
+ * anni complete ayyaka last lo undali.
+ */
 router.get(
   "/user/:username",
   protect,

@@ -9,12 +9,14 @@ import {
   useParams,
 } from "react-router-dom";
 
-import { ImageOff } from "lucide-react";
+import {
+  ImageOff,
+  LockKeyhole,
+} from "lucide-react";
 
 import styles from "./UserProfile.module.css";
 
 import UserProfileSkeleton from "../../components/profile/UserProfileSkeleton";
-
 import DefaultAvatar from "../../assets/default-avatar.png";
 
 import {
@@ -23,24 +25,20 @@ import {
   unfollowUser,
 } from "../../services/authService";
 
-import { sendChatRequest } from "../../services/chatRequestService";
-
-
-import { useChat } from "../../context/ChatContext";
+import {
+  getUserPosts,
+} from "../../services/postService";
 
 import {
   useToastContext,
 } from "../../components/ui/toast/ToastProvider";
 
-import {
-  getUserPosts,
-} from "../../services/postService";
-
 import PostModal from "../../components/posts/PostModal";
 
-// =========================
-// SAFE STORED USER
-// =========================
+/* =========================
+   SAFE STORED USER
+========================= */
+
 const getStoredUser = () => {
   try {
     const stored =
@@ -59,9 +57,10 @@ const getStoredUser = () => {
   }
 };
 
-// =========================
-// NORMALIZE ID
-// =========================
+/* =========================
+   NORMALIZE ID
+========================= */
+
 const normalizeId = (value) => {
   if (!value) return "";
 
@@ -80,20 +79,41 @@ const normalizeId = (value) => {
   return String(value);
 };
 
+/* =========================
+   NORMALIZE API DATA
+========================= */
+
+const getResponseData = (response) =>
+  response?.data?.data ||
+  response?.data ||
+  response ||
+  {};
+
+const getProfileData = (response) =>
+  response?.data?.user ||
+  response?.user ||
+  null;
+
+const getPostsData = (response) => {
+  const posts =
+    response?.data?.posts ||
+    response?.posts;
+
+  return Array.isArray(posts)
+    ? posts
+    : [];
+};
+
+/* =========================
+   USER PROFILE
+========================= */
 
 const UserProfile = () => {
   const navigate = useNavigate();
+  const { username } = useParams();
 
   const toast =
     useToastContext();
-
-  const {
-    sentRequests,
-    receivedRequests,
-    loadRequests,
-  } = useChat();
-
-  const { username } = useParams();
 
   const [currentUser] =
     useState(getStoredUser);
@@ -104,23 +124,13 @@ const UserProfile = () => {
   const [posts, setPosts] =
     useState([]);
 
-  const [
-    isFollowing,
-    setIsFollowing,
-  ] = useState(false);
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
   const [
     followLoading,
     setFollowLoading,
   ] = useState(false);
-
-  const [requestLoading, setRequestLoading] =
-    useState(false);
 
   const [error, setError] =
     useState("");
@@ -129,7 +139,6 @@ const UserProfile = () => {
     selectedPost,
     setSelectedPost,
   ] = useState(null);
-
 
   const currentUserId = normalizeId(
     currentUser?.id ||
@@ -145,27 +154,31 @@ const UserProfile = () => {
     Boolean(currentUserId) &&
     Boolean(profileUserId) &&
     currentUserId === profileUserId;
-  const pendingRequest = sentRequests.find(
-    (req) =>
-      normalizeId(req.receiver) === profileUserId &&
-      req.status === "pending"
-  );
 
-  const chatAccepted =
-    sentRequests.find(
-      (req) =>
-        normalizeId(req.receiver) === profileUserId &&
-        req.status === "accepted"
-    ) ||
-    receivedRequests.find(
-      (req) =>
-        normalizeId(req.sender) === profileUserId &&
-        req.status === "accepted"
-    );
+  const followStatus =
+    user?.followStatus ||
+    (user?.isFollowing
+      ? "following"
+      : user?.isRequested
+        ? "requested"
+        : "none");
 
-  // =========================
-  // FETCH PROFILE + POSTS
-  // =========================
+  const isFollowing =
+    followStatus === "following";
+
+  const isRequested =
+    followStatus === "requested";
+
+  const isBlocked =
+    Boolean(user?.isBlocked);
+
+  const canViewPrivateContent =
+    user?.canViewPrivateContent !== false;
+
+  /* =========================
+     FETCH PROFILE
+  ========================= */
+
   const fetchUser = useCallback(
     async () => {
       if (!username) {
@@ -183,16 +196,18 @@ const UserProfile = () => {
         setUser(null);
         setPosts([]);
 
-        const [
-          profileResponse,
-          postsResponse,
-        ] = await Promise.all([
-          getUserProfile(username),
-          getUserPosts(username),
-        ]);
+        /*
+         * Profile first fetch chestham.
+         * Private content permission profile
+         * response nundi determine chestham.
+         */
+        const profileResponse =
+          await getUserProfile(username);
 
         const userData =
-          profileResponse?.user;
+          getProfileData(
+            profileResponse
+          );
 
         if (!userData) {
           throw new Error(
@@ -202,65 +217,330 @@ const UserProfile = () => {
 
         setUser(userData);
 
-        setPosts(
-          Array.isArray(
-            postsResponse?.posts
-          )
-            ? postsResponse.posts
-            : []
-        );
+        /*
+         * Private account ni follow
+         * cheyakapothe posts fetch cheyyamu.
+         */
+        if (
+          userData.canViewPrivateContent ===
+          false
+        ) {
+          setPosts([]);
+          return;
+        }
 
-        const followers =
-          Array.isArray(
-            userData.followers
-          )
-            ? userData.followers
-            : [];
+        try {
+          const postsResponse =
+            await getUserPosts(
+              username
+            );
 
-        const following =
-          followers.some(
-            (follower) =>
-              normalizeId(follower) ===
-              currentUserId
+          setPosts(
+            getPostsData(
+              postsResponse
+            )
+          );
+        } catch (postsError) {
+          console.error(
+            "User Posts Error:",
+            postsError?.response?.data ||
+            postsError?.message
           );
 
-        setIsFollowing(following);
-      } catch (error) {
+          setPosts([]);
+        }
+      } catch (fetchError) {
         console.error(
           "User Profile Error:",
-          error.response?.data ||
-          error.message
+          fetchError?.response?.data ||
+          fetchError?.message
         );
 
         setError(
-          error.response?.data?.message ||
-          error.message ||
+          fetchError?.response?.data
+            ?.message ||
+          fetchError?.message ||
           "Unable to load profile"
         );
       } finally {
         setLoading(false);
       }
     },
-    [
-      username,
-      currentUserId,
-    ]
+    [username]
   );
 
   useEffect(() => {
-    loadRequests();
     fetchUser();
-  }, [fetchUser, loadRequests]);
+  }, [fetchUser]);
 
-  // =========================
-  // FOLLOW / UNFOLLOW
-  // =========================
+  useEffect(() => {
+    const handleRequestAccepted = async (
+      event
+    ) => {
+      const payload =
+        event?.detail || {};
+
+      const updatedProfileUserId =
+        normalizeId(
+          payload?.userId
+        );
+
+      if (
+        !updatedProfileUserId ||
+        updatedProfileUserId !==
+        profileUserId
+      ) {
+        return;
+      }
+
+      setUser((previous) => {
+        if (!previous) {
+          return previous;
+        }
+
+        const wasFollowing =
+          previous.followStatus ===
+          "following" ||
+          previous.isFollowing === true;
+
+        const previousFollowersCount =
+          Number(
+            previous.followersCount ??
+            previous.followers?.length ??
+            0
+          );
+
+        return {
+          ...previous,
+
+          followStatus:
+            "following",
+
+          isFollowing: true,
+          isRequested: false,
+          followRequestId: null,
+
+          canViewPrivateContent:
+            true,
+
+          followersCount:
+            wasFollowing
+              ? previousFollowersCount
+              : previousFollowersCount +
+              1,
+        };
+      });
+
+      /*
+       * Private account accept ayyaka
+       * posts immediate ga load chestham.
+       */
+      try {
+        const postsResponse =
+          await getUserPosts(
+            username
+          );
+
+        setPosts(
+          getPostsData(
+            postsResponse
+          )
+        );
+      } catch (postsError) {
+        console.error(
+          "Accepted Follow Posts Error:",
+          postsError?.response?.data ||
+          postsError?.message
+        );
+      }
+    };
+
+    const handleRequestDeclined = (
+      event
+    ) => {
+      const payload =
+        event?.detail || {};
+
+      const updatedProfileUserId =
+        normalizeId(
+          payload?.userId
+        );
+
+      if (
+        !updatedProfileUserId ||
+        updatedProfileUserId !==
+        profileUserId
+      ) {
+        return;
+      }
+
+      setUser((previous) => {
+        if (!previous) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+
+          followStatus: "none",
+          isFollowing: false,
+          isRequested: false,
+          followRequestId: null,
+
+          canViewPrivateContent:
+            previous.privateAccount
+              ? false
+              : true,
+        };
+      });
+
+      if (user?.privateAccount) {
+        setPosts([]);
+      }
+    };
+
+    const handleSocketReconnect =
+      () => {
+        void fetchUser();
+      };
+
+    window.addEventListener(
+      "follow-request:accepted",
+      handleRequestAccepted
+    );
+
+    window.addEventListener(
+      "follow-request:declined",
+      handleRequestDeclined
+    );
+
+    window.addEventListener(
+      "socket:reconnected",
+      handleSocketReconnect
+    );
+
+    return () => {
+      window.removeEventListener(
+        "follow-request:accepted",
+        handleRequestAccepted
+      );
+
+      window.removeEventListener(
+        "follow-request:declined",
+        handleRequestDeclined
+      );
+
+      window.removeEventListener(
+        "socket:reconnected",
+        handleSocketReconnect
+      );
+    };
+  }, [
+    fetchUser,
+    profileUserId,
+    username,
+    user?.privateAccount,
+  ]);
+
+  /* =========================
+     UPDATE FOLLOW STATE
+  ========================= */
+
+  const applyFollowResult = (
+    result
+  ) => {
+    setUser((previous) => {
+      if (!previous) {
+        return previous;
+      }
+
+      const nextStatus =
+        result?.followStatus ||
+        previous.followStatus ||
+        "none";
+
+      const becameFollowing =
+        nextStatus === "following" &&
+        previous.followStatus !==
+        "following";
+
+      const stoppedFollowing =
+        nextStatus === "none" &&
+        previous.followStatus ===
+        "following";
+
+      const previousFollowersCount =
+        Number(
+          previous.followersCount ??
+          previous.followers?.length ??
+          0
+        );
+
+      let followersCount =
+        previousFollowersCount;
+
+      if (becameFollowing) {
+        followersCount += 1;
+      }
+
+      if (stoppedFollowing) {
+        followersCount = Math.max(
+          0,
+          followersCount - 1
+        );
+      }
+
+      return {
+        ...previous,
+
+        followStatus:
+          nextStatus,
+
+        isFollowing:
+          nextStatus ===
+          "following",
+
+        isRequested:
+          nextStatus ===
+          "requested",
+
+        followRequestId:
+          result?.requestId ??
+          (nextStatus ===
+            "requested"
+            ? previous
+              .followRequestId
+            : null),
+
+        followersCount,
+
+        /*
+         * Public follow or accepted
+         * follow request tarvatha private
+         * content accessible avuthundi.
+         */
+        canViewPrivateContent:
+          nextStatus ===
+            "following"
+            ? true
+            : previous
+              .canViewPrivateContent,
+      };
+    });
+  };
+
+  /* =========================
+     FOLLOW / UNFOLLOW
+  ========================= */
+
   const handleFollow = async () => {
     if (
       followLoading ||
       !profileUserId ||
       !currentUserId ||
-      isOwnProfile
+      isOwnProfile ||
+      isBlocked ||
+      isRequested
     ) {
       return;
     }
@@ -269,83 +549,86 @@ const UserProfile = () => {
       setFollowLoading(true);
 
       if (isFollowing) {
-        await unfollowUser(
-          profileUserId
-        );
+        const response =
+          await unfollowUser(
+            profileUserId
+          );
 
-        setIsFollowing(false);
+        const result =
+          getResponseData(response);
 
-        setUser((prev) => {
-          if (!prev) return prev;
-
-          const followers =
-            Array.isArray(
-              prev.followers
-            )
-              ? prev.followers
-              : [];
-
-          return {
-            ...prev,
-
-            followers:
-              followers.filter(
-                (follower) =>
-                  normalizeId(
-                    follower
-                  ) !==
-                  currentUserId
-              ),
-          };
+        applyFollowResult({
+          ...result,
+          followStatus:
+            result?.followStatus ||
+            "none",
+          isFollowing: false,
+          isRequested: false,
+          requestId: null,
         });
-      } else {
+
+        /*
+         * Private account ayithe unfollow
+         * tarvatha posts hide cheyyali.
+         */
+        if (user?.privateAccount) {
+          setPosts([]);
+        }
+
+        return;
+      }
+
+      const response =
         await followUser(
           profileUserId
         );
 
-        setIsFollowing(true);
+      const result =
+        getResponseData(response);
 
-        setUser((prev) => {
-          if (!prev) return prev;
+      /*
+       * Private:
+       * followStatus = requested
+       *
+       * Public:
+       * followStatus = following
+       */
+      applyFollowResult(result);
 
-          const followers =
-            Array.isArray(
-              prev.followers
-            )
-              ? prev.followers
-              : [];
-
-          const alreadyExists =
-            followers.some(
-              (follower) =>
-                normalizeId(
-                  follower
-                ) ===
-                currentUserId
+      if (
+        result?.followStatus ===
+        "following"
+      ) {
+        try {
+          const postsResponse =
+            await getUserPosts(
+              username
             );
 
-          return {
-            ...prev,
-
-            followers:
-              alreadyExists
-                ? followers
-                : [
-                  ...followers,
-                  currentUserId,
-                ],
-          };
-        });
+          setPosts(
+            getPostsData(
+              postsResponse
+            )
+          );
+        } catch (postsError) {
+          console.error(
+            "Posts Refresh Error:",
+            postsError
+              ?.response?.data ||
+            postsError?.message
+          );
+        }
       }
-    } catch (error) {
+    } catch (followError) {
       console.error(
         "Follow Error:",
-        error.response?.data ||
-        error.message
+        followError?.response?.data ||
+        followError?.message
       );
 
       toast.error(
-        error.response?.data?.message ||
+        followError?.response?.data
+          ?.message ||
         "Unable to update follow status"
       );
     } finally {
@@ -353,42 +636,17 @@ const UserProfile = () => {
     }
   };
 
-  // =========================
-  // MESSAGE USER
-  // =========================
-
-  const handleSendRequest = async () => {
-    try {
-      setRequestLoading(true);
-
-      await sendChatRequest({
-        receiver: profileUserId,
-      });
-
-      await loadRequests();
-
-      toast.success(
-        "Chat request sent"
-      );
-    } catch (error) {
-      console.error(
-        "SEND CHAT REQUEST ERROR:",
-        error.response?.data ||
-        error.message
-      );
-
-      toast.error(
-        error.response?.data?.message ||
-        error.message ||
-        "Unable to send chat request"
-      );
-    } finally {
-      setRequestLoading(false);
-    }
-  };
+  /* =========================
+     MESSAGE USER
+  ========================= */
 
   const handleMessage = () => {
-    if (!profileUserId) return;
+    if (
+      !profileUserId ||
+      isBlocked
+    ) {
+      return;
+    }
 
     navigate(
       `/chat/${encodeURIComponent(
@@ -397,16 +655,57 @@ const UserProfile = () => {
     );
   };
 
+  /* =========================
+     FOLLOW BUTTON LABEL
+  ========================= */
+
+  const getFollowButtonLabel =
+    () => {
+      if (followLoading) {
+        return "Please wait...";
+      }
+
+      if (isRequested) {
+        return "Requested";
+      }
+
+      if (isFollowing) {
+        return "Following";
+      }
+
+      if (
+        followStatus ===
+        "follow-back"
+      ) {
+        return "Follow Back";
+      }
+
+      if (followStatus === "blocked") {
+        return "Unavailable";
+      }
+
+      return "Follow";
+    };
+
+  /* =========================
+     LOADING
+  ========================= */
+
   if (loading) {
-    return <UserProfileSkeleton />;
+    return (
+      <UserProfileSkeleton />
+    );
   }
 
-  // =========================
-  // ERROR
-  // =========================
+  /* =========================
+     ERROR
+  ========================= */
+
   if (error || !user) {
     return (
-      <div className={styles.loading}>
+      <div
+        className={styles.loading}
+      >
         <p>
           {error ||
             "User not found"}
@@ -422,156 +721,274 @@ const UserProfile = () => {
     );
   }
 
+  const postsCount =
+    canViewPrivateContent
+      ? Number(
+        user.postsCount ??
+        posts.length
+      )
+      : 0;
+
+  const followersCount =
+    Number(
+      user.followersCount ??
+      user.followers?.length ??
+      0
+    );
+
+  const followingCount =
+    Number(
+      user.followingCount ??
+      user.following?.length ??
+      0
+    );
+
   return (
     <>
-      <div className={styles.container}>
-
-        <div className={styles.profileCard}>
-
+      <div
+        className={styles.container}
+      >
+        <div
+          className={
+            styles.profileCard
+          }
+        >
           {/* PROFILE HEADER */}
-          <div className={styles.header}>
+          <div
+            className={styles.header}
+          >
             <img
-              src={user.profilePic || DefaultAvatar}
-              alt={user.name || "User"}
-              className={styles.avatar}
+              src={
+                user.profilePic ||
+                DefaultAvatar
+              }
+              alt={
+                user.name || "User"
+              }
+              className={
+                styles.avatar
+              }
               loading="eager"
               decoding="async"
               fetchPriority="high"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = DefaultAvatar;
+              onError={(event) => {
+                event.currentTarget
+                  .onerror = null;
+
+                event.currentTarget
+                  .src =
+                  DefaultAvatar;
               }}
             />
 
-            <h1 className={styles.name}>
+            <h1
+              className={styles.name}
+            >
               {user.name || "User"}
             </h1>
 
-            <p className={styles.username}>
-              @{user.username || "user"}
+            <p
+              className={
+                styles.username
+              }
+            >
+              @
+              {user.username ||
+                "user"}
             </p>
 
-            <p className={styles.bio}>
-              {user.bio || "No bio yet"}
+            <p
+              className={styles.bio}
+            >
+              {user.bio ||
+                "No bio yet"}
             </p>
           </div>
 
           {/* STATS */}
-          <div className={styles.stats}>
+          <div
+            className={styles.stats}
+          >
+            <div
+              className={
+                styles.statItem
+              }
+            >
+              <span>
+                {postsCount}
+              </span>
 
-            <div className={styles.statItem}>
-              <span>{posts.length}</span>
               <small>Posts</small>
             </div>
 
-            <div className={styles.statItem}>
-              <span>{user.followers?.length || 0}</span>
-              <small>Followers</small>
+            <div
+              className={
+                styles.statItem
+              }
+            >
+              <span>
+                {followersCount}
+              </span>
+
+              <small>
+                Followers
+              </small>
             </div>
 
-            <div className={styles.statItem}>
-              <span>{user.following?.length || 0}</span>
-              <small>Following</small>
-            </div>
+            <div
+              className={
+                styles.statItem
+              }
+            >
+              <span>
+                {followingCount}
+              </span>
 
+              <small>
+                Following
+              </small>
+            </div>
           </div>
 
           {/* ACTION BUTTONS */}
           {!isOwnProfile && (
-            <div className={styles.actions}>
+            <div
+              className={
+                styles.actions
+              }
+            >
+              <button
+                type="button"
+                className={
+                  isFollowing ||
+                    isRequested
+                    ? styles
+                      .followingBtn
+                    : styles
+                      .followBtn
+                }
+                onClick={
+                  handleFollow
+                }
+                disabled={
+                  followLoading ||
+                  isRequested ||
+                  isBlocked
+                }
+              >
+                {getFollowButtonLabel()}
+              </button>
 
               <button
                 type="button"
                 className={
-                  isFollowing
-                    ? styles.followingBtn
-                    : styles.followBtn
+                  styles.messageBtn
                 }
-                onClick={handleFollow}
-                disabled={followLoading}
+                onClick={
+                  handleMessage
+                }
+                disabled={isBlocked}
               >
-                {followLoading
-                  ? "Please wait..."
-                  : isFollowing
-                    ? "Following"
-                    : "Follow"}
+                Message
               </button>
-
-              {Boolean(chatAccepted) ? (
-                <button
-                  className={styles.messageBtn}
-                  onClick={handleMessage}
-                >
-                  Message
-                </button>
-              ) : Boolean(pendingRequest) ? (
-                <button
-                  className={styles.pendingBtn}
-                  disabled
-                >
-                  ✓ Pending
-                </button>
-              ) : (
-                <button
-                  className={styles.messageBtn}
-                  onClick={handleSendRequest}
-                  disabled={requestLoading}
-                >
-                  {requestLoading
-                    ? "Sending..."
-                    : "Send Request"}
-                </button>
-              )}
-
             </div>
           )}
-
         </div>
 
-        {/* POSTS */}
-        <div className={styles.postsGrid}>
+        {/* PRIVATE ACCOUNT */}
+        {!canViewPrivateContent ? (
+          <div
+            className={
+              styles.emptyPosts
+            }
+          >
+            <LockKeyhole
+              size={56}
+              strokeWidth={1.5}
+              className={
+                styles.emptyIcon
+              }
+            />
 
-          {posts.length > 0 ? (
-            posts.map((post) => (
-              <button
-                key={post._id}
-                type="button"
-                className={styles.postButton}
-                onClick={() => setSelectedPost(post)}
-                aria-label="Open post"
+            <h3>
+              This account is private
+            </h3>
+
+            <p>
+              Follow this account to
+              see their posts.
+            </p>
+          </div>
+        ) : (
+          /* POSTS */
+          <div
+            className={
+              styles.postsGrid
+            }
+          >
+            {posts.length > 0 ? (
+              posts.map((post) => (
+                <button
+                  key={post._id}
+                  type="button"
+                  className={
+                    styles.postButton
+                  }
+                  onClick={() =>
+                    setSelectedPost(
+                      post
+                    )
+                  }
+                  aria-label="Open post"
+                >
+                  <img
+                    src={post.image}
+                    alt={
+                      post.caption ||
+                      "Post"
+                    }
+                    className={
+                      styles.postImage
+                    }
+                    loading="lazy"
+                  />
+                </button>
+              ))
+            ) : (
+              <div
+                className={
+                  styles.emptyPosts
+                }
               >
-                <img
-                  src={post.image}
-                  alt={post.caption || "Post"}
-                  className={styles.postImage}
-                  loading="lazy"
+                <ImageOff
+                  size={64}
+                  strokeWidth={1.5}
+                  className={
+                    styles.emptyIcon
+                  }
                 />
-              </button>
-            ))
-          ) : (
-            <div className={styles.emptyPosts}>
-              <ImageOff
-                size={64}
-                strokeWidth={1.5}
-                className={styles.emptyIcon}
-              />
 
-              <h3>No Posts Yet</h3>
+                <h3>
+                  No Posts Yet
+                </h3>
 
-              <p>
-                This user hasn't shared any posts yet.
-              </p>
-            </div>
-          )}
-
-        </div>
-
+                <p>
+                  This user hasn't
+                  shared any posts
+                  yet.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {selectedPost && (
         <PostModal
           post={selectedPost}
-          onClose={() => setSelectedPost(null)}
+          onClose={() =>
+            setSelectedPost(null)
+          }
         />
       )}
     </>
