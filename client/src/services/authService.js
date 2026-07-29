@@ -7,6 +7,24 @@ const normalizeEmail = (value) =>
     .trim()
     .toLowerCase();
 
+const normalizeRequiredId = (
+  value,
+  label = "ID"
+) => {
+  const normalizedValue =
+    String(value || "").trim();
+
+  if (!normalizedValue) {
+    throw new Error(
+      `${label} is required`
+    );
+  }
+
+  return encodeURIComponent(
+    normalizedValue
+  );
+};
+
 // =========================
 // LOGIN
 // =========================
@@ -51,11 +69,12 @@ export const loginUser = async (
   return response.data;
 };
 
-
 // =========================
 // REGISTER
 // =========================
-export const registerUser = async (data) => {
+export const registerUser = async (
+  data
+) => {
   const response = await api.post(
     "/auth/register",
     data
@@ -67,7 +86,9 @@ export const registerUser = async (data) => {
 // =========================
 // VERIFY REGISTRATION OTP
 // =========================
-export const verifyOtp = async (data) => {
+export const verifyOtp = async (
+  data
+) => {
   const response = await api.post(
     "/auth/verify-otp",
     data
@@ -79,7 +100,9 @@ export const verifyOtp = async (data) => {
 // =========================
 // RESEND REGISTRATION OTP
 // =========================
-export const resendOtp = async (data) => {
+export const resendOtp = async (
+  data
+) => {
   const response = await api.post(
     "/auth/resend-otp",
     data
@@ -91,7 +114,9 @@ export const resendOtp = async (data) => {
 // =========================
 // FORGOT PASSWORD
 // =========================
-export const forgotPassword = async (data) => {
+export const forgotPassword = async (
+  data
+) => {
   const response = await api.post(
     "/auth/forgot-password",
     data
@@ -103,21 +128,24 @@ export const forgotPassword = async (data) => {
 // =========================
 // VERIFY PASSWORD RESET OTP
 // =========================
-export const verifyPasswordResetOtp = async (
-  data
-) => {
-  const response = await api.post(
-    "/auth/verify-reset-otp",
+export const verifyPasswordResetOtp =
+  async (
     data
-  );
+  ) => {
+    const response = await api.post(
+      "/auth/verify-reset-otp",
+      data
+    );
 
-  return response.data;
-};
+    return response.data;
+  };
 
 // =========================
 // RESET PASSWORD
 // =========================
-export const resetPassword = async (data) => {
+export const resetPassword = async (
+  data
+) => {
   const response = await api.post(
     "/auth/reset-password",
     data
@@ -126,7 +154,12 @@ export const resetPassword = async (data) => {
   return response.data;
 };
 
-export const setPassword = async (data) => {
+// =========================
+// SET PASSWORD
+// =========================
+export const setPassword = async (
+  data
+) => {
   const response = await api.post(
     "/auth/set-password",
     data
@@ -135,6 +168,19 @@ export const setPassword = async (data) => {
   return response.data;
 };
 
+// =========================
+// CHANGE PASSWORD
+// =========================
+export const changePassword = async (
+  data
+) => {
+  const response = await api.put(
+    "/auth/change-password",
+    data
+  );
+
+  return response.data;
+};
 
 // =========================
 // GOOGLE LOGIN
@@ -191,7 +237,9 @@ export const getProfile = async () => {
 // =========================
 // UPDATE PROFILE
 // =========================
-export const updateProfile = async (data) => {
+export const updateProfile = async (
+  data
+) => {
   const response = await api.put(
     "/auth/profile",
     data
@@ -203,50 +251,67 @@ export const updateProfile = async (data) => {
 // =========================
 // UPLOAD PROFILE PICTURE
 // =========================
-export const uploadProfilePicture = async (
-  formData
-) => {
-  const response = await api.put(
-    "/auth/profile-picture",
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
+export const uploadProfilePicture =
+  async (
+    formData
+  ) => {
+    const response = await api.put(
+      "/auth/profile-picture",
+      formData,
+      {
+        headers: {
+          "Content-Type":
+            "multipart/form-data",
+        },
+      }
+    );
 
-  return response.data;
-};
+    return response.data;
+  };
 
 // =========================
 // UPLOAD COVER PHOTO
 // =========================
-export const uploadCoverPhoto = async (
-  formData
-) => {
-  const response = await api.put(
-    "/auth/cover-photo",
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
+export const uploadCoverPhoto =
+  async (
+    formData
+  ) => {
+    const response = await api.put(
+      "/auth/cover-photo",
+      formData,
+      {
+        headers: {
+          "Content-Type":
+            "multipart/form-data",
+        },
+      }
+    );
 
-  return response.data;
-};
+    return response.data;
+  };
 
 // =========================
 // SEARCH USERS
 // =========================
-export const searchUsers = async (query) => {
+export const searchUsers = async (
+  query
+) => {
+  const normalizedQuery =
+    String(query || "").trim();
+
+  if (!normalizedQuery) {
+    return {
+      success: true,
+      count: 0,
+      users: [],
+    };
+  }
+
   const response = await api.get(
     "/auth/search",
     {
       params: {
-        query: query.trim(),
+        query: normalizedQuery,
       },
     }
   );
@@ -260,8 +325,21 @@ export const searchUsers = async (query) => {
 export const getUserProfile = async (
   username
 ) => {
+  const normalizedUsername =
+    String(username || "")
+      .trim()
+      .replace(/^@/, "");
+
+  if (!normalizedUsername) {
+    throw new Error(
+      "Username is required"
+    );
+  }
+
   const response = await api.get(
-    `/auth/user/${encodeURIComponent(username)}`
+    `/auth/user/${encodeURIComponent(
+      normalizedUsername
+    )}`
   );
 
   return response.data;
@@ -269,10 +347,20 @@ export const getUserProfile = async (
 
 // =========================
 // FOLLOW USER
+// Public account  → Following
+// Private account → Requested
 // =========================
-export const followUser = async (userId) => {
-  const response = await api.put(
-    `/auth/follow/${userId}`
+export const followUser = async (
+  userId
+) => {
+  const normalizedUserId =
+    normalizeRequiredId(
+      userId,
+      "User ID"
+    );
+
+  const response = await api.post(
+    `/auth/follow/${normalizedUserId}`
   );
 
   return response.data;
@@ -284,104 +372,209 @@ export const followUser = async (userId) => {
 export const unfollowUser = async (
   userId
 ) => {
-  const response = await api.put(
-    `/auth/unfollow/${userId}`
+  const normalizedUserId =
+    normalizeRequiredId(
+      userId,
+      "User ID"
+    );
+
+  const response = await api.delete(
+    `/auth/follow/${normalizedUserId}`
   );
 
   return response.data;
 };
 
+// =========================
+// GET RECEIVED FOLLOW REQUESTS
+// =========================
+export const getReceivedFollowRequests =
+  async () => {
+    const response = await api.get(
+      "/auth/follow-requests/received"
+    );
 
-export const checkUsernameAvailability = async (
-  username
-) => {
-  const response = await api.get(
-    "/auth/username-availability",
-    {
-      params: {
-        username,
-      },
-    }
-  );
+    return response.data;
+  };
 
-  return response.data;
-};
+// =========================
+// GET SENT FOLLOW REQUESTS
+// =========================
+export const getSentFollowRequests =
+  async () => {
+    const response = await api.get(
+      "/auth/follow-requests/sent"
+    );
 
-export const changePassword = async (data) => {
-  const response = await api.put(
-    "/auth/change-password",
-    data
-  );
+    return response.data;
+  };
 
-  return response.data;
-};
+// =========================
+// ACCEPT FOLLOW REQUEST
+// =========================
+export const acceptFollowRequest =
+  async (
+    requestId
+  ) => {
+    const normalizedRequestId =
+      normalizeRequiredId(
+        requestId,
+        "Follow request ID"
+      );
 
+    const response =
+      await api.patch(
+        `/auth/follow-requests/${normalizedRequestId}/accept`
+      );
+
+    return response.data;
+  };
+
+// =========================
+// DECLINE FOLLOW REQUEST
+// =========================
+export const declineFollowRequest =
+  async (
+    requestId
+  ) => {
+    const normalizedRequestId =
+      normalizeRequiredId(
+        requestId,
+        "Follow request ID"
+      );
+
+    const response =
+      await api.patch(
+        `/auth/follow-requests/${normalizedRequestId}/decline`
+      );
+
+    return response.data;
+  };
+
+// =========================
+// CANCEL FOLLOW REQUEST
+// =========================
+export const cancelFollowRequest =
+  async (
+    requestId
+  ) => {
+    const normalizedRequestId =
+      normalizeRequiredId(
+        requestId,
+        "Follow request ID"
+      );
+
+    const response =
+      await api.delete(
+        `/auth/follow-requests/${normalizedRequestId}`
+      );
+
+    return response.data;
+  };
+
+// =========================
+// USERNAME AVAILABILITY
+// =========================
+export const checkUsernameAvailability =
+  async (
+    username
+  ) => {
+    const normalizedUsername =
+      String(username || "").trim();
+
+    const response = await api.get(
+      "/auth/username-availability",
+      {
+        params: {
+          username:
+            normalizedUsername,
+        },
+      }
+    );
+
+    return response.data;
+  };
+
+// =========================
+// GET BLOCK STATUS
+// Axios response return chesthundi.
+// Existing ChatHeader usage kosam.
+// =========================
 export const getBlockStatus = async (
   userId
 ) => {
   const normalizedUserId =
-    String(userId || "").trim();
-
-  if (!normalizedUserId) {
-    throw new Error(
-      "User ID is required"
+    normalizeRequiredId(
+      userId,
+      "User ID"
     );
-  }
 
   return api.get(
     `/auth/users/${normalizedUserId}/block-status`
   );
 };
 
+// =========================
+// BLOCK USER
+// Axios response return chesthundi.
+// Existing ChatHeader usage kosam.
+// =========================
 export const blockUser = async (
   userId
 ) => {
   const normalizedUserId =
-    String(userId || "").trim();
-
-  if (!normalizedUserId) {
-    throw new Error(
-      "User ID is required"
+    normalizeRequiredId(
+      userId,
+      "User ID"
     );
-  }
 
   return api.post(
     `/auth/users/${normalizedUserId}/block`
   );
 };
 
+// =========================
+// UNBLOCK USER
+// Axios response return chesthundi.
+// Existing ChatHeader usage kosam.
+// =========================
 export const unblockUser = async (
   userId
 ) => {
   const normalizedUserId =
-    String(userId || "").trim();
-
-  if (!normalizedUserId) {
-    throw new Error(
-      "User ID is required"
+    normalizeRequiredId(
+      userId,
+      "User ID"
     );
-  }
 
   return api.delete(
     `/auth/users/${normalizedUserId}/block`
   );
 };
 
-export const getPrivacySettings = async () => {
-  const response = await api.get(
-    "/auth/privacy-settings"
-  );
+// =========================
+// GET PRIVACY SETTINGS
+// =========================
+export const getPrivacySettings =
+  async () => {
+    const response = await api.get(
+      "/auth/privacy-settings"
+    );
 
-  return response.data;
-};
+    return response.data;
+  };
 
-export const updatePrivacySettings = async (
-  updates
-) => {
-  const response = await api.patch(
-    "/auth/privacy-settings",
-    updates
-  );
+// =========================
+// UPDATE PRIVACY SETTINGS
+// =========================
+export const updatePrivacySettings =
+  async (
+    updates = {}
+  ) => {
+    const response = await api.patch(
+      "/auth/privacy-settings",
+      updates
+    );
 
-  return response.data;
-};
+    return response.data;
+  };

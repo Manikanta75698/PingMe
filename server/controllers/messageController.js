@@ -332,6 +332,164 @@ const isChatAccepted = async (
     ],
   });
 
+const canSendMessageToUser =
+  async (
+    senderIdValue,
+    receiverIdValue
+  ) => {
+    const senderId =
+      normalizeId(senderIdValue);
+
+    const receiverId =
+      normalizeId(receiverIdValue);
+
+    if (
+      !senderId ||
+      !receiverId
+    ) {
+      return {
+        allowed: false,
+        permission: "no-one",
+        receiverExists: false,
+      };
+    }
+
+    const receiver =
+      await User.findById(
+        receiverId
+      )
+        .select(
+          [
+            "followers",
+            "following",
+            "privacySettings.messagePermission",
+          ].join(" ")
+        )
+        .lean();
+
+    if (!receiver) {
+      return {
+        allowed: false,
+        permission: "no-one",
+        receiverExists: false,
+      };
+    }
+
+    const permission =
+      [
+        "everyone",
+        "followers",
+        "following",
+        "no-one",
+      ].includes(
+        receiver
+          ?.privacySettings
+          ?.messagePermission
+      )
+        ? receiver
+          .privacySettings
+          .messagePermission
+        : "everyone";
+
+    if (permission === "everyone") {
+      return {
+        allowed: true,
+        permission,
+        receiverExists: true,
+      };
+    }
+
+    if (permission === "no-one") {
+      return {
+        allowed: false,
+        permission,
+        receiverExists: true,
+      };
+    }
+
+    const senderIsFollower =
+      Array.isArray(
+        receiver.followers
+      ) &&
+      receiver.followers.some(
+        (userId) =>
+          normalizeId(userId) ===
+          senderId
+      );
+
+    const receiverFollowsSender =
+      Array.isArray(
+        receiver.following
+      ) &&
+      receiver.following.some(
+        (userId) =>
+          normalizeId(userId) ===
+          senderId
+      );
+
+    if (permission === "followers") {
+      return {
+        allowed:
+          senderIsFollower,
+        permission,
+        receiverExists: true,
+      };
+    }
+
+    if (permission === "following") {
+      return {
+        allowed:
+          receiverFollowsSender,
+        permission,
+        receiverExists: true,
+      };
+    }
+
+    return {
+      allowed: false,
+      permission,
+      receiverExists: true,
+    };
+  };
+
+const getMessagePermissionError = (
+  permission
+) => {
+  switch (permission) {
+    case "followers":
+      return {
+        message:
+          "Only this user's followers can send messages",
+        code:
+          "MESSAGES_FOLLOWERS_ONLY",
+      };
+
+    case "following":
+      return {
+        message:
+          "Only people this user follows can send messages",
+        code:
+          "MESSAGES_FOLLOWING_ONLY",
+      };
+
+    case "no-one":
+      return {
+        message:
+          "This user is not accepting messages",
+        code:
+          "MESSAGES_DISABLED",
+      };
+
+    default:
+      return {
+        message:
+          "You cannot send messages to this user",
+        code:
+          "MESSAGE_PERMISSION_DENIED",
+      };
+  }
+};
+
 const uploadImageFromBuffer = (
   fileBuffer
 ) =>
@@ -726,6 +884,7 @@ const sendMessage = async (
     const [
       chatAllowed,
       blockState,
+      messagePermissionResult,
     ] = await Promise.all([
       isChatAccepted(
         senderId,
@@ -733,6 +892,11 @@ const sendMessage = async (
       ),
 
       getUserBlockState(
+        senderId,
+        receiverId
+      ),
+
+      canSendMessageToUser(
         senderId,
         receiverId
       ),
@@ -760,6 +924,44 @@ const sendMessage = async (
           blockState.blockedByFirst
             ? "USER_BLOCKED_BY_YOU"
             : "USER_BLOCKED_YOU",
+      });
+    }
+
+    if (
+      !messagePermissionResult
+        .receiverExists
+    ) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Receiver not found",
+        code:
+          "RECEIVER_NOT_FOUND",
+      });
+    }
+
+    if (
+      !messagePermissionResult.allowed
+    ) {
+      const permissionError =
+        getMessagePermissionError(
+          messagePermissionResult
+            .permission
+        );
+
+      return res.status(403).json({
+        success: false,
+        message:
+          permissionError.message,
+        code:
+          permissionError.code,
+
+        data: {
+          userId: receiverId,
+          messagePermission:
+            messagePermissionResult
+              .permission,
+        },
       });
     }
     logSendTiming(
@@ -2018,6 +2220,8 @@ const forwardMessage = async (
         receiverId
       );
 
+
+
     if (forwardBlockState.isBlocked) {
       return res.status(403).json({
         success: false,
@@ -2036,6 +2240,48 @@ const forwardMessage = async (
 
         data: {
           userId: receiverId,
+        },
+      });
+    }
+
+    const forwardPermissionResult =
+      await canSendMessageToUser(
+        currentUserId,
+        receiverId
+      );
+
+    if (
+      !forwardPermissionResult
+        .receiverExists
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: "Receiver not found",
+        code: "RECEIVER_NOT_FOUND",
+      });
+    }
+
+    if (
+      !forwardPermissionResult.allowed
+    ) {
+      const permissionError =
+        getMessagePermissionError(
+          forwardPermissionResult
+            .permission
+        );
+
+      return res.status(403).json({
+        success: false,
+        message:
+          permissionError.message,
+        code:
+          permissionError.code,
+
+        data: {
+          userId: receiverId,
+          messagePermission:
+            forwardPermissionResult
+              .permission,
         },
       });
     }

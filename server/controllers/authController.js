@@ -3,6 +3,11 @@ const mongoose = require(
   "mongoose"
 );
 const User = require("../models/User");
+
+const FollowRequest = require(
+  "../models/FollowRequest"
+);
+
 const {
   getIO,
 } = require("../socket/socketInstance");
@@ -1512,6 +1517,66 @@ const updatePrivacySettings = async (
         user.privacySettings
       );
 
+    try {
+      const io = getIO();
+
+      const onlineStatusWasUpdated =
+        Object.prototype.hasOwnProperty.call(
+          updates,
+          "privacySettings.showOnlineStatus"
+        );
+
+      const lastSeenWasUpdated =
+        Object.prototype.hasOwnProperty.call(
+          updates,
+          "privacySettings.showLastSeen"
+        );
+
+      if (
+        onlineStatusWasUpdated &&
+        privacySettings.showOnlineStatus ===
+        false
+      ) {
+        io.emit(
+          "userPresenceChanged",
+          {
+            userId:
+              normalizeUserId(
+                req.user._id
+              ),
+            isOnline: false,
+            lastSeen:
+              privacySettings.showLastSeen
+                ? new Date().toISOString()
+                : null,
+          }
+        );
+      }
+
+      if (
+        lastSeenWasUpdated &&
+        privacySettings.showLastSeen ===
+        false
+      ) {
+        io.emit(
+          "userLastSeenPrivacyChanged",
+          {
+            userId:
+              normalizeUserId(
+                req.user._id
+              ),
+            lastSeen: null,
+          }
+        );
+      }
+
+    } catch (socketError) {
+      console.error(
+        "PRIVACY PRESENCE SOCKET ERROR:",
+        socketError
+      );
+    }
+
     return res.status(200).json({
       success: true,
       message:
@@ -1951,10 +2016,93 @@ const uploadCoverPhoto = async (req, res) => {
   }
 };
 
-const followUser = async (req, res) => {
+
+/* =========================
+   FOLLOW USER
+========================= */
+
+const followUser = async (
+  req,
+  res
+) => {
   try {
-    const user = await User.findById(req.user._id);
-    const targetUser = await User.findById(req.params.id);
+    const currentUserId =
+      normalizeUserId(req.user);
+
+    const targetUserId =
+      normalizeUserId(
+        req.params?.id
+      );
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
+      !targetUserId ||
+      !mongoose.isValidObjectId(
+        targetUserId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid user ID",
+      });
+    }
+
+    if (
+      currentUserId ===
+      targetUserId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "You cannot follow yourself",
+      });
+    }
+
+    const [
+      currentUser,
+      targetUser,
+    ] = await Promise.all([
+      User.findById(currentUserId)
+        .select(
+          "_id following blockedUsers"
+        )
+        .lean(),
+
+      User.findById(targetUserId)
+        .select(
+          [
+            "_id",
+            "name",
+            "username",
+            "profilePic",
+            "followers",
+            "blockedUsers",
+            "privacySettings.privateAccount",
+          ].join(" ")
+        )
+        .lean(),
+    ]);
+
+    if (!currentUser) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Current user not found",
+      });
+    }
 
     if (!targetUser) {
       return res.status(404).json({
@@ -1963,90 +2111,1073 @@ const followUser = async (req, res) => {
       });
     }
 
-    if (user._id.toString() === targetUser._id.toString()) {
-      return res.status(400).json({
+    const currentUserBlockedTarget =
+      Array.isArray(
+        currentUser.blockedUsers
+      ) &&
+      currentUser.blockedUsers.some(
+        (userId) =>
+          normalizeUserId(userId) ===
+          targetUserId
+      );
+
+    const targetBlockedCurrentUser =
+      Array.isArray(
+        targetUser.blockedUsers
+      ) &&
+      targetUser.blockedUsers.some(
+        (userId) =>
+          normalizeUserId(userId) ===
+          currentUserId
+      );
+
+    if (
+      currentUserBlockedTarget ||
+      targetBlockedCurrentUser
+    ) {
+      return res.status(403).json({
         success: false,
-        message: "You cannot follow yourself",
+
+        message:
+          currentUserBlockedTarget
+            ? "Unblock this user before following"
+            : "You cannot follow this user",
+
+        code:
+          currentUserBlockedTarget
+            ? "USER_BLOCKED_BY_YOU"
+            : "USER_BLOCKED_YOU",
       });
     }
 
-    if (user.following.includes(targetUser._id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Already following",
+    const alreadyFollowing =
+      Array.isArray(
+        currentUser.following
+      ) &&
+      currentUser.following.some(
+        (userId) =>
+          normalizeUserId(userId) ===
+          targetUserId
+      );
+
+    if (alreadyFollowing) {
+      return res.status(200).json({
+        success: true,
+        message:
+          "You are already following this user",
+
+        data: {
+          userId: targetUserId,
+          followStatus:
+            "following",
+          isFollowing: true,
+          isRequested: false,
+          requestId: null,
+        },
       });
     }
 
-    user.following.push(targetUser._id);
-    targetUser.followers.push(user._id);
+    const privateAccount =
+      targetUser
+        ?.privacySettings
+        ?.privateAccount === true;
 
-    await user.save();
-    await targetUser.save();
+    /*
+     * =========================
+     * PRIVATE ACCOUNT
+     * =========================
+     */
+    if (privateAccount) {
+      let followRequest;
+
+      try {
+        followRequest =
+          await FollowRequest
+            .findOneAndUpdate(
+              {
+                sender:
+                  currentUserId,
+                receiver:
+                  targetUserId,
+              },
+              {
+                $setOnInsert: {
+                  sender:
+                    currentUserId,
+                  receiver:
+                    targetUserId,
+                },
+
+                $set: {
+                  status:
+                    "pending",
+                  respondedAt:
+                    null,
+                },
+              },
+              {
+                new: true,
+                upsert: true,
+                runValidators: true,
+                setDefaultsOnInsert:
+                  true,
+              }
+            );
+      } catch (error) {
+        /*
+         * Simultaneous duplicate requests
+         * unique index ni hit chesthe
+         * existing request return chestham.
+         */
+        if (error?.code === 11000) {
+          followRequest =
+            await FollowRequest.findOne({
+              sender:
+                currentUserId,
+              receiver:
+                targetUserId,
+            });
+        } else {
+          throw error;
+        }
+      }
+
+      try {
+        const io = getIO();
+
+        io.to(targetUserId).emit(
+          "followRequestReceived",
+          {
+            requestId:
+              normalizeUserId(
+                followRequest?._id
+              ),
+
+            sender: {
+              _id: currentUser._id,
+            },
+
+            status: "pending",
+            createdAt:
+              followRequest
+                ?.createdAt ||
+              new Date(),
+          }
+        );
+      } catch (socketError) {
+        console.error(
+          "FOLLOW REQUEST SOCKET ERROR:",
+          socketError?.message ||
+          socketError
+        );
+      }
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Follow request sent",
+
+        data: {
+          userId: targetUserId,
+          followStatus:
+            "requested",
+          isFollowing: false,
+          isRequested: true,
+
+          requestId:
+            followRequest?._id ||
+            null,
+        },
+      });
+    }
+
+    /*
+     * =========================
+     * PUBLIC ACCOUNT
+     * =========================
+     */
+    await Promise.all([
+      User.updateOne(
+        {
+          _id: currentUserId,
+        },
+        {
+          $addToSet: {
+            following:
+              targetUserId,
+          },
+        }
+      ),
+
+      User.updateOne(
+        {
+          _id: targetUserId,
+        },
+        {
+          $addToSet: {
+            followers:
+              currentUserId,
+          },
+        }
+      ),
+
+      /*
+       * Old declined/pending request
+       * unte clean chestham.
+       */
+      FollowRequest.deleteOne({
+        sender:
+          currentUserId,
+        receiver:
+          targetUserId,
+      }),
+    ]);
 
     await Notification.create({
-      sender: req.user._id,
-      receiver: targetUser._id,
+      sender: currentUserId,
+      receiver: targetUserId,
       type: "follow",
     });
 
-    res.json({
+    try {
+      const io = getIO();
+
+      io.to(targetUserId).emit(
+        "userFollowStatusUpdated",
+        {
+          userId:
+            currentUserId,
+          action: "followed",
+        }
+      );
+    } catch (socketError) {
+      console.error(
+        "FOLLOW SOCKET ERROR:",
+        socketError?.message ||
+        socketError
+      );
+    }
+
+    return res.status(200).json({
       success: true,
-      message: "User followed successfully",
+      message:
+        "User followed successfully",
+
+      data: {
+        userId: targetUserId,
+        followStatus:
+          "following",
+        isFollowing: true,
+        isRequested: false,
+        requestId: null,
+      },
     });
-
   } catch (error) {
-    console.log(error);
+    console.error(
+      "FOLLOW USER ERROR:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        "Unable to follow user",
     });
   }
 };
 
-const unfollowUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    const targetUser = await User.findById(req.params.id);
 
-    if (!targetUser) {
+/* =========================
+   UNFOLLOW USER
+========================= */
+
+const unfollowUser = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeUserId(req.user);
+
+    const targetUserId =
+      normalizeUserId(
+        req.params?.id
+      );
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (
+      !targetUserId ||
+      !mongoose.isValidObjectId(
+        targetUserId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid user ID",
+      });
+    }
+
+    if (
+      currentUserId ===
+      targetUserId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid follow action",
+      });
+    }
+
+    const targetExists =
+      await User.exists({
+        _id: targetUserId,
+      });
+
+    if (!targetExists) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
     }
 
-    user.following = user.following.filter(
-      (id) => id.toString() !== targetUser._id.toString()
-    );
+    await Promise.all([
+      User.updateOne(
+        {
+          _id: currentUserId,
+        },
+        {
+          $pull: {
+            following:
+              targetUserId,
+          },
+        }
+      ),
 
-    targetUser.followers = targetUser.followers.filter(
-      (id) => id.toString() !== user._id.toString()
-    );
+      User.updateOne(
+        {
+          _id: targetUserId,
+        },
+        {
+          $pull: {
+            followers:
+              currentUserId,
+          },
+        }
+      ),
 
-    await user.save();
-    await targetUser.save();
+      FollowRequest.deleteOne({
+        sender:
+          currentUserId,
+        receiver:
+          targetUserId,
+      }),
 
-    res.json({
+      Notification.deleteMany({
+        sender:
+          currentUserId,
+        receiver:
+          targetUserId,
+        type: "follow",
+      }),
+    ]);
+
+    try {
+      const io = getIO();
+
+      io.to(targetUserId).emit(
+        "userFollowStatusUpdated",
+        {
+          userId:
+            currentUserId,
+          action: "unfollowed",
+        }
+      );
+    } catch (socketError) {
+      console.error(
+        "UNFOLLOW SOCKET ERROR:",
+        socketError?.message ||
+        socketError
+      );
+    }
+
+    return res.status(200).json({
       success: true,
-      message: "User unfollowed successfully",
+      message:
+        "User unfollowed successfully",
+
+      data: {
+        userId: targetUserId,
+        followStatus: "none",
+        isFollowing: false,
+        isRequested: false,
+        requestId: null,
+      },
     });
-
   } catch (error) {
-    console.log(error);
+    console.error(
+      "UNFOLLOW USER ERROR:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        "Unable to unfollow user",
     });
   }
 };
 
-const getUserProfile = async (req, res) => {
+
+/* =========================
+   RECEIVED FOLLOW REQUESTS
+========================= */
+
+const getReceivedFollowRequests =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const currentUserId =
+        normalizeUserId(req.user);
+
+      if (
+        !currentUserId ||
+        !mongoose.isValidObjectId(
+          currentUserId
+        )
+      ) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+      }
+
+      const requests =
+        await FollowRequest.find({
+          receiver:
+            currentUserId,
+          status: "pending",
+        })
+          .populate(
+            "sender",
+            "name username profilePic bio"
+          )
+          .sort({
+            createdAt: -1,
+          })
+          .lean();
+
+      return res.status(200).json({
+        success: true,
+        count: requests.length,
+        requests,
+      });
+    } catch (error) {
+      console.error(
+        "GET RECEIVED FOLLOW REQUESTS ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Unable to load follow requests",
+      });
+    }
+  };
+
+
+/* =========================
+   SENT FOLLOW REQUESTS
+========================= */
+
+const getSentFollowRequests =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const currentUserId =
+        normalizeUserId(req.user);
+
+      if (
+        !currentUserId ||
+        !mongoose.isValidObjectId(
+          currentUserId
+        )
+      ) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+      }
+
+      const requests =
+        await FollowRequest.find({
+          sender:
+            currentUserId,
+          status: "pending",
+        })
+          .populate(
+            "receiver",
+            "name username profilePic bio"
+          )
+          .sort({
+            createdAt: -1,
+          })
+          .lean();
+
+      return res.status(200).json({
+        success: true,
+        count: requests.length,
+        requests,
+      });
+    } catch (error) {
+      console.error(
+        "GET SENT FOLLOW REQUESTS ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Unable to load sent requests",
+      });
+    }
+  };
+
+
+/* =========================
+   ACCEPT FOLLOW REQUEST
+========================= */
+
+const acceptFollowRequest =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const currentUserId =
+        normalizeUserId(req.user);
+
+      const requestId =
+        normalizeUserId(
+          req.params?.requestId
+        );
+
+      if (
+        !currentUserId ||
+        !mongoose.isValidObjectId(
+          currentUserId
+        )
+      ) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+      }
+
+      if (
+        !requestId ||
+        !mongoose.isValidObjectId(
+          requestId
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid follow request ID",
+        });
+      }
+
+
+      const followRequest =
+        await FollowRequest.findOne({
+          _id: requestId,
+          receiver:
+            currentUserId,
+          status: "pending",
+        });
+
+      if (!followRequest) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Follow request not found or already handled",
+        });
+      }
+
+      const senderId =
+        normalizeUserId(
+          followRequest.sender
+        );
+
+      const [
+        sender,
+        receiver,
+      ] = await Promise.all([
+        User.findById(senderId)
+          .select(
+            "_id blockedUsers"
+          )
+          .lean(),
+
+        User.findById(
+          currentUserId
+        )
+          .select(
+            "_id blockedUsers"
+          )
+          .lean(),
+      ]);
+
+      if (!sender || !receiver) {
+        await FollowRequest
+          .deleteOne({
+            _id: requestId,
+          });
+
+        return res.status(404).json({
+          success: false,
+          message:
+            "Follow request user not found",
+        });
+      }
+
+      const senderBlockedReceiver =
+        Array.isArray(
+          sender.blockedUsers
+        ) &&
+        sender.blockedUsers.some(
+          (userId) =>
+            normalizeUserId(
+              userId
+            ) === currentUserId
+        );
+
+      const receiverBlockedSender =
+        Array.isArray(
+          receiver.blockedUsers
+        ) &&
+        receiver.blockedUsers.some(
+          (userId) =>
+            normalizeUserId(
+              userId
+            ) === senderId
+        );
+
+      if (
+        senderBlockedReceiver ||
+        receiverBlockedSender
+      ) {
+        await FollowRequest
+          .deleteOne({
+            _id: requestId,
+          });
+
+        return res.status(403).json({
+          success: false,
+          message:
+            "This follow request can no longer be accepted",
+
+          code:
+            "FOLLOW_REQUEST_BLOCKED",
+        });
+      }
+
+      const claimedRequest =
+        await FollowRequest
+          .findOneAndDelete({
+            _id: requestId,
+            receiver:
+              currentUserId,
+            status: "pending",
+          });
+
+      if (!claimedRequest) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "Follow request was already handled",
+          code:
+            "FOLLOW_REQUEST_ALREADY_HANDLED",
+        });
+      }
+
+      await Promise.all([
+        User.updateOne(
+          {
+            _id: senderId,
+          },
+          {
+            $addToSet: {
+              following:
+                currentUserId,
+            },
+          }
+        ),
+
+        User.updateOne(
+          {
+            _id: currentUserId,
+          },
+          {
+            $addToSet: {
+              followers:
+                senderId,
+            },
+          }
+        ),
+      ]);
+
+      await Notification.create({
+        sender: senderId,
+        receiver:
+          currentUserId,
+        type: "follow",
+      });
+
+      try {
+        const io = getIO();
+
+        io.to(senderId).emit(
+          "followRequestAccepted",
+          {
+            requestId,
+            userId:
+              currentUserId,
+            followStatus:
+              "following",
+          }
+        );
+
+        io.to(currentUserId).emit(
+          "followRequestRemoved",
+          {
+            requestId,
+          }
+        );
+      } catch (socketError) {
+        console.error(
+          "ACCEPT FOLLOW REQUEST SOCKET ERROR:",
+          socketError?.message ||
+          socketError
+        );
+      }
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Follow request accepted",
+
+        data: {
+          requestId,
+          userId: senderId,
+          status: "accepted",
+        },
+      });
+    } catch (error) {
+      console.error(
+        "ACCEPT FOLLOW REQUEST ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Unable to accept follow request",
+      });
+    }
+  };
+
+
+/* =========================
+   DECLINE FOLLOW REQUEST
+========================= */
+
+const declineFollowRequest =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const currentUserId =
+        normalizeUserId(req.user);
+
+      const requestId =
+        normalizeUserId(
+          req.params?.requestId
+        );
+
+      if (
+        !requestId ||
+        !mongoose.isValidObjectId(
+          requestId
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid follow request ID",
+        });
+      }
+
+      const followRequest =
+        await FollowRequest
+          .findOneAndDelete({
+            _id: requestId,
+            receiver:
+              currentUserId,
+            status: "pending",
+          });
+
+      if (!followRequest) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Follow request not found or already handled",
+        });
+      }
+
+      const senderId =
+        normalizeUserId(
+          followRequest.sender
+        );
+
+      try {
+        const io = getIO();
+
+        io.to(senderId).emit(
+          "followRequestDeclined",
+          {
+            requestId,
+            userId:
+              currentUserId,
+          }
+        );
+
+        io.to(currentUserId).emit(
+          "followRequestRemoved",
+          {
+            requestId,
+          }
+        );
+      } catch (socketError) {
+        console.error(
+          "DECLINE FOLLOW REQUEST SOCKET ERROR:",
+          socketError?.message ||
+          socketError
+        );
+      }
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Follow request declined",
+
+        data: {
+          requestId,
+          userId: senderId,
+          status: "declined",
+        },
+      });
+    } catch (error) {
+      console.error(
+        "DECLINE FOLLOW REQUEST ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Unable to decline follow request",
+      });
+    }
+  };
+
+
+/* =========================
+   CANCEL FOLLOW REQUEST
+========================= */
+
+const cancelFollowRequest =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const currentUserId =
+        normalizeUserId(req.user);
+
+      const requestId =
+        normalizeUserId(
+          req.params?.requestId
+        );
+
+      if (
+        !requestId ||
+        !mongoose.isValidObjectId(
+          requestId
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid follow request ID",
+        });
+      }
+
+      /*
+       * Sender matrame own pending
+       * request cancel cheyyagaladu.
+       */
+      const followRequest =
+        await FollowRequest
+          .findOneAndDelete({
+            _id: requestId,
+            sender:
+              currentUserId,
+            status: "pending",
+          });
+
+      if (!followRequest) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Follow request not found or cannot be cancelled",
+        });
+      }
+
+      const receiverId =
+        normalizeUserId(
+          followRequest.receiver
+        );
+
+      try {
+        const io = getIO();
+
+        io.to(receiverId).emit(
+          "followRequestRemoved",
+          {
+            requestId,
+            senderId:
+              currentUserId,
+          }
+        );
+      } catch (socketError) {
+        console.error(
+          "CANCEL FOLLOW REQUEST SOCKET ERROR:",
+          socketError?.message ||
+          socketError
+        );
+      }
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Follow request cancelled",
+
+        data: {
+          requestId,
+          userId: receiverId,
+          followStatus: "none",
+          isFollowing: false,
+          isRequested: false,
+        },
+      });
+    } catch (error) {
+      console.error(
+        "CANCEL FOLLOW REQUEST ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Unable to cancel follow request",
+      });
+    }
+  };
+
+/* =========================
+   GET USER PROFILE
+========================= */
+
+const getUserProfile = async (
+  req,
+  res
+) => {
   try {
-    const user = await User.findOne({
-      username: req.params.username,
-    }).select("-password");
+    const currentUserId =
+      normalizeUserId(req.user);
+
+    const normalizedUsername =
+      String(
+        req.params?.username || ""
+      )
+        .trim()
+        .toLowerCase()
+        .replace(/^@/, "");
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "Authentication required",
+      });
+    }
+
+    if (!normalizedUsername) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Username is required",
+      });
+    }
+
+    const user =
+      await User.findOne({
+        username:
+          normalizedUsername,
+      })
+        .select(
+          [
+            "_id",
+            "name",
+            "username",
+            "profilePic",
+            "bio",
+            "followers",
+            "following",
+            "blockedUsers",
+            "isVerified",
+            "createdAt",
+            "privacySettings.privateAccount",
+          ].join(" ")
+        )
+        .lean();
 
     if (!user) {
       return res.status(404).json({
@@ -2055,17 +3186,212 @@ const getUserProfile = async (req, res) => {
       });
     }
 
-    res.json({
+    const profileUserId =
+      normalizeUserId(user._id);
+
+    const isOwnProfile =
+      currentUserId ===
+      profileUserId;
+
+    const currentUser =
+      isOwnProfile
+        ? user
+        : await User.findById(
+          currentUserId
+        )
+          .select(
+            [
+              "_id",
+              "following",
+              "followers",
+              "blockedUsers",
+            ].join(" ")
+          )
+          .lean();
+
+    if (!currentUser) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Current user not found",
+      });
+    }
+
+    const isFollowing =
+      !isOwnProfile &&
+      Array.isArray(
+        currentUser.following
+      ) &&
+      currentUser.following.some(
+        (userId) =>
+          normalizeUserId(
+            userId
+          ) === profileUserId
+      );
+
+    const isFollowedBy =
+      !isOwnProfile &&
+      Array.isArray(
+        user.following
+      ) &&
+      user.following.some(
+        (userId) =>
+          normalizeUserId(
+            userId
+          ) === currentUserId
+      );
+
+    const blockedByMe =
+      !isOwnProfile &&
+      Array.isArray(
+        currentUser.blockedUsers
+      ) &&
+      currentUser.blockedUsers.some(
+        (userId) =>
+          normalizeUserId(
+            userId
+          ) === profileUserId
+      );
+
+    const blockedMe =
+      !isOwnProfile &&
+      Array.isArray(
+        user.blockedUsers
+      ) &&
+      user.blockedUsers.some(
+        (userId) =>
+          normalizeUserId(
+            userId
+          ) === currentUserId
+      );
+
+    const isBlocked =
+      blockedByMe ||
+      blockedMe;
+
+    let followRequest = null;
+
+    if (
+      !isOwnProfile &&
+      !isFollowing &&
+      !isBlocked
+    ) {
+      followRequest =
+        await FollowRequest.findOne({
+          sender:
+            currentUserId,
+          receiver:
+            profileUserId,
+          status: "pending",
+        })
+          .select(
+            "_id status createdAt"
+          )
+          .lean();
+    }
+
+    const isRequested =
+      Boolean(followRequest);
+
+    const privateAccount =
+      user
+        ?.privacySettings
+        ?.privateAccount === true;
+
+    const canViewPrivateContent =
+      isOwnProfile ||
+      !privateAccount ||
+      isFollowing;
+
+    let followStatus = "none";
+
+    if (isOwnProfile) {
+      followStatus = "self";
+    } else if (isBlocked) {
+      followStatus = "blocked";
+    } else if (isFollowing) {
+      followStatus =
+        "following";
+    } else if (isRequested) {
+      followStatus =
+        "requested";
+    } else if (isFollowedBy) {
+      followStatus =
+        "follow-back";
+    }
+
+    const followersCount =
+      Array.isArray(
+        user.followers
+      )
+        ? user.followers.length
+        : 0;
+
+    const followingCount =
+      Array.isArray(
+        user.following
+      )
+        ? user.following.length
+        : 0;
+
+    const postsCount =
+      canViewPrivateContent
+        ? await Post.countDocuments({
+          user: profileUserId,
+        })
+        : 0;
+
+    return res.status(200).json({
       success: true,
-      user,
+
+      user: {
+        _id: user._id,
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        profilePic:
+          user.profilePic,
+        bio: user.bio || "",
+        isVerified:
+          Boolean(
+            user.isVerified
+          ),
+        createdAt:
+          user.createdAt,
+
+        privateAccount,
+        canViewPrivateContent,
+
+        followersCount,
+        followingCount,
+        postsCount,
+
+        isOwnProfile,
+        isFollowing,
+        isFollowedBy,
+        isRequested,
+
+        followStatus,
+
+        followRequestId:
+          followRequest?._id ||
+          null,
+
+        blockedByMe,
+        blockedMe,
+        isBlocked,
+      },
     });
-
   } catch (error) {
-    console.log(error);
+    console.error(
+      "GET USER PROFILE ERROR:",
+      error
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        "Unable to load user profile",
     });
   }
 };
@@ -2319,10 +3645,7 @@ const blockUser = async (
           ) === currentUserId
       );
 
-    /*
-     * Block user and remove existing
-     * follow relationship from both sides.
-     */
+
     await Promise.all([
       User.updateOne(
         {
@@ -2337,7 +3660,6 @@ const blockUser = async (
           $pull: {
             following:
               targetUserId,
-
             followers:
               targetUserId,
           },
@@ -2352,12 +3674,28 @@ const blockUser = async (
           $pull: {
             following:
               currentUserId,
-
             followers:
               currentUserId,
           },
         }
       ),
+
+      FollowRequest.deleteMany({
+        $or: [
+          {
+            sender:
+              currentUserId,
+            receiver:
+              targetUserId,
+          },
+          {
+            sender:
+              targetUserId,
+            receiver:
+              currentUserId,
+          },
+        ],
+      }),
     ]);
 
     emitBlockStatusUpdate(
@@ -2730,14 +4068,22 @@ module.exports = {
   verifyPasswordResetOtp,
   resetPassword,
   googleLogin,
+
   getProfile,
   getPrivacySettings,
   updatePrivacySettings,
   updateProfile,
   uploadProfilePicture,
   uploadCoverPhoto,
+
   followUser,
   unfollowUser,
+  getReceivedFollowRequests,
+  getSentFollowRequests,
+  acceptFollowRequest,
+  declineFollowRequest,
+  cancelFollowRequest,
+
   getUserProfile,
   searchUsers,
   checkUsernameAvailability,

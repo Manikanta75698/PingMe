@@ -112,7 +112,7 @@ const formatLastSeen = (
   currentTime
 ) => {
   if (!lastSeenValue) {
-    return "Offline";
+    return "";
   }
 
   const lastSeenDate =
@@ -123,7 +123,7 @@ const formatLastSeen = (
       lastSeenDate.getTime()
     )
   ) {
-    return "Offline";
+    return "";
   }
 
   const now =
@@ -308,9 +308,7 @@ const ChatHeader = () => {
   const selectedLastSeen =
     lastSeenByUser?.[
     selectedChatId
-    ] ||
-    selectedChat?.lastSeen ||
-    null;
+    ] || null;
 
   const lastSeenText =
     useMemo(
@@ -855,39 +853,41 @@ const ChatHeader = () => {
               {displayName}
             </h2>
 
-            <p
-              className={`
-              ${styles.status}
-              ${isTyping
-                  ? styles.typing
-                  : ""
-                }
-            `}
-              aria-live="polite"
-            >
-              {isTyping ? (
-                <span
-                  className={
-                    styles.typingIndicator
+            {(isTyping || statusText) && (
+              <p
+                className={`
+      ${styles.status}
+      ${isTyping
+                    ? styles.typing
+                    : ""
                   }
-                >
-                  <span>Typing</span>
-
+    `}
+                aria-live="polite"
+              >
+                {isTyping ? (
                   <span
                     className={
-                      styles.typingDots
+                      styles.typingIndicator
                     }
-                    aria-hidden="true"
                   >
-                    <i />
-                    <i />
-                    <i />
+                    <span>Typing</span>
+
+                    <span
+                      className={
+                        styles.typingDots
+                      }
+                      aria-hidden="true"
+                    >
+                      <i />
+                      <i />
+                      <i />
+                    </span>
                   </span>
-                </span>
-              ) : (
-                statusText
-              )}
-            </p>
+                ) : (
+                  statusText
+                )}
+              </p>
+            )}
           </div>
         </div>
 

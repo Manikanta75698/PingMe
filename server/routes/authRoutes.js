@@ -25,8 +25,15 @@ const {
   updateProfile,
   uploadProfilePicture,
   uploadCoverPhoto,
+
   followUser,
   unfollowUser,
+  getReceivedFollowRequests,
+  getSentFollowRequests,
+  acceptFollowRequest,
+  declineFollowRequest,
+  cancelFollowRequest,
+
   getUserProfile,
   searchUsers,
   checkUsernameAvailability,
@@ -141,23 +148,63 @@ router.put(
 // FOLLOW ROUTES
 // =========================
 
-router.put(
+router.post(
   "/follow/:id",
   protect,
   followUser
 );
 
-router.put(
-  "/unfollow/:id",
+router.delete(
+  "/follow/:id",
   protect,
   unfollowUser
 );
 
-router.put("/change-password", protect, changePassword);
+// =========================
+// FOLLOW REQUEST ROUTES
+// =========================
 
-router.post("/set-password", protect, setPassword);
+router.get(
+  "/follow-requests/received",
+  protect,
+  getReceivedFollowRequests
+);
 
+router.get(
+  "/follow-requests/sent",
+  protect,
+  getSentFollowRequests
+);
 
+router.patch(
+  "/follow-requests/:requestId/accept",
+  protect,
+  acceptFollowRequest
+);
+
+router.patch(
+  "/follow-requests/:requestId/decline",
+  protect,
+  declineFollowRequest
+);
+
+router.delete(
+  "/follow-requests/:requestId",
+  protect,
+  cancelFollowRequest
+);
+
+router.put(
+  "/change-password",
+  protect,
+  changePassword
+);
+
+router.post(
+  "/set-password",
+  protect,
+  setPassword
+);
 
 
 // =========================

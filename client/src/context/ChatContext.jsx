@@ -381,44 +381,6 @@ export const ChatProvider = ({
     };
   }, [selectedChatId]);
 
-  /* =========================
-   SELECTED USER LAST SEEN
-========================= */
-
-  useEffect(() => {
-    const selectedChatId =
-      normalizeId(selectedChat);
-
-    const selectedLastSeen =
-      selectedChat?.lastSeen;
-
-    if (
-      !selectedChatId ||
-      !selectedLastSeen
-    ) {
-      return;
-    }
-
-    const parsedLastSeen =
-      new Date(selectedLastSeen);
-
-    if (
-      Number.isNaN(
-        parsedLastSeen.getTime()
-      )
-    ) {
-      return;
-    }
-
-    setLastSeenByUser(
-      (previous) => ({
-        ...previous,
-
-        [selectedChatId]:
-          parsedLastSeen.toISOString(),
-      })
-    );
-  }, [selectedChat]);
 
   /* =========================
      LOAD REQUESTS
@@ -491,53 +453,6 @@ export const ChatProvider = ({
           safeSummaries
         );
 
-        const lastSeenEntries = {};
-
-        safeSummaries.forEach(
-          (summary) => {
-            const userId =
-              normalizeId(
-                summary?.user
-              );
-
-            const lastSeen =
-              summary?.user?.lastSeen;
-
-            if (
-              !userId ||
-              !lastSeen
-            ) {
-              return;
-            }
-
-            const parsedLastSeen =
-              new Date(lastSeen);
-
-            if (
-              Number.isNaN(
-                parsedLastSeen.getTime()
-              )
-            ) {
-              return;
-            }
-
-            lastSeenEntries[userId] =
-              parsedLastSeen.toISOString();
-          }
-        );
-
-        if (
-          Object.keys(
-            lastSeenEntries
-          ).length > 0
-        ) {
-          setLastSeenByUser(
-            (previous) => ({
-              ...previous,
-              ...lastSeenEntries,
-            })
-          );
-        }
       } catch (error) {
         console.error(
           "LOAD CHAT SUMMARIES ERROR:",
@@ -580,7 +495,6 @@ export const ChatProvider = ({
   /* =========================
      SOCKET CONNECTION
   ========================= */
-
   useEffect(() => {
     const token =
       localStorage.getItem("token");
@@ -592,8 +506,158 @@ export const ChatProvider = ({
       normalizeId(currentUser);
 
     if (!token || !currentUserId) {
-      return;
+      return undefined;
     }
+
+    const removeLastSeen = (
+      userId
+    ) => {
+      setLastSeenByUser(
+        (previous) => {
+          if (
+            !Object.prototype
+              .hasOwnProperty.call(
+                previous,
+                userId
+              )
+          ) {
+            return previous;
+          }
+
+          const next = {
+            ...previous,
+          };
+
+          delete next[userId];
+
+          return next;
+        }
+      );
+    };
+
+    const updateSummaryPresence = ({
+      userId,
+      isOnline,
+      lastSeen,
+    }) => {
+      setChatSummaries(
+        (previous) =>
+          Array.isArray(previous)
+            ? previous.map(
+              (summary) => {
+                const summaryUserId =
+                  normalizeId(
+                    summary?.user
+                  );
+
+                if (
+                  summaryUserId !==
+                  userId ||
+                  !summary?.user ||
+                  typeof summary.user !==
+                  "object"
+                ) {
+                  return summary;
+                }
+
+                return {
+                  ...summary,
+
+                  user: {
+                    ...summary.user,
+                    isOnline:
+                      Boolean(isOnline),
+                    lastSeen:
+                      lastSeen || null,
+                  },
+                };
+              }
+            )
+            : []
+      );
+    };
+
+    const updateOnlineUsers = (
+      userId,
+      isOnline
+    ) => {
+      setOnlineUsers((previous) => {
+        const onlineUserSet =
+          new Set(
+            (
+              Array.isArray(previous)
+                ? previous
+                : []
+            )
+              .map((item) =>
+                normalizeId(item)
+              )
+              .filter(Boolean)
+          );
+
+        if (isOnline) {
+          onlineUserSet.add(userId);
+        } else {
+          onlineUserSet.delete(userId);
+        }
+
+        return Array.from(
+          onlineUserSet
+        );
+      });
+    };
+
+    const saveLastSeen = (
+      userId,
+      lastSeen
+    ) => {
+      if (!lastSeen) {
+        removeLastSeen(userId);
+        return;
+      }
+
+      const parsedLastSeen =
+        new Date(lastSeen);
+
+      if (
+        Number.isNaN(
+          parsedLastSeen.getTime()
+        )
+      ) {
+        removeLastSeen(userId);
+        return;
+      }
+
+      setLastSeenByUser(
+        (previous) => ({
+          ...previous,
+
+          [userId]:
+            parsedLastSeen
+              .toISOString(),
+        })
+      );
+    };
+
+    const requestSelectedPresence =
+      () => {
+        const selectedUserId =
+          normalizeId(
+            selectedChatRef.current
+          );
+
+        if (!selectedUserId) {
+          return;
+        }
+
+        socket.emit(
+          "presence:sync",
+          {
+            userId:
+              selectedUserId,
+          }
+        );
+      };
 
     const handleConnect = () => {
       console.log(
@@ -601,39 +665,7 @@ export const ChatProvider = ({
         socket.id
       );
 
-      socket.emit(
-        "presence:sync",
-        {
-          userId:
-            normalizeId(
-              selectedChatRef.current
-            ),
-        }
-      );
-    };
-
-    const handleOnlineUsers = (
-      users
-    ) => {
-      const normalizedUsers =
-        Array.isArray(users)
-          ? users
-            .map((user) =>
-              normalizeId(user)
-            )
-            .filter(Boolean)
-          : [];
-
-      /*
-       * Duplicate user IDs avoid.
-       */
-      setOnlineUsers(
-        Array.from(
-          new Set(
-            normalizedUsers
-          )
-        )
-      );
+      requestSelectedPresence();
     };
 
     const handlePresenceChanged = (
@@ -653,188 +685,117 @@ export const ChatProvider = ({
           payload?.isOnline
         );
 
-      /*
-       * Presence event vachina ventane
-       * onlineUsers locally update chestham.
-       */
-      setOnlineUsers(
-        (previous) => {
-          const onlineUserSet =
-            new Set(
-              (
-                Array.isArray(previous)
-                  ? previous
-                  : []
-              )
-                .map((user) =>
-                  normalizeId(user)
-                )
-                .filter(Boolean)
-            );
+      const lastSeen =
+        !isOnline
+          ? payload?.lastSeen || null
+          : null;
 
-          if (isOnline) {
-            onlineUserSet.add(
-              userId
-            );
-          } else {
-            onlineUserSet.delete(
-              userId
-            );
-          }
-
-          return Array.from(
-            onlineUserSet
-          );
-        }
+      updateOnlineUsers(
+        userId,
+        isOnline
       );
 
-
-      if (
-        !isOnline &&
-        payload?.lastSeen
-      ) {
-        const parsedLastSeen =
-          new Date(
-            payload.lastSeen
-          );
-
-        if (
-          !Number.isNaN(
-            parsedLastSeen.getTime()
-          )
-        ) {
-          setLastSeenByUser(
-            (previous) => ({
-              ...previous,
-
-              [userId]:
-                parsedLastSeen
-                  .toISOString(),
-            })
-          );
-        }
-      }
-
-      /*
-       * Sidebar summary user object kuda
-       * live presence tho update chesthundi.
-       */
-      setChatSummaries(
-        (previous) =>
-          Array.isArray(previous)
-            ? previous.map(
-              (summary) => {
-                const summaryUserId =
-                  normalizeId(
-                    summary?.user
-                  );
-
-                if (
-                  summaryUserId !==
-                  userId
-                ) {
-                  return summary;
-                }
-
-                if (
-                  !summary?.user ||
-                  typeof summary.user !==
-                  "object"
-                ) {
-                  return summary;
-                }
-
-                return {
-                  ...summary,
-
-                  user: {
-                    ...summary.user,
-
-                    isOnline,
-
-                    ...(
-                      !isOnline &&
-                        payload?.lastSeen
-                        ? {
-                          lastSeen:
-                            payload
-                              .lastSeen,
-                        }
-                        : {}
-                    ),
-                  },
-                };
-              }
-            )
-            : []
+      saveLastSeen(
+        userId,
+        lastSeen
       );
+
+      updateSummaryPresence({
+        userId,
+        isOnline,
+        lastSeen,
+      });
     };
-
 
     const handlePresenceSnapshot = (
       payload = {}
     ) => {
-      const normalizedUsers =
-        Array.isArray(
-          payload?.onlineUsers
-        )
-          ? payload.onlineUsers
-            .map((userId) =>
-              normalizeId(userId)
-            )
-            .filter(Boolean)
-          : [];
-
-      setOnlineUsers(
-        Array.from(
-          new Set(normalizedUsers)
-        )
-      );
-
-      const targetUserId =
+      const userId =
         normalizeId(
           payload?.userId
         );
 
-      if (
-        !targetUserId ||
-        !payload?.lastSeen
-      ) {
+      if (!userId) {
         return;
       }
 
-      const parsedLastSeen =
-        new Date(
-          payload.lastSeen
+      const isOnline =
+        Boolean(
+          payload?.isOnline
         );
 
-      if (
-        Number.isNaN(
-          parsedLastSeen.getTime()
-        )
-      ) {
-        return;
-      }
+      const lastSeen =
+        !isOnline
+          ? payload?.lastSeen || null
+          : null;
 
-      setLastSeenByUser(
-        (previous) => ({
-          ...previous,
-
-          [targetUserId]:
-            parsedLastSeen
-              .toISOString(),
-        })
+      updateOnlineUsers(
+        userId,
+        isOnline
       );
+
+      saveLastSeen(
+        userId,
+        lastSeen
+      );
+
+      updateSummaryPresence({
+        userId,
+        isOnline,
+        lastSeen,
+      });
     };
+
+    const handleLastSeenPrivacyChanged =
+      (payload = {}) => {
+        const userId =
+          normalizeId(
+            payload?.userId
+          );
+
+        if (!userId) {
+          return;
+        }
+
+        removeLastSeen(userId);
+
+        setChatSummaries(
+          (previous) =>
+            Array.isArray(previous)
+              ? previous.map(
+                (summary) => {
+                  const summaryUserId =
+                    normalizeId(
+                      summary?.user
+                    );
+
+                  if (
+                    summaryUserId !==
+                    userId ||
+                    !summary?.user ||
+                    typeof summary.user !==
+                    "object"
+                  ) {
+                    return summary;
+                  }
+
+                  return {
+                    ...summary,
+
+                    user: {
+                      ...summary.user,
+                      lastSeen: null,
+                    },
+                  };
+                }
+              )
+              : []
+        );
+      };
 
     socket.on(
       "connect",
       handleConnect
-    );
-
-    socket.on(
-      "onlineUsers",
-      handleOnlineUsers
     );
 
     socket.on(
@@ -845,6 +806,11 @@ export const ChatProvider = ({
     socket.on(
       "presence:snapshot",
       handlePresenceSnapshot
+    );
+
+    socket.on(
+      "userLastSeenPrivacyChanged",
+      handleLastSeenPrivacyChanged
     );
 
     if (socket.connected) {
@@ -860,11 +826,6 @@ export const ChatProvider = ({
       );
 
       socket.off(
-        "onlineUsers",
-        handleOnlineUsers
-      );
-
-      socket.off(
         "userPresenceChanged",
         handlePresenceChanged
       );
@@ -872,6 +833,11 @@ export const ChatProvider = ({
       socket.off(
         "presence:snapshot",
         handlePresenceSnapshot
+      );
+
+      socket.off(
+        "userLastSeenPrivacyChanged",
+        handleLastSeenPrivacyChanged
       );
     };
   }, []);
