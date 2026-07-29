@@ -6,9 +6,13 @@
   width: 100%;
   height: 100%;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 
   display: flex;
   flex-direction: column;
+
+  overflow: hidden;
 
   background: var(--surface);
   color: var(--text-primary);
@@ -99,7 +103,10 @@
 ========================= */
 
 .userList {
+  flex: 1 1 auto;
+
   width: 100%;
+  min-width: 0;
   min-height: 0;
   box-sizing: border-box;
 
@@ -111,6 +118,8 @@
 
   overflow-y: auto;
   overflow-x: hidden;
+
+  overscroll-behavior: contain;
 
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
@@ -354,15 +363,32 @@
 /* =========================
    MOBILE
 ========================= */
-
 @media (max-width: 768px) {
   .sidebar {
+    display: grid;
+    grid-template-rows:
+      auto minmax(0, 1fr);
+
     width: 100%;
+    height: 100dvh;
+    min-width: 0;
+    min-height: 0;
+
+    overflow: hidden;
+
     border-right: none;
   }
 
   .header {
+    position: relative;
+    top: auto;
+
+    flex: none;
+
+    width: 100%;
     padding: 14px;
+
+    z-index: 2;
   }
 
   .title {
@@ -370,11 +396,35 @@
   }
 
   .userList {
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+
     padding: 7px;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    visibility: visible;
+    opacity: 1;
   }
 
   .userItem {
+    display: flex;
+    flex: 0 0 auto;
+
+    width: 100%;
+    min-height: 68px;
+
     padding: 10px;
+
+    visibility: visible;
+    opacity: 1;
+
     border-radius: 12px;
   }
 
