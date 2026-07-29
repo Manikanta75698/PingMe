@@ -94,10 +94,9 @@ const Register = () => {
   // =========================
 
   useEffect(() => {
-    const username =
-      formData.username
-        .trim()
-        .toLowerCase();
+    const username = formData.username
+      .trim()
+      .toLowerCase();
 
     if (!username) {
       setUsernameStatus({
@@ -109,67 +108,98 @@ const Register = () => {
       return undefined;
     }
 
-    setUsernameStatus({
-      checking: true,
-      available: null,
-      message:
-        "Checking username...",
-    });
+    /*
+     * Local validation first.
+     * Invalid username kosam unnecessary API call cheyyamu.
+     */
+    if (username.length < 3) {
+      setUsernameStatus({
+        checking: false,
+        available: null,
+        message:
+          "Username must be at least 3 characters",
+      });
+
+      return undefined;
+    }
+
+    if (username.length > 30) {
+      setUsernameStatus({
+        checking: false,
+        available: false,
+        message:
+          "Username cannot exceed 30 characters",
+      });
+
+      return undefined;
+    }
+
+    if (!/^[a-z0-9._]+$/.test(username)) {
+      setUsernameStatus({
+        checking: false,
+        available: false,
+        message:
+          "Use only letters, numbers, dots and underscores",
+      });
+
+      return undefined;
+    }
 
     let cancelled = false;
 
-    const timer =
-      window.setTimeout(
-        async () => {
-          try {
-            const response =
-              await checkUsernameAvailability(
-                username
-              );
+    const timer = window.setTimeout(
+      async () => {
+        /*
+         * Debounce complete ayyaka matrame
+         * checking state show chestham.
+         */
+        setUsernameStatus({
+          checking: true,
+          available: null,
+          message: "Checking username...",
+        });
 
-            if (cancelled) {
-              return;
-            }
-
-            setUsernameStatus({
-              checking: false,
-
-              available:
-                response?.available ===
-                true,
-
-              message:
-                response?.message ||
-                "Unable to check username",
-            });
-          } catch (error) {
-            if (cancelled) {
-              return;
-            }
-
-            console.error(
-              "USERNAME CHECK ERROR:",
-              error.response?.data ||
-              error.message
+        try {
+          const response =
+            await checkUsernameAvailability(
+              username
             );
 
-            setUsernameStatus({
-              checking: false,
-              available: null,
-              message:
-                "Unable to check username right now",
-            });
-          }
-        },
-        500
-      );
+          if (cancelled) return;
+
+          setUsernameStatus({
+            checking: false,
+            available:
+              response?.available === true,
+            message:
+              response?.message ||
+              (response?.available
+                ? "Username is available"
+                : "Username is not available"),
+          });
+        } catch (error) {
+          if (cancelled) return;
+
+          console.error(
+            "USERNAME CHECK ERROR:",
+            error.response?.data ||
+            error.message
+          );
+
+          setUsernameStatus({
+            checking: false,
+            available: null,
+            message:
+              "Unable to check username right now",
+          });
+        }
+      },
+      600
+    );
 
     return () => {
       cancelled = true;
-
-      window.clearTimeout(
-        timer
-      );
+      window.clearTimeout(timer);
     };
   }, [formData.username]);
 
@@ -439,37 +469,32 @@ const Register = () => {
               disabled={loading}
             />
 
-            {usernameStatus.message && (
-              <p
-                className={
-                  usernameStatus.checking
-                    ? styles.usernameChecking
-                    : usernameStatus.available ===
-                      true
-                      ? styles.usernameAvailable
-                      : usernameStatus.available ===
-                        false
-                        ? styles.usernameTaken
-                        : styles.usernameNeutral
-                }
-                role={
-                  usernameStatus.available ===
-                    false
-                    ? "alert"
-                    : "status"
-                }
-              >
-                {usernameStatus.checking
-                  ? "Checking..."
-                  : usernameStatus.available ===
-                    true
+            <p
+              className={`${styles.usernameMessage} ${usernameStatus.checking
+                  ? styles.usernameChecking
+                  : usernameStatus.available === true
+                    ? styles.usernameAvailable
+                    : usernameStatus.available === false
+                      ? styles.usernameTaken
+                      : styles.usernameNeutral
+                }`}
+              role={
+                usernameStatus.available === false
+                  ? "alert"
+                  : "status"
+              }
+              aria-live="polite"
+            >
+              {usernameStatus.message
+                ? usernameStatus.checking
+                  ? "Checking username..."
+                  : usernameStatus.available === true
                     ? `✓ ${usernameStatus.message}`
-                    : usernameStatus.available ===
-                      false
+                    : usernameStatus.available === false
                       ? `✕ ${usernameStatus.message}`
-                      : usernameStatus.message}
-              </p>
-            )}
+                      : usernameStatus.message
+                : "\u00A0"}
+            </p>
           </div>
 
           <Input

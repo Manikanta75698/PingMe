@@ -789,60 +789,172 @@
   transform: translateX(20px);
 }
 
-.permissionSelect {
-  flex-shrink: 0;
-  max-width: 145px;
-  min-height: 38px;
-  padding: 0 34px 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  outline: none;
-  background: var(--background);
+/* =========================
+   CUSTOM MESSAGE PERMISSION
+========================= */
+
+.permissionDropdown {
+  position: relative;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.permissionTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+  min-height: 48px;
+
+  gap: 12px;
+  padding: 0 14px;
+
   color: var(--text-primary);
+  background: var(--background);
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+
   cursor: pointer;
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.permissionSelect:focus {
+.permissionTrigger:hover {
+  border-color:
+    color-mix(in srgb,
+      var(--primary) 60%,
+      var(--border));
+}
+
+.permissionTrigger:focus-visible {
   border-color: var(--primary);
+
+  box-shadow:
+    0 0 0 3px color-mix(in srgb,
+      var(--primary) 16%,
+      transparent);
 }
 
-.permissionSelect:disabled {
+.permissionTrigger:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.privacyStatus {
-  margin: 16px 2px;
+.permissionChevron,
+.permissionChevronOpen {
+  flex: 0 0 auto;
   color: var(--text-secondary);
-  font-size: 13px;
+
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
 }
 
-.privacyError {
-  margin: 10px 2px;
-  color: var(--danger, #dc2626);
-  font-size: 13px;
+.permissionChevronOpen {
+  color: var(--primary);
+  transform: rotate(180deg);
+}
+
+.permissionMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  z-index: 50;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+  padding: 6px;
+
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.16);
+
+  overflow: hidden;
+}
+
+.permissionMenuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+  min-height: 42px;
+
+  gap: 12px;
+  padding: 9px 11px;
+
+  color: var(--text-primary);
+  background: transparent;
+
+  border: 0;
+  border-radius: 10px;
+
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.permissionMenuItem:hover {
+  color: var(--primary);
+
+  background:
+    color-mix(in srgb,
+      var(--primary) 9%,
+      var(--surface));
+}
+
+.permissionMenuItemActive {
+  color: var(--primary);
+
+  background:
+    color-mix(in srgb,
+      var(--primary) 12%,
+      var(--surface));
+
+  font-weight: 650;
+}
+
+.permissionMenuItem svg {
+  flex: 0 0 auto;
+  color: var(--primary);
 }
 
 @media (max-width: 600px) {
-  .privacyPanel {
-    padding: 4px 12px;
-  }
-
-  .privacyOption,
-  .permissionOption {
-    gap: 12px;
-    min-height: 68px;
-  }
-
-  .permissionOption {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .permissionSelect {
+  .permissionDropdown {
     width: 100%;
-    max-width: none;
+  }
+
+  .permissionTrigger {
+    min-height: 46px;
+    font-size: 14px;
+  }
+
+  .permissionMenu {
+    top: calc(100% + 6px);
   }
 }

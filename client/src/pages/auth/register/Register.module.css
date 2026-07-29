@@ -1,12 +1,17 @@
 .container {
   width: 100%;
   max-width: 420px;
+  min-height: 100vh;
+  min-height: 100dvh;
+
   margin: 0 auto;
+  padding: 32px 24px;
+
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 24px;
+  justify-content: flex-start;
+
+  box-sizing: border-box;
 }
 
 .heading {
@@ -96,11 +101,15 @@
 
 @media (min-width: 768px) {
   .container {
-    background: var(--surface);
-    border-radius: 28px;
-    padding: 40px;
-    box-shadow: var(--shadow-lg);
     min-height: auto;
+    padding: 40px;
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+    border-radius: 28px;
+
+    box-shadow: var(--shadow-lg);
   }
 }
 
@@ -109,13 +118,35 @@
   flex-direction: column;
 }
 
-.usernameChecking,
-.usernameAvailable,
-.usernameTaken,
-.usernameNeutral {
+.usernameMessage {
+  min-height: 18px;
   margin: 6px 2px 0;
+
   font-size: 12px;
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: 18px;
+
+  transition: color 0.18s ease;
+}
+
+.usernameChecking {
+  color: var(--text-secondary,
+      #64748b);
+}
+
+.usernameAvailable {
+  color: var(--success,
+      #16a34a);
+}
+
+.usernameTaken {
+  color: var(--danger,
+      #dc2626);
+}
+
+.usernameNeutral {
+  color: var(--text-secondary,
+      #64748b);
 }
 
 .usernameChecking {

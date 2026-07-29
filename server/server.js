@@ -27,6 +27,9 @@ const {
   "./cron/storyCleanup"
 );
 
+const {
+  verifyMailer,
+} = require("./config/mailer");
 
 const app = express();
 const server = http.createServer(app);
@@ -125,7 +128,8 @@ app.use("/api/users", userRoutes);
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "🚀 PingMe V2 Backend is Running in Production Mode...",
+    message:
+      "🚀 Nexora Backend is Running in Production Mode...",
   });
 });
 
@@ -173,6 +177,20 @@ socketHandler(io);
 const startServer = async () => {
   try {
     await connectDB();
+
+    try {
+      await verifyMailer();
+
+      console.log(
+        "✅ SMTP mail server verified"
+      );
+    } catch (mailerError) {
+      console.error(
+        "❌ SMTP verification failed:",
+        mailerError?.message ||
+        mailerError
+      );
+    }
 
     startDeleteExpiredMessages();
     startStoryCleanupJob();

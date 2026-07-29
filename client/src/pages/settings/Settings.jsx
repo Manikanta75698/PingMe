@@ -10,6 +10,8 @@ import {
   Palette,
   Info,
   ChevronRight,
+  ChevronDown,
+  Check,
   ArrowLeft,
   LogOut,
   Monitor,
@@ -71,6 +73,11 @@ const Settings = () => {
 
   const [privacyUpdating, setPrivacyUpdating] =
     useState("");
+
+  const [
+    showMessagePermissionMenu,
+    setShowMessagePermissionMenu,
+  ] = useState(false);
 
   const [privacyError, setPrivacyError] =
     useState("");
@@ -179,26 +186,65 @@ const Settings = () => {
     }
   };
 
+  const messagePermissionOptions = [
+    {
+      value: "everyone",
+      label: "Everyone",
+    },
+    {
+      value: "followers",
+      label: "Followers",
+    },
+    {
+      value: "following",
+      label: "People I follow",
+    },
+    {
+      value: "no-one",
+      label: "No one",
+    },
+  ];
+
+  const getMessagePermissionLabel = () =>
+    messagePermissionOptions.find(
+      (option) =>
+        option.value ===
+        privacySettings.messagePermission
+    )?.label || "Everyone";
+
   const handleMessagePermissionChange =
-    async (event) => {
+    async (
+      nextPermission
+    ) => {
       if (privacyUpdating) return;
 
-      const nextPermission =
-        event.target.value;
+      setShowMessagePermissionMenu(
+        false
+      );
+
+      if (
+        nextPermission ===
+        privacySettings.messagePermission
+      ) {
+        return;
+      }
 
       const previousSettings = {
         ...privacySettings,
       };
 
-      setPrivacySettings((previous) => ({
-        ...previous,
-        messagePermission:
-          nextPermission,
-      }));
+      setPrivacySettings(
+        (previous) => ({
+          ...previous,
+          messagePermission:
+            nextPermission,
+        })
+      );
 
       setPrivacyUpdating(
         "messagePermission"
       );
+
       setPrivacyError("");
 
       try {
@@ -219,7 +265,8 @@ const Settings = () => {
         );
 
         setPrivacyError(
-          error?.response?.data?.message ||
+          error?.response?.data
+            ?.message ||
           "Unable to update privacy settings"
         );
       } finally {
@@ -373,8 +420,8 @@ const Settings = () => {
                       }
                       aria-label="Private account"
                       className={`${styles.switch} ${privacySettings.privateAccount
-                          ? styles.switchActive
-                          : ""
+                        ? styles.switchActive
+                        : ""
                         }`}
                       onClick={() =>
                         handlePrivacyToggle(
@@ -423,8 +470,8 @@ const Settings = () => {
                       }
                       aria-label="Show online status"
                       className={`${styles.switch} ${privacySettings.showOnlineStatus
-                          ? styles.switchActive
-                          : ""
+                        ? styles.switchActive
+                        : ""
                         }`}
                       onClick={() =>
                         handlePrivacyToggle(
@@ -473,8 +520,8 @@ const Settings = () => {
                       }
                       aria-label="Show last seen"
                       className={`${styles.switch} ${privacySettings.showLastSeen
-                          ? styles.switchActive
-                          : ""
+                        ? styles.switchActive
+                        : ""
                         }`}
                       onClick={() =>
                         handlePrivacyToggle(
@@ -523,8 +570,8 @@ const Settings = () => {
                       }
                       aria-label="Read receipts"
                       className={`${styles.switch} ${privacySettings.readReceipts
-                          ? styles.switchActive
-                          : ""
+                        ? styles.switchActive
+                        : ""
                         }`}
                       onClick={() =>
                         handlePrivacyToggle(
@@ -564,39 +611,93 @@ const Settings = () => {
                         conversation
                       </span>
                     </div>
-
-                    <select
+                    <div
                       className={
-                        styles.permissionSelect
-                      }
-                      value={
-                        privacySettings.messagePermission
-                      }
-                      onChange={
-                        handleMessagePermissionChange
-                      }
-                      disabled={
-                        Boolean(
-                          privacyUpdating
-                        )
+                        styles.permissionDropdown
                       }
                     >
-                      <option value="everyone">
-                        Everyone
-                      </option>
+                      <button
+                        type="button"
+                        className={
+                          styles.permissionTrigger
+                        }
+                        onClick={() =>
+                          setShowMessagePermissionMenu(
+                            (previous) => !previous
+                          )
+                        }
+                        disabled={
+                          Boolean(privacyUpdating)
+                        }
+                        aria-haspopup="listbox"
+                        aria-expanded={
+                          showMessagePermissionMenu
+                        }
+                      >
+                        <span>
+                          {getMessagePermissionLabel()}
+                        </span>
 
-                      <option value="followers">
-                        Followers
-                      </option>
+                        <ChevronDown
+                          size={18}
+                          className={
+                            showMessagePermissionMenu
+                              ? styles.permissionChevronOpen
+                              : styles.permissionChevron
+                          }
+                        />
+                      </button>
 
-                      <option value="following">
-                        People I follow
-                      </option>
+                      {showMessagePermissionMenu && (
+                        <div
+                          className={
+                            styles.permissionMenu
+                          }
+                          role="listbox"
+                          aria-label="Who can message me"
+                        >
+                          {messagePermissionOptions.map(
+                            (option) => {
+                              const isSelected =
+                                privacySettings
+                                  .messagePermission ===
+                                option.value;
 
-                      <option value="no-one">
-                        No one
-                      </option>
-                    </select>
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={
+                                    isSelected
+                                  }
+                                  className={`${styles.permissionMenuItem} ${isSelected
+                                      ? styles.permissionMenuItemActive
+                                      : ""
+                                    }`}
+                                  onClick={() =>
+                                    handleMessagePermissionChange(
+                                      option.value
+                                    )
+                                  }
+                                >
+                                  <span>
+                                    {option.label}
+                                  </span>
+
+                                  {isSelected && (
+                                    <Check
+                                      size={17}
+                                      aria-hidden="true"
+                                    />
+                                  )}
+                                </button>
+                              );
+                            }
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </label>
                 </>
               )}
