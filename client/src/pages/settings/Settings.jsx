@@ -1,4 +1,7 @@
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import {
   Lock,
@@ -24,6 +27,11 @@ import {
   getSavedTheme,
 } from "../../utils/theme";
 
+import {
+  getPrivacySettings,
+  updatePrivacySettings,
+} from "../../services/authService";
+
 import styles from "./Settings.module.css";
 
 const Settings = () => {
@@ -46,6 +54,27 @@ const Settings = () => {
   const [showAppearance, setShowAppearance] =
     useState(false);
 
+  const [showPrivacy, setShowPrivacy] =
+    useState(false);
+
+  const [privacySettings, setPrivacySettings] =
+    useState({
+      privateAccount: false,
+      showOnlineStatus: true,
+      showLastSeen: true,
+      readReceipts: true,
+      messagePermission: "everyone",
+    });
+
+  const [privacyLoading, setPrivacyLoading] =
+    useState(true);
+
+  const [privacyUpdating, setPrivacyUpdating] =
+    useState("");
+
+  const [privacyError, setPrivacyError] =
+    useState("");
+
   const [showPasswordModal, setShowPasswordModal] =
     useState(false);
 
@@ -57,10 +86,146 @@ const Settings = () => {
   const [showLogoutModal, setShowLogoutModal] =
     useState(false);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPrivacySettings = async () => {
+      try {
+        setPrivacyLoading(true);
+        setPrivacyError("");
+
+        const data =
+          await getPrivacySettings();
+
+        if (!isMounted) return;
+
+        setPrivacySettings(
+          data?.privacySettings || {
+            privateAccount: false,
+            showOnlineStatus: true,
+            showLastSeen: true,
+            readReceipts: true,
+            messagePermission: "everyone",
+          }
+        );
+      } catch (error) {
+        if (!isMounted) return;
+
+        setPrivacyError(
+          error?.response?.data?.message ||
+          "Unable to load privacy settings"
+        );
+      } finally {
+        if (isMounted) {
+          setPrivacyLoading(false);
+        }
+      }
+    };
+
+    loadPrivacySettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleThemeChange = (nextTheme) => {
     setTheme(nextTheme);
     applyTheme(nextTheme);
   };
+
+  const handlePrivacyToggle = async (
+    field
+  ) => {
+    if (privacyUpdating) return;
+
+    const previousSettings = {
+      ...privacySettings,
+    };
+
+    const nextValue =
+      !privacySettings[field];
+
+    setPrivacySettings((previous) => ({
+      ...previous,
+      [field]: nextValue,
+    }));
+
+    setPrivacyUpdating(field);
+    setPrivacyError("");
+
+    try {
+      const data =
+        await updatePrivacySettings({
+          [field]: nextValue,
+        });
+
+      if (data?.privacySettings) {
+        setPrivacySettings(
+          data.privacySettings
+        );
+      }
+    } catch (error) {
+      setPrivacySettings(
+        previousSettings
+      );
+
+      setPrivacyError(
+        error?.response?.data?.message ||
+        "Unable to update privacy settings"
+      );
+    } finally {
+      setPrivacyUpdating("");
+    }
+  };
+
+  const handleMessagePermissionChange =
+    async (event) => {
+      if (privacyUpdating) return;
+
+      const nextPermission =
+        event.target.value;
+
+      const previousSettings = {
+        ...privacySettings,
+      };
+
+      setPrivacySettings((previous) => ({
+        ...previous,
+        messagePermission:
+          nextPermission,
+      }));
+
+      setPrivacyUpdating(
+        "messagePermission"
+      );
+      setPrivacyError("");
+
+      try {
+        const data =
+          await updatePrivacySettings({
+            messagePermission:
+              nextPermission,
+          });
+
+        if (data?.privacySettings) {
+          setPrivacySettings(
+            data.privacySettings
+          );
+        }
+      } catch (error) {
+        setPrivacySettings(
+          previousSettings
+        );
+
+        setPrivacyError(
+          error?.response?.data?.message ||
+          "Unable to update privacy settings"
+        );
+      } finally {
+        setPrivacyUpdating("");
+      }
+    };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -133,14 +298,321 @@ const Settings = () => {
         <div className={styles.section}>
           <h2>Privacy</h2>
 
-          <div className={styles.itemDisabled}>
+          <button
+            type="button"
+            className={styles.item}
+            onClick={() =>
+              setShowPrivacy(
+                (previous) => !previous
+              )
+            }
+            aria-expanded={showPrivacy}
+          >
             <div className={styles.left}>
               <Shield size={18} />
-              <span>Privacy</span>
+              <span>Privacy Controls</span>
             </div>
 
-            <small>Coming Soon</small>
-          </div>
+            <div className={styles.itemRight}>
+              <small>
+                {privacyLoading
+                  ? "Loading"
+                  : "Manage"}
+              </small>
+
+              <ChevronRight
+                size={18}
+                className={
+                  showPrivacy
+                    ? styles.chevronOpen
+                    : ""
+                }
+              />
+            </div>
+          </button>
+
+          {showPrivacy && (
+            <div
+              className={styles.privacyPanel}
+            >
+              {privacyLoading ? (
+                <p
+                  className={
+                    styles.privacyStatus
+                  }
+                >
+                  Loading privacy settings...
+                </p>
+              ) : (
+                <>
+                  <div
+                    className={
+                      styles.privacyOption
+                    }
+                  >
+                    <div
+                      className={
+                        styles.privacyText
+                      }
+                    >
+                      <strong>
+                        Private account
+                      </strong>
+
+                      <span>
+                        Only approved people can
+                        follow you
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={
+                        privacySettings.privateAccount
+                      }
+                      aria-label="Private account"
+                      className={`${styles.switch} ${privacySettings.privateAccount
+                          ? styles.switchActive
+                          : ""
+                        }`}
+                      onClick={() =>
+                        handlePrivacyToggle(
+                          "privateAccount"
+                        )
+                      }
+                      disabled={
+                        Boolean(
+                          privacyUpdating
+                        )
+                      }
+                    >
+                      <span
+                        className={
+                          styles.switchThumb
+                        }
+                      />
+                    </button>
+                  </div>
+
+                  <div
+                    className={
+                      styles.privacyOption
+                    }
+                  >
+                    <div
+                      className={
+                        styles.privacyText
+                      }
+                    >
+                      <strong>
+                        Online status
+                      </strong>
+
+                      <span>
+                        Allow others to see when
+                        you are online
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={
+                        privacySettings.showOnlineStatus
+                      }
+                      aria-label="Show online status"
+                      className={`${styles.switch} ${privacySettings.showOnlineStatus
+                          ? styles.switchActive
+                          : ""
+                        }`}
+                      onClick={() =>
+                        handlePrivacyToggle(
+                          "showOnlineStatus"
+                        )
+                      }
+                      disabled={
+                        Boolean(
+                          privacyUpdating
+                        )
+                      }
+                    >
+                      <span
+                        className={
+                          styles.switchThumb
+                        }
+                      />
+                    </button>
+                  </div>
+
+                  <div
+                    className={
+                      styles.privacyOption
+                    }
+                  >
+                    <div
+                      className={
+                        styles.privacyText
+                      }
+                    >
+                      <strong>
+                        Last seen
+                      </strong>
+
+                      <span>
+                        Allow others to see your
+                        last active time
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={
+                        privacySettings.showLastSeen
+                      }
+                      aria-label="Show last seen"
+                      className={`${styles.switch} ${privacySettings.showLastSeen
+                          ? styles.switchActive
+                          : ""
+                        }`}
+                      onClick={() =>
+                        handlePrivacyToggle(
+                          "showLastSeen"
+                        )
+                      }
+                      disabled={
+                        Boolean(
+                          privacyUpdating
+                        )
+                      }
+                    >
+                      <span
+                        className={
+                          styles.switchThumb
+                        }
+                      />
+                    </button>
+                  </div>
+
+                  <div
+                    className={
+                      styles.privacyOption
+                    }
+                  >
+                    <div
+                      className={
+                        styles.privacyText
+                      }
+                    >
+                      <strong>
+                        Read receipts
+                      </strong>
+
+                      <span>
+                        Send seen status for
+                        messages you read
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={
+                        privacySettings.readReceipts
+                      }
+                      aria-label="Read receipts"
+                      className={`${styles.switch} ${privacySettings.readReceipts
+                          ? styles.switchActive
+                          : ""
+                        }`}
+                      onClick={() =>
+                        handlePrivacyToggle(
+                          "readReceipts"
+                        )
+                      }
+                      disabled={
+                        Boolean(
+                          privacyUpdating
+                        )
+                      }
+                    >
+                      <span
+                        className={
+                          styles.switchThumb
+                        }
+                      />
+                    </button>
+                  </div>
+
+                  <label
+                    className={
+                      styles.permissionOption
+                    }
+                  >
+                    <div
+                      className={
+                        styles.privacyText
+                      }
+                    >
+                      <strong>
+                        Who can message me
+                      </strong>
+
+                      <span>
+                        Control who can start a
+                        conversation
+                      </span>
+                    </div>
+
+                    <select
+                      className={
+                        styles.permissionSelect
+                      }
+                      value={
+                        privacySettings.messagePermission
+                      }
+                      onChange={
+                        handleMessagePermissionChange
+                      }
+                      disabled={
+                        Boolean(
+                          privacyUpdating
+                        )
+                      }
+                    >
+                      <option value="everyone">
+                        Everyone
+                      </option>
+
+                      <option value="followers">
+                        Followers
+                      </option>
+
+                      <option value="following">
+                        People I follow
+                      </option>
+
+                      <option value="no-one">
+                        No one
+                      </option>
+                    </select>
+                  </label>
+                </>
+              )}
+
+              {privacyError && (
+                <p
+                  className={
+                    styles.privacyError
+                  }
+                  role="alert"
+                >
+                  {privacyError}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className={styles.section}>

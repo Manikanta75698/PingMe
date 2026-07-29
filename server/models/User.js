@@ -173,8 +173,41 @@ const userSchema = new mongoose.Schema(
     // Settings
     theme: {
       type: String,
-      enum: ["light", "dark"],
-      default: "light",
+      enum: ["system", "light", "dark"],
+      default: "system",
+    },
+
+    privacySettings: {
+      privateAccount: {
+        type: Boolean,
+        default: false,
+      },
+
+      showOnlineStatus: {
+        type: Boolean,
+        default: true,
+      },
+
+      showLastSeen: {
+        type: Boolean,
+        default: true,
+      },
+
+      readReceipts: {
+        type: Boolean,
+        default: true,
+      },
+
+      messagePermission: {
+        type: String,
+        enum: [
+          "everyone",
+          "followers",
+          "following",
+          "no-one",
+        ],
+        default: "everyone",
+      },
     },
 
     role: {

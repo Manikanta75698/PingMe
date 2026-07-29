@@ -366,3 +366,22 @@ export const unblockUser = async (
     `/auth/users/${normalizedUserId}/block`
   );
 };
+
+export const getPrivacySettings = async () => {
+  const response = await api.get(
+    "/auth/privacy-settings"
+  );
+
+  return response.data;
+};
+
+export const updatePrivacySettings = async (
+  updates
+) => {
+  const response = await api.patch(
+    "/auth/privacy-settings",
+    updates
+  );
+
+  return response.data;
+};

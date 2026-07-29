@@ -1,6 +1,8 @@
-:root {
-  color-scheme: light dark;
+/* =========================
+   SHARED TOKENS
+========================= */
 
+:root {
   /* Brand */
   --primary: #4f46e5;
   --primary-hover: #4338ca;
@@ -16,8 +18,16 @@
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-xl: 28px;
+}
 
-  /* Light */
+/* =========================
+   LIGHT THEME
+========================= */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
   --background: #f8fafc;
   --surface: #ffffff;
   --surface-light: #f1f5f9;
@@ -28,11 +38,40 @@
 
   --border: #dbe4ee;
 
-  --shadow: 0 10px 25px rgba(15, 23, 42, .08);
+  --shadow:
+    0 10px 25px rgba(15, 23, 42, 0.08);
 }
 
+/* =========================
+   DARK THEME
+========================= */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #0f172a;
+  --surface: #111827;
+  --surface-light: #1f2937;
+
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --border: #263244;
+
+  --shadow:
+    0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* =========================
+   SYSTEM FALLBACK
+   Only before JavaScript initializes
+========================= */
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
     --background: #0f172a;
     --surface: #111827;
     --surface-light: #1f2937;
@@ -43,6 +82,7 @@
 
     --border: #263244;
 
-    --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    --shadow:
+      0 10px 30px rgba(0, 0, 0, 0.35);
   }
 }

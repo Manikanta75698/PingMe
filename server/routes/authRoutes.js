@@ -20,6 +20,8 @@ const {
   resetPassword,
   googleLogin,
   getProfile,
+  getPrivacySettings,
+  updatePrivacySettings,
   updateProfile,
   uploadProfilePicture,
   uploadCoverPhoto,
@@ -110,6 +112,22 @@ router.put(
   protect,
   singleProfileUpload,
   uploadProfilePicture
+);
+
+// =========================
+// PRIVACY SETTINGS ROUTES
+// =========================
+
+router.get(
+  "/privacy-settings",
+  protect,
+  getPrivacySettings
+);
+
+router.patch(
+  "/privacy-settings",
+  protect,
+  updatePrivacySettings
 );
 
 router.put(

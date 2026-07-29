@@ -41,11 +41,7 @@ const socket = io(
   {
     autoConnect: false,
 
-    transports: [
-      "websocket",
-      "polling",
-    ],
-
+    transports: ["polling", "websocket"],
     upgrade: true,
 
     auth: {
@@ -146,19 +142,17 @@ socket.on(
       error?.code ||
       "";
 
-    console.error(
-      "GLOBAL SOCKET CONNECTION ERROR:",
-      error?.message ||
-      "Unknown socket error",
-      errorCode
-        ? `(${errorCode})`
-        : ""
-    );
+    if (isDevelopment) {
+      console.error(
+        "GLOBAL SOCKET CONNECTION ERROR:",
+        error?.message ||
+        "Unknown socket error",
+        errorCode
+          ? `(${errorCode})`
+          : ""
+      );
+    }
 
-    /*
-     * Backend authentication reject chesthe
-     * endless reconnect loop stop chesthundi.
-     */
     const authenticationErrors =
       new Set([
         "AUTH_TOKEN_MISSING",
@@ -215,20 +209,24 @@ socket.io.on(
 socket.io.on(
   "reconnect_error",
   (error) => {
-    console.error(
-      "GLOBAL SOCKET RECONNECT ERROR:",
-      error?.message ||
-      "Unknown reconnect error"
-    );
+    if (isDevelopment) {
+      console.error(
+        "GLOBAL SOCKET RECONNECT ERROR:",
+        error?.message ||
+        "Unknown reconnect error"
+      );
+    }
   }
 );
 
 socket.io.on(
   "reconnect_failed",
   () => {
-    console.error(
-      "GLOBAL SOCKET RECONNECT FAILED"
-    );
+    if (isDevelopment) {
+      console.error(
+        "GLOBAL SOCKET RECONNECT FAILED"
+      );
+    }
   }
 );
 

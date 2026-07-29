@@ -1317,6 +1317,221 @@ const googleLogin = async (req, res) => {
   }
 };
 
+/* =========================
+   PRIVACY SETTINGS HELPERS
+========================= */
+
+const DEFAULT_PRIVACY_SETTINGS = {
+  privateAccount: false,
+  showOnlineStatus: true,
+  showLastSeen: true,
+  readReceipts: true,
+  messagePermission: "everyone",
+};
+
+const normalizePrivacySettings = (
+  privacySettings = {}
+) => ({
+  privateAccount:
+    typeof privacySettings.privateAccount ===
+      "boolean"
+      ? privacySettings.privateAccount
+      : DEFAULT_PRIVACY_SETTINGS.privateAccount,
+
+  showOnlineStatus:
+    typeof privacySettings.showOnlineStatus ===
+      "boolean"
+      ? privacySettings.showOnlineStatus
+      : DEFAULT_PRIVACY_SETTINGS.showOnlineStatus,
+
+  showLastSeen:
+    typeof privacySettings.showLastSeen ===
+      "boolean"
+      ? privacySettings.showLastSeen
+      : DEFAULT_PRIVACY_SETTINGS.showLastSeen,
+
+  readReceipts:
+    typeof privacySettings.readReceipts ===
+      "boolean"
+      ? privacySettings.readReceipts
+      : DEFAULT_PRIVACY_SETTINGS.readReceipts,
+
+  messagePermission: [
+    "everyone",
+    "followers",
+    "following",
+    "no-one",
+  ].includes(privacySettings.messagePermission)
+    ? privacySettings.messagePermission
+    : DEFAULT_PRIVACY_SETTINGS.messagePermission,
+});
+
+/* =========================
+   GET PRIVACY SETTINGS
+========================= */
+
+const getPrivacySettings = async (
+  req,
+  res
+) => {
+  try {
+    const user = await User.findById(
+      req.user._id
+    )
+      .select("privacySettings")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      privacySettings:
+        normalizePrivacySettings(
+          user.privacySettings
+        ),
+    });
+  } catch (error) {
+    console.error(
+      "Get Privacy Settings Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to load privacy settings",
+    });
+  }
+};
+
+/* =========================
+   UPDATE PRIVACY SETTINGS
+========================= */
+
+const updatePrivacySettings = async (
+  req,
+  res
+) => {
+  try {
+    const allowedBooleanFields = [
+      "privateAccount",
+      "showOnlineStatus",
+      "showLastSeen",
+      "readReceipts",
+    ];
+
+    const allowedMessagePermissions = [
+      "everyone",
+      "followers",
+      "following",
+      "no-one",
+    ];
+
+    const updates = {};
+
+    for (
+      const field of allowedBooleanFields
+    ) {
+      if (req.body[field] !== undefined) {
+        if (
+          typeof req.body[field] !==
+          "boolean"
+        ) {
+          return res.status(400).json({
+            success: false,
+            field,
+            message:
+              `${field} must be true or false`,
+          });
+        }
+
+        updates[
+          `privacySettings.${field}`
+        ] = req.body[field];
+      }
+    }
+
+    if (
+      req.body.messagePermission !==
+      undefined
+    ) {
+      if (
+        !allowedMessagePermissions.includes(
+          req.body.messagePermission
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          field: "messagePermission",
+          message:
+            "Invalid message permission",
+        });
+      }
+
+      updates[
+        "privacySettings.messagePermission"
+      ] = req.body.messagePermission;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "No valid privacy settings provided",
+      });
+    }
+
+    const user =
+      await User.findByIdAndUpdate(
+        req.user._id,
+        {
+          $set: updates,
+        },
+        {
+          new: true,
+          runValidators: true,
+        }
+      )
+        .select("privacySettings")
+        .lean();
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const privacySettings =
+      normalizePrivacySettings(
+        user.privacySettings
+      );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Privacy settings updated successfully",
+      privacySettings,
+    });
+  } catch (error) {
+    console.error(
+      "Update Privacy Settings Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to update privacy settings",
+    });
+  }
+};
+
 const getProfile = async (req, res) => {
   try {
     const account = await User.findById(
@@ -2476,7 +2691,7 @@ const getBlockStatus = async (
             userId
           ) === currentUserId
       );
-      
+
     return res.status(200).json({
       success: true,
 
@@ -2516,6 +2731,8 @@ module.exports = {
   resetPassword,
   googleLogin,
   getProfile,
+  getPrivacySettings,
+  updatePrivacySettings,
   updateProfile,
   uploadProfilePicture,
   uploadCoverPhoto,
