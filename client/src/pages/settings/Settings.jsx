@@ -9,36 +9,58 @@ import {
   ChevronRight,
   ArrowLeft,
   LogOut,
+  Monitor,
+  Sun,
+  Moon,
 } from "lucide-react";
-
 
 import { useNavigate } from "react-router-dom";
 
 import SetPasswordModal from "../../components/profile/SetPasswordModal";
-
 import ChangePasswordModal from "../../components/profile/ChangePasswordModal";
+
+import {
+  applyTheme,
+  getSavedTheme,
+} from "../../utils/theme";
 
 import styles from "./Settings.module.css";
 
 const Settings = () => {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState(
-    JSON.parse(localStorage.getItem("user"))
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem("user")
+      ) || null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [theme, setTheme] = useState(() =>
+    getSavedTheme()
   );
+
+  const [showAppearance, setShowAppearance] =
+    useState(false);
 
   const [showPasswordModal, setShowPasswordModal] =
     useState(false);
 
-  const [showChangePasswordModal, setShowChangePasswordModal] =
-    useState(false);
+  const [
+    showChangePasswordModal,
+    setShowChangePasswordModal,
+  ] = useState(false);
 
   const [showLogoutModal, setShowLogoutModal] =
     useState(false);
 
-  const showSetPassword =
-    user?.provider === "google" &&
-    !user?.hasPassword;
+  const handleThemeChange = (nextTheme) => {
+    setTheme(nextTheme);
+    applyTheme(nextTheme);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -49,14 +71,22 @@ const Settings = () => {
     });
   };
 
+  const getThemeLabel = () => {
+    if (theme === "light") return "Light";
+    if (theme === "dark") return "Dark";
+
+    return "System";
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-
         <div className={styles.header}>
           <button
+            type="button"
             className={styles.backBtn}
             onClick={() => navigate(-1)}
+            aria-label="Go back"
           >
             <ArrowLeft size={20} />
           </button>
@@ -69,6 +99,7 @@ const Settings = () => {
 
           {user?.hasPassword ? (
             <button
+              type="button"
               className={styles.item}
               onClick={() =>
                 setShowChangePasswordModal(true)
@@ -83,6 +114,7 @@ const Settings = () => {
             </button>
           ) : (
             <button
+              type="button"
               className={styles.item}
               onClick={() =>
                 setShowPasswordModal(true)
@@ -96,9 +128,8 @@ const Settings = () => {
               <ChevronRight size={18} />
             </button>
           )}
-
-
         </div>
+
         <div className={styles.section}>
           <h2>Privacy</h2>
 
@@ -128,14 +159,116 @@ const Settings = () => {
         <div className={styles.section}>
           <h2>Appearance</h2>
 
-          <div className={styles.itemDisabled}>
+          <button
+            type="button"
+            className={styles.item}
+            onClick={() =>
+              setShowAppearance((previous) => !previous)
+            }
+            aria-expanded={showAppearance}
+          >
             <div className={styles.left}>
               <Palette size={18} />
-              <span>Appearance</span>
+              <span>Theme</span>
             </div>
 
-            <small>Coming Soon</small>
-          </div>
+            <div className={styles.itemRight}>
+              <small>{getThemeLabel()}</small>
+
+              <ChevronRight
+                size={18}
+                className={
+                  showAppearance
+                    ? styles.chevronOpen
+                    : ""
+                }
+              />
+            </div>
+          </button>
+
+          {showAppearance && (
+            <div className={styles.appearancePanel}>
+              <button
+                type="button"
+                className={`${styles.themeOption} ${theme === "system"
+                  ? styles.themeOptionActive
+                  : ""
+                  }`}
+                onClick={() =>
+                  handleThemeChange("system")
+                }
+              >
+                <Monitor size={18} />
+
+                <div className={styles.themeText}>
+                  <strong>System</strong>
+                  <span>
+                    Follow your device appearance
+                  </span>
+                </div>
+
+                <span
+                  className={`${styles.radio} ${theme === "system"
+                    ? styles.radioSelected
+                    : ""
+                    }`}
+                  aria-hidden="true"
+                />
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.themeOption} ${theme === "light"
+                  ? styles.themeOptionActive
+                  : ""
+                  }`}
+                onClick={() =>
+                  handleThemeChange("light")
+                }
+              >
+                <Sun size={18} />
+
+                <div className={styles.themeText}>
+                  <strong>Light</strong>
+                  <span>Always use light mode</span>
+                </div>
+
+                <span
+                  className={`${styles.radio} ${theme === "light"
+                    ? styles.radioSelected
+                    : ""
+                    }`}
+                  aria-hidden="true"
+                />
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.themeOption} ${theme === "dark"
+                  ? styles.themeOptionActive
+                  : ""
+                  }`}
+                onClick={() =>
+                  handleThemeChange("dark")
+                }
+              >
+                <Moon size={18} />
+
+                <div className={styles.themeText}>
+                  <strong>Dark</strong>
+                  <span>Always use dark mode</span>
+                </div>
+
+                <span
+                  className={`${styles.radio} ${theme === "dark"
+                    ? styles.radioSelected
+                    : ""
+                    }`}
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+          )}
         </div>
 
         <div className={styles.section}>
@@ -153,6 +286,7 @@ const Settings = () => {
 
         <div className={styles.logoutSection}>
           <button
+            type="button"
             className={styles.logoutBtn}
             onClick={() => setShowLogoutModal(true)}
           >
@@ -197,10 +331,23 @@ const Settings = () => {
       )}
 
       {showLogoutModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.logoutModal}>
-
-            <h2>Logout?</h2>
+        <div
+          className={styles.modalOverlay}
+          role="presentation"
+          onMouseDown={() =>
+            setShowLogoutModal(false)
+          }
+        >
+          <div
+            className={styles.logoutModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-title"
+            onMouseDown={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <h2 id="logout-title">Logout?</h2>
 
             <p>
               Are you sure you want to logout from
@@ -209,6 +356,7 @@ const Settings = () => {
 
             <div className={styles.modalButtons}>
               <button
+                type="button"
                 className={styles.cancelBtn}
                 onClick={() =>
                   setShowLogoutModal(false)
@@ -218,17 +366,16 @@ const Settings = () => {
               </button>
 
               <button
+                type="button"
                 className={styles.confirmLogoutBtn}
                 onClick={handleLogout}
               >
                 Logout
               </button>
             </div>
-
           </div>
         </div>
       )}
-
     </div>
   );
 };

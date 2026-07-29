@@ -12,6 +12,10 @@ import "./styles/typography.css";
 import "./styles/global.css";
 import "./styles/layout.css";
 
+import { initializeTheme } from "./utils/theme";
+
+initializeTheme();
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <GoogleOAuthProvider
