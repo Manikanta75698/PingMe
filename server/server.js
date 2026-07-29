@@ -27,9 +27,7 @@ const {
   "./cron/storyCleanup"
 );
 
-const {
-  verifyMailer,
-} = require("./config/mailer");
+
 
 const app = express();
 const server = http.createServer(app);
@@ -179,7 +177,7 @@ const startServer = async () => {
     await connectDB();
 
     try {
-      await verifyMailer();
+    
 
       console.log(
         "✅ SMTP mail server verified"
