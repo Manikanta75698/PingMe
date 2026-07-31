@@ -1,21 +1,39 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+
+import {
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
 import {
   Home,
   Search,
+  Compass,
   Heart,
   MessageCircle,
   SquarePlus,
 } from "lucide-react";
+
+
 import styles from "./Header.module.css";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import Avatar from "../ui/avatar/Avatar";
 
 
-const Header = ({ scrollY }) => {
+const Header = ({
+  scrollY = 0,
+}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const location = useLocation();
+
+  const isActive = (path) =>
+    location.pathname === path ||
+    location.pathname.startsWith(
+      `${path}/`
+    );
 
   const {
     notificationUnreadCount,
@@ -111,15 +129,31 @@ const Header = ({ scrollY }) => {
         </div>
 
         <div className={styles.navLinks}>
-          <button className={styles.navItem} onClick={() => navigate("/home")}>
+          <button
+            type="button"
+            className={`${styles.navItem} ${isActive("/home")
+              ? styles.active
+              : ""
+              }`}
+            onClick={() =>
+              navigate("/home")
+            }
+          >
             <Home className={styles.icon} />
             <span className={styles.text}>Home</span>
           </button>
 
+
+
           <button
             type="button"
-            className={styles.navItem}
-            onClick={() => navigate("/search")}
+            className={`${styles.navItem} ${isActive("/search")
+              ? styles.active
+              : ""
+              }`}
+            onClick={() =>
+              navigate("/search")
+            }
           >
             <Search className={styles.icon} />
 
@@ -130,7 +164,27 @@ const Header = ({ scrollY }) => {
 
           <button
             type="button"
-            className={styles.navItem}
+            className={`${styles.navItem} ${isActive("/explore")
+              ? styles.active
+              : ""
+              }`}
+            onClick={() =>
+              navigate("/explore")
+            }
+          >
+            <Compass className={styles.icon} />
+
+            <span className={styles.text}>
+              Explore
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.navItem} ${isActive("/chat")
+              ? styles.active
+              : ""
+              }`}
             onClick={openChat}
           >
             <div className={styles.iconWrapper}>
@@ -152,8 +206,13 @@ const Header = ({ scrollY }) => {
 
           <button
             type="button"
-            className={styles.navItem}
-            onClick={() => navigate("/activity")}
+            className={`${styles.navItem} ${isActive("/activity")
+              ? styles.active
+              : ""
+              }`}
+            onClick={() =>
+              navigate("/activity")
+            }
           >
             <div className={styles.iconWrapper}>
               <Heart className={styles.icon} />
@@ -175,7 +234,10 @@ const Header = ({ scrollY }) => {
           {/* Desktop Only Buttons */}
           <button
             type="button"
-            className={`${styles.navItem} ${styles.desktopOnly}`}
+            className={`${styles.navItem} ${styles.desktopOnly} ${isActive("/create")
+              ? styles.active
+              : ""
+              }`}
             onClick={() =>
               navigate("/create")
             }
@@ -195,13 +257,28 @@ const Header = ({ scrollY }) => {
             </span>
           </button>
 
-          <button className={`${styles.navItem} ${styles.desktopOnly}`} onClick={() => navigate("/profile")}>
+          <button
+            type="button"
+            className={`${styles.navItem} ${styles.desktopOnly} ${isActive("/profile")
+                ? styles.active
+                : ""
+              }`}
+            onClick={() =>
+              navigate("/profile")
+            }
+          >
             <Avatar
-              src={user?.profilePic || "https://ui-avatars.com/api/?name=User"}
+              src={
+                user?.profilePic ||
+                "https://ui-avatars.com/api/?name=User"
+              }
               alt="Profile"
               className={styles.profileIcon}
             />
-            <span className={styles.text}>Profile</span>
+
+            <span className={styles.text}>
+              Profile
+            </span>
           </button>
         </div>
       </nav>
