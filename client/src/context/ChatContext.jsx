@@ -11,7 +11,9 @@ import socket, {
   connectSocket,
 } from "../socket/socket";
 
-
+import {
+  getNotifications,
+} from "../services/notificationService";
 
 import {
   getChatSummaries,
@@ -161,6 +163,15 @@ export const ChatProvider = ({
     chatSummaries,
     setChatSummaries,
   ] = useState([]);
+
+  const [
+    notificationUnreadCount,
+    setNotificationUnreadCount,
+  ] = useState(0);
+
+
+  const processedNotificationIdsRef =
+    useRef(new Set());
 
   const [
     summariesLoading,
@@ -463,6 +474,90 @@ export const ChatProvider = ({
       }
     }, []);
 
+
+  /* =========================
+ LOAD NOTIFICATIONS
+========================= */
+
+  const loadNotifications =
+    useCallback(async () => {
+      const token =
+        localStorage.getItem(
+          "token"
+        );
+
+      if (!token) {
+        setNotificationUnreadCount(
+          0
+        );
+
+        processedNotificationIdsRef
+          .current
+          .clear();
+
+        return;
+      }
+
+      try {
+        const response =
+          await getNotifications();
+
+        const unreadCount =
+          Number(
+            response?.data
+              ?.unreadCount
+          ) || 0;
+
+        setNotificationUnreadCount(
+          Math.max(
+            0,
+            unreadCount
+          )
+        );
+
+        /*
+         * Existing notifications IDs
+         * store chestham.
+         *
+         * Socket reconnect ayinappudu
+         * old notification event duplicate
+         * ga vasthe badge increment kakudadhu.
+         */
+        const notifications =
+          Array.isArray(
+            response?.data
+              ?.notifications
+          )
+            ? response.data
+              .notifications
+            : [];
+
+        const notificationIds =
+          notifications
+            .map(
+              (notification) =>
+                normalizeId(
+                  notification
+                    ?._id ||
+                  notification?.id
+                )
+            )
+            .filter(Boolean);
+
+        processedNotificationIdsRef
+          .current =
+          new Set(
+            notificationIds
+          );
+      } catch (error) {
+        console.error(
+          "LOAD NOTIFICATIONS ERROR:",
+          error.response?.data ||
+          error.message
+        );
+      }
+    }, []);
+
   /* =========================
      INITIAL DATA
   ========================= */
@@ -478,16 +573,331 @@ export const ChatProvider = ({
     Promise.all([
       loadRequests(),
       loadChatSummaries(),
+      loadNotifications(),
     ]).catch((error) => {
       console.error(
-        "INITIAL CHAT DATA ERROR:",
+        "INITIAL APP DATA ERROR:",
         error
       );
     });
   }, [
     loadRequests,
     loadChatSummaries,
+    loadNotifications,
   ]);
+
+  /* =========================
+   NOTIFICATION SOCKETS
+========================= */
+
+  useEffect(() => {
+    const token =
+      localStorage.getItem(
+        "token"
+      );
+
+    const currentUser =
+      getStoredUser();
+
+    const currentUserId =
+      normalizeId(
+        currentUser
+      );
+
+    if (
+      !token ||
+      !currentUserId
+    ) {
+      setNotificationUnreadCount(
+        0
+      );
+
+      return undefined;
+    }
+
+    const rememberNotificationId =
+      (notificationId) => {
+        const safeId =
+          normalizeId(
+            notificationId
+          );
+
+        if (!safeId) {
+          return false;
+        }
+
+        if (
+          processedNotificationIdsRef
+            .current
+            .has(safeId)
+        ) {
+          return false;
+        }
+
+        processedNotificationIdsRef
+          .current
+          .add(safeId);
+
+
+        if (
+          processedNotificationIdsRef
+            .current
+            .size > 500
+        ) {
+          const ids =
+            Array.from(
+              processedNotificationIdsRef
+                .current
+            );
+
+          processedNotificationIdsRef
+            .current =
+            new Set(
+              ids.slice(-250)
+            );
+        }
+
+        return true;
+      };
+
+    const removeRememberedNotificationId =
+      (notificationId) => {
+        const safeId =
+          normalizeId(
+            notificationId
+          );
+
+        if (!safeId) {
+          return;
+        }
+
+        processedNotificationIdsRef
+          .current
+          .delete(safeId);
+      };
+
+    /* =========================
+       NEW NOTIFICATION
+    ========================= */
+
+    const handleNotificationReceived =
+      (payload = {}) => {
+        const notification =
+          payload?.notification &&
+            typeof payload
+              .notification ===
+            "object"
+            ? payload.notification
+            : payload;
+
+        const notificationId =
+          normalizeId(
+            notification?._id ||
+            notification?.id
+          );
+
+
+        if (
+          notificationId &&
+          !rememberNotificationId(
+            notificationId
+          )
+        ) {
+          return;
+        }
+
+        setNotificationUnreadCount(
+          (previous) =>
+            Math.max(
+              0,
+              Number(previous) ||
+              0
+            ) + 1
+        );
+      };
+
+    /* =========================
+       BADGE UPDATE
+    ========================= */
+
+    const handleNotificationBadgeUpdated =
+      (payload = {}) => {
+        const action =
+          String(
+            payload?.action ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
+
+        const amount =
+          Math.max(
+            1,
+            Number(
+              payload?.amount
+            ) || 1
+          );
+
+        const notificationId =
+          normalizeId(
+            payload
+              ?.notification
+              ?._id ||
+            payload
+              ?.notification
+              ?.id ||
+            payload
+              ?.notificationId
+          );
+
+        if (
+          action ===
+          "increment"
+        ) {
+
+          if (
+            notificationId &&
+            !rememberNotificationId(
+              notificationId
+            )
+          ) {
+            return;
+          }
+
+          setNotificationUnreadCount(
+            (previous) =>
+              Math.max(
+                0,
+                Number(previous) ||
+                0
+              ) + amount
+          );
+
+          return;
+        }
+
+        if (
+          action ===
+          "decrement"
+        ) {
+          removeRememberedNotificationId(
+            notificationId
+          );
+
+          setNotificationUnreadCount(
+            (previous) =>
+              Math.max(
+                0,
+                (Number(
+                  previous
+                ) || 0) -
+                amount
+              )
+          );
+
+          return;
+        }
+
+        if (
+          action === "set"
+        ) {
+          setNotificationUnreadCount(
+            Math.max(
+              0,
+              Number(
+                payload?.count ??
+                payload
+                  ?.unreadCount
+              ) || 0
+            )
+          );
+
+          return;
+        }
+
+
+        loadNotifications();
+      };
+
+    /* =========================
+       NOTIFICATION REMOVED
+    ========================= */
+
+    const handleNotificationRemoved =
+      (payload = {}) => {
+        const notificationId =
+          normalizeId(
+            payload
+              ?.notificationId ||
+            payload
+              ?.notification
+              ?._id
+          );
+
+        removeRememberedNotificationId(
+          notificationId
+        );
+
+
+      };
+
+    /* =========================
+       SOCKET RECONNECT SYNC
+    ========================= */
+
+    const handleNotificationSocketConnect =
+      () => {
+        loadNotifications();
+      };
+
+    socket.on(
+      "notificationReceived",
+      handleNotificationReceived
+    );
+
+    socket.on(
+      "notificationBadgeUpdated",
+      handleNotificationBadgeUpdated
+    );
+
+    socket.on(
+      "notificationRemoved",
+      handleNotificationRemoved
+    );
+
+    socket.on(
+      "connect",
+      handleNotificationSocketConnect
+    );
+
+    if (socket.connected) {
+      loadNotifications();
+    } else {
+      connectSocket();
+    }
+
+    return () => {
+      socket.off(
+        "notificationReceived",
+        handleNotificationReceived
+      );
+
+      socket.off(
+        "notificationBadgeUpdated",
+        handleNotificationBadgeUpdated
+      );
+
+      socket.off(
+        "notificationRemoved",
+        handleNotificationRemoved
+      );
+
+      socket.off(
+        "connect",
+        handleNotificationSocketConnect
+      );
+    };
+  }, [loadNotifications]);
 
   /* =========================
      SOCKET CONNECTION
@@ -2568,6 +2978,10 @@ export const ChatProvider = ({
 
         sentRequests,
         setSentRequests,
+
+        notificationUnreadCount,
+        setNotificationUnreadCount,
+        loadNotifications,
 
         chatSummaries,
         setChatSummaries,

@@ -16,6 +16,10 @@ import {
 
 import styles from "./UserProfile.module.css";
 
+import {
+  useChat,
+} from "../../context/ChatContext";
+
 import UserProfileSkeleton from "../../components/profile/UserProfileSkeleton";
 import DefaultAvatar from "../../assets/default-avatar.png";
 
@@ -110,6 +114,11 @@ const getPostsData = (response) => {
 
 const UserProfile = () => {
   const navigate = useNavigate();
+
+  const {
+    setSelectedChat,
+  } = useChat();
+
   const { username } = useParams();
 
   const toast =
@@ -643,10 +652,20 @@ const UserProfile = () => {
   const handleMessage = () => {
     if (
       !profileUserId ||
+      !user ||
       isBlocked
     ) {
+      toast.error(
+        "Unable to open chat"
+      );
+
       return;
     }
+
+  
+    setSelectedChat(
+      user
+    );
 
     navigate(
       `/chat/${encodeURIComponent(

@@ -18,16 +18,11 @@ const Header = ({ scrollY }) => {
   const navigate = useNavigate();
 
   const {
-    receivedRequests,
+    notificationUnreadCount,
     chatSummaries,
     loadChatSummaries,
+    loadNotifications,
   } = useChat();
-
-  const pendingRequestCount = Array.isArray(receivedRequests)
-    ? receivedRequests.filter(
-      (request) => request.status === "pending"
-    ).length
-    : 0;
 
   const totalUnreadMessages = Array.isArray(chatSummaries)
     ? chatSummaries.reduce(
@@ -45,8 +40,19 @@ const Header = ({ scrollY }) => {
   const [showTopHeader, setShowTopHeader] = useState(true);
 
   useEffect(() => {
-    loadChatSummaries();
-  }, [loadChatSummaries]);
+    Promise.all([
+      loadChatSummaries(),
+      loadNotifications(),
+    ]).catch((error) => {
+      console.error(
+        "HEADER DATA LOAD ERROR:",
+        error
+      );
+    });
+  }, [
+    loadChatSummaries,
+    loadNotifications,
+  ]);
 
   const lastScrollY = useRef(0);
 
@@ -152,9 +158,11 @@ const Header = ({ scrollY }) => {
             <div className={styles.iconWrapper}>
               <Heart className={styles.icon} />
 
-              {pendingRequestCount > 0 && (
+              {notificationUnreadCount > 0 && (
                 <span className={styles.badge}>
-                  {pendingRequestCount}
+                  {notificationUnreadCount > 99
+                    ? "99+"
+                    : notificationUnreadCount}
                 </span>
               )}
             </div>

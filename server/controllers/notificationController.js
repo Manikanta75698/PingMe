@@ -4,6 +4,44 @@ const mongoose =
 const Notification =
   require("../models/Notification");
 
+const {
+  getIO,
+} = require("../socket/socketInstance");
+
+/* =========================
+   NORMALIZE USER ID
+========================= */
+
+const normalizeUserId = (
+  value
+) => {
+  if (!value) {
+    return "";
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number"
+  ) {
+    return String(value).trim();
+  }
+
+  if (
+    typeof value?.toHexString ===
+    "function"
+  ) {
+    return String(
+      value.toHexString()
+    ).trim();
+  }
+
+  return String(
+    value?._id ||
+    value?.id ||
+    ""
+  ).trim();
+};
+
 /* =========================
    GET NOTIFICATIONS
 ========================= */
@@ -14,19 +52,33 @@ const getNotifications = async (
 ) => {
   try {
     const currentUserId =
-      req.user?._id;
+      normalizeUserId(
+        req.user
+      );
 
-    if (!currentUserId) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res
+        .status(401)
+        .json({
+          success: false,
+
+          message:
+            "Authentication required",
+        });
     }
 
-    const notifications =
-      await Notification.find({
-        receiver: currentUserId,
+    const [
+      notifications,
+      unreadCount,
+    ] = await Promise.all([
+      Notification.find({
+        receiver:
+          currentUserId,
       })
         .populate(
           "sender",
@@ -39,38 +91,43 @@ const getNotifications = async (
         .sort({
           createdAt: -1,
         })
-        .lean();
+        .lean(),
 
-    const unreadCount =
-      notifications.reduce(
-        (
-          total,
-          notification
-        ) =>
-          notification?.isRead
-            ? total
-            : total + 1,
-        0
-      );
+      Notification.countDocuments({
+        receiver:
+          currentUserId,
 
-    return res.status(200).json({
-      success: true,
-      count:
-        notifications.length,
-      unreadCount,
-      notifications,
-    });
+        isRead:
+          false,
+      }),
+    ]);
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+
+        count:
+          notifications.length,
+
+        unreadCount,
+
+        notifications,
+      });
   } catch (error) {
     console.error(
       "GET NOTIFICATIONS ERROR:",
       error
     );
 
-    return res.status(500).json({
-      success: false,
-      message:
-        "Unable to load notifications",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          "Unable to load notifications",
+      });
   }
 };
 
@@ -84,54 +141,78 @@ const markAsRead = async (
 ) => {
   try {
     const currentUserId =
-      req.user?._id;
+      normalizeUserId(
+        req.user
+      );
 
     const notificationId =
       String(
-        req.params?.id || ""
+        req.params?.id ||
+        ""
       ).trim();
 
-    if (!currentUserId) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res
+        .status(401)
+        .json({
+          success: false,
+
+          message:
+            "Authentication required",
+        });
     }
 
     if (
       !notificationId ||
-      !mongoose.Types.ObjectId.isValid(
+      !mongoose.isValidObjectId(
         notificationId
       )
     ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid notification ID",
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+
+          message:
+            "Invalid notification ID",
+        });
     }
 
     /*
-     * Current user ki belong ayye
-     * notification matrame update avutundi.
+     * isRead:false condition వల్ల
+     * unread → read transition matrame
+     * atomic ga update avuthundi.
      */
-    const notification =
+    let notification =
       await Notification
         .findOneAndUpdate(
           {
-            _id: notificationId,
+            _id:
+              notificationId,
+
             receiver:
               currentUserId,
+
+            isRead:
+              false,
           },
           {
             $set: {
-              isRead: true,
+              isRead:
+                true,
             },
           },
           {
-            new: true,
-            runValidators: true,
+            new:
+              true,
+
+            runValidators:
+              true,
           }
         )
         .populate(
@@ -143,31 +224,154 @@ const markAsRead = async (
           "image caption"
         );
 
+    let wasUpdated =
+      Boolean(notification);
+
+    /*
+     * Notification already read ayithe
+     * first query null return chesthundi.
+     * Document actually exists aa leda
+     * separate ga verify chestham.
+     */
     if (!notification) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Notification not found",
-      });
+      notification =
+        await Notification
+          .findOne({
+            _id:
+              notificationId,
+
+            receiver:
+              currentUserId,
+          })
+          .populate(
+            "sender",
+            "name username profilePic"
+          )
+          .populate(
+            "post",
+            "image caption"
+          );
+
+      if (!notification) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+
+            message:
+              "Notification not found",
+          });
+      }
+
+      wasUpdated =
+        false;
     }
 
-    return res.status(200).json({
-      success: true,
-      message:
-        "Notification marked as read",
-      notification,
-    });
+    /*
+     * Exact DB unread count.
+     * Client side guess/decrement badulu
+     * source-of-truth count return chestham.
+     */
+    const unreadCount =
+      await Notification
+        .countDocuments({
+          receiver:
+            currentUserId,
+
+          isRead:
+            false,
+        });
+
+    /* =========================
+       SOCKET SYNC
+    ========================= */
+
+    try {
+      const io =
+        getIO();
+
+      /*
+       * Activity list lo notification
+       * read style update kosam.
+       */
+      io.to(
+        currentUserId
+      ).emit(
+        "notificationRead",
+        {
+          notificationId,
+
+          isRead:
+            true,
+
+          wasUpdated,
+
+          unreadCount,
+        }
+      );
+
+      /*
+       * action:set idempotent.
+       * Same browser local update +
+       * socket event వచ్చినా exact count
+       * matrame set avuthundi.
+       */
+      io.to(
+        currentUserId
+      ).emit(
+        "notificationBadgeUpdated",
+        {
+          action:
+            "set",
+
+          count:
+            unreadCount,
+
+          unreadCount,
+
+          notificationId,
+        }
+      );
+    } catch (
+    socketError
+    ) {
+      console.error(
+        "NOTIFICATION READ SOCKET ERROR:",
+        socketError?.message ||
+        socketError
+      );
+    }
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+
+        message:
+          wasUpdated
+            ? "Notification marked as read"
+            : "Notification was already read",
+
+        wasUpdated,
+
+        unreadCount,
+
+        notification,
+      });
   } catch (error) {
     console.error(
       "MARK NOTIFICATION READ ERROR:",
       error
     );
 
-    return res.status(500).json({
-      success: false,
-      message:
-        "Unable to update notification",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          "Unable to update notification",
+      });
   }
 };
 

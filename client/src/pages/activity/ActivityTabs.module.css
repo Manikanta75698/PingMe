@@ -442,3 +442,37 @@
     width: 100%;
   }
 }
+
+
+.unreadCard {
+  background:
+    color-mix(in srgb,
+      var(--primary, #2563eb) 7%,
+      var(--surface, Canvas));
+
+  border-color:
+    color-mix(in srgb,
+      var(--primary, #2563eb) 22%,
+      var(--border, #d1d5db));
+}
+
+.notificationTypeIcon {
+  width: 38px;
+  height: 38px;
+
+  flex: 0 0 auto;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  color:
+    var(--primary,
+      #2563eb);
+
+  background:
+    color-mix(in srgb,
+      currentColor 10%,
+      transparent);
+}
