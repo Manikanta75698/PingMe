@@ -19,8 +19,6 @@ import {
   useNavigate,
 } from "react-router-dom";
 
-import Header from "../../components/home/Header";
-
 import DefaultAvatar from "../../assets/default-avatar.png";
 
 import {
@@ -753,18 +751,8 @@ const Explore = () => {
   ========================= */
 
   return (
-    <div
-      className={
-        styles.page
-      }
-    >
-      <Header />
-
-      <main
-        className={
-          styles.main
-        }
-      >
+    <div className={styles.page}>
+      <main className={styles.main}>
         <section
           className={
             styles.hero
@@ -1127,9 +1115,9 @@ const Explore = () => {
       {actionMessage && (
         <div
           className={`${styles.toast} ${actionMessage.type ===
-              "error"
-              ? styles.toastError
-              : styles.toastSuccess
+            "error"
+            ? styles.toastError
+            : styles.toastSuccess
             }`}
           role={
             actionMessage.type ===
