@@ -179,11 +179,15 @@ const startServer = async () => {
     startDeleteExpiredMessages();
     startStoryCleanupJob();
 
-    server.listen(PORT, () => {
-      console.log(
-        `✅ Production Secure Engine running on port: ${PORT}`
-      );
-    });
+    server.listen(
+      PORT,
+      "0.0.0.0",
+      () => {
+        console.log(
+          `✅ Production Secure Engine running on port: ${PORT}`
+        );
+      }
+    );
   } catch (error) {
     console.error(
       "❌ SERVER STARTUP ERROR:",
@@ -195,3 +199,5 @@ const startServer = async () => {
 };
 
 startServer();
+
+

@@ -911,16 +911,24 @@ const Chat = () => {
         }
 
         console.error(
-          "LOAD CONVERSATION ERROR:",
+          "LOAD CONVERSATION EXACT ERROR:",
           {
             status:
-              error.response?.status,
-
-            data:
-              error.response?.data,
+              error?.response?.status,
 
             message:
-              error.message,
+              error?.response?.data
+                ?.message,
+
+            code:
+              error?.response?.data
+                ?.code,
+
+            data:
+              error?.response?.data,
+
+            url:
+              error?.config?.url,
           }
         );
 

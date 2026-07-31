@@ -263,9 +263,25 @@ export const ChatProvider = ({
           );
         } catch (error) {
           console.error(
-            "GET PINNED MESSAGE ERROR:",
-            error.response?.data ||
-            error.message
+            "GET PINNED MESSAGE EXACT ERROR:",
+            {
+              status:
+                error?.response?.status,
+
+              message:
+                error?.response?.data
+                  ?.message,
+
+              code:
+                error?.response?.data
+                  ?.code,
+
+              data:
+                error?.response?.data,
+
+              url:
+                error?.config?.url,
+            }
           );
 
           if (isActive) {
