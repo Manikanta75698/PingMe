@@ -25,6 +25,8 @@ import UserProfile from "../pages/profile/UserProfile";
 import CreatePost from "../components/home/CreatePost";
 import PostDetails from "../pages/post/PostDetails";
 
+import Explore from "../pages/explore/Explore";
+
 /* =========================
    AUTH HELPERS
 ========================= */
@@ -157,6 +159,11 @@ const AppRoutes = () => {
         <Route
           path="/search"
           element={<Search />}
+        />
+
+        <Route
+          path="/explore"
+          element={<Explore />}
         />
 
         <Route

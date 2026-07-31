@@ -1,71 +1,121 @@
 .wrapper {
   width: 100%;
+  max-width: 940px;
+  margin: 0 auto;
 }
 
-.tabs {
-  display: flex;
-  gap: 8px;
-  padding: 6px;
-  margin-bottom: 20px;
+/* =========================
+   TABS
+========================= */
 
-  background: var(--surface);
+.tabs {
+  position: sticky;
+  top: 12px;
+  z-index: 5;
+
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+
+  padding: 6px;
+  margin-bottom: 22px;
+
+  background:
+    color-mix(in srgb,
+      var(--surface) 92%,
+      transparent);
+
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 18px;
+
+  box-shadow:
+    0 8px 30px rgba(15, 23, 42, 0.06);
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .tab {
   position: relative;
 
-  flex: 1;
-  min-height: 46px;
-  padding: 10px 16px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 14px;
 
-  border: none;
-  border-radius: 12px;
+  border: 1px solid transparent;
+  border-radius: 13px;
 
   background: transparent;
   color: var(--text-secondary);
 
+  font: inherit;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 700;
 
   cursor: pointer;
 
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 
   transition:
     background 0.2s ease,
+    border-color 0.2s ease,
     color 0.2s ease,
+    box-shadow 0.2s ease,
     transform 0.2s ease;
 }
 
 .tab:hover {
-  background: var(--background);
+  background:
+    color-mix(in srgb,
+      var(--background) 75%,
+      var(--surface));
+
   color: var(--text-primary);
 }
 
+.tab:focus-visible {
+  outline: 3px solid color-mix(in srgb,
+      #2563eb 24%,
+      transparent);
+
+  outline-offset: 2px;
+}
+
 .tab:active {
-  transform: scale(0.98);
+  transform: scale(0.985);
 }
 
 .active {
-  background: #2563eb;
+  border-color:
+    color-mix(in srgb,
+      #2563eb 88%,
+      #ffffff);
+
+  background:
+    linear-gradient(135deg,
+      #2563eb,
+      #1d4ed8);
+
   color: #ffffff;
 
   box-shadow:
-    0 6px 18px rgba(37, 99, 235, 0.2);
+    0 8px 22px rgba(37, 99, 235, 0.24);
 }
 
 .active:hover {
-  background: #2563eb;
+  background:
+    linear-gradient(135deg,
+      #2563eb,
+      #1d4ed8);
+
   color: #ffffff;
 }
 
 /* =========================
-   REQUEST COUNT BADGE
+   BADGES
 ========================= */
 
 .badge {
@@ -73,32 +123,57 @@
   height: 20px;
   padding: 0 6px;
 
+  border: 2px solid var(--surface);
   border-radius: 999px;
 
   background: #dc2626;
   color: #ffffff;
 
   font-size: 11px;
-  font-weight: 700;
-  line-height: 20px;
+  font-weight: 800;
+  line-height: 16px;
   text-align: center;
+
+  box-shadow:
+    0 3px 8px rgba(220, 38, 38, 0.22);
 }
 
 .active .badge {
+  border-color:
+    color-mix(in srgb,
+      #2563eb 80%,
+      #ffffff);
+
   background: #ffffff;
-  color: #2563eb;
+  color: #1d4ed8;
+
+  box-shadow:
+    0 3px 8px rgba(15, 23, 42, 0.14);
 }
 
 /* =========================
-   TAB CONTENT
+   CONTENT
 ========================= */
 
 .content {
   width: 100%;
+  animation: activityFadeIn 0.22s ease;
+}
+
+@keyframes activityFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* =========================
-   FOLLOW REQUEST LIST
+   LIST
 ========================= */
 
 .requestList {
@@ -109,59 +184,99 @@
 
 .requestCard {
   width: 100%;
-  padding: 16px;
+  min-height: 90px;
+  padding: 15px 16px;
 
   border: 1px solid var(--border);
   border-radius: 18px;
 
-  background: var(--surface);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb,
+        var(--surface) 98%,
+        #ffffff),
+      var(--surface));
+
+  color: inherit;
+  text-align: left;
 
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
 
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.025);
+
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+button.requestCard {
+  cursor: pointer;
 }
 
 .requestCard:hover {
   border-color:
     color-mix(in srgb,
-      #2563eb 35%,
+      #2563eb 28%,
       var(--border));
 
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.06);
+    0 12px 28px rgba(15, 23, 42, 0.075);
 
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+}
+
+.requestCard:focus-visible {
+  outline: 3px solid color-mix(in srgb,
+      #2563eb 20%,
+      transparent);
+
+  outline-offset: 2px;
 }
 
 .requestUser {
   min-width: 0;
+  flex: 1;
+
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
 
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 14px;
+
+  cursor: pointer;
 }
 
 .avatar {
-  width: 52px;
-  height: 52px;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
 
-  flex: 0 0 52px;
+  border: 2px solid color-mix(in srgb,
+      var(--border) 78%,
+      #ffffff);
 
-  border: 1px solid var(--border);
   border-radius: 50%;
 
   object-fit: cover;
   background: var(--background);
+
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
 .userDetails {
   min-width: 0;
+  flex: 1;
 
   display: flex;
   flex-direction: column;
@@ -173,35 +288,41 @@
   color: var(--text-primary);
 
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 750;
+  line-height: 1.25;
 
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .userDetails span {
-  margin-top: 2px;
+  margin-top: 3px;
 
   overflow: hidden;
 
   color: var(--text-secondary);
 
   font-size: 13px;
+  line-height: 1.3;
 
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .userDetails p {
-  margin: 5px 0 0;
+  margin: 6px 0 0;
 
-  color: var(--text-secondary);
+  color:
+    color-mix(in srgb,
+      var(--text-secondary) 88%,
+      var(--text-primary));
 
   font-size: 13px;
+  line-height: 1.45;
 }
 
 /* =========================
-   REQUEST ACTIONS
+   ACTIONS
 ========================= */
 
 .requestActions {
@@ -209,19 +330,20 @@
 
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 }
 
 .acceptButton,
 .declineButton,
 .retryButton {
   min-height: 40px;
-  padding: 9px 14px;
+  padding: 9px 15px;
 
   border-radius: 11px;
 
+  font: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 750;
 
   cursor: pointer;
 
@@ -234,6 +356,7 @@
     background 0.2s ease,
     border-color 0.2s ease,
     color 0.2s ease,
+    box-shadow 0.2s ease,
     transform 0.2s ease,
     opacity 0.2s ease;
 }
@@ -241,35 +364,60 @@
 .acceptButton {
   border: 1px solid #2563eb;
 
-  background: #2563eb;
+  background:
+    linear-gradient(135deg,
+      #2563eb,
+      #1d4ed8);
+
   color: #ffffff;
+
+  box-shadow:
+    0 7px 16px rgba(37, 99, 235, 0.2);
 }
 
 .acceptButton:hover:not(:disabled) {
-  background: #1d4ed8;
   border-color: #1d4ed8;
+
+  background:
+    linear-gradient(135deg,
+      #1d4ed8,
+      #1e40af);
+
+  box-shadow:
+    0 9px 20px rgba(37, 99, 235, 0.26);
+
+  transform: translateY(-1px);
 }
 
 .declineButton {
   border: 1px solid var(--border);
 
-  background: transparent;
+  background:
+    color-mix(in srgb,
+      var(--surface) 92%,
+      var(--background));
+
   color: var(--text-primary);
 }
 
 .declineButton:hover:not(:disabled) {
-  border-color: #dc2626;
+  border-color:
+    color-mix(in srgb,
+      #dc2626 58%,
+      var(--border));
 
   background:
     color-mix(in srgb,
-      #dc2626 9%,
-      transparent);
+      #dc2626 8%,
+      var(--surface));
 
   color: #dc2626;
+
+  transform: translateY(-1px);
 }
 
 .retryButton {
-  margin-top: 16px;
+  margin-top: 18px;
 
   border: 1px solid #2563eb;
 
@@ -280,6 +428,9 @@
 .retryButton:hover {
   background: #2563eb;
   color: #ffffff;
+
+  box-shadow:
+    0 7px 18px rgba(37, 99, 235, 0.18);
 }
 
 .acceptButton:active:not(:disabled),
@@ -288,10 +439,78 @@
   transform: scale(0.97);
 }
 
+.acceptButton:focus-visible,
+.declineButton:focus-visible,
+.retryButton:focus-visible {
+  outline: 3px solid color-mix(in srgb,
+      #2563eb 22%,
+      transparent);
+
+  outline-offset: 2px;
+}
+
 .acceptButton:disabled,
 .declineButton:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.58;
+  box-shadow: none;
+}
+
+/* =========================
+   UNREAD NOTIFICATIONS
+========================= */
+
+.unreadCard {
+  position: relative;
+
+  border-color:
+    color-mix(in srgb,
+      var(--primary, #2563eb) 28%,
+      var(--border));
+
+  background:
+    linear-gradient(90deg,
+      color-mix(in srgb,
+        var(--primary, #2563eb) 8%,
+        var(--surface)),
+      var(--surface) 58%);
+}
+
+.unreadCard::before {
+  content: "";
+
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 0;
+
+  width: 3px;
+
+  border-radius: 0 999px 999px 0;
+
+  background: var(--primary, #2563eb);
+}
+
+.notificationTypeIcon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  color: var(--primary, #2563eb);
+
+  background:
+    color-mix(in srgb,
+      currentColor 10%,
+      transparent);
+
+  border: 1px solid color-mix(in srgb,
+      currentColor 15%,
+      transparent);
 }
 
 /* =========================
@@ -299,13 +518,22 @@
 ========================= */
 
 .empty {
-  min-height: 260px;
-  padding: 40px 20px;
+  min-height: 280px;
+  padding: 42px 22px;
 
-  border: 1px solid var(--border);
-  border-radius: 18px;
+  border: 1px dashed color-mix(in srgb,
+      var(--border) 88%,
+      var(--text-secondary));
 
-  background: var(--surface);
+  border-radius: 20px;
+
+  background:
+    radial-gradient(circle at top,
+      color-mix(in srgb,
+        #2563eb 5%,
+        var(--surface)),
+      var(--surface) 62%);
+
   color: var(--text-secondary);
 
   text-align: center;
@@ -314,12 +542,33 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.035);
+}
+
+.empty>svg {
+  width: 42px;
+  height: 42px;
+  padding: 9px;
+
+  border-radius: 50%;
+
+  color: #2563eb;
+
+  background:
+    color-mix(in srgb,
+      #2563eb 10%,
+      transparent);
 }
 
 .empty h3 {
-  margin: 14px 0 5px;
+  margin: 16px 0 6px;
 
   color: var(--text-primary);
+
+  font-size: 17px;
+  font-weight: 750;
 }
 
 .empty p {
@@ -327,7 +576,7 @@
   margin: 0;
 
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
 .spinner {
@@ -346,6 +595,10 @@
 ========================= */
 
 @media (max-width: 768px) {
+  .tabs {
+    top: 8px;
+  }
+
   .requestCard {
     align-items: flex-start;
   }
@@ -365,12 +618,23 @@
 ========================= */
 
 @media (max-width: 600px) {
+  .wrapper {
+    max-width: none;
+  }
+
   .tabs {
-    gap: 4px;
+    position: static;
+
+    display: flex;
+    gap: 5px;
+
     padding: 5px;
+    margin-bottom: 16px;
 
     overflow-x: auto;
     scrollbar-width: none;
+
+    border-radius: 15px;
   }
 
   .tabs::-webkit-scrollbar {
@@ -391,11 +655,18 @@
   }
 
   .requestCard {
+    min-height: auto;
     padding: 14px;
 
     flex-direction: column;
     align-items: stretch;
-    gap: 14px;
+    gap: 15px;
+
+    border-radius: 16px;
+  }
+
+  .requestCard:hover {
+    transform: none;
   }
 
   .requestUser {
@@ -403,10 +674,9 @@
   }
 
   .avatar {
-    width: 48px;
-    height: 48px;
-
-    flex-basis: 48px;
+    width: 50px;
+    height: 50px;
+    flex-basis: 50px;
   }
 
   .requestActions {
@@ -422,9 +692,25 @@
     min-height: 42px;
   }
 
+  .notificationTypeIcon {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  button.requestCard .requestUser {
+    padding-right: 42px;
+  }
+
   .empty {
-    min-height: 230px;
+    min-height: 235px;
     padding: 34px 18px;
+
+    border-radius: 17px;
   }
 }
 
@@ -443,36 +729,21 @@
   }
 }
 
+/* =========================
+   REDUCED MOTION
+========================= */
 
-.unreadCard {
-  background:
-    color-mix(in srgb,
-      var(--primary, #2563eb) 7%,
-      var(--surface, Canvas));
+@media (prefers-reduced-motion: reduce) {
 
-  border-color:
-    color-mix(in srgb,
-      var(--primary, #2563eb) 22%,
-      var(--border, #d1d5db));
-}
+  .tab,
+  .requestCard,
+  .acceptButton,
+  .declineButton,
+  .retryButton {
+    transition: none;
+  }
 
-.notificationTypeIcon {
-  width: 38px;
-  height: 38px;
-
-  flex: 0 0 auto;
-
-  display: grid;
-  place-items: center;
-
-  border-radius: 50%;
-
-  color:
-    var(--primary,
-      #2563eb);
-
-  background:
-    color-mix(in srgb,
-      currentColor 10%,
-      transparent);
+  .content {
+    animation: none;
+  }
 }
