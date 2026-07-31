@@ -1,5 +1,6 @@
 const {
   transporter,
+  hasSmtpConfig,
 } = require("../config/mailer");
 
 const escapeHtml = (value = "") =>
@@ -37,6 +38,25 @@ const sendOtpEmail = async ({
     );
   }
 
+  if (
+    !hasSmtpConfig ||
+    !transporter
+  ) {
+    console.warn(
+      "SMTP is not configured. OTP email was not sent.",
+      {
+        recipient: cleanEmail,
+      }
+    );
+
+    return {
+      success: false,
+      skipped: true,
+      reason:
+        "SMTP configuration missing",
+    };
+  }
+
   const safeName = escapeHtml(
     name?.trim() || "there"
   );
@@ -45,6 +65,7 @@ const sendOtpEmail = async ({
     await transporter.sendMail({
       from: process.env.SMTP_FROM,
       to: cleanEmail,
+
       subject:
         "Verify your Nexora account",
 
@@ -198,7 +219,11 @@ const sendOtpEmail = async ({
     }
   );
 
-  return info;
+  return {
+    success: true,
+    skipped: false,
+    info,
+  };
 };
 
 module.exports = sendOtpEmail;
