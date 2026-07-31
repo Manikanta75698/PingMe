@@ -18,6 +18,11 @@ const {
   getIO,
 } = require("../socket/socketInstance");
 
+console.log(
+  "MESSAGE CONTROLLER VERSION:",
+  "CHAT_REQUEST_REMOVED_V3"
+);
+
 const MAX_MESSAGE_LENGTH = 5000;
 const DEFAULT_PAGE_SIZE = 30;
 const MAX_PAGE_SIZE = 50;
@@ -50,10 +55,6 @@ const normalizeId = (value) => {
     return String(value).trim();
   }
 
-  /*
-   * Mongoose ObjectId ni first handle cheyyali.
-   * value.id getter ni mundu access cheyyakudadhu.
-   */
   if (
     value instanceof
     mongoose.Types.ObjectId
@@ -1146,6 +1147,10 @@ const getMessages = async (
   req,
   res
 ) => {
+  console.log(
+    "NEW GET MESSAGES ACTIVE:",
+    req.params?.userId
+  );
   try {
     const currentUserId =
       normalizeId(req.user);

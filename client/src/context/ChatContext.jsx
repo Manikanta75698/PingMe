@@ -391,45 +391,6 @@ export const ChatProvider = ({
 
 
   /* =========================
-     LOAD REQUESTS
-  ========================= */
-
-  const loadRequests =
-    useCallback(async () => {
-      try {
-        const [
-          received,
-          sent,
-        ] = await Promise.all([
-          getReceivedRequests(),
-          getSentRequests(),
-        ]);
-
-        setReceivedRequests(
-          Array.isArray(
-            received?.data?.requests
-          )
-            ? received.data.requests
-            : []
-        );
-
-        setSentRequests(
-          Array.isArray(
-            sent?.data?.requests
-          )
-            ? sent.data.requests
-            : []
-        );
-      } catch (error) {
-        console.error(
-          "LOAD CHAT REQUESTS ERROR:",
-          error.response?.data ||
-          error.message
-        );
-      }
-    }, []);
-
-  /* =========================
      LOAD CHAT SUMMARIES
   ========================= */
 
@@ -571,7 +532,6 @@ export const ChatProvider = ({
     }
 
     Promise.all([
-      loadRequests(),
       loadChatSummaries(),
       loadNotifications(),
     ]).catch((error) => {
@@ -581,7 +541,6 @@ export const ChatProvider = ({
       );
     });
   }, [
-    loadRequests,
     loadChatSummaries,
     loadNotifications,
   ]);
@@ -2988,7 +2947,6 @@ export const ChatProvider = ({
 
         summariesLoading,
 
-        loadRequests,
         loadChatSummaries,
 
         socket,
