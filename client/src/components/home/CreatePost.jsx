@@ -8,22 +8,16 @@ import {
 } from "react";
 
 import {
-  CheckCircle2,
+  ChevronLeft,
   CircleAlert,
   ImagePlus,
   LoaderCircle,
-  Maximize2,
-  Minimize2,
-  Move,
-  RotateCcw,
   RotateCw,
   Send,
+  SlidersHorizontal,
   Trash2,
-  Undo2,
   UploadCloud,
   X,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react";
 
 import {
@@ -38,34 +32,17 @@ import {
   createPost,
 } from "../../services/postService";
 
-
 import DefaultAvatar from "../../assets/default-avatar.png";
 
 import styles from "./CreatePost.module.css";
 
 const MAX_CAPTION_LENGTH = 500;
+
 const MAX_IMAGE_SIZE =
   10 * 1024 * 1024;
 
 const OUTPUT_WIDTH = 1080;
 const OUTPUT_HEIGHT = 1350;
-
-const MIN_ZOOM = 1;
-const MAX_ZOOM = 3;
-const ZOOM_STEP = 0.05;
-
-const clamp = (
-  value,
-  minimum,
-  maximum
-) =>
-  Math.min(
-    maximum,
-    Math.max(
-      minimum,
-      value
-    )
-  );
 
 const normalizeRotation = (
   value
@@ -78,6 +55,37 @@ const normalizeRotation = (
     : normalized;
 };
 
+const validateImageFile = (
+  file
+) => {
+  if (!file) {
+    return "Please select a photo.";
+  }
+
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+  ];
+
+  if (
+    !allowedTypes.includes(
+      file.type
+    )
+  ) {
+    return "Only JPG, PNG and WebP photos are supported.";
+  }
+
+  if (
+    file.size >
+    MAX_IMAGE_SIZE
+  ) {
+    return "Photo must be smaller than 10 MB.";
+  }
+
+  return "";
+};
+
 const readFileAsDataUrl = (
   file
 ) =>
@@ -87,29 +95,28 @@ const readFileAsDataUrl = (
         new FileReader();
 
       reader.onload = () => {
-        const result =
+        if (
           typeof reader.result ===
-            "string"
-            ? reader.result
-            : "";
-
-        if (!result) {
-          reject(
-            new Error(
-              "Unable to read this image"
-            )
+          "string"
+        ) {
+          resolve(
+            reader.result
           );
 
           return;
         }
 
-        resolve(result);
+        reject(
+          new Error(
+            "Unable to preview this photo."
+          )
+        );
       };
 
       reader.onerror = () => {
         reject(
           new Error(
-            "Unable to read this image"
+            "Unable to preview this photo."
           )
         );
       };
@@ -135,7 +142,7 @@ const loadImage = (
       image.onerror = () => {
         reject(
           new Error(
-            "Unable to process this image"
+            "Unable to process this photo."
           )
         );
       };
@@ -150,13 +157,18 @@ const getSafeFileName = (
   String(
     fileName || "post"
   )
-    .replace(/\.[^.]+$/, "")
+    .replace(
+      /\.[^.]+$/,
+      ""
+    )
     .replace(
       /[^a-zA-Z0-9_-]+/g,
       "-"
     )
-    .replace(/^-+|-+$/g, "") ||
-  "post";
+    .replace(
+      /^-+|-+$/g,
+      ""
+    ) || "post";
 
 const canvasToFile = (
   canvas,
@@ -169,7 +181,7 @@ const canvasToFile = (
           if (!blob) {
             reject(
               new Error(
-                "Unable to prepare post image"
+                "Unable to prepare post photo."
               )
             );
 
@@ -183,7 +195,9 @@ const canvasToFile = (
                 originalName
               )}.jpg`,
               {
-                type: "image/jpeg",
+                type:
+                  "image/jpeg",
+
                 lastModified:
                   Date.now(),
               }
@@ -201,10 +215,11 @@ const preparePostImage =
     file,
     imageSource,
     fitMode,
-    zoom,
     rotation,
+    zoom,
     position,
   }) => {
+
     const sourceImage =
       await loadImage(
         imageSource
@@ -215,17 +230,19 @@ const preparePostImage =
         rotation
       );
 
-    const isQuarterTurn =
-      normalizedRotation === 90 ||
-      normalizedRotation === 270;
+    const quarterTurn =
+      normalizedRotation ===
+      90 ||
+      normalizedRotation ===
+      270;
 
     const rotatedWidth =
-      isQuarterTurn
+      quarterTurn
         ? sourceImage.height
         : sourceImage.width;
 
     const rotatedHeight =
-      isQuarterTurn
+      quarterTurn
         ? sourceImage.width
         : sourceImage.height;
 
@@ -233,6 +250,7 @@ const preparePostImage =
       Math.min(
         OUTPUT_WIDTH /
         rotatedWidth,
+
         OUTPUT_HEIGHT /
         rotatedHeight
       );
@@ -241,17 +259,15 @@ const preparePostImage =
       Math.max(
         OUTPUT_WIDTH /
         rotatedWidth,
+
         OUTPUT_HEIGHT /
         rotatedHeight
       );
 
-    const baseScale =
+    const finalScale =
       fitMode === "fill"
         ? fillScale
         : fitScale;
-
-    const finalScale =
-      baseScale * zoom;
 
     const canvas =
       document.createElement(
@@ -271,7 +287,7 @@ const preparePostImage =
 
     if (!context) {
       throw new Error(
-        "Image editor is unavailable"
+        "Photo editor is unavailable."
       );
     }
 
@@ -291,6 +307,7 @@ const preparePostImage =
       OUTPUT_WIDTH / 2 +
       position.x *
       OUTPUT_WIDTH,
+
       OUTPUT_HEIGHT / 2 +
       position.y *
       OUTPUT_HEIGHT
@@ -300,13 +317,12 @@ const preparePostImage =
       (
         normalizedRotation *
         Math.PI
-      ) /
-      180
+      ) / 180
     );
 
     context.scale(
-      finalScale,
-      finalScale
+      finalScale * zoom,
+      finalScale * zoom
     );
 
     context.drawImage(
@@ -325,41 +341,6 @@ const preparePostImage =
     );
   };
 
-const validateImageFile = (
-  file
-) => {
-  if (!file) {
-    return "Please select an image.";
-  }
-
-  if (
-    !file.type.startsWith(
-      "image/"
-    )
-  ) {
-    return "Please select a valid image.";
-  }
-
-  if (
-    ![
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ].includes(file.type)
-  ) {
-    return "Only JPG, PNG and WebP images are supported.";
-  }
-
-  if (
-    file.size >
-    MAX_IMAGE_SIZE
-  ) {
-    return "Image must be smaller than 10 MB.";
-  }
-
-  return "";
-};
-
 const CreatePost = ({
   onPostCreated,
 }) => {
@@ -372,31 +353,26 @@ const CreatePost = ({
   const fileInputRef =
     useRef(null);
 
-  const textareaRef =
-    useRef(null);
-
   const editorFrameRef =
     useRef(null);
 
-  const dragStateRef =
+  const gestureRef =
     useRef({
-      active: false,
+      dragging: false,
       pointerId: null,
       startX: 0,
       startY: 0,
       initialX: 0,
       initialY: 0,
+
+      pointers: new Map(),
+      pinchDistance: 0,
+      pinchZoom: 1,
+
+      lastTapTime: 0,
+      lastTapX: 0,
+      lastTapY: 0,
     });
-
-  const [
-    modalOpen,
-    setModalOpen,
-  ] = useState(true);
-
-  const [
-    caption,
-    setCaption,
-  ] = useState("");
 
   const [
     imageFile,
@@ -409,29 +385,24 @@ const CreatePost = ({
   ] = useState("");
 
   const [
-    imageLoading,
-    setImageLoading,
-  ] = useState(false);
-
-  const [
-    dragActive,
-    setDragActive,
-  ] = useState(false);
+    caption,
+    setCaption,
+  ] = useState("");
 
   const [
     fitMode,
     setFitMode,
-  ] = useState("fit");
-
-  const [
-    zoom,
-    setZoom,
-  ] = useState(1);
+  ] = useState("fill");
 
   const [
     rotation,
     setRotation,
   ] = useState(0);
+
+  const [
+    zoom,
+    setZoom,
+  ] = useState(1);
 
   const [
     position,
@@ -442,8 +413,18 @@ const CreatePost = ({
   });
 
   const [
-    posting,
-    setPosting,
+    toolsOpen,
+    setToolsOpen,
+  ] = useState(false);
+
+  const [
+    dragActive,
+    setDragActive,
+  ] = useState(false);
+
+  const [
+    imageLoading,
+    setImageLoading,
   ] = useState(false);
 
   const [
@@ -452,19 +433,53 @@ const CreatePost = ({
   ] = useState(false);
 
   const [
+    posting,
+    setPosting,
+  ] = useState(false);
+
+  const [
     error,
     setError,
   ] = useState("");
 
   const [
-    toast,
-    setToast,
-  ] = useState(null);
-
-  const [
-    discardDialogOpen,
-    setDiscardDialogOpen,
+    discardOpen,
+    setDiscardOpen,
   ] = useState(false);
+
+  const busy =
+    imageLoading ||
+    preparing ||
+    posting;
+
+  const hasChanges =
+    Boolean(
+      imageFile ||
+      caption.trim()
+    );
+
+  const canSubmit =
+    Boolean(
+      imageFile &&
+      imageSource &&
+      !busy
+    );
+
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 3;
+
+  const clamp = (
+    value,
+    minimum,
+    maximum
+  ) =>
+    Math.min(
+      maximum,
+      Math.max(
+        minimum,
+        value
+      )
+    );
 
   const normalizedRotation =
     useMemo(
@@ -475,75 +490,17 @@ const CreatePost = ({
       [rotation]
     );
 
-  const busy =
-    posting ||
-    preparing ||
-    imageLoading;
-
-  const hasChanges =
-    Boolean(
-      caption.trim() ||
-      imageFile
-    );
-
-  const canSubmit =
-    Boolean(
-      imageFile &&
-      imageSource &&
-      !busy
-    );
-
   const avatar =
     user?.profilePic ||
     user?.avatar ||
     user?.photoURL ||
     DefaultAvatar;
 
-
-  const showToast =
-    useCallback(
-      ({
-        type,
-        title,
-        message,
-      }) => {
-        setToast({
-          id: Date.now(),
-          type,
-          title,
-          message,
-        });
-      },
-      []
-    );
-
-  useEffect(() => {
-    if (!toast) {
-      return undefined;
-    }
-
-    const timeoutId =
-      window.setTimeout(
-        () => {
-          setToast(null);
-        },
-        toast.type === "error"
-          ? 4500
-          : 3500
-      );
-
-    return () => {
-      window.clearTimeout(
-        timeoutId
-      );
-    };
-  }, [toast]);
-
-  const resetEditor =
+  const resetPhoto =
     useCallback(() => {
-      setFitMode("fit");
-      setZoom(1);
+      setFitMode("fill");
       setRotation(0);
+      setZoom(1);
 
       setPosition({
         x: 0,
@@ -555,15 +512,15 @@ const CreatePost = ({
 
   const clearComposer =
     useCallback(() => {
-      setCaption("");
       setImageFile(null);
       setImageSource("");
-      setImageLoading(false);
+      setCaption("");
+      setToolsOpen(false);
       setDragActive(false);
       setError("");
-      setDiscardDialogOpen(false);
+      setDiscardOpen(false);
 
-      resetEditor();
+      resetPhoto();
 
       if (
         fileInputRef.current
@@ -571,53 +528,47 @@ const CreatePost = ({
         fileInputRef.current.value =
           "";
       }
-    }, [resetEditor]);
+    }, [resetPhoto]);
 
-
-  const closeComposerImmediately =
+  const closeImmediately =
     useCallback(() => {
       if (busy) {
         return;
       }
 
       clearComposer();
-      setModalOpen(false);
 
-      navigate("/home", {
-        replace: true,
-      });
+      navigate(
+        "/home",
+        {
+          replace: true,
+        }
+      );
     }, [
       busy,
       clearComposer,
       navigate,
     ]);
 
-  const requestCloseComposer =
+  const requestClose =
     useCallback(() => {
       if (busy) {
         return;
       }
 
       if (hasChanges) {
-        setDiscardDialogOpen(
-          true
-        );
-
+        setDiscardOpen(true);
         return;
       }
 
-      closeComposerImmediately();
+      closeImmediately();
     }, [
       busy,
-      closeComposerImmediately,
+      closeImmediately,
       hasChanges,
     ]);
 
   useEffect(() => {
-    if (!modalOpen) {
-      return undefined;
-    }
-
     const previousOverflow =
       document.body.style
         .overflow;
@@ -625,45 +576,42 @@ const CreatePost = ({
     document.body.style
       .overflow = "hidden";
 
-    const handleKeyDown =
-      (event) => {
-        if (
-          discardDialogOpen
-        ) {
-          if (
-            event.key ===
-            "Escape"
-          ) {
-            setDiscardDialogOpen(
-              false
-            );
-          }
+    const handleKeyDown = (
+      event
+    ) => {
+      if (
+        event.key ===
+        "Escape"
+      ) {
+        if (discardOpen) {
+          setDiscardOpen(
+            false
+          );
 
           return;
         }
 
-        if (
-          event.key ===
-          "Escape"
-        ) {
-          requestCloseComposer();
-        }
+        requestClose();
+      }
 
-        if (
-          event.key ===
-          "Enter" &&
-          (event.ctrlKey ||
-            event.metaKey)
-        ) {
-          event.preventDefault();
+      if (
+        event.key ===
+        "Enter" &&
+        (
+          event.ctrlKey ||
+          event.metaKey
+        ) &&
+        canSubmit
+      ) {
+        event.preventDefault();
 
-          document
-            .getElementById(
-              "create-post-submit"
-            )
-            ?.click();
-        }
-      };
+        document
+          .getElementById(
+            "create-post-submit"
+          )
+          ?.click();
+      }
+    };
 
     window.addEventListener(
       "keydown",
@@ -681,9 +629,9 @@ const CreatePost = ({
       );
     };
   }, [
-    discardDialogOpen,
-    modalOpen,
-    requestCloseComposer,
+    canSubmit,
+    discardOpen,
+    requestClose,
   ]);
 
   const selectImage =
@@ -694,18 +642,12 @@ const CreatePost = ({
             file
           );
 
-        if (validationError) {
+        if (
+          validationError
+        ) {
           setError(
             validationError
           );
-
-          showToast({
-            type: "error",
-            title:
-              "Image unavailable",
-            message:
-              validationError,
-          });
 
           return;
         }
@@ -727,161 +669,264 @@ const CreatePost = ({
             source
           );
 
-          resetEditor();
+          resetPhoto();
         } catch (
-        readError
+        selectionError
         ) {
-          const message =
-            readError?.message ||
-            "Unable to preview this image.";
-
           setError(
-            message
+            selectionError
+              ?.message ||
+            "Unable to preview this photo."
           );
-
-          showToast({
-            type: "error",
-            title:
-              "Preview failed",
-            message,
-          });
         } finally {
           setImageLoading(false);
         }
       },
-      [
-        resetEditor,
-        showToast,
-      ]
+      [resetPhoto]
     );
 
-  const handleImageChange =
-    (event) => {
-      const selectedFile =
-        event.target
-          .files?.[0];
+  const handleImageChange = (
+    event
+  ) => {
+    const selectedFile =
+      event.target
+        .files?.[0];
 
-      event.target.value =
-        "";
+    event.target.value =
+      "";
 
-      if (!selectedFile) {
-        return;
-      }
-
+    if (selectedFile) {
       void selectImage(
         selectedFile
       );
-    };
+    }
+  };
 
-  const removeImage =
-    useCallback(() => {
-      if (busy) {
-        return;
-      }
+  const removeImage = () => {
+    if (busy) {
+      return;
+    }
 
-      setImageFile(null);
-      setImageSource("");
-      setError("");
+    setImageFile(null);
+    setImageSource("");
+    setToolsOpen(false);
+    setError("");
 
-      resetEditor();
+    resetPhoto();
+  };
 
-      if (
-        fileInputRef.current
-      ) {
-        fileInputRef.current.value =
-          "";
-      }
-    }, [
-      busy,
-      resetEditor,
-    ]);
+  const handleDrop = (
+    event
+  ) => {
+    event.preventDefault();
 
-  const handleDragOver =
-    (event) => {
-      event.preventDefault();
+    setDragActive(false);
 
-      if (!busy) {
-        setDragActive(true);
-      }
-    };
+    if (busy) {
+      return;
+    }
 
-  const handleDragLeave =
-    (event) => {
-      if (
-        event.currentTarget.contains(
-          event.relatedTarget
-        )
-      ) {
-        return;
-      }
+    const droppedFile =
+      event.dataTransfer
+        .files?.[0];
 
-      setDragActive(false);
-    };
+    if (droppedFile) {
+      void selectImage(
+        droppedFile
+      );
+    }
+  };
 
-  const handleDrop =
-    (event) => {
-      event.preventDefault();
-      setDragActive(false);
+  const getPointerDistance = (
+    pointers
+  ) => {
+    const values = [
+      ...pointers.values(),
+    ];
 
-      if (busy) {
-        return;
-      }
+    if (values.length < 2) {
+      return 0;
+    }
 
-      const droppedFile =
-        event.dataTransfer
-          .files?.[0];
+    const first = values[0];
+    const second = values[1];
 
-      if (droppedFile) {
-        void selectImage(
-          droppedFile
+    return Math.hypot(
+      second.x - first.x,
+      second.y - first.y
+    );
+  };
+
+  const handlePointerDown = (
+    event
+  ) => {
+    if (
+      busy ||
+      !imageSource ||
+      !editorFrameRef.current
+    ) {
+      return;
+
+      const now = Date.now();
+
+      const tapDistance =
+        Math.hypot(
+          event.clientX -
+          gestureRef.current.lastTapX,
+          event.clientY -
+          gestureRef.current.lastTapY
         );
-      }
-    };
 
-  const handlePointerDown =
-    (event) => {
+      const isDoubleTap =
+        now -
+        gestureRef.current.lastTapTime <
+        300 &&
+        tapDistance < 35;
+
+      gestureRef.current.lastTapTime =
+        now;
+
+      gestureRef.current.lastTapX =
+        event.clientX;
+
+      gestureRef.current.lastTapY =
+        event.clientY;
+
       if (
-        busy ||
-        !imageSource ||
-        !editorFrameRef.current
+        isDoubleTap &&
+        event.pointerType === "touch"
       ) {
+        setZoom(1);
+
+        setPosition({
+          x: 0,
+          y: 0,
+        });
+
         return;
       }
+    }
 
-      event.currentTarget
-        .setPointerCapture(
+    event.currentTarget
+      .setPointerCapture(
+        event.pointerId
+      );
+
+    gestureRef.current.pointers.set(
+      event.pointerId,
+      {
+        x: event.clientX,
+        y: event.clientY,
+      }
+    );
+
+    if (
+      gestureRef.current
+        .pointers.size === 1
+    ) {
+      gestureRef.current.dragging =
+        true;
+
+      gestureRef.current.pointerId =
+        event.pointerId;
+
+      gestureRef.current.startX =
+        event.clientX;
+
+      gestureRef.current.startY =
+        event.clientY;
+
+      gestureRef.current.initialX =
+        position.x;
+
+      gestureRef.current.initialY =
+        position.y;
+    }
+
+    if (
+      gestureRef.current
+        .pointers.size === 2
+    ) {
+      gestureRef.current.dragging =
+        false;
+
+      gestureRef.current
+        .pinchDistance =
+        getPointerDistance(
+          gestureRef.current
+            .pointers
+        );
+
+      gestureRef.current.pinchZoom =
+        zoom;
+    }
+  };
+
+  const handlePointerMove = (
+    event
+  ) => {
+    if (
+      !editorFrameRef.current ||
+      !gestureRef.current
+        .pointers.has(
           event.pointerId
+        )
+    ) {
+      return;
+    }
+
+    gestureRef.current.pointers.set(
+      event.pointerId,
+      {
+        x: event.clientX,
+        y: event.clientY,
+      }
+    );
+
+    const pointerCount =
+      gestureRef.current
+        .pointers.size;
+
+    if (pointerCount === 2) {
+      const distance =
+        getPointerDistance(
+          gestureRef.current
+            .pointers
         );
 
-      dragStateRef.current = {
-        active: true,
-        pointerId:
-          event.pointerId,
-        startX:
-          event.clientX,
-        startY:
-          event.clientY,
-        initialX:
-          position.x,
-        initialY:
-          position.y,
-      };
-    };
+      const startDistance =
+        gestureRef.current
+          .pinchDistance;
 
-  const handlePointerMove =
-    (event) => {
-      const dragState =
-        dragStateRef.current;
+      if (startDistance > 0) {
+        const nextZoom =
+          gestureRef.current
+            .pinchZoom *
+          (
+            distance /
+            startDistance
+          );
 
-      if (
-        !dragState.active ||
-        dragState.pointerId !==
-        event.pointerId ||
-        !editorFrameRef.current
-      ) {
-        return;
+        setZoom(
+          clamp(
+            nextZoom,
+            MIN_ZOOM,
+            MAX_ZOOM
+          )
+        );
       }
 
+      return;
+    }
+
+    if (
+      pointerCount === 1 &&
+      gestureRef.current
+        .dragging &&
+      gestureRef.current
+        .pointerId ===
+      event.pointerId
+    ) {
       const bounds =
         editorFrameRef.current
           .getBoundingClientRect();
@@ -896,66 +941,100 @@ const CreatePost = ({
       const deltaX =
         (
           event.clientX -
-          dragState.startX
+          gestureRef.current
+            .startX
         ) /
         bounds.width;
 
       const deltaY =
         (
           event.clientY -
-          dragState.startY
+          gestureRef.current
+            .startY
         ) /
         bounds.height;
 
       setPosition({
         x: clamp(
-          dragState.initialX +
+          gestureRef.current
+            .initialX +
           deltaX,
           -0.5,
           0.5
         ),
 
         y: clamp(
-          dragState.initialY +
+          gestureRef.current
+            .initialY +
           deltaY,
           -0.5,
           0.5
         ),
       });
-    };
+    }
+  };
 
-  const stopDragging =
-    (event) => {
-      if (
-        dragStateRef.current
-          .pointerId ===
-        event.pointerId
-      ) {
-        dragStateRef.current = {
-          active: false,
-          pointerId: null,
-          startX: 0,
-          startY: 0,
-          initialX: 0,
-          initialY: 0,
-        };
-      }
-    };
+  const handlePointerEnd = (
+    event
+  ) => {
+    gestureRef.current.pointers.delete(
+      event.pointerId
+    );
+
+    if (
+      gestureRef.current
+        .pointers.size === 0
+    ) {
+      gestureRef.current.dragging =
+        false;
+
+      gestureRef.current.pointerId =
+        null;
+
+      gestureRef.current
+        .pinchDistance = 0;
+    }
+
+    if (
+      gestureRef.current
+        .pointers.size === 1
+    ) {
+      const [
+        remainingPointerId,
+        remainingPointer,
+      ] = [
+        ...gestureRef.current
+          .pointers.entries(),
+      ][0];
+
+      gestureRef.current.dragging =
+        true;
+
+      gestureRef.current.pointerId =
+        remainingPointerId;
+
+      gestureRef.current.startX =
+        remainingPointer.x;
+
+      gestureRef.current.startY =
+        remainingPointer.y;
+
+      gestureRef.current.initialX =
+        position.x;
+
+      gestureRef.current.initialY =
+        position.y;
+    }
+  };
 
   const handleSubmit =
     async (event) => {
       event?.preventDefault();
 
-      if (
-        busy ||
-        !imageFile ||
-        !imageSource
-      ) {
-        if (!imageFile) {
-          setError(
-            "Please add an image before posting."
-          );
-        }
+      if (!canSubmit) {
+        setError(
+          "Please add a photo before sharing."
+        );
 
         return;
       }
@@ -968,11 +1047,16 @@ const CreatePost = ({
           await preparePostImage({
             file:
               imageFile,
+
             imageSource,
+
             fitMode,
-            zoom,
+
             rotation:
               normalizedRotation,
+
+            zoom,
+
             position,
           });
 
@@ -1015,61 +1099,45 @@ const CreatePost = ({
                 createdPost
               )
             );
-          } catch (storageError) {
-            console.warn(
-              "Unable to cache new post:",
-              storageError
-            );
+          } catch {
+            // Local cache failure
+            // should not fail posting.
           }
         }
 
         clearComposer();
-        setModalOpen(false);
-
-        navigate("/home", {
-          replace: true,
-        });
-
-        showToast({
-          type: "success",
-          title:
-            "Post shared",
-          message:
-            "Your post is now live.",
-        });
 
         if (onPostCreated) {
           await onPostCreated(
             createdPost
           );
         }
+
+        navigate(
+          "/home",
+          {
+            replace: true,
+          }
+        );
       } catch (
       submitError
       ) {
         console.error(
           "CREATE POST ERROR:",
-          submitError.response
-            ?.data ||
-          submitError.message
+          submitError
+            ?.response?.data ||
+          submitError?.message
         );
-
-        const message =
-          submitError.userMessage ||
-          submitError.response
-            ?.data?.message ||
-          submitError.message ||
-          "Failed to create post. Please try again.";
 
         setError(
-          message
+          submitError
+            ?.userMessage ||
+          submitError
+            ?.response?.data
+            ?.message ||
+          submitError?.message ||
+          "Failed to create post. Please try again."
         );
-
-        showToast({
-          type: "error",
-          title:
-            "Post failed",
-          message,
-        });
       } finally {
         setPreparing(false);
         setPosting(false);
@@ -1081,267 +1149,335 @@ const CreatePost = ({
 
   return (
     <>
-
-      {modalOpen && (
-        <div
-          className={
-            styles.modalBackdrop
+      <div
+        className={
+          styles.modalBackdrop
+        }
+        onMouseDown={(
+          event
+        ) => {
+          if (
+            event.target ===
+            event.currentTarget
+          ) {
+            requestClose();
           }
-          role="presentation"
-          onMouseDown={(
-            event
-          ) => {
-            if (
-              event.target ===
-              event.currentTarget
-            ) {
-              requestCloseComposer();
-            }
-          }}
+        }}
+      >
+        <section
+          className={
+            styles.modal
+          }
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-post-title"
         >
-          <section
+          <header
             className={
-              styles.modal
+              styles.modalHeader
             }
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="create-post-title"
           >
-            <header
+            <button
+              type="button"
               className={
-                styles.modalHeader
+                styles.headerIconButton
               }
+              onClick={
+                requestClose
+              }
+              disabled={busy}
+              aria-label="Close create post"
             >
-              <button
-                type="button"
-                className={
-                  styles.headerIconButton
-                }
-                onClick={
-                  requestCloseComposer
-                }
-                disabled={busy}
-                aria-label="Close create post"
-              >
+              {imageSource ? (
+                <ChevronLeft />
+              ) : (
                 <X />
-              </button>
-
-              <div
-                className={
-                  styles.headerTitle
-                }
-              >
-                <strong
-                  id="create-post-title"
-                >
-                  Create post
-                </strong>
-
-                <span>
-                  Share a moment with
-                  your community
-                </span>
-              </div>
-
-              <button
-                id="create-post-submit"
-                type="button"
-                className={
-                  styles.headerPostButton
-                }
-                onClick={
-                  handleSubmit
-                }
-                disabled={
-                  !canSubmit
-                }
-              >
-                {busy ? (
-                  <LoaderCircle
-                    className={
-                      styles.spinner
-                    }
-                  />
-                ) : (
-                  <Send />
-                )}
-
-                <span>
-                  {posting
-                    ? "Posting"
-                    : preparing
-                      ? "Preparing"
-                      : "Post"}
-                </span>
-              </button>
-            </header>
+              )}
+            </button>
 
             <div
               className={
-                styles.modalBody
+                styles.headerTitle
+              }
+            >
+              <strong
+                id="create-post-title"
+              >
+                New post
+              </strong>
+
+              <span>
+                Share a moment with
+                your community
+              </span>
+            </div>
+
+            <button
+              id="create-post-submit"
+              type="button"
+              className={
+                styles.headerPostButton
+              }
+              onClick={
+                handleSubmit
+              }
+              disabled={
+                !canSubmit
+              }
+            >
+              {busy ? (
+                <LoaderCircle
+                  className={
+                    styles.spinner
+                  }
+                />
+              ) : (
+                <Send />
+              )}
+
+              <span>
+                {posting
+                  ? "Sharing"
+                  : preparing
+                    ? "Preparing"
+                    : "Share"}
+              </span>
+            </button>
+          </header>
+
+          {!imageSource ? (
+            <div
+              className={
+                styles.uploadStage
+              }
+            >
+              <button
+                type="button"
+                className={`${styles.dropZone} ${dragActive
+                  ? styles.dropZoneActive
+                  : ""
+                  }`}
+                onClick={() =>
+                  fileInputRef
+                    .current
+                    ?.click()
+                }
+                onDragOver={(
+                  event
+                ) => {
+                  event.preventDefault();
+
+                  if (!busy) {
+                    setDragActive(
+                      true
+                    );
+                  }
+                }}
+                onDragLeave={() =>
+                  setDragActive(
+                    false
+                  )
+                }
+                onDrop={
+                  handleDrop
+                }
+                disabled={busy}
+              >
+                {imageLoading ? (
+                  <>
+                    <LoaderCircle
+                      className={
+                        styles.spinner
+                      }
+                    />
+
+                    <strong>
+                      Preparing photo
+                    </strong>
+                  </>
+                ) : (
+                  <>
+                    <div
+                      className={
+                        styles.uploadIcon
+                      }
+                    >
+                      <UploadCloud />
+                    </div>
+
+                    <strong>
+                      Choose a photo
+                    </strong>
+
+                    <span>
+                      Drag and drop here
+                      or browse your
+                      device
+                    </span>
+
+                    <small>
+                      JPG, PNG or WebP
+                      • up to 10 MB
+                    </small>
+                  </>
+                )}
+              </button>
+
+              {error && (
+                <div
+                  className={
+                    styles.errorMessage
+                  }
+                  role="alert"
+                >
+                  <CircleAlert />
+
+                  <span>
+                    {error}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div
+              className={
+                styles.composerBody
               }
             >
               <div
                 className={
-                  styles.editorSide
+                  styles.previewPanel
                 }
               >
-                {!imageSource ? (
+                <div
+                  ref={editorFrameRef}
+                  className={
+                    styles.editorCanvas
+                  }
+                  onPointerDown={
+                    handlePointerDown
+                  }
+                  onPointerMove={
+                    handlePointerMove
+                  }
+                  onPointerUp={
+                    handlePointerEnd
+                  }
+                  onPointerCancel={
+                    handlePointerEnd
+                  }
+                >
+                  <img
+                    src={
+                      imageSource
+                    }
+                    alt="Post preview"
+                    draggable="false"
+                    className={`${styles.previewImage} ${fitMode ===
+                      "fill"
+                      ? styles.previewFill
+                      : styles.previewFit
+                      }`}
+                    style={{
+                      transform:
+                        previewTransform,
+                    }}
+                  />
+
+                  <span
+                    className={
+                      styles.dragHint
+                    }
+                  >
+                    Drag to move • Pinch to zoom
+                  </span>
+                </div>
+
+                <div
+                  className={
+                    styles.quickTools
+                  }
+                >
                   <button
                     type="button"
-                    className={`${styles.dropZone} ${dragActive
-                      ? styles.dropZoneActive
-                      : ""
-                      }`}
                     onClick={() =>
-                      fileInputRef.current
+                      fileInputRef
+                        .current
                         ?.click()
-                    }
-                    onDragOver={
-                      handleDragOver
-                    }
-                    onDragLeave={
-                      handleDragLeave
-                    }
-                    onDrop={
-                      handleDrop
                     }
                     disabled={busy}
                   >
-                    {imageLoading ? (
-                      <>
-                        <LoaderCircle
-                          className={
-                            styles.spinner
-                          }
-                        />
-
-                        <strong>
-                          Preparing preview
-                        </strong>
-                      </>
-                    ) : (
-                      <>
-                        <div
-                          className={
-                            styles.uploadIcon
-                          }
-                        >
-                          <UploadCloud />
-                        </div>
-
-                        <strong>
-                          Add a photo
-                        </strong>
-
-                        <span>
-                          Drag and drop an
-                          image here, or
-                          choose from your
-                          device
-                        </span>
-
-                        <small>
-                          JPG, PNG or WebP
-                          up to 10 MB
-                        </small>
-                      </>
-                    )}
+                    <ImagePlus />
+                    Replace
                   </button>
-                ) : (
-                  <div
-                    className={
-                      styles.editorCanvasShell
-                    }
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFitMode(
+                        (current) =>
+                          current === "fill"
+                            ? "fit"
+                            : "fill"
+                      );
+
+                      setZoom(1);
+
+                      setPosition({
+                        x: 0,
+                        y: 0,
+                      });
+                    }}
+                    disabled={busy}
                   >
-                    <div
-                      ref={
-                        editorFrameRef
-                      }
-                      className={
-                        styles.editorCanvas
-                      }
-                      onPointerDown={
-                        handlePointerDown
-                      }
-                      onPointerMove={
-                        handlePointerMove
-                      }
-                      onPointerUp={
-                        stopDragging
-                      }
-                      onPointerCancel={
-                        stopDragging
-                      }
-                    >
-                      <img
-                        src={
-                          imageSource
-                        }
-                        alt="Post preview"
-                        draggable="false"
-                        className={`${styles.previewImage} ${fitMode ===
-                          "fill"
-                          ? styles.previewFill
-                          : styles.previewFit
-                          }`}
-                        style={{
-                          transform:
-                            previewTransform,
-                        }}
-                      />
+                    <SlidersHorizontal />
 
-                      <div
-                        className={
-                          styles.moveHint
-                        }
-                      >
-                        <Move />
+                    {fitMode ===
+                      "fill"
+                      ? "Show full"
+                      : "Fill frame"}
+                  </button>
 
-                        Drag to reposition
-                      </div>
-                    </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRotation(
+                        (current) =>
+                          current + 90
+                      );
 
-                    <div
-                      className={
-                        styles.mediaActions
-                      }
-                    >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          fileInputRef.current
-                            ?.click()
-                        }
-                        disabled={busy}
-                      >
-                        <ImagePlus />
+                      setPosition({
+                        x: 0,
+                        y: 0,
+                      });
 
-                        Change
-                      </button>
+                      setZoom(1);
+                    }}
+                    disabled={busy}
+                  >
+                    <RotateCw />
+                    Rotate
+                  </button>
 
-                      <button
-                        type="button"
-                        className={
-                          styles.removeMediaButton
-                        }
-                        onClick={
-                          removeImage
-                        }
-                        disabled={busy}
-                      >
-                        <Trash2 />
-
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    className={
+                      styles.removeButton
+                    }
+                    onClick={
+                      removeImage
+                    }
+                    disabled={busy}
+                  >
+                    <Trash2 />
+                    Remove
+                  </button>
+                </div>
               </div>
 
               <aside
                 className={
-                  styles.settingsSide
+                  styles.composePanel
                 }
               >
                 <div
@@ -1378,22 +1514,22 @@ const CreatePost = ({
 
                 <div
                   className={
-                    styles.captionSection
+                    styles.captionCard
                   }
                 >
                   <textarea
-                    ref={
-                      textareaRef
+                    value={
+                      caption
                     }
-                    value={caption}
                     onChange={(
                       event
                     ) => {
                       setCaption(
-                        event.target.value.slice(
-                          0,
-                          MAX_CAPTION_LENGTH
-                        )
+                        event.target.value
+                          .slice(
+                            0,
+                            MAX_CAPTION_LENGTH
+                          )
                       );
 
                       if (error) {
@@ -1405,6 +1541,7 @@ const CreatePost = ({
                       MAX_CAPTION_LENGTH
                     }
                     disabled={busy}
+                    autoFocus
                   />
 
                   <div
@@ -1413,8 +1550,8 @@ const CreatePost = ({
                     }
                   >
                     <span>
-                      Share something
-                      meaningful
+                      Add a thought or
+                      story
                     </span>
 
                     <span
@@ -1431,288 +1568,84 @@ const CreatePost = ({
                   </div>
                 </div>
 
-                {imageSource && (
-                  <>
-                    <div
+                <button
+                  type="button"
+                  className={
+                    styles.toolsToggle
+                  }
+                  onClick={() =>
+                    setToolsOpen(
+                      (
+                        current
+                      ) =>
+                        !current
+                    )
+                  }
+                  disabled={busy}
+                >
+                  <SlidersHorizontal />
+
+                  Photo options
+
+                  <span>
+                    {toolsOpen
+                      ? "Hide"
+                      : "Open"}
+                  </span>
+                </button>
+
+                {toolsOpen && (
+                  <div
+                    className={
+                      styles.toolsPanel
+                    }
+                  >
+                    <button
+                      type="button"
                       className={
-                        styles.controlSection
+                        fitMode ===
+                          "fill"
+                          ? styles.toolActive
+                          : ""
                       }
+                      onClick={() =>
+                        setFitMode(
+                          "fill"
+                        )
+                      }
+                      disabled={busy}
                     >
-                      <div
-                        className={
-                          styles.controlHeading
-                        }
-                      >
-                        <strong>
-                          Image layout
-                        </strong>
+                      Fill frame
+                    </button>
 
-                        <button
-                          type="button"
-                          onClick={
-                            resetEditor
-                          }
-                          disabled={busy}
-                        >
-                          <Undo2 />
-
-                          Reset
-                        </button>
-                      </div>
-
-                      <div
-                        className={
-                          styles.layoutOptions
-                        }
-                      >
-                        <button
-                          type="button"
-                          className={
-                            fitMode ===
-                              "fit"
-                              ? styles.layoutActive
-                              : ""
-                          }
-                          onClick={() => {
-                            setFitMode(
-                              "fit"
-                            );
-
-                            setZoom(1);
-
-                            setPosition({
-                              x: 0,
-                              y: 0,
-                            });
-                          }}
-                          disabled={busy}
-                        >
-                          <Minimize2 />
-
-                          <span>
-                            Fit
-                          </span>
-
-                          <small>
-                            Show full photo
-                          </small>
-                        </button>
-
-                        <button
-                          type="button"
-                          className={
-                            fitMode ===
-                              "fill"
-                              ? styles.layoutActive
-                              : ""
-                          }
-                          onClick={() => {
-                            setFitMode(
-                              "fill"
-                            );
-
-                            setZoom(1);
-
-                            setPosition({
-                              x: 0,
-                              y: 0,
-                            });
-                          }}
-                          disabled={busy}
-                        >
-                          <Maximize2 />
-
-                          <span>
-                            Fill
-                          </span>
-
-                          <small>
-                            Fill post frame
-                          </small>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div
+                    <button
+                      type="button"
                       className={
-                        styles.controlSection
+                        fitMode ===
+                          "fit"
+                          ? styles.toolActive
+                          : ""
                       }
-                    >
-                      <div
-                        className={
-                          styles.controlHeading
-                        }
-                      >
-                        <strong>
-                          Zoom
-                        </strong>
-
-                        <span>
-                          {Math.round(
-                            zoom * 100
-                          )}
-                          %
-                        </span>
-                      </div>
-
-                      <div
-                        className={
-                          styles.zoomControl
-                        }
-                      >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setZoom(
-                              (
-                                currentZoom
-                              ) =>
-                                clamp(
-                                  currentZoom -
-                                  ZOOM_STEP,
-                                  MIN_ZOOM,
-                                  MAX_ZOOM
-                                )
-                            )
-                          }
-                          disabled={
-                            busy ||
-                            zoom <=
-                            MIN_ZOOM
-                          }
-                          aria-label="Zoom out"
-                        >
-                          <ZoomOut />
-                        </button>
-
-                        <input
-                          type="range"
-                          min={
-                            MIN_ZOOM
-                          }
-                          max={
-                            MAX_ZOOM
-                          }
-                          step={
-                            ZOOM_STEP
-                          }
-                          value={zoom}
-                          onChange={(
-                            event
-                          ) =>
-                            setZoom(
-                              Number(
-                                event
-                                  .target
-                                  .value
-                              )
-                            )
-                          }
-                          disabled={busy}
-                        />
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setZoom(
-                              (
-                                currentZoom
-                              ) =>
-                                clamp(
-                                  currentZoom +
-                                  ZOOM_STEP,
-                                  MIN_ZOOM,
-                                  MAX_ZOOM
-                                )
-                            )
-                          }
-                          disabled={
-                            busy ||
-                            zoom >=
-                            MAX_ZOOM
-                          }
-                          aria-label="Zoom in"
-                        >
-                          <ZoomIn />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div
-                      className={
-                        styles.controlSection
+                      onClick={() =>
+                        setFitMode(
+                          "fit"
+                        )
                       }
+                      disabled={busy}
                     >
-                      <div
-                        className={
-                          styles.controlHeading
-                        }
-                      >
-                        <strong>
-                          Rotation
-                        </strong>
+                      Show full photo
+                    </button>
 
-                        <span>
-                          {
-                            normalizedRotation
-                          }
-                          °
-                        </span>
-                      </div>
-
-                      <div
-                        className={
-                          styles.rotationButtons
-                        }
-                      >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRotation(
-                              (
-                                current
-                              ) =>
-                                current -
-                                90
-                            );
-
-                            setPosition({
-                              x: 0,
-                              y: 0,
-                            });
-                          }}
-                          disabled={busy}
-                        >
-                          <RotateCcw />
-
-                          Left
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRotation(
-                              (
-                                current
-                              ) =>
-                                current +
-                                90
-                            );
-
-                            setPosition({
-                              x: 0,
-                              y: 0,
-                            });
-                          }}
-                          disabled={busy}
-                        >
-                          <RotateCw />
-
-                          Right
-                        </button>
-                      </div>
-                    </div>
-                  </>
+                    <button
+                      type="button"
+                      onClick={
+                        resetPhoto
+                      }
+                      disabled={busy}
+                    >
+                      Reset
+                    </button>
+                  </div>
                 )}
 
                 {error && (
@@ -1733,7 +1666,7 @@ const CreatePost = ({
                 <button
                   type="button"
                   className={
-                    styles.mobilePostButton
+                    styles.mobileShareButton
                   }
                   onClick={
                     handleSubmit
@@ -1753,45 +1686,47 @@ const CreatePost = ({
                   )}
 
                   {posting
-                    ? "Posting..."
+                    ? "Sharing..."
                     : preparing
                       ? "Preparing..."
                       : "Share post"}
                 </button>
               </aside>
             </div>
+          )}
 
-            {busy && (
-              <div
+          {busy && (
+            <div
+              className={
+                styles.processingOverlay
+              }
+              role="status"
+            >
+              <LoaderCircle
                 className={
-                  styles.processingOverlay
+                  styles.spinner
                 }
-                role="status"
-              >
-                <LoaderCircle
-                  className={
-                    styles.spinner
-                  }
-                />
+              />
 
-                <strong>
-                  {posting
-                    ? "Sharing your post"
-                    : "Preparing your image"}
-                </strong>
+              <strong>
+                {posting
+                  ? "Sharing your post"
+                  : "Preparing your photo"}
+              </strong>
 
-                <span>
-                  Please keep this window
-                  open.
-                </span>
-              </div>
-            )}
-          </section>
-        </div>
-      )}
+              <span>
+                Please keep this
+                window open.
+              </span>
+            </div>
+          )}
+        </section>
+      </div>
 
       <input
-        ref={fileInputRef}
+        ref={
+          fileInputRef
+        }
         type="file"
         accept="image/jpeg,image/png,image/webp"
         hidden
@@ -1800,12 +1735,11 @@ const CreatePost = ({
         }
       />
 
-      {discardDialogOpen && (
+      {discardOpen && (
         <div
           className={
             styles.confirmBackdrop
           }
-          role="presentation"
           onMouseDown={(
             event
           ) => {
@@ -1813,7 +1747,7 @@ const CreatePost = ({
               event.target ===
               event.currentTarget
             ) {
-              setDiscardDialogOpen(
+              setDiscardOpen(
                 false
               );
             }
@@ -1842,7 +1776,7 @@ const CreatePost = ({
             </h2>
 
             <p>
-              Your selected image and
+              Your selected photo and
               caption will be lost.
             </p>
 
@@ -1854,7 +1788,7 @@ const CreatePost = ({
               <button
                 type="button"
                 onClick={() =>
-                  setDiscardDialogOpen(
+                  setDiscardOpen(
                     false
                   )
                 }
@@ -1868,57 +1802,13 @@ const CreatePost = ({
                   styles.discardButton
                 }
                 onClick={
-                  closeComposerImmediately
+                  closeImmediately
                 }
               >
                 Discard
               </button>
             </div>
           </section>
-        </div>
-      )}
-
-      {toast && (
-        <div
-          key={toast.id}
-          className={`${styles.toast} ${toast.type ===
-            "success"
-            ? styles.toastSuccess
-            : styles.toastError
-            }`}
-          role={
-            toast.type ===
-              "error"
-              ? "alert"
-              : "status"
-          }
-        >
-          {toast.type ===
-            "success" ? (
-            <CheckCircle2 />
-          ) : (
-            <CircleAlert />
-          )}
-
-          <div>
-            <strong>
-              {toast.title}
-            </strong>
-
-            <span>
-              {toast.message}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() =>
-              setToast(null)
-            }
-            aria-label="Close notification"
-          >
-            <X />
-          </button>
         </div>
       )}
     </>

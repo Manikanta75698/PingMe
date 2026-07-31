@@ -9,13 +9,16 @@ import {
 
 import {
   Check,
+  ChevronDown,
+  ChevronUp,
+  CircleAlert,
   ImageIcon,
   LoaderCircle,
   Maximize2,
   Minimize2,
   Move,
   RotateCw,
-  RotateCcw,
+  SlidersHorizontal,
   Undo2,
   X,
   ZoomIn,
@@ -24,12 +27,24 @@ import {
 
 import styles from "./StoryUploadPreview.module.css";
 
+/* =========================
+   STORY OUTPUT
+========================= */
+
 const OUTPUT_WIDTH = 1080;
 const OUTPUT_HEIGHT = 1920;
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.05;
+
+const DOUBLE_TAP_DELAY = 300;
+const DOUBLE_TAP_DISTANCE = 36;
+const GESTURE_HINT_DURATION = 4200;
+
+/* =========================
+   HELPERS
+========================= */
 
 const clamp = (
   value,
@@ -61,13 +76,18 @@ const getSafeFileName = (
   String(
     fileName || "story"
   )
-    .replace(/\.[^.]+$/, "")
+    .replace(
+      /\.[^.]+$/,
+      ""
+    )
     .replace(
       /[^a-zA-Z0-9_-]+/g,
       "-"
     )
-    .replace(/^-+|-+$/g, "") ||
-  "story";
+    .replace(
+      /^-+|-+$/g,
+      ""
+    ) || "story";
 
 const readFileAsDataUrl = (
   file
@@ -87,7 +107,7 @@ const readFileAsDataUrl = (
         if (!result) {
           reject(
             new Error(
-              "Unable to read this image"
+              "Unable to read this photo."
             )
           );
 
@@ -100,7 +120,7 @@ const readFileAsDataUrl = (
       reader.onerror = () => {
         reject(
           new Error(
-            "Unable to read this image"
+            "Unable to read this photo."
           )
         );
       };
@@ -126,7 +146,7 @@ const loadImage = (
       image.onerror = () => {
         reject(
           new Error(
-            "Unable to load this image"
+            "Unable to load this photo."
           )
         );
       };
@@ -146,7 +166,7 @@ const canvasToFile = (
           if (!blob) {
             reject(
               new Error(
-                "Unable to prepare story image"
+                "Unable to prepare story photo."
               )
             );
 
@@ -160,7 +180,9 @@ const canvasToFile = (
                 originalName
               )}.jpg`,
               {
-                type: "image/jpeg",
+                type:
+                  "image/jpeg",
+
                 lastModified:
                   Date.now(),
               }
@@ -172,6 +194,35 @@ const canvasToFile = (
       );
     }
   );
+
+const getPointerDistance = (
+  pointers
+) => {
+  const pointerValues = [
+    ...pointers.values(),
+  ];
+
+  if (
+    pointerValues.length < 2
+  ) {
+    return 0;
+  }
+
+  const first =
+    pointerValues[0];
+
+  const second =
+    pointerValues[1];
+
+  return Math.hypot(
+    second.x - first.x,
+    second.y - first.y
+  );
+};
+
+/* =========================
+   FINAL STORY IMAGE
+========================= */
 
 const createStoryFile =
   async ({
@@ -192,17 +243,19 @@ const createStoryFile =
         rotation
       );
 
-    const isQuarterTurn =
-      normalizedRotation === 90 ||
-      normalizedRotation === 270;
+    const quarterTurn =
+      normalizedRotation ===
+      90 ||
+      normalizedRotation ===
+      270;
 
     const rotatedWidth =
-      isQuarterTurn
+      quarterTurn
         ? sourceImage.height
         : sourceImage.width;
 
     const rotatedHeight =
-      isQuarterTurn
+      quarterTurn
         ? sourceImage.width
         : sourceImage.height;
 
@@ -210,6 +263,7 @@ const createStoryFile =
       Math.min(
         OUTPUT_WIDTH /
         rotatedWidth,
+
         OUTPUT_HEIGHT /
         rotatedHeight
       );
@@ -218,6 +272,7 @@ const createStoryFile =
       Math.max(
         OUTPUT_WIDTH /
         rotatedWidth,
+
         OUTPUT_HEIGHT /
         rotatedHeight
       );
@@ -248,12 +303,12 @@ const createStoryFile =
 
     if (!context) {
       throw new Error(
-        "Image editor is unavailable"
+        "Story editor is unavailable."
       );
     }
 
     context.fillStyle =
-      "#000";
+      "#000000";
 
     context.fillRect(
       0,
@@ -262,29 +317,23 @@ const createStoryFile =
       OUTPUT_HEIGHT
     );
 
-    const offsetX =
-      position.x *
-      OUTPUT_WIDTH;
-
-    const offsetY =
-      position.y *
-      OUTPUT_HEIGHT;
-
     context.save();
 
     context.translate(
       OUTPUT_WIDTH / 2 +
-      offsetX,
+      position.x *
+      OUTPUT_WIDTH,
+
       OUTPUT_HEIGHT / 2 +
-      offsetY
+      position.y *
+      OUTPUT_HEIGHT
     );
 
     context.rotate(
       (
         normalizedRotation *
         Math.PI
-      ) /
-      180
+      ) / 180
     );
 
     context.scale(
@@ -308,6 +357,10 @@ const createStoryFile =
     );
   };
 
+/* =========================
+   COMPONENT
+========================= */
+
 const StoryUploadPreview = ({
   file,
   uploading = false,
@@ -317,14 +370,32 @@ const StoryUploadPreview = ({
   const frameRef =
     useRef(null);
 
-  const dragStateRef =
+  /*
+   * Pointer and gesture information
+   * state kaakunda ref lo untundi.
+   * Gesture move సమయంలో unnecessary
+   * component rerenders avoid chesthundi.
+   */
+  const gestureRef =
     useRef({
-      active: false,
+      pointers: new Map(),
+
+      dragging: false,
+
       pointerId: null,
+
       startX: 0,
       startY: 0,
+
       initialX: 0,
       initialY: 0,
+
+      pinchDistance: 0,
+      pinchZoom: 1,
+
+      lastTapTime: 0,
+      lastTapX: 0,
+      lastTapY: 0,
     });
 
   const [
@@ -345,7 +416,7 @@ const StoryUploadPreview = ({
   const [
     fitMode,
     setFitMode,
-  ] = useState("fit");
+  ] = useState("fill");
 
   const [
     zoom,
@@ -364,6 +435,16 @@ const StoryUploadPreview = ({
     x: 0,
     y: 0,
   });
+
+  const [
+    controlsOpen,
+    setControlsOpen,
+  ] = useState(false);
+
+  const [
+    gestureHintVisible,
+    setGestureHintVisible,
+  ] = useState(true);
 
   const [
     error,
@@ -390,19 +471,49 @@ const StoryUploadPreview = ({
     );
 
   const hasChanges =
-    fitMode !== "fit" ||
+    fitMode !== "fill" ||
     zoom !== 1 ||
-    normalizedRotation !==
-    0 ||
+    normalizedRotation !== 0 ||
     position.x !== 0 ||
     position.y !== 0;
+
+  const canShare =
+    Boolean(
+      imageSource &&
+      !busy &&
+      !error
+    );
+
+  /* =========================
+     RESET
+  ========================= */
+
+  const resetEditor =
+    useCallback(() => {
+      setFitMode("fill");
+      setZoom(1);
+      setRotation(0);
+
+      setPosition({
+        x: 0,
+        y: 0,
+      });
+
+      setError("");
+    }, []);
+
+  /* =========================
+     LOAD SELECTED FILE
+  ========================= */
 
   useEffect(() => {
     let cancelled = false;
 
     setImageLoading(true);
-    setError("");
     setImageSource("");
+    setError("");
+
+    resetEditor();
 
     readFileAsDataUrl(file)
       .then((source) => {
@@ -425,8 +536,8 @@ const StoryUploadPreview = ({
           }
 
           setError(
-            readError.message ||
-            "Unable to preview this image"
+            readError?.message ||
+            "Unable to preview this photo."
           );
 
           setImageLoading(
@@ -438,7 +549,14 @@ const StoryUploadPreview = ({
     return () => {
       cancelled = true;
     };
-  }, [file]);
+  }, [
+    file,
+    resetEditor,
+  ]);
+
+  /* =========================
+     BODY SCROLL LOCK
+  ========================= */
 
   useEffect(() => {
     const previousOverflow =
@@ -455,19 +573,39 @@ const StoryUploadPreview = ({
     };
   }, []);
 
-  const resetEditor =
-    useCallback(() => {
-      setFitMode("fit");
-      setZoom(1);
-      setRotation(0);
+  /* =========================
+     AUTO HIDE GESTURE GUIDE
+  ========================= */
 
-      setPosition({
-        x: 0,
-        y: 0,
-      });
+  useEffect(() => {
+    if (!imageSource) {
+      return undefined;
+    }
 
-      setError("");
-    }, []);
+    setGestureHintVisible(
+      true
+    );
+
+    const timer =
+      window.setTimeout(
+        () => {
+          setGestureHintVisible(
+            false
+          );
+        },
+        GESTURE_HINT_DURATION
+      );
+
+    return () => {
+      window.clearTimeout(
+        timer
+      );
+    };
+  }, [imageSource]);
+
+  /* =========================
+     CANCEL
+  ========================= */
 
   const requestCancel =
     useCallback(() => {
@@ -499,117 +637,170 @@ const StoryUploadPreview = ({
       onCancel();
     }, [onCancel]);
 
+  /* =========================
+     SHARE STORY
+  ========================= */
+
   const handleShare =
-    useCallback(async () => {
-      if (
-        busy ||
-        !imageSource
-      ) {
-        return;
-      }
-
-      try {
-        setPreparing(true);
-        setError("");
-
-        const preparedFile =
-          await createStoryFile({
-            file,
-            imageSource,
-            fitMode,
-            zoom,
-            rotation:
-              normalizedRotation,
-            position,
-          });
-
-        await onConfirm(
-          preparedFile
-        );
-      } catch (
-      prepareError
-      ) {
-        setError(
-          prepareError?.message ||
-          "Unable to prepare story"
-        );
-      } finally {
-        setPreparing(false);
-      }
-    }, [
-      busy,
-      file,
-      fitMode,
-      imageSource,
-      normalizedRotation,
-      onConfirm,
-      position,
-      zoom,
-    ]);
-
-  useEffect(() => {
-    const handleKeyDown =
-      (event) => {
+    useCallback(
+      async () => {
         if (
-          showCancelDialog
+          busy ||
+          !imageSource
         ) {
-          if (
-            event.key ===
-            "Escape"
-          ) {
-            setShowCancelDialog(
-              false
-            );
-          }
-
           return;
         }
 
+        try {
+          setPreparing(true);
+          setError("");
+
+          const preparedFile =
+            await createStoryFile({
+              file,
+
+              imageSource,
+
+              fitMode,
+
+              zoom,
+
+              rotation:
+                normalizedRotation,
+
+              position,
+            });
+
+          await onConfirm(
+            preparedFile
+          );
+        } catch (
+        prepareError
+        ) {
+          console.error(
+            "STORY PREPARE ERROR:",
+            prepareError
+          );
+
+          setError(
+            prepareError
+              ?.message ||
+            "Unable to prepare story."
+          );
+        } finally {
+          setPreparing(false);
+        }
+      },
+      [
+        busy,
+        file,
+        fitMode,
+        imageSource,
+        normalizedRotation,
+        onConfirm,
+        position,
+        zoom,
+      ]
+    );
+
+  /* =========================
+     KEYBOARD SUPPORT
+  ========================= */
+
+  useEffect(() => {
+    const handleKeyDown = (
+      event
+    ) => {
+      if (
+        showCancelDialog
+      ) {
         if (
           event.key ===
           "Escape"
         ) {
-          requestCancel();
+          setShowCancelDialog(
+            false
+          );
         }
 
-        if (
-          event.key ===
-          "Enter" &&
-          !event.shiftKey
-        ) {
-          event.preventDefault();
+        return;
+      }
 
+      if (
+        event.key ===
+        "Escape"
+      ) {
+        requestCancel();
+        return;
+      }
+
+      if (
+        event.key ===
+        "Enter" &&
+        (
+          event.ctrlKey ||
+          event.metaKey
+        )
+      ) {
+        event.preventDefault();
+
+        if (canShare) {
           void handleShare();
         }
 
-        if (
-          event.key === "+"
-        ) {
-          setZoom(
-            (currentZoom) =>
-              clamp(
-                currentZoom +
-                ZOOM_STEP,
-                MIN_ZOOM,
-                MAX_ZOOM
-              )
-          );
-        }
+        return;
+      }
 
-        if (
-          event.key === "-"
-        ) {
-          setZoom(
-            (currentZoom) =>
-              clamp(
-                currentZoom -
-                ZOOM_STEP,
-                MIN_ZOOM,
-                MAX_ZOOM
-              )
-          );
-        }
-      };
+      if (
+        event.key === "+" ||
+        event.key === "="
+      ) {
+        setZoom(
+          (currentZoom) =>
+            clamp(
+              currentZoom +
+              ZOOM_STEP,
+              MIN_ZOOM,
+              MAX_ZOOM
+            )
+        );
+
+        return;
+      }
+
+      if (
+        event.key === "-"
+      ) {
+        setZoom(
+          (currentZoom) =>
+            clamp(
+              currentZoom -
+              ZOOM_STEP,
+              MIN_ZOOM,
+              MAX_ZOOM
+            )
+        );
+
+        return;
+      }
+
+      if (
+        event.key.toLowerCase() ===
+        "r"
+      ) {
+        setRotation(
+          (currentRotation) =>
+            currentRotation + 90
+        );
+
+        setPosition({
+          x: 0,
+          y: 0,
+        });
+
+        setZoom(1);
+      }
+    };
 
     window.addEventListener(
       "keydown",
@@ -623,55 +814,223 @@ const StoryUploadPreview = ({
       );
     };
   }, [
+    canShare,
     handleShare,
     requestCancel,
     showCancelDialog,
   ]);
 
-  const handlePointerDown =
-    (event) => {
-      if (
-        busy ||
-        !frameRef.current
-      ) {
-        return;
-      }
+  /* =========================
+     POINTER DOWN
+  ========================= */
 
-      event.currentTarget.setPointerCapture(
+  const handlePointerDown = (
+    event
+  ) => {
+    if (
+      busy ||
+      !imageSource ||
+      !frameRef.current
+    ) {
+      return;
+    }
+
+    setGestureHintVisible(
+      false
+    );
+
+    const now =
+      Date.now();
+
+    const tapDistance =
+      Math.hypot(
+        event.clientX -
+        gestureRef.current
+          .lastTapX,
+
+        event.clientY -
+        gestureRef.current
+          .lastTapY
+      );
+
+    const doubleTap =
+      now -
+      gestureRef.current
+        .lastTapTime <
+      DOUBLE_TAP_DELAY &&
+      tapDistance <
+      DOUBLE_TAP_DISTANCE;
+
+    gestureRef.current
+      .lastTapTime = now;
+
+    gestureRef.current
+      .lastTapX =
+      event.clientX;
+
+    gestureRef.current
+      .lastTapY =
+      event.clientY;
+
+    if (
+      doubleTap &&
+      (
+        event.pointerType ===
+        "touch" ||
+        event.pointerType ===
+        "pen"
+      )
+    ) {
+      resetEditor();
+
+      return;
+    }
+
+    event.currentTarget
+      .setPointerCapture(
         event.pointerId
       );
 
-      dragStateRef.current = {
-        active: true,
-        pointerId:
-          event.pointerId,
-        startX:
-          event.clientX,
-        startY:
-          event.clientY,
-        initialX:
-          position.x,
-        initialY:
-          position.y,
-      };
-    };
+    gestureRef.current
+      .pointers.set(
+        event.pointerId,
+        {
+          x:
+            event.clientX,
 
-  const handlePointerMove =
-    (event) => {
-      const dragState =
-        dragStateRef.current;
+          y:
+            event.clientY,
+        }
+      );
 
-      if (
-        !dragState.active ||
-        dragState.pointerId !==
-        event.pointerId ||
-        !frameRef.current
-      ) {
-        return;
+    const pointerCount =
+      gestureRef.current
+        .pointers.size;
+
+    if (pointerCount === 1) {
+      gestureRef.current
+        .dragging = true;
+
+      gestureRef.current
+        .pointerId =
+        event.pointerId;
+
+      gestureRef.current
+        .startX =
+        event.clientX;
+
+      gestureRef.current
+        .startY =
+        event.clientY;
+
+      gestureRef.current
+        .initialX =
+        position.x;
+
+      gestureRef.current
+        .initialY =
+        position.y;
+    }
+
+    if (pointerCount === 2) {
+      gestureRef.current
+        .dragging = false;
+
+      gestureRef.current
+        .pinchDistance =
+        getPointerDistance(
+          gestureRef.current
+            .pointers
+        );
+
+      gestureRef.current
+        .pinchZoom =
+        zoom;
+    }
+  };
+
+  /* =========================
+     POINTER MOVE
+  ========================= */
+
+  const handlePointerMove = (
+    event
+  ) => {
+    if (
+      !frameRef.current ||
+      !gestureRef.current
+        .pointers.has(
+          event.pointerId
+        )
+    ) {
+      return;
+    }
+
+    gestureRef.current
+      .pointers.set(
+        event.pointerId,
+        {
+          x:
+            event.clientX,
+
+          y:
+            event.clientY,
+        }
+      );
+
+    const pointerCount =
+      gestureRef.current
+        .pointers.size;
+
+    /*
+     * Two-finger pinch zoom.
+     */
+    if (pointerCount === 2) {
+      const distance =
+        getPointerDistance(
+          gestureRef.current
+            .pointers
+        );
+
+      const startDistance =
+        gestureRef.current
+          .pinchDistance;
+
+      if (startDistance > 0) {
+        const nextZoom =
+          gestureRef.current
+            .pinchZoom *
+          (
+            distance /
+            startDistance
+          );
+
+        setZoom(
+          clamp(
+            nextZoom,
+            MIN_ZOOM,
+            MAX_ZOOM
+          )
+        );
       }
 
+      return;
+    }
+
+    /*
+     * One-finger drag.
+     */
+    if (
+      pointerCount === 1 &&
+      gestureRef.current
+        .dragging &&
+      gestureRef.current
+        .pointerId ===
+      event.pointerId
+    ) {
       const bounds =
-        frameRef.current.getBoundingClientRect();
+        frameRef.current
+          .getBoundingClientRect();
 
       if (
         !bounds.width ||
@@ -683,56 +1042,154 @@ const StoryUploadPreview = ({
       const deltaX =
         (
           event.clientX -
-          dragState.startX
+          gestureRef.current
+            .startX
         ) /
         bounds.width;
 
       const deltaY =
         (
           event.clientY -
-          dragState.startY
+          gestureRef.current
+            .startY
         ) /
         bounds.height;
 
       setPosition({
         x: clamp(
-          dragState.initialX +
+          gestureRef.current
+            .initialX +
           deltaX,
           -0.5,
           0.5
         ),
 
         y: clamp(
-          dragState.initialY +
+          gestureRef.current
+            .initialY +
           deltaY,
           -0.5,
           0.5
         ),
       });
-    };
+    }
+  };
 
-  const stopDragging =
-    (event) => {
-      const dragState =
-        dragStateRef.current;
+  /* =========================
+     POINTER END
+  ========================= */
 
-      if (
-        dragState.pointerId ===
+  const handlePointerEnd = (
+    event
+  ) => {
+    gestureRef.current
+      .pointers.delete(
         event.pointerId
-      ) {
-        dragStateRef.current = {
-          active: false,
-          pointerId: null,
-          startX: 0,
-          startY: 0,
-          initialX: 0,
-          initialY: 0,
-        };
-      }
-    };
+      );
+
+    const pointerCount =
+      gestureRef.current
+        .pointers.size;
+
+    if (pointerCount === 0) {
+      gestureRef.current
+        .dragging = false;
+
+      gestureRef.current
+        .pointerId = null;
+
+      gestureRef.current
+        .pinchDistance = 0;
+
+      return;
+    }
+
+    /*
+     * Pinch tarvatha one finger
+     * remaining unte drag smoothly
+     * continue avvali.
+     */
+    if (pointerCount === 1) {
+      const [
+        remainingPointerId,
+        remainingPointer,
+      ] = [
+        ...gestureRef.current
+          .pointers.entries(),
+      ][0];
+
+      gestureRef.current
+        .dragging = true;
+
+      gestureRef.current
+        .pointerId =
+        remainingPointerId;
+
+      gestureRef.current
+        .startX =
+        remainingPointer.x;
+
+      gestureRef.current
+        .startY =
+        remainingPointer.y;
+
+      gestureRef.current
+        .initialX =
+        position.x;
+
+      gestureRef.current
+        .initialY =
+        position.y;
+    }
+  };
+
+  /* =========================
+     QUICK ACTIONS
+  ========================= */
+
+  const toggleFitMode = () => {
+    if (busy) {
+      return;
+    }
+
+    setFitMode(
+      (currentMode) =>
+        currentMode === "fill"
+          ? "fit"
+          : "fill"
+    );
+
+    setZoom(1);
+
+    setPosition({
+      x: 0,
+      y: 0,
+    });
+  };
+
+  const rotateStory = () => {
+    if (busy) {
+      return;
+    }
+
+    setRotation(
+      (currentRotation) =>
+        currentRotation + 90
+    );
+
+    setZoom(1);
+
+    setPosition({
+      x: 0,
+      y: 0,
+    });
+  };
 
   const previewTransform =
-    `translate(${position.x * 100}%, ${position.y * 100}%) scale(${zoom}) rotate(${normalizedRotation}deg)`;
+    `translate(${position.x * 100
+    }%, ${position.y * 100
+    }%) scale(${zoom}) rotate(${normalizedRotation
+    }deg)`;
 
   return (
     <div
@@ -743,6 +1200,10 @@ const StoryUploadPreview = ({
       aria-modal="true"
       aria-label="Create story"
     >
+      {/* =====================
+          PREMIUM TOP BAR
+      ====================== */}
+
       <header
         className={
           styles.topBar
@@ -772,7 +1233,7 @@ const StoryUploadPreview = ({
           </strong>
 
           <span>
-            Preview and adjust
+            Preview your story
           </span>
         </div>
 
@@ -784,7 +1245,9 @@ const StoryUploadPreview = ({
           onClick={() =>
             void handleShare()
           }
-          disabled={busy}
+          disabled={
+            !canShare
+          }
           aria-label="Share story"
         >
           {busy ? (
@@ -796,8 +1259,16 @@ const StoryUploadPreview = ({
           ) : (
             <Check />
           )}
+
+          <span>
+            Share
+          </span>
         </button>
       </header>
+
+      {/* =====================
+          MAIN STAGE
+      ====================== */}
 
       <main
         className={
@@ -826,13 +1297,29 @@ const StoryUploadPreview = ({
                 handlePointerMove
               }
               onPointerUp={
-                stopDragging
+                handlePointerEnd
               }
               onPointerCancel={
-                stopDragging
+                handlePointerEnd
               }
-              aria-label="Drag image to reposition"
+              aria-label="Drag or pinch photo to adjust"
             >
+              {/* Story safe area guides */}
+
+              <div
+                className={
+                  styles.safeAreaTop
+                }
+                aria-hidden="true"
+              />
+
+              <div
+                className={
+                  styles.safeAreaBottom
+                }
+                aria-hidden="true"
+              />
+
               {imageLoading && (
                 <div
                   className={
@@ -845,8 +1332,13 @@ const StoryUploadPreview = ({
                     }
                   />
 
-                  <span>
+                  <strong>
                     Preparing preview
+                  </strong>
+
+                  <span>
+                    Getting your story
+                    ready
                   </span>
                 </div>
               )}
@@ -890,21 +1382,41 @@ const StoryUploadPreview = ({
                     }}
                     onError={() => {
                       setError(
-                        "Unable to display this image"
+                        "Unable to display this photo."
                       );
                     }}
                   />
 
+                  {gestureHintVisible && (
+                    <div
+                      className={
+                        styles.gestureHint
+                      }
+                    >
+                      <Move />
+
+                      <div>
+                        <strong>
+                          Adjust photo
+                        </strong>
+
+                        <span>
+                          Drag to move •
+                          Pinch to zoom
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <div
                     className={
-                      styles.dragHint
+                      styles.zoomBadge
                     }
                   >
-                    <Move />
-
-                    <span>
-                      Drag to reposition
-                    </span>
+                    {Math.round(
+                      zoom * 100
+                    )}
+                    %
                   </div>
                 </>
               )}
@@ -912,31 +1424,62 @@ const StoryUploadPreview = ({
           </div>
         </section>
 
+        {/* =====================
+            FLOATING EDITOR
+        ====================== */}
+
         <aside
-          className={
-            styles.editorPanel
-          }
+          className={`${styles.editorPanel} ${controlsOpen
+              ? styles.editorPanelOpen
+              : ""
+            }`}
         >
           <div
             className={
-              styles.panelHeader
+              styles.quickActions
             }
           >
-            <div>
-              <strong>
-                Adjust story
-              </strong>
-
-              <span>
-                Make it look exactly how you want
-              </span>
-            </div>
-
             <button
               type="button"
               className={
-                styles.resetButton
+                fitMode === "fill"
+                  ? styles.quickActionActive
+                  : ""
               }
+              onClick={
+                toggleFitMode
+              }
+              disabled={busy}
+            >
+              {fitMode === "fill" ? (
+                <Minimize2 />
+              ) : (
+                <Maximize2 />
+              )}
+
+              <span>
+                {fitMode === "fill"
+                  ? "Show full"
+                  : "Fill screen"}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={
+                rotateStory
+              }
+              disabled={busy}
+            >
+              <RotateCw />
+
+              <span>
+                Rotate
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={
                 resetEditor
               }
@@ -947,264 +1490,253 @@ const StoryUploadPreview = ({
             >
               <Undo2 />
 
-              Reset
+              <span>
+                Reset
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                controlsOpen
+                  ? styles.quickActionActive
+                  : ""
+              }
+              onClick={() =>
+                setControlsOpen(
+                  (current) =>
+                    !current
+                )
+              }
+              disabled={busy}
+            >
+              <SlidersHorizontal />
+
+              <span>
+                Adjust
+              </span>
             </button>
           </div>
 
           <div
             className={
-              styles.controlGroup
+              styles.advancedHeader
             }
           >
-            <label>
-              Image layout
-            </label>
-
-            <div
-              className={
-                styles.segmentedControl
-              }
-            >
-              <button
-                type="button"
-                className={
-                  fitMode === "fit"
-                    ? styles.segmentActive
-                    : ""
-                }
-                onClick={() => {
-                  setFitMode(
-                    "fit"
-                  );
-
-                  setZoom(1);
-
-                  setPosition({
-                    x: 0,
-                    y: 0,
-                  });
-                }}
-                disabled={busy}
-              >
-                <Minimize2 />
-
-                <span>
-                  Fit
-                </span>
-
-                <small>
-                  Show full image
-                </small>
-              </button>
-
-              <button
-                type="button"
-                className={
-                  fitMode ===
-                    "fill"
-                    ? styles.segmentActive
-                    : ""
-                }
-                onClick={() => {
-                  setFitMode(
-                    "fill"
-                  );
-
-                  setZoom(1);
-
-                  setPosition({
-                    x: 0,
-                    y: 0,
-                  });
-                }}
-                disabled={busy}
-              >
-                <Maximize2 />
-
-                <span>
-                  Fill
-                </span>
-
-                <small>
-                  Fill entire story
-                </small>
-              </button>
-            </div>
-          </div>
-
-          <div
-            className={
-              styles.controlGroup
-            }
-          >
-            <div
-              className={
-                styles.controlLabelRow
-              }
-            >
-              <label>
-                Zoom
-              </label>
+            <div>
+              <strong>
+                Fine tune
+              </strong>
 
               <span>
-                {Math.round(
-                  zoom * 100
-                )}
-                %
+                Optional photo controls
               </span>
             </div>
 
-            <div
-              className={
-                styles.zoomControl
+            <button
+              type="button"
+              onClick={() =>
+                setControlsOpen(
+                  (current) =>
+                    !current
+                )
+              }
+              aria-label={
+                controlsOpen
+                  ? "Hide controls"
+                  : "Show controls"
               }
             >
-              <button
-                type="button"
-                onClick={() =>
-                  setZoom(
-                    (
-                      currentZoom
-                    ) =>
-                      clamp(
-                        currentZoom -
-                        ZOOM_STEP,
-                        MIN_ZOOM,
-                        MAX_ZOOM
-                      )
-                  )
-                }
-                disabled={
-                  busy ||
-                  zoom <=
-                  MIN_ZOOM
-                }
-                aria-label="Zoom out"
-              >
-                <ZoomOut />
-              </button>
-
-              <input
-                type="range"
-                min={MIN_ZOOM}
-                max={MAX_ZOOM}
-                step={ZOOM_STEP}
-                value={zoom}
-                onChange={(
-                  event
-                ) =>
-                  setZoom(
-                    Number(
-                      event.target
-                        .value
-                    )
-                  )
-                }
-                disabled={busy}
-                aria-label="Story zoom"
-              />
-
-              <button
-                type="button"
-                onClick={() =>
-                  setZoom(
-                    (
-                      currentZoom
-                    ) =>
-                      clamp(
-                        currentZoom +
-                        ZOOM_STEP,
-                        MIN_ZOOM,
-                        MAX_ZOOM
-                      )
-                  )
-                }
-                disabled={
-                  busy ||
-                  zoom >=
-                  MAX_ZOOM
-                }
-                aria-label="Zoom in"
-              >
-                <ZoomIn />
-              </button>
-            </div>
+              {controlsOpen ? (
+                <ChevronDown />
+              ) : (
+                <ChevronUp />
+              )}
+            </button>
           </div>
 
-          <div
-            className={
-              styles.controlGroup
-            }
-          >
+          {controlsOpen && (
             <div
               className={
-                styles.controlLabelRow
+                styles.advancedControls
               }
             >
-              <label>
-                Rotation
-              </label>
-
-              <span>
-                {
-                  normalizedRotation
+              <div
+                className={
+                  styles.controlGroup
                 }
-                °
-              </span>
-            </div>
-
-            <div
-              className={
-                styles.rotationButtons
-              }
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setRotation(
-                    (
-                      currentRotation
-                    ) =>
-                      currentRotation -
-                      90
-                  );
-
-                  setPosition({
-                    x: 0,
-                    y: 0,
-                  });
-                }}
-                disabled={busy}
               >
-                <RotateCcw />
+                <div
+                  className={
+                    styles.controlLabelRow
+                  }
+                >
+                  <label
+                    htmlFor="story-zoom"
+                  >
+                    Zoom
+                  </label>
 
-                Rotate left
-              </button>
+                  <span>
+                    {Math.round(
+                      zoom * 100
+                    )}
+                    %
+                  </span>
+                </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setRotation(
-                    (
-                      currentRotation
+                <div
+                  className={
+                    styles.zoomControl
+                  }
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setZoom(
+                        (
+                          currentZoom
+                        ) =>
+                          clamp(
+                            currentZoom -
+                            ZOOM_STEP,
+                            MIN_ZOOM,
+                            MAX_ZOOM
+                          )
+                      )
+                    }
+                    disabled={
+                      busy ||
+                      zoom <=
+                      MIN_ZOOM
+                    }
+                    aria-label="Zoom out"
+                  >
+                    <ZoomOut />
+                  </button>
+
+                  <input
+                    id="story-zoom"
+                    type="range"
+                    min={MIN_ZOOM}
+                    max={MAX_ZOOM}
+                    step={ZOOM_STEP}
+                    value={zoom}
+                    onChange={(
+                      event
                     ) =>
-                      currentRotation +
-                      90
-                  );
+                      setZoom(
+                        Number(
+                          event.target
+                            .value
+                        )
+                      )
+                    }
+                    disabled={busy}
+                  />
 
-                  setPosition({
-                    x: 0,
-                    y: 0,
-                  });
-                }}
-                disabled={busy}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setZoom(
+                        (
+                          currentZoom
+                        ) =>
+                          clamp(
+                            currentZoom +
+                            ZOOM_STEP,
+                            MIN_ZOOM,
+                            MAX_ZOOM
+                          )
+                      )
+                    }
+                    disabled={
+                      busy ||
+                      zoom >=
+                      MAX_ZOOM
+                    }
+                    aria-label="Zoom in"
+                  >
+                    <ZoomIn />
+                  </button>
+                </div>
+              </div>
+
+              <div
+                className={
+                  styles.layoutButtons
+                }
               >
-                <RotateCw />
+                <button
+                  type="button"
+                  className={
+                    fitMode === "fill"
+                      ? styles.layoutActive
+                      : ""
+                  }
+                  onClick={() => {
+                    setFitMode(
+                      "fill"
+                    );
 
-                Rotate right
-              </button>
+                    setZoom(1);
+
+                    setPosition({
+                      x: 0,
+                      y: 0,
+                    });
+                  }}
+                  disabled={busy}
+                >
+                  <Maximize2 />
+
+                  <div>
+                    <strong>
+                      Fill
+                    </strong>
+
+                    <span>
+                      Full-screen story
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className={
+                    fitMode === "fit"
+                      ? styles.layoutActive
+                      : ""
+                  }
+                  onClick={() => {
+                    setFitMode(
+                      "fit"
+                    );
+
+                    setZoom(1);
+
+                    setPosition({
+                      x: 0,
+                      y: 0,
+                    });
+                  }}
+                  disabled={busy}
+                >
+                  <Minimize2 />
+
+                  <div>
+                    <strong>
+                      Fit
+                    </strong>
+
+                    <span>
+                      Show complete photo
+                    </span>
+                  </div>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {error &&
             imageSource && (
@@ -1214,7 +1746,11 @@ const StoryUploadPreview = ({
                 }
                 role="alert"
               >
-                {error}
+                <CircleAlert />
+
+                <span>
+                  {error}
+                </span>
               </div>
             )}
 
@@ -1227,23 +1763,26 @@ const StoryUploadPreview = ({
               void handleShare()
             }
             disabled={
-              busy ||
-              !imageSource
+              !canShare
             }
           >
-            {busy && (
+            {busy ? (
               <LoaderCircle
                 className={
                   styles.spinning
                 }
               />
+            ) : (
+              <Check />
             )}
 
-            {uploading
-              ? "Uploading story..."
-              : preparing
-                ? "Preparing story..."
-                : "Share story"}
+            <span>
+              {uploading
+                ? "Uploading story..."
+                : preparing
+                  ? "Preparing story..."
+                  : "Share story"}
+            </span>
           </button>
 
           <p
@@ -1251,11 +1790,60 @@ const StoryUploadPreview = ({
               styles.helperText
             }
           >
-            Stories are visible for
-            24 hours.
+            Your story will be
+            visible for 24 hours
           </p>
         </aside>
       </main>
+
+      {/* =====================
+          PROCESSING OVERLAY
+      ====================== */}
+
+      {busy &&
+        !imageLoading && (
+          <div
+            className={
+              styles.processingOverlay
+            }
+            role="status"
+          >
+            <div
+              className={
+                styles.processingCard
+              }
+            >
+              <LoaderCircle
+                className={
+                  styles.spinning
+                }
+              />
+
+              <strong>
+                {uploading
+                  ? "Sharing your story"
+                  : "Preparing your story"}
+              </strong>
+
+              <span>
+                Please keep this
+                screen open
+              </span>
+
+              <div
+                className={
+                  styles.progressTrack
+                }
+              >
+                <span />
+              </div>
+            </div>
+          </div>
+        )}
+
+      {/* =====================
+          DISCARD DIALOG
+      ====================== */}
 
       {showCancelDialog && (
         <div
@@ -1263,11 +1851,18 @@ const StoryUploadPreview = ({
             styles.confirmBackdrop
           }
           role="presentation"
-          onClick={() =>
-            setShowCancelDialog(
-              false
-            )
-          }
+          onMouseDown={(
+            event
+          ) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setShowCancelDialog(
+                false
+              );
+            }
+          }}
         >
           <div
             className={
@@ -1275,12 +1870,7 @@ const StoryUploadPreview = ({
             }
             role="alertdialog"
             aria-modal="true"
-            aria-label="Discard story changes"
-            onClick={(
-              event
-            ) =>
-              event.stopPropagation()
-            }
+            aria-labelledby="discard-story-title"
           >
             <div
               className={
@@ -1290,13 +1880,15 @@ const StoryUploadPreview = ({
               <Undo2 />
             </div>
 
-            <strong>
-              Discard this story?
+            <strong
+              id="discard-story-title"
+            >
+              Discard story changes?
             </strong>
 
             <p>
-              Your edits will be
-              lost.
+              Your photo adjustments
+              will be lost.
             </p>
 
             <div

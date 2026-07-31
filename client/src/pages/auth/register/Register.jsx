@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -26,12 +27,53 @@ import {
 
 import styles from "./Register.module.css";
 
+const USERNAME_MIN_LENGTH = 3;
+const USERNAME_MAX_LENGTH = 30;
+const USERNAME_DEBOUNCE_MS = 800;
+
+const getUsernameAvailability = (
+  response
+) => {
+  return (
+    response?.available ??
+    response?.data?.available ??
+    response?.data?.data?.available ??
+    false
+  );
+};
+
+const getUsernameMessage = (
+  response,
+  available
+) => {
+  return (
+    response?.message ||
+    response?.data?.message ||
+    response?.data?.data?.message ||
+    (available
+      ? "Username is available"
+      : "Username is already taken")
+  );
+};
+
 const Register = () => {
   const navigate =
     useNavigate();
 
   const toast =
     useToastContext();
+
+  /*
+   * Latest username request ni track
+   * chesthundi. Old API response vachina
+   * current username state ni overwrite
+   * cheyyakunda prevent chesthundi.
+   */
+  const usernameRequestRef =
+    useRef(0);
+
+  const lastCheckedUsernameRef =
+    useRef("");
 
   const [
     formData,
@@ -44,6 +86,10 @@ const Register = () => {
     confirmPassword: "",
   });
 
+  /*
+   * Registration submit loading matrame.
+   * Username checking kosam idi use cheyyamu.
+   */
   const [
     loading,
     setLoading,
@@ -58,9 +104,9 @@ const Register = () => {
     message: "",
   });
 
-  // =========================
-  // HANDLE INPUT CHANGE
-  // =========================
+  /* =========================
+     INPUT CHANGE
+  ========================= */
 
   const handleChange = (
     event
@@ -70,35 +116,80 @@ const Register = () => {
       value,
     } = event.target;
 
+    if (name === "username") {
+      /*
+       * Username input enter chesthunappude
+       * normalize chestham.
+       *
+       * Invalid characters UI lo enter
+       * avvakunda prevent chesthundi.
+       */
+      const cleanUsername =
+        value
+          .toLowerCase()
+          .replace(
+            /[^a-z0-9._]/g,
+            ""
+          )
+          .slice(
+            0,
+            USERNAME_MAX_LENGTH
+          );
+
+      setFormData(
+        (previous) => ({
+          ...previous,
+          username:
+            cleanUsername,
+        })
+      );
+
+      /*
+       * Previous username result immediate
+       * ga clear chestham. Main page loading
+       * or page loader trigger avvadu.
+       */
+      setUsernameStatus({
+        checking: false,
+        available: null,
+        message: "",
+      });
+
+      return;
+    }
+
     setFormData(
       (previous) => ({
         ...previous,
         [name]: value,
       })
     );
-
-    if (
-      name === "username"
-    ) {
-      setUsernameStatus({
-        checking: false,
-        available: null,
-        message: "",
-      });
-    }
   };
 
-  // =========================
-  // LIVE USERNAME CHECK
-  // 500ms DEBOUNCE
-  // =========================
+  /* =========================
+     USERNAME AVAILABILITY
+     DEBOUNCED CHECK
+  ========================= */
 
   useEffect(() => {
-    const username = formData.username
-      .trim()
-      .toLowerCase();
+    const username =
+      formData.username
+        .trim()
+        .toLowerCase();
+
+    /*
+     * Previous pending request stale
+     * response ni invalidate chestham.
+     */
+    usernameRequestRef.current += 1;
+
+    const currentRequestId =
+      usernameRequestRef.current;
 
     if (!username) {
+      lastCheckedUsernameRef.current =
+        "";
+
       setUsernameStatus({
         checking: false,
         available: null,
@@ -108,33 +199,48 @@ const Register = () => {
       return undefined;
     }
 
-    /*
-     * Local validation first.
-     * Invalid username kosam unnecessary API call cheyyamu.
-     */
-    if (username.length < 3) {
+    if (
+      username.length <
+      USERNAME_MIN_LENGTH
+    ) {
+      lastCheckedUsernameRef.current =
+        "";
+
       setUsernameStatus({
         checking: false,
         available: null,
         message:
-          "Username must be at least 3 characters",
+          `Username must be at least ${USERNAME_MIN_LENGTH} characters`,
       });
 
       return undefined;
     }
 
-    if (username.length > 30) {
+    if (
+      username.length >
+      USERNAME_MAX_LENGTH
+    ) {
+      lastCheckedUsernameRef.current =
+        "";
+
       setUsernameStatus({
         checking: false,
         available: false,
         message:
-          "Username cannot exceed 30 characters",
+          `Username cannot exceed ${USERNAME_MAX_LENGTH} characters`,
       });
 
       return undefined;
     }
 
-    if (!/^[a-z0-9._]+$/.test(username)) {
+    if (
+      !/^[a-z0-9._]+$/.test(
+        username
+      )
+    ) {
+      lastCheckedUsernameRef.current =
+        "";
+
       setUsernameStatus({
         checking: false,
         available: false,
@@ -145,67 +251,110 @@ const Register = () => {
       return undefined;
     }
 
-    let cancelled = false;
+    /*
+     * Same username already successfully
+     * check ayithe duplicate API call vaddu.
+     */
+    if (
+      lastCheckedUsernameRef.current ===
+      username &&
+      usernameStatus.available !==
+      null
+    ) {
+      return undefined;
+    }
 
-    const timer = window.setTimeout(
-      async () => {
-        /*
-         * Debounce complete ayyaka matrame
-         * checking state show chestham.
-         */
-        setUsernameStatus({
-          checking: true,
-          available: null,
-          message: "Checking username...",
-        });
-
-        try {
-          const response =
-            await checkUsernameAvailability(
-              username
-            );
-
-          if (cancelled) return;
-
-          setUsernameStatus({
-            checking: false,
-            available:
-              response?.available === true,
-            message:
-              response?.message ||
-              (response?.available
-                ? "Username is available"
-                : "Username is not available"),
-          });
-        } catch (error) {
-          if (cancelled) return;
-
-          console.error(
-            "USERNAME CHECK ERROR:",
-            error.response?.data ||
-            error.message
+    const timer =
+      window.setTimeout(
+        async () => {
+          /*
+           * Main visible message ni
+           * "Checking..." ga marchamu.
+           * Kabatti form/page blink avvadu.
+           */
+          setUsernameStatus(
+            (previous) => ({
+              ...previous,
+              checking: true,
+            })
           );
 
-          setUsernameStatus({
-            checking: false,
-            available: null,
-            message:
-              "Unable to check username right now",
-          });
-        }
-      },
-      600
-    );
+          try {
+            const response =
+              await checkUsernameAvailability(
+                username
+              );
+
+            /*
+             * User meanwhile vere username
+             * type chesunte old response ignore.
+             */
+            if (
+              currentRequestId !==
+              usernameRequestRef.current
+            ) {
+              return;
+            }
+
+            const available =
+              Boolean(
+                getUsernameAvailability(
+                  response
+                )
+              );
+
+            lastCheckedUsernameRef.current =
+              username;
+
+            setUsernameStatus({
+              checking: false,
+              available,
+              message:
+                getUsernameMessage(
+                  response,
+                  available
+                ),
+            });
+          } catch (error) {
+            if (
+              currentRequestId !==
+              usernameRequestRef.current
+            ) {
+              return;
+            }
+
+            console.error(
+              "USERNAME CHECK ERROR:",
+              error?.response?.data ||
+              error?.message
+            );
+
+            lastCheckedUsernameRef.current =
+              "";
+
+            setUsernameStatus({
+              checking: false,
+              available: null,
+              message:
+                "Unable to check username right now",
+            });
+          }
+        },
+        USERNAME_DEBOUNCE_MS
+      );
 
     return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
+      window.clearTimeout(
+        timer
+      );
     };
-  }, [formData.username]);
+  }, [
+    formData.username,
+  ]);
 
-  // =========================
-  // REGISTER
-  // =========================
+  /* =========================
+     REGISTER
+  ========================= */
 
   const handleSubmit =
     async (event) => {
@@ -237,6 +386,29 @@ const Register = () => {
       ) {
         toast.warning(
           "Please fill in all fields"
+        );
+
+        return;
+      }
+
+      if (
+        cleanUsername.length <
+        USERNAME_MIN_LENGTH
+      ) {
+        toast.warning(
+          `Username must be at least ${USERNAME_MIN_LENGTH} characters`
+        );
+
+        return;
+      }
+
+      if (
+        !/^[a-z0-9._]+$/.test(
+          cleanUsername
+        )
+      ) {
+        toast.warning(
+          "Use only letters, numbers, dots and underscores"
         );
 
         return;
@@ -373,17 +545,20 @@ const Register = () => {
       } catch (error) {
         console.error(
           "REGISTER ERROR:",
-          error.response?.data ||
-          error.message
+          error?.response?.data ||
+          error?.message
         );
 
         const errorData =
-          error.response?.data;
+          error?.response?.data;
 
         if (
           errorData?.field ===
           "username"
         ) {
+          lastCheckedUsernameRef.current =
+            cleanUsername;
+
           setUsernameStatus({
             checking: false,
             available: false,
@@ -402,6 +577,28 @@ const Register = () => {
         setLoading(false);
       }
     };
+
+  /* =========================
+     USERNAME STATUS UI
+  ========================= */
+
+  const usernameMessageClass =
+    usernameStatus.available ===
+      true
+      ? styles.usernameAvailable
+      : usernameStatus.available ===
+        false
+        ? styles.usernameTaken
+        : styles.usernameNeutral;
+
+  const usernameMessage =
+    usernameStatus.available ===
+      true
+      ? `✓ ${usernameStatus.message}`
+      : usernameStatus.available ===
+        false
+        ? `✕ ${usernameStatus.message}`
+        : usernameStatus.message;
 
   return (
     <AuthLayout>
@@ -466,34 +663,23 @@ const Register = () => {
               }
               placeholder="Choose username"
               autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
               disabled={loading}
             />
 
             <p
-              className={`${styles.usernameMessage} ${usernameStatus.checking
-                  ? styles.usernameChecking
-                  : usernameStatus.available === true
-                    ? styles.usernameAvailable
-                    : usernameStatus.available === false
-                      ? styles.usernameTaken
-                      : styles.usernameNeutral
-                }`}
+              className={`${styles.usernameMessage} ${usernameMessageClass}`}
               role={
-                usernameStatus.available === false
+                usernameStatus.available ===
+                  false
                   ? "alert"
                   : "status"
               }
               aria-live="polite"
             >
-              {usernameStatus.message
-                ? usernameStatus.checking
-                  ? "Checking username..."
-                  : usernameStatus.available === true
-                    ? `✓ ${usernameStatus.message}`
-                    : usernameStatus.available === false
-                      ? `✕ ${usernameStatus.message}`
-                      : usernameStatus.message
-                : "\u00A0"}
+              {usernameMessage ||
+                "\u00A0"}
             </p>
           </div>
 
@@ -554,7 +740,9 @@ const Register = () => {
           >
             {loading
               ? "Creating Account..."
-              : "Create Account"}
+              : usernameStatus.checking
+                ? "Checking Username..."
+                : "Create Account"}
           </Button>
         </form>
 
