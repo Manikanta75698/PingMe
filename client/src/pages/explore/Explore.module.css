@@ -882,7 +882,15 @@
   .meta {
     gap: 6px;
   }
+
+  .backButton {
+    min-height: 38px;
+    margin-bottom: 14px;
+    padding: 7px 11px;
+  }
 }
+
+
 
 /* =========================
    REDUCED MOTION
@@ -902,4 +910,49 @@
   .toast {
     animation: none;
   }
+}
+
+.backButton {
+  width: fit-content;
+  min-height: 40px;
+  margin-bottom: 18px;
+  padding: 8px 13px;
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  background: var(--surface);
+  color: var(--text-primary);
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.backButton:hover {
+  border-color:
+    color-mix(in srgb,
+      var(--primary) 36%,
+      var(--border));
+
+  background:
+    color-mix(in srgb,
+      var(--primary) 7%,
+      var(--surface));
+}
+
+.backButton:active {
+  transform: scale(0.98);
 }
