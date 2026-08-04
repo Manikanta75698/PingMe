@@ -198,6 +198,7 @@ const getExploreUsers =
               "followers",
               "following",
               "blockedUsers",
+              "currentMood",
             ].join(" ")
           )
           .lean();
@@ -274,6 +275,8 @@ const getExploreUsers =
               "privacySettings.privateAccount",
               "isOnline",
               "lastSeen",
+              "currentMood",
+              "moodUpdatedAt",
               "createdAt",
             ].join(" ")
           )
@@ -443,44 +446,90 @@ const getExploreUsers =
                 ? requestId
                 : null,
 
+            currentMood:
+              user.currentMood || "",
+
+            moodUpdatedAt:
+              user.moodUpdatedAt || null,
+
+            sameMood:
+              Boolean(
+                currentUser.currentMood &&
+                user.currentMood ===
+                currentUser.currentMood
+              ),
+
             followsYou,
           };
         });
 
-      exploreUsers.sort(
-        (first, second) => {
-          if (
-            second
-              .mutualFollowersCount !==
-            first
-              .mutualFollowersCount
-          ) {
-            return (
-              second
-                .mutualFollowersCount -
-              first
-                .mutualFollowersCount
-            );
-          }
-
-          if (
-            second.isOnline !==
-            first.isOnline
-          ) {
-            return Number(
-              second.isOnline
-            ) -
-              Number(
-                first.isOnline
-              );
-          }
-
-          return first.name
-            .localeCompare(
-              second.name
-            );
-        }
+     exploreUsers.sort(
+  (first, second) => {
+    
+    if (
+      second.sameMood !==
+      first.sameMood
+    ) {
+      return (
+        Number(second.sameMood) -
+        Number(first.sameMood)
       );
+    }
+
+    if (
+      first.sameMood &&
+      second.sameMood
+    ) {
+      const firstMoodTime =
+        first.moodUpdatedAt
+          ? new Date(
+              first.moodUpdatedAt
+            ).getTime()
+          : 0;
+
+      const secondMoodTime =
+        second.moodUpdatedAt
+          ? new Date(
+              second.moodUpdatedAt
+            ).getTime()
+          : 0;
+
+      if (
+        secondMoodTime !==
+        firstMoodTime
+      ) {
+        return (
+          secondMoodTime -
+          firstMoodTime
+        );
+      }
+    }
+
+    if (
+      second.mutualFollowersCount !==
+      first.mutualFollowersCount
+    ) {
+      return (
+        second.mutualFollowersCount -
+        first.mutualFollowersCount
+      );
+    }
+
+    if (
+      second.isOnline !==
+      first.isOnline
+    ) {
+      return (
+        Number(second.isOnline) -
+        Number(first.isOnline)
+      );
+    }
+
+    return first.name.localeCompare(
+      second.name
+    );
+  }
+);
 
       const totalPages =
         Math.ceil(
