@@ -1816,6 +1816,231 @@ const updateCurrentMood = async (
   }
 };
 
+/* =========================
+   UPDATE PROFILE
+========================= */
+
+const updateProfile = async (req, res) => {
+  try {
+    const {
+      name,
+      username,
+      bio,
+      website,
+      location,
+    } = req.body;
+
+    const user = await User.findById(
+      req.user._id
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (name !== undefined) {
+      const cleanName = name.trim();
+
+      if (!cleanName) {
+        return res.status(400).json({
+          success: false,
+          field: "name",
+          message: "Name cannot be empty",
+        });
+      }
+
+      if (cleanName.length > 50) {
+        return res.status(400).json({
+          success: false,
+          field: "name",
+          message:
+            "Name cannot exceed 50 characters",
+        });
+      }
+
+      user.name = cleanName;
+    }
+
+    if (username !== undefined) {
+      const usernameCheck =
+        validateUsername(username);
+
+      if (!usernameCheck.valid) {
+        return res.status(400).json({
+          success: false,
+          field: "username",
+          message:
+            usernameCheck.message,
+        });
+      }
+
+      const cleanUsername =
+        usernameCheck.username;
+
+      if (
+        cleanUsername !== user.username
+      ) {
+        const usernameExists =
+          await User.exists({
+            username: cleanUsername,
+            _id: {
+              $ne: user._id,
+            },
+          });
+
+        if (usernameExists) {
+          return res.status(409).json({
+            success: false,
+            field: "username",
+            message:
+              "Username is already taken",
+          });
+        }
+
+        user.username = cleanUsername;
+      }
+    }
+
+    if (bio !== undefined) {
+      const cleanBio = bio.trim();
+
+      if (cleanBio.length > 160) {
+        return res.status(400).json({
+          success: false,
+          field: "bio",
+          message:
+            "Bio cannot exceed 160 characters",
+        });
+      }
+
+      user.bio = cleanBio;
+    }
+
+    if (website !== undefined) {
+      const cleanWebsite =
+        website.trim();
+
+      if (cleanWebsite.length > 200) {
+        return res.status(400).json({
+          success: false,
+          field: "website",
+          message:
+            "Website cannot exceed 200 characters",
+        });
+      }
+
+      if (cleanWebsite) {
+        let parsedUrl;
+
+        try {
+          parsedUrl = new URL(
+            cleanWebsite
+          );
+        } catch {
+          return res.status(400).json({
+            success: false,
+            field: "website",
+            message:
+              "Enter a valid website URL",
+          });
+        }
+
+        if (
+          !["http:", "https:"].includes(
+            parsedUrl.protocol
+          )
+        ) {
+          return res.status(400).json({
+            success: false,
+            field: "website",
+            message:
+              "Website must use http or https",
+          });
+        }
+      }
+
+      user.website = cleanWebsite;
+    }
+
+    if (location !== undefined) {
+      const cleanLocation =
+        location.trim();
+
+      if (
+        cleanLocation.length > 100
+      ) {
+        return res.status(400).json({
+          success: false,
+          field: "location",
+          message:
+            "Location cannot exceed 100 characters",
+        });
+      }
+
+      user.location = cleanLocation;
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Profile updated successfully",
+
+      user: {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        profilePic: user.profilePic,
+        coverPhoto: user.coverPhoto,
+        bio: user.bio,
+        website: user.website,
+        location: user.location,
+        followers: user.followers,
+        following: user.following,
+        savedPosts: user.savedPosts,
+        isVerified: user.isVerified,
+        isOnline: user.isOnline,
+        lastSeen: user.lastSeen,
+        theme: user.theme,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Update Profile Error:",
+      error
+    );
+
+    if (error?.code === 11000) {
+      const duplicateField =
+        Object.keys(
+          error.keyPattern || {}
+        )[0];
+
+      return res.status(409).json({
+        success: false,
+        field: duplicateField,
+        message:
+          duplicateField === "username"
+            ? "Username is already taken"
+            : "Duplicate value already exists",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
 const uploadProfilePicture = async (req, res) => {
   try {
 
