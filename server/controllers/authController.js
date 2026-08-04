@@ -1656,22 +1656,35 @@ const getProfile = async (req, res) => {
   }
 };
 
-const updateProfile = async (req, res) => {
-  try {
-    const {
-      name,
-      username,
-      bio,
-      website,
-      location,
-    } = req.body;
+/* =========================
+   MOOD MATCH
+========================= */
 
-    // =========================
-    // GET CURRENT USER
-    // =========================
+const ALLOWED_MOODS = [
+  "happy",
+  "chill",
+  "bored",
+  "focused",
+  "low",
+  "excited",
+];
+
+/* =========================
+   GET CURRENT MOOD
+========================= */
+
+const getCurrentMood = async (
+  req,
+  res
+) => {
+  try {
     const user = await User.findById(
       req.user._id
-    );
+    )
+      .select(
+        "currentMood moodUpdatedAt"
+      )
+      .lean();
 
     if (!user) {
       return res.status(404).json({
@@ -1680,240 +1693,125 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    // =========================
-    // NAME VALIDATION
-    // =========================
-    if (name !== undefined) {
-      const cleanName = name.trim();
-
-      if (!cleanName) {
-        return res.status(400).json({
-          success: false,
-          field: "name",
-          message: "Name cannot be empty",
-        });
-      }
-
-      if (cleanName.length > 50) {
-        return res.status(400).json({
-          success: false,
-          field: "name",
-          message:
-            "Name cannot exceed 50 characters",
-        });
-      }
-
-      user.name = cleanName;
-    }
-
-    // =========================
-    // USERNAME VALIDATION
-    // =========================
-    if (username !== undefined) {
-      const usernameCheck =
-        validateUsername(username);
-
-      if (!usernameCheck.valid) {
-        return res.status(400).json({
-          success: false,
-          field: "username",
-          message: usernameCheck.message,
-        });
-      }
-
-      const cleanUsername =
-        usernameCheck.username;
-
-      // Only query DB when username changed
-      if (cleanUsername !== user.username) {
-        const usernameExists =
-          await User.exists({
-            username: cleanUsername,
-
-            _id: {
-              $ne: user._id,
-            },
-          });
-
-        if (usernameExists) {
-          return res.status(409).json({
-            success: false,
-            field: "username",
-            message:
-              "Username is already taken",
-          });
-        }
-
-        user.username = cleanUsername;
-      }
-    }
-
-    // =========================
-    // BIO VALIDATION
-    // =========================
-    if (bio !== undefined) {
-      const cleanBio = bio.trim();
-
-      if (cleanBio.length > 160) {
-        return res.status(400).json({
-          success: false,
-          field: "bio",
-          message:
-            "Bio cannot exceed 160 characters",
-        });
-      }
-
-      // Empty string allowed
-      user.bio = cleanBio;
-    }
-
-    // =========================
-    // WEBSITE VALIDATION
-    // =========================
-    if (website !== undefined) {
-      const cleanWebsite = website.trim();
-
-      if (cleanWebsite.length > 200) {
-        return res.status(400).json({
-          success: false,
-          field: "website",
-          message:
-            "Website cannot exceed 200 characters",
-        });
-      }
-
-      if (cleanWebsite) {
-        let parsedUrl;
-
-        try {
-          parsedUrl = new URL(cleanWebsite);
-        } catch {
-          return res.status(400).json({
-            success: false,
-            field: "website",
-            message:
-              "Enter a valid website URL",
-          });
-        }
-
-        if (
-          !["http:", "https:"].includes(
-            parsedUrl.protocol
-          )
-        ) {
-          return res.status(400).json({
-            success: false,
-            field: "website",
-            message:
-              "Website must use http or https",
-          });
-        }
-      }
-
-      // Empty string allowed
-      user.website = cleanWebsite;
-    }
-
-    // =========================
-    // LOCATION VALIDATION
-    // =========================
-    if (location !== undefined) {
-      const cleanLocation =
-        location.trim();
-
-      if (cleanLocation.length > 100) {
-        return res.status(400).json({
-          success: false,
-          field: "location",
-          message:
-            "Location cannot exceed 100 characters",
-        });
-      }
-
-      // Empty string allowed
-      user.location = cleanLocation;
-    }
-
-    // =========================
-    // SAVE PROFILE
-    // =========================
-    await user.save();
-
-    // =========================
-    // SAFE RESPONSE
-    // =========================
-    const responseUser = {
-      id: user._id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      profilePic: user.profilePic,
-      coverPhoto: user.coverPhoto,
-      bio: user.bio,
-      website: user.website,
-      location: user.location,
-      followers: user.followers,
-      following: user.following,
-      savedPosts: user.savedPosts,
-      isVerified: user.isVerified,
-      isOnline: user.isOnline,
-      lastSeen: user.lastSeen,
-      theme: user.theme,
-      role: user.role,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-
     return res.status(200).json({
       success: true,
-      message:
-        "Profile updated successfully",
-      user: responseUser,
+
+      mood: user.currentMood || "",
+
+      moodUpdatedAt:
+        user.moodUpdatedAt || null,
     });
   } catch (error) {
     console.error(
-      "Update Profile Error:",
+      "Get Current Mood Error:",
       error
     );
 
-    // =========================
-    // MONGODB UNIQUE INDEX
-    // RACE-CONDITION PROTECTION
-    // =========================
-    if (error?.code === 11000) {
-      const duplicateField =
-        Object.keys(
-          error.keyPattern || {}
-        )[0];
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to load your mood",
+    });
+  }
+};
 
-      if (duplicateField === "username") {
-        return res.status(409).json({
-          success: false,
-          field: "username",
-          message:
-            "Username is already taken",
-        });
-      }
+/* =========================
+   UPDATE CURRENT MOOD
+========================= */
 
-      if (duplicateField === "email") {
-        return res.status(409).json({
-          success: false,
-          field: "email",
-          message:
-            "Email is already registered",
-        });
-      }
+const updateCurrentMood = async (
+  req,
+  res
+) => {
+  try {
+    const requestedMood =
+      typeof req.body?.mood === "string"
+        ? req.body.mood
+          .trim()
+          .toLowerCase()
+        : "";
 
-      return res.status(409).json({
+    /*
+     * Empty mood is allowed.
+     * It clears the currently selected mood.
+     */
+    if (
+      requestedMood &&
+      !ALLOWED_MOODS.includes(
+        requestedMood
+      )
+    ) {
+      return res.status(400).json({
         success: false,
-        message:
-          "Duplicate value already exists",
+        field: "mood",
+        message: "Invalid mood selected",
+      });
+    }
+
+    const moodUpdatedAt = requestedMood
+      ? new Date()
+      : null;
+
+    const user =
+      await User.findByIdAndUpdate(
+        req.user._id,
+        {
+          $set: {
+            currentMood:
+              requestedMood,
+
+            moodUpdatedAt,
+          },
+        },
+        {
+          new: true,
+          runValidators: true,
+        }
+      )
+        .select(
+          "currentMood moodUpdatedAt"
+        )
+        .lean();
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+
+      message: requestedMood
+        ? "Mood updated successfully"
+        : "Mood cleared successfully",
+
+      mood: user.currentMood || "",
+
+      moodUpdatedAt:
+        user.moodUpdatedAt || null,
+    });
+  } catch (error) {
+    console.error(
+      "Update Current Mood Error:",
+      error
+    );
+
+    if (
+      error?.name ===
+      "ValidationError"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid mood selected",
       });
     }
 
     return res.status(500).json({
       success: false,
-      message: "Internal Server Error",
+      message:
+        "Unable to update your mood",
     });
   }
 };
@@ -2660,11 +2558,6 @@ const followUser = async (
           });
       }
 
-      /*
-       * Unique sender-receiver pair
-       * model index valla old declined
-       * record unte update avuthundi.
-       */
       let followRequest;
       let requestWasNew =
         false;
@@ -5098,7 +4991,7 @@ const cancelFollowRequest =
         });
     }
   };
-  
+
 /* =========================
    GET USER PROFILE
 ========================= */
@@ -6053,6 +5946,10 @@ module.exports = {
   googleLogin,
 
   getProfile,
+
+  getCurrentMood,
+  updateCurrentMood,
+
   getPrivacySettings,
   updatePrivacySettings,
   updateProfile,

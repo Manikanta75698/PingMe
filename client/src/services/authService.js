@@ -234,6 +234,40 @@ export const getProfile = async () => {
   return response.data;
 };
 
+
+// =========================
+// GET CURRENT MOOD
+// =========================
+export const getCurrentMood = async () => {
+  const response = await api.get(
+    "/auth/mood"
+  );
+
+  return response.data;
+};
+
+// =========================
+// UPDATE CURRENT MOOD
+// =========================
+export const updateCurrentMood = async (
+  mood
+) => {
+  const normalizedMood = String(
+    mood || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const response = await api.patch(
+    "/auth/mood",
+    {
+      mood: normalizedMood,
+    }
+  );
+
+  return response.data;
+};
+
 // =========================
 // UPDATE PROFILE
 // =========================

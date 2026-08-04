@@ -30,6 +30,8 @@ const {
   changePassword,
 
   getProfile,
+  getCurrentMood,
+  updateCurrentMood,
   updateProfile,
   uploadProfilePicture,
 
@@ -128,10 +130,6 @@ router.put(
    PUBLIC USERNAME CHECK
 ========================= */
 
-/*
- * Register page nundi token lekunda
- * username availability check cheyyali.
- */
 router.get(
   "/username-availability",
   checkUsernameAvailability
@@ -158,6 +156,23 @@ router.put(
   protect,
   singleProfileUpload,
   uploadProfilePicture
+);
+
+
+/* =========================
+   MOOD MATCH
+========================= */
+
+router.get(
+  "/mood",
+  protect,
+  getCurrentMood
+);
+
+router.patch(
+  "/mood",
+  protect,
+  updateCurrentMood
 );
 
 /* =========================
@@ -292,10 +307,7 @@ router.delete(
    PUBLIC USER PROFILE
 ========================= */
 
-/*
- * Dynamic route kabatti fixed routes
- * anni complete ayyaka last lo undali.
- */
+
 router.get(
   "/user/:username",
   protect,

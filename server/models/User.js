@@ -62,6 +62,26 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    // Mood Match
+    currentMood: {
+      type: String,
+      enum: [
+        "",
+        "happy",
+        "chill",
+        "bored",
+        "focused",
+        "low",
+        "excited",
+      ],
+      default: "",
+    },
+
+    moodUpdatedAt: {
+      type: Date,
+      default: null,
+    },
+
     // Social
     followers: [
       {
@@ -120,7 +140,6 @@ const userSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
-
 
     // Password Reset Security
     passwordResetOtp: {
@@ -242,4 +261,7 @@ userSchema.index({
   createdAt: -1,
 });
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model(
+  "User",
+  userSchema
+);
