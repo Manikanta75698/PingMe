@@ -1186,8 +1186,8 @@ const Explore = () => {
                   type="button"
                   role="listitem"
                   className={`${styles.moodCard} ${isSelected
-                      ? styles.moodCardSelected
-                      : ""
+                    ? styles.moodCardSelected
+                    : ""
                     }`}
                   onClick={() =>
                     handleMoodSelect(mood.id)
@@ -1438,22 +1438,24 @@ const Explore = () => {
                           styles.userDetails
                         }
                       >
-                        <div
-                          className={
-                            styles.nameRow
-                          }
-                        >
+                        <div className={styles.nameRow}>
                           <h2>
-                            {user?.name ||
-                              "User"}
+                            {user?.name || "User"}
                           </h2>
 
-                          {user
-                            ?.privateAccount && (
-                              <LockKeyhole
-                                size={14}
-                              />
-                            )}
+                          {user?.sameMood && (
+                            <span
+                              className={
+                                styles.sameVibeBadge
+                              }
+                            >
+                              Same vibe
+                            </span>
+                          )}
+
+                          {user?.privateAccount && (
+                            <LockKeyhole size={14} />
+                          )}
                         </div>
 
                         <span>

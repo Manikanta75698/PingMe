@@ -557,6 +557,31 @@
   white-space: nowrap;
 }
 
+
+.sameVibeBadge {
+  flex: 0 0 auto;
+
+  padding: 3px 7px;
+
+  border: 1px solid color-mix(in srgb,
+      #7c3aed 22%,
+      var(--border));
+
+  border-radius: 999px;
+
+  background:
+    color-mix(in srgb,
+      #7c3aed 8%,
+      var(--surface));
+
+  color: #7c3aed;
+
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .nameRow svg {
   flex: 0 0 auto;
   color: var(--text-secondary);
@@ -1111,6 +1136,11 @@
 
   .grid {
     gap: 11px;
+  }
+
+  .sameVibeBadge {
+    padding: 2px 6px;
+    font-size: 9px;
   }
 
   .userCard {

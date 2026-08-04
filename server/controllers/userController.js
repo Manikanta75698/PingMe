@@ -199,6 +199,7 @@ const getExploreUsers =
               "following",
               "blockedUsers",
               "currentMood",
+              "moodUpdatedAt",
             ].join(" ")
           )
           .lean();
@@ -332,6 +333,20 @@ const getExploreUsers =
           )
         );
 
+      const MOOD_ACTIVE_DURATION =
+        24 * 60 * 60 * 1000;
+
+      const currentMoodIsActive =
+        Boolean(
+          currentUser.currentMood &&
+          currentUser.moodUpdatedAt &&
+          Date.now() -
+          new Date(
+            currentUser.moodUpdatedAt
+          ).getTime() <
+          MOOD_ACTIVE_DURATION
+        );
+
       const exploreUsers =
         users.map((user) => {
           const userId =
@@ -454,82 +469,88 @@ const getExploreUsers =
 
             sameMood:
               Boolean(
-                currentUser.currentMood &&
+                currentMoodIsActive &&
                 user.currentMood ===
-                currentUser.currentMood
+                currentUser.currentMood &&
+                user.moodUpdatedAt &&
+                Date.now() -
+                new Date(
+                  user.moodUpdatedAt
+                ).getTime() <
+                MOOD_ACTIVE_DURATION
               ),
 
             followsYou,
           };
         });
 
-     exploreUsers.sort(
-  (first, second) => {
-    
-    if (
-      second.sameMood !==
-      first.sameMood
-    ) {
-      return (
-        Number(second.sameMood) -
-        Number(first.sameMood)
-      );
-    }
+      exploreUsers.sort(
+        (first, second) => {
 
-    if (
-      first.sameMood &&
-      second.sameMood
-    ) {
-      const firstMoodTime =
-        first.moodUpdatedAt
-          ? new Date(
+          if (
+            second.sameMood !==
+            first.sameMood
+          ) {
+            return (
+              Number(second.sameMood) -
+              Number(first.sameMood)
+            );
+          }
+
+          if (
+            first.sameMood &&
+            second.sameMood
+          ) {
+            const firstMoodTime =
               first.moodUpdatedAt
-            ).getTime()
-          : 0;
+                ? new Date(
+                  first.moodUpdatedAt
+                ).getTime()
+                : 0;
 
-      const secondMoodTime =
-        second.moodUpdatedAt
-          ? new Date(
+            const secondMoodTime =
               second.moodUpdatedAt
-            ).getTime()
-          : 0;
+                ? new Date(
+                  second.moodUpdatedAt
+                ).getTime()
+                : 0;
 
-      if (
-        secondMoodTime !==
-        firstMoodTime
-      ) {
-        return (
-          secondMoodTime -
-          firstMoodTime
-        );
-      }
-    }
+            if (
+              secondMoodTime !==
+              firstMoodTime
+            ) {
+              return (
+                secondMoodTime -
+                firstMoodTime
+              );
+            }
+          }
 
-    if (
-      second.mutualFollowersCount !==
-      first.mutualFollowersCount
-    ) {
-      return (
-        second.mutualFollowersCount -
-        first.mutualFollowersCount
+          if (
+            second.mutualFollowersCount !==
+            first.mutualFollowersCount
+          ) {
+            return (
+              second.mutualFollowersCount -
+              first.mutualFollowersCount
+            );
+          }
+
+          if (
+            second.isOnline !==
+            first.isOnline
+          ) {
+            return (
+              Number(second.isOnline) -
+              Number(first.isOnline)
+            );
+          }
+
+          return first.name.localeCompare(
+            second.name
+          );
+        }
       );
-    }
-
-    if (
-      second.isOnline !==
-      first.isOnline
-    ) {
-      return (
-        Number(second.isOnline) -
-        Number(first.isOnline)
-      );
-    }
-
-    return first.name.localeCompare(
-      second.name
-    );
-  }
-);
 
       const totalPages =
         Math.ceil(
