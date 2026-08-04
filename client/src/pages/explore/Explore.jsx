@@ -191,6 +191,15 @@ const getPaginationFromResponse = (
   response?.pagination ||
   {};
 
+const getSameMoodTotal = (
+  response
+) =>
+  Number(
+    response?.data?.sameMoodTotal ??
+    response?.sameMoodTotal ??
+    0
+  );
+
 const getFollowResult = (
   response
 ) =>
@@ -238,6 +247,11 @@ const Explore = () => {
     hasMore,
     setHasMore,
   ] = useState(false);
+
+  const [
+    sameMoodTotal,
+    setSameMoodTotal,
+  ] = useState(0);
 
   const [
     loading,
@@ -473,6 +487,15 @@ const Explore = () => {
             getPaginationFromResponse(
               response
             );
+
+          const moodMatchTotal =
+            getSameMoodTotal(
+              response
+            );
+
+          setSameMoodTotal(
+            moodMatchTotal
+          );
 
           setUsers((previous) => {
             if (!append) {
@@ -974,36 +997,8 @@ const Explore = () => {
     [selectedMood]
   );
 
-  const displayedUsers = useMemo(() => {
-    if (!activeMood) {
-      return users;
-    }
+  const displayedUsers = users;
 
-    const getMoodScore = (user) => {
-      const searchableText = [
-        user?.name,
-        user?.username,
-        user?.bio,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return activeMood.keywords.reduce(
-        (score, keyword) =>
-          searchableText.includes(keyword)
-            ? score + 1
-            : score,
-        0
-      );
-    };
-
-    return [...users].sort(
-      (firstUser, secondUser) =>
-        getMoodScore(secondUser) -
-        getMoodScore(firstUser)
-    );
-  }, [users, activeMood]);
 
   const handleMoodSelect = async (
     moodId
@@ -1055,6 +1050,11 @@ const Explore = () => {
       } catch {
         // Local storage backup is optional.
       }
+
+      await loadExploreUsers({
+        targetPage: 1,
+        append: false,
+      });
 
       setActionMessage({
         type: "success",
@@ -1254,9 +1254,12 @@ const Explore = () => {
                 </strong>
 
                 <p>
-                  {
-                    activeMood.description
-                  }
+                  {sameMoodTotal > 0
+                    ? `${sameMoodTotal} ${sameMoodTotal === 1
+                      ? "person matches"
+                      : "people match"
+                    } your current vibe.`
+                    : "No same-vibe people yet."}
                 </p>
               </div>
             </div>

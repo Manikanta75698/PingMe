@@ -557,6 +557,23 @@ const getExploreUsers =
           total / limit
         );
 
+      const sameMoodTotal =
+        currentMoodIsActive
+          ? await User.countDocuments({
+            ...query,
+
+            currentMood:
+              currentUser.currentMood,
+
+            moodUpdatedAt: {
+              $gte: new Date(
+                Date.now() -
+                MOOD_ACTIVE_DURATION
+              ),
+            },
+          })
+          : 0;
+
       return res.status(200).json({
         success: true,
 
