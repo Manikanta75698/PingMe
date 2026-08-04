@@ -372,6 +372,28 @@ socket.on(
   }
 );
 
+
+/* =========================
+   MOOD MATCH EVENTS
+========================= */
+
+socket.on(
+  "userMoodUpdated",
+  (payload) => {
+    if (isDevelopment) {
+      console.log(
+        "USER MOOD UPDATED:",
+        payload
+      );
+    }
+
+    dispatchAppEvent(
+      "user-mood:updated",
+      payload
+    );
+  }
+);
+
 /* =========================
    RECONNECTION EVENTS
 ========================= */

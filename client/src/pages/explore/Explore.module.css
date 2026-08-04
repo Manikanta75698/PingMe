@@ -426,6 +426,34 @@
   color: var(--text-primary);
 }
 
+
+.resultsHeader {
+  margin: 0 2px 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resultsHeader h2 {
+  margin: 0;
+
+  color: var(--text-primary);
+
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.resultsHeader p {
+  margin: 3px 0 0;
+
+  color: var(--text-secondary);
+
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 /* =========================
    PEOPLE GRID
 ========================= */
@@ -1166,6 +1194,14 @@
   }
 
   .nameRow h2 {
+    font-size: 15px;
+  }
+
+  .resultsHeader {
+    margin-bottom: 11px;
+  }
+
+  .resultsHeader h2 {
     font-size: 15px;
   }
 

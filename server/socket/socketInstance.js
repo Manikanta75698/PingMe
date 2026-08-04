@@ -1,11 +1,5 @@
 let ioInstance = null;
 
-/*
- * userId -> Set<socketId>
- *
- * Oka user multiple browser tabs/devices
- * nunchi connect avvachu.
- */
 const userSocketMap =
   new Map();
 
@@ -195,10 +189,6 @@ const removeSocketId = (
     };
   }
 
-  /*
-   * socketId search chesi
-   * exact socket matrame remove.
-   */
   for (const [
     userId,
     socketIds,

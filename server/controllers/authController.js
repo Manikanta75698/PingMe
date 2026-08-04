@@ -1780,6 +1780,26 @@ const updateCurrentMood = async (
       });
     }
 
+    try {
+      const io = getIO();
+
+      io.emit("userMoodUpdated", {
+        userId: String(req.user._id),
+
+        mood:
+          user.currentMood || "",
+
+        moodUpdatedAt:
+          user.moodUpdatedAt || null,
+      });
+    } catch (socketError) {
+      console.error(
+        "MOOD UPDATE SOCKET ERROR:",
+        socketError?.message ||
+        socketError
+      );
+    }
+
     return res.status(200).json({
       success: true,
 

@@ -575,6 +575,32 @@ const Explore = () => {
     });
   }, [loadExploreUsers]);
 
+
+  /* =========================
+   REAL-TIME MOOD UPDATES
+========================= */
+
+  useEffect(() => {
+    const handleMoodUpdate = () => {
+      loadExploreUsers({
+        targetPage: 1,
+        append: false,
+      });
+    };
+
+    window.addEventListener(
+      "user-mood:updated",
+      handleMoodUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        "user-mood:updated",
+        handleMoodUpdate
+      );
+    };
+  }, [loadExploreUsers]);
+
   /* =========================
      LOCAL USER UPDATE
   ========================= */
@@ -999,6 +1025,19 @@ const Explore = () => {
 
   const displayedUsers = users;
 
+  const loadedSameMoodCount = useMemo(
+    () =>
+      users.filter(
+        (user) => user?.sameMood
+      ).length,
+    [users]
+  );
+
+  const effectiveSameMoodTotal =
+    sameMoodTotal > 0
+      ? sameMoodTotal
+      : loadedSameMoodCount;
+
 
   const handleMoodSelect = async (
     moodId
@@ -1254,12 +1293,12 @@ const Explore = () => {
                 </strong>
 
                 <p>
-                  {sameMoodTotal > 0
-                    ? `${sameMoodTotal} ${sameMoodTotal === 1
+                  {effectiveSameMoodTotal > 0
+                    ? `${effectiveSameMoodTotal} ${effectiveSameMoodTotal === 1
                       ? "person matches"
                       : "people match"
                     } your current vibe.`
-                    : "No same-vibe people yet."}
+                    : "No other people share this vibe yet."}
                 </p>
               </div>
             </div>
@@ -1305,6 +1344,31 @@ const Explore = () => {
             </button>
           )}
         </div>
+
+        {!loading &&
+          !error &&
+          users.length > 0 && (
+            <div className={styles.resultsHeader}>
+              <div>
+                <h2>
+                  {activeMood &&
+                    effectiveSameMoodTotal > 0
+                    ? "People for your vibe"
+                    : "People you may know"}
+                </h2>
+
+                <p>
+                  {activeMood &&
+                    effectiveSameMoodTotal > 0
+                    ? `${effectiveSameMoodTotal} ${effectiveSameMoodTotal === 1
+                      ? "match"
+                      : "matches"
+                    } found`
+                    : "Discover and connect with new people"}
+                </p>
+              </div>
+            </div>
+          )}
 
         {loading ? (
           <div
