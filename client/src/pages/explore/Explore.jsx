@@ -581,7 +581,7 @@ const Explore = () => {
 ========================= */
 
   useEffect(() => {
-    const handleMoodUpdate = () => {
+    const handleMoodMatchUpdate = () => {
       loadExploreUsers({
         targetPage: 1,
         append: false,
@@ -590,13 +590,23 @@ const Explore = () => {
 
     window.addEventListener(
       "user-mood:updated",
-      handleMoodUpdate
+      handleMoodMatchUpdate
+    );
+
+    window.addEventListener(
+      "user-mood-privacy:updated",
+      handleMoodMatchUpdate
     );
 
     return () => {
       window.removeEventListener(
         "user-mood:updated",
-        handleMoodUpdate
+        handleMoodMatchUpdate
+      );
+
+      window.removeEventListener(
+        "user-mood-privacy:updated",
+        handleMoodMatchUpdate
       );
     };
   }, [loadExploreUsers]);

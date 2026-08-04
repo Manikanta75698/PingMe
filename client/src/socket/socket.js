@@ -394,6 +394,23 @@ socket.on(
   }
 );
 
+socket.on(
+  "userMoodPrivacyUpdated",
+  (payload) => {
+    if (isDevelopment) {
+      console.log(
+        "USER MOOD PRIVACY UPDATED:",
+        payload
+      );
+    }
+
+    dispatchAppEvent(
+      "user-mood-privacy:updated",
+      payload
+    );
+  }
+);
+
 /* =========================
    RECONNECTION EVENTS
 ========================= */

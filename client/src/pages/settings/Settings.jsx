@@ -62,6 +62,7 @@ const Settings = () => {
   const [privacySettings, setPrivacySettings] =
     useState({
       privateAccount: false,
+      showMoodInMatch: true,
       showOnlineStatus: true,
       showLastSeen: true,
       readReceipts: true,
@@ -109,6 +110,7 @@ const Settings = () => {
         setPrivacySettings(
           data?.privacySettings || {
             privateAccount: false,
+            showMoodInMatch: true,
             showOnlineStatus: true,
             showLastSeen: true,
             readReceipts: true,
@@ -453,6 +455,56 @@ const Settings = () => {
                       }
                     >
                       <strong>
+                        Show mood in Mood Match
+                      </strong>
+
+                      <span>
+                        Allow people with the same mood
+                        to discover you
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={
+                        privacySettings.showMoodInMatch
+                      }
+                      aria-label="Show mood in Mood Match"
+                      className={`${styles.switch} ${privacySettings.showMoodInMatch
+                        ? styles.switchActive
+                        : ""
+                        }`}
+                      onClick={() =>
+                        handlePrivacyToggle(
+                          "showMoodInMatch"
+                        )
+                      }
+                      disabled={
+                        Boolean(
+                          privacyUpdating
+                        )
+                      }
+                    >
+                      <span
+                        className={
+                          styles.switchThumb
+                        }
+                      />
+                    </button>
+                  </div>
+
+                  <div
+                    className={
+                      styles.privacyOption
+                    }
+                  >
+                    <div
+                      className={
+                        styles.privacyText
+                      }
+                    >
+                      <strong>
                         Online status
                       </strong>
 
@@ -672,8 +724,8 @@ const Settings = () => {
                                     isSelected
                                   }
                                   className={`${styles.permissionMenuItem} ${isSelected
-                                      ? styles.permissionMenuItemActive
-                                      : ""
+                                    ? styles.permissionMenuItemActive
+                                    : ""
                                     }`}
                                   onClick={() =>
                                     handleMessagePermissionChange(

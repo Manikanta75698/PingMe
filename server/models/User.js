@@ -202,6 +202,10 @@ const userSchema = new mongoose.Schema(
         default: false,
       },
 
+      showMoodInMatch: {
+        type: Boolean,
+        default: true,
+      },
       showOnlineStatus: {
         type: Boolean,
         default: true,

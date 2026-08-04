@@ -79,6 +79,7 @@ const getUsers = async (req, res) => {
             "followers",
             "following",
             "privacySettings.privateAccount",
+            "privacySettings.showMoodInMatch",
             "isOnline",
             "lastSeen",
           ].join(" ")
@@ -117,6 +118,11 @@ const getUsers = async (req, res) => {
             user.privacySettings
               ?.privateAccount
           ),
+
+        showMoodInMatch:
+          user
+            ?.privacySettings
+            ?.showMoodInMatch !== false,
 
         followersCount:
           Array.isArray(
@@ -200,6 +206,7 @@ const getExploreUsers =
               "blockedUsers",
               "currentMood",
               "moodUpdatedAt",
+              "privacySettings.showMoodInMatch",
             ].join(" ")
           )
           .lean();
@@ -274,6 +281,7 @@ const getExploreUsers =
               "followers",
               "following",
               "privacySettings.privateAccount",
+              "privacySettings.showMoodInMatch",
               "isOnline",
               "lastSeen",
               "currentMood",
@@ -338,6 +346,9 @@ const getExploreUsers =
 
       const currentMoodIsActive =
         Boolean(
+          currentUser
+            ?.privacySettings
+            ?.showMoodInMatch !== false &&
           currentUser.currentMood &&
           currentUser.moodUpdatedAt &&
           Date.now() -
@@ -470,6 +481,9 @@ const getExploreUsers =
             sameMood:
               Boolean(
                 currentMoodIsActive &&
+                user
+                  ?.privacySettings
+                  ?.showMoodInMatch !== false &&
                 user.currentMood ===
                 currentUser.currentMood &&
                 user.moodUpdatedAt &&
@@ -571,6 +585,10 @@ const getExploreUsers =
                 MOOD_ACTIVE_DURATION
               ),
             },
+
+            "privacySettings.showMoodInMatch": {
+              $ne: false,
+            },
           })
           : 0;
 
@@ -579,6 +597,8 @@ const getExploreUsers =
 
         count:
           exploreUsers.length,
+
+        sameMoodTotal,
 
         users:
           exploreUsers,

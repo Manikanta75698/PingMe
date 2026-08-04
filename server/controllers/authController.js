@@ -1328,6 +1328,7 @@ const googleLogin = async (req, res) => {
 
 const DEFAULT_PRIVACY_SETTINGS = {
   privateAccount: false,
+  showMoodInMatch: true,
   showOnlineStatus: true,
   showLastSeen: true,
   readReceipts: true,
@@ -1342,6 +1343,12 @@ const normalizePrivacySettings = (
       "boolean"
       ? privacySettings.privateAccount
       : DEFAULT_PRIVACY_SETTINGS.privateAccount,
+
+  showMoodInMatch:
+    typeof privacySettings.showMoodInMatch ===
+      "boolean"
+      ? privacySettings.showMoodInMatch
+      : DEFAULT_PRIVACY_SETTINGS.showMoodInMatch,
 
   showOnlineStatus:
     typeof privacySettings.showOnlineStatus ===
@@ -1425,6 +1432,7 @@ const updatePrivacySettings = async (
   try {
     const allowedBooleanFields = [
       "privateAccount",
+      "showMoodInMatch",
       "showOnlineStatus",
       "showLastSeen",
       "readReceipts",
@@ -1532,6 +1540,12 @@ const updatePrivacySettings = async (
           "privacySettings.showLastSeen"
         );
 
+      const moodPrivacyWasUpdated =
+        Object.prototype.hasOwnProperty.call(
+          updates,
+          "privacySettings.showMoodInMatch"
+        );
+
       if (
         onlineStatusWasUpdated &&
         privacySettings.showOnlineStatus ===
@@ -1570,6 +1584,20 @@ const updatePrivacySettings = async (
         );
       }
 
+      if (moodPrivacyWasUpdated) {
+        io.emit(
+          "userMoodPrivacyUpdated",
+          {
+            userId:
+              normalizeUserId(
+                req.user._id
+              ),
+
+            showMoodInMatch:
+              privacySettings.showMoodInMatch,
+          }
+        );
+      }
     } catch (socketError) {
       console.error(
         "PRIVACY PRESENCE SOCKET ERROR:",
@@ -1731,10 +1759,6 @@ const updateCurrentMood = async (
           .toLowerCase()
         : "";
 
-    /*
-     * Empty mood is allowed.
-     * It clears the currently selected mood.
-     */
     if (
       requestedMood &&
       !ALLOWED_MOODS.includes(
@@ -1769,7 +1793,11 @@ const updateCurrentMood = async (
         }
       )
         .select(
-          "currentMood moodUpdatedAt"
+          [
+            "currentMood",
+            "moodUpdatedAt",
+            "privacySettings.showMoodInMatch",
+          ].join(" ")
         )
         .lean();
 
@@ -1783,15 +1811,30 @@ const updateCurrentMood = async (
     try {
       const io = getIO();
 
-      io.emit("userMoodUpdated", {
-        userId: String(req.user._id),
+      const showMoodInMatch =
+        user
+          ?.privacySettings
+          ?.showMoodInMatch !== false;
 
-        mood:
-          user.currentMood || "",
+      io.emit(
+        "userMoodUpdated",
+        {
+          userId:
+            String(req.user._id),
 
-        moodUpdatedAt:
-          user.moodUpdatedAt || null,
-      });
+          mood:
+            showMoodInMatch
+              ? user.currentMood || ""
+              : "",
+
+          moodUpdatedAt:
+            showMoodInMatch
+              ? user.moodUpdatedAt || null
+              : null,
+
+          showMoodInMatch,
+        }
+      );
     } catch (socketError) {
       console.error(
         "MOOD UPDATE SOCKET ERROR:",
