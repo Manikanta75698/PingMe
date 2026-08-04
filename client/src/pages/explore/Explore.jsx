@@ -317,13 +317,35 @@ const Explore = () => {
               .toLowerCase()
             : "";
 
-        setSelectedMood(savedMood);
+        const moodUpdatedAt =
+          response?.moodUpdatedAt
+            ? new Date(
+              response.moodUpdatedAt
+            ).getTime()
+            : 0;
+
+        const moodIsActive =
+          Boolean(
+            savedMood &&
+            moodUpdatedAt &&
+            Date.now() - moodUpdatedAt <
+            24 * 60 * 60 * 1000
+          );
+
+        const activeSavedMood =
+          moodIsActive
+            ? savedMood
+            : "";
+
+        setSelectedMood(
+          activeSavedMood
+        );
 
         try {
-          if (savedMood) {
+          if (activeSavedMood) {
             window.localStorage.setItem(
               MOOD_STORAGE_KEY,
-              savedMood
+              activeSavedMood
             );
           } else {
             window.localStorage.removeItem(
@@ -339,8 +361,6 @@ const Explore = () => {
           loadMoodError?.response?.data ||
           loadMoodError?.message
         );
-
-
       } finally {
         if (isMounted) {
           setMoodLoading(false);
