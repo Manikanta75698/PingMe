@@ -18,7 +18,9 @@ import {
   useAuth,
 } from "../../context/AuthContext";
 
-import api from "../../services/api";
+import {
+  googleLogin,
+} from "../../services/authService";
 
 import styles from "./GoogleLoginButton.module.css";
 
@@ -72,6 +74,7 @@ const GoogleButtonCore = memo(
         logo_alignment="left"
         width={String(width)}
         useOneTap={false}
+        use_fedcm_for_button={true}
         cancel_on_tap_outside
       />
     );
@@ -149,22 +152,8 @@ const GoogleLoginButton = ({
       setErrorMessage("");
 
       try {
-        const apiResponse =
-          await api.post(
-            "/auth/google",
-            {
-              credential:
-                String(
-                  credential
-                ).trim(),
-            },
-            {
-              timeout: 90000,
-            }
-          );
-
         const response =
-          apiResponse?.data;
+          await googleLogin(credential);
 
         const token =
           response?.token;
