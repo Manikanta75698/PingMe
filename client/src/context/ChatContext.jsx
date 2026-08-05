@@ -187,9 +187,6 @@ export const ChatProvider = ({
   const selectedChatRef =
     useRef(null);
 
-  const messagesRef =
-    useRef([]);
-
   const readReceiptIdsRef =
     useRef(new Set());
 
@@ -197,13 +194,29 @@ export const ChatProvider = ({
     normalizeId(selectedChat);
 
   /* =========================
-     SELECTED CHAT RESET
+     SELECTED CHAT REFERENCE
   ========================= */
 
+  /*
+   * Keep the latest selected-chat object available to
+   * socket callbacks without resetting composer state.
+   */
   useEffect(() => {
     selectedChatRef.current =
       selectedChat;
+  }, [selectedChat]);
 
+  /* =========================
+     SELECTED CHAT RESET
+  ========================= */
+
+  /*
+   * Reset reply/edit/search state only when the actual
+   * conversation user changes. Presence or profile updates
+   * may replace the selectedChat object while its ID remains
+   * the same, and must not cancel an active edit.
+   */
+  useEffect(() => {
     readReceiptIdsRef.current.clear();
 
     setReplyingTo(null);
@@ -215,9 +228,7 @@ export const ChatProvider = ({
     setMessageSearchMatches([]);
     setActiveSearchMatchIndex(0);
 
-    setMessageScrollRequest(
-      null
-    );
+    setMessageScrollRequest(null);
 
     typingUserRef.current = "";
 
@@ -228,7 +239,7 @@ export const ChatProvider = ({
 
       typingTimerRef.current = null;
     }
-  }, [selectedChat]);
+  }, [selectedChatId]);
 
 
   /* =========================
@@ -1824,7 +1835,8 @@ export const ChatProvider = ({
     ) => {
       const messageId =
         normalizeId(
-          payload?.messageId
+          payload?.messageId ||
+          payload?.message?._id
         );
 
       const reactions =
@@ -1832,53 +1844,124 @@ export const ChatProvider = ({
           payload?.reactions
         )
           ? payload.reactions
-          : [];
+          : Array.isArray(
+            payload?.message?.reactions
+          )
+            ? payload.message.reactions
+            : [];
 
       if (!messageId) {
         return;
       }
 
-      console.log(
-        "MESSAGE REACTION UPDATED:",
-        messageId,
-        reactions
-      );
+      setMessages((previous) => {
+        const safeMessages =
+          Array.isArray(previous)
+            ? previous
+            : [];
 
-      setMessages((previous) =>
-        previous.map((message) => {
-          if (
+        return safeMessages.map(
+          (message) =>
             normalizeId(
               message?._id
+            ) === messageId
+              ? {
+                ...message,
+                reactions,
+              }
+              : message
+        );
+      });
+
+      setChatSummaries(
+        (previous) => {
+          const safeSummaries =
+            Array.isArray(previous)
+              ? previous
+              : [];
+
+          return safeSummaries.map(
+            (summary) => {
+              const lastMessageId =
+                normalizeId(
+                  summary
+                    ?.lastMessage
+                    ?._id
+                );
+
+              if (
+                lastMessageId !==
+                messageId
+              ) {
+                return summary;
+              }
+
+              return {
+                ...summary,
+
+                lastMessage: {
+                  ...summary.lastMessage,
+                  reactions,
+                },
+              };
+            }
+          );
+        }
+      );
+
+      setPinnedMessage(
+        (previous) => {
+          if (
+            normalizeId(
+              previous?._id
             ) !== messageId
           ) {
-            return message;
+            return previous;
           }
 
           return {
-            ...message,
+            ...previous,
             reactions,
           };
-        })
+        }
+      );
+
+      /*
+       * Preserve reply and edit modes. A reaction update must
+       * refresh only reaction data, not cancel the composer.
+       */
+      setReplyingTo(
+        (previous) => {
+          if (
+            normalizeId(
+              previous?._id
+            ) !== messageId
+          ) {
+            return previous;
+          }
+
+          return {
+            ...previous,
+            reactions,
+          };
+        }
       );
 
       setEditingMessage(
-        (previous) =>
-          normalizeId(
-            previous?._id
-          ) ===
-            normalizeId(messageId)
-            ? null
-            : previous
-      );
+        (previous) => {
+          if (
+            normalizeId(
+              previous?._id
+            ) !== messageId
+          ) {
+            return previous;
+          }
 
-      setReplyingTo(
-        (previous) =>
-          normalizeId(
-            previous?._id
-          ) ===
-            normalizeId(messageId)
-            ? null
-            : previous
+          return {
+            ...previous,
+            reactions,
+          };
+        }
       );
     };
 

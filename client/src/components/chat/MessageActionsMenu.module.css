@@ -106,7 +106,7 @@
 .desktopMenu {
   position: fixed;
 
-  width: 248px;
+  width: 220px;
   max-width:
     calc(100vw - 16px);
 

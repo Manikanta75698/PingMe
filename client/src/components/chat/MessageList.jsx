@@ -740,6 +740,27 @@ const MessageList = ({
 
 
   /* =========================
+   START REPLYING TO MESSAGE
+========================= */
+
+  const handleReplyMessage =
+    useCallback(
+      (message) => {
+        if (!message?._id) {
+          return;
+        }
+
+        setEditingMessage(null);
+        setReplyingTo(message);
+      },
+      [
+        setEditingMessage,
+        setReplyingTo,
+      ]
+    );
+
+
+  /* =========================
  FORWARD MESSAGE
 ========================= */
 
@@ -1082,13 +1103,9 @@ const MessageList = ({
                     senderId ===
                     currentUserId
                   }
-                  onReply={(replyMessage) => {
-                    setEditingMessage(null);
-
-                    setReplyingTo(
-                      replyMessage
-                    );
-                  }}
+                  onReply={
+                    handleReplyMessage
+                  }
                   onEdit={
                     handleEditMessage
                   }

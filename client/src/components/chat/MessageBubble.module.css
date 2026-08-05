@@ -365,7 +365,8 @@
 
   cursor: pointer;
 
-  opacity: 0.68;
+  opacity: 0;
+  pointer-events: none;
 
   touch-action: manipulation;
 
@@ -408,6 +409,21 @@
     2px solid currentColor;
 
   outline-offset: 1px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+  .messageGroup:hover .moreButton,
+  .messageGroup:focus-within .moreButton,
+  .moreButton[data-open="true"] {
+    opacity: 0.78;
+    pointer-events: auto;
+  }
+
+  .moreButton:hover,
+  .moreButton[data-open="true"] {
+    opacity: 1;
+  }
 }
 
 /* =========================
@@ -679,40 +695,42 @@
   .moreButton {
     width: 27px;
     height: 27px;
+    opacity: 0.72;
+    pointer-events: auto;
   }
 
-  .reactionSummary {
-    gap: 4px;
-    margin-top: 3px;
-  }
+.reactionSummary {
+  gap: 4px;
+  margin-top: 3px;
+}
 
-  .ownReactions {
-    margin-right: 2px;
-  }
+.ownReactions {
+  margin-right: 2px;
+}
 
-  .otherReactions {
-    margin-left: 2px;
-  }
+.otherReactions {
+  margin-left: 2px;
+}
 
-  .reactionChip {
-    min-width: 36px;
-    height: 26px;
+.reactionChip {
+  min-width: 36px;
+  height: 26px;
 
-    padding-inline: 7px;
-  }
+  padding-inline: 7px;
+}
 
-  .reactionEmoji {
-    font-size: 14px;
-  }
+.reactionEmoji {
+  font-size: 14px;
+}
 
-  .reactionCount {
-    font-size: 10px;
-  }
+.reactionCount {
+  font-size: 10px;
+}
 
-  .reactionError {
-    max-width:
-      calc(100vw - 80px);
-  }
+.reactionError {
+  max-width:
+    calc(100vw - 80px);
+}
 }
 
 /* =========================
