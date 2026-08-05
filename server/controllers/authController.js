@@ -1328,7 +1328,6 @@ const googleLogin = async (req, res) => {
 
 const DEFAULT_PRIVACY_SETTINGS = {
   privateAccount: false,
-  showMoodInMatch: true,
   showOnlineStatus: true,
   showLastSeen: true,
   readReceipts: true,
@@ -1344,11 +1343,7 @@ const normalizePrivacySettings = (
       ? privacySettings.privateAccount
       : DEFAULT_PRIVACY_SETTINGS.privateAccount,
 
-  showMoodInMatch:
-    typeof privacySettings.showMoodInMatch ===
-      "boolean"
-      ? privacySettings.showMoodInMatch
-      : DEFAULT_PRIVACY_SETTINGS.showMoodInMatch,
+
 
   showOnlineStatus:
     typeof privacySettings.showOnlineStatus ===
@@ -1432,12 +1427,10 @@ const updatePrivacySettings = async (
   try {
     const allowedBooleanFields = [
       "privateAccount",
-      "showMoodInMatch",
       "showOnlineStatus",
       "showLastSeen",
       "readReceipts",
     ];
-
     const allowedMessagePermissions = [
       "everyone",
       "followers",
@@ -1540,11 +1533,6 @@ const updatePrivacySettings = async (
           "privacySettings.showLastSeen"
         );
 
-      const moodPrivacyWasUpdated =
-        Object.prototype.hasOwnProperty.call(
-          updates,
-          "privacySettings.showMoodInMatch"
-        );
 
       if (
         onlineStatusWasUpdated &&
@@ -1584,20 +1572,6 @@ const updatePrivacySettings = async (
         );
       }
 
-      if (moodPrivacyWasUpdated) {
-        io.emit(
-          "userMoodPrivacyUpdated",
-          {
-            userId:
-              normalizeUserId(
-                req.user._id
-              ),
-
-            showMoodInMatch:
-              privacySettings.showMoodInMatch,
-          }
-        );
-      }
     } catch (socketError) {
       console.error(
         "PRIVACY PRESENCE SOCKET ERROR:",
@@ -1680,201 +1654,6 @@ const getProfile = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
-    });
-  }
-};
-
-/* =========================
-   MOOD MATCH
-========================= */
-
-const ALLOWED_MOODS = [
-  "happy",
-  "chill",
-  "bored",
-  "focused",
-  "low",
-  "excited",
-];
-
-/* =========================
-   GET CURRENT MOOD
-========================= */
-
-const getCurrentMood = async (
-  req,
-  res
-) => {
-  try {
-    const user = await User.findById(
-      req.user._id
-    )
-      .select(
-        "currentMood moodUpdatedAt"
-      )
-      .lean();
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-
-      mood: user.currentMood || "",
-
-      moodUpdatedAt:
-        user.moodUpdatedAt || null,
-    });
-  } catch (error) {
-    console.error(
-      "Get Current Mood Error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      message:
-        "Unable to load your mood",
-    });
-  }
-};
-
-/* =========================
-   UPDATE CURRENT MOOD
-========================= */
-
-const updateCurrentMood = async (
-  req,
-  res
-) => {
-  try {
-    const requestedMood =
-      typeof req.body?.mood === "string"
-        ? req.body.mood
-          .trim()
-          .toLowerCase()
-        : "";
-
-    if (
-      requestedMood &&
-      !ALLOWED_MOODS.includes(
-        requestedMood
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        field: "mood",
-        message: "Invalid mood selected",
-      });
-    }
-
-    const moodUpdatedAt = requestedMood
-      ? new Date()
-      : null;
-
-    const user =
-      await User.findByIdAndUpdate(
-        req.user._id,
-        {
-          $set: {
-            currentMood:
-              requestedMood,
-
-            moodUpdatedAt,
-          },
-        },
-        {
-          new: true,
-          runValidators: true,
-        }
-      )
-        .select(
-          [
-            "currentMood",
-            "moodUpdatedAt",
-            "privacySettings.showMoodInMatch",
-          ].join(" ")
-        )
-        .lean();
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    try {
-      const io = getIO();
-
-      const showMoodInMatch =
-        user
-          ?.privacySettings
-          ?.showMoodInMatch !== false;
-
-      io.emit(
-        "userMoodUpdated",
-        {
-          userId:
-            String(req.user._id),
-
-          mood:
-            showMoodInMatch
-              ? user.currentMood || ""
-              : "",
-
-          moodUpdatedAt:
-            showMoodInMatch
-              ? user.moodUpdatedAt || null
-              : null,
-
-          showMoodInMatch,
-        }
-      );
-    } catch (socketError) {
-      console.error(
-        "MOOD UPDATE SOCKET ERROR:",
-        socketError?.message ||
-        socketError
-      );
-    }
-
-    return res.status(200).json({
-      success: true,
-
-      message: requestedMood
-        ? "Mood updated successfully"
-        : "Mood cleared successfully",
-
-      mood: user.currentMood || "",
-
-      moodUpdatedAt:
-        user.moodUpdatedAt || null,
-    });
-  } catch (error) {
-    console.error(
-      "Update Current Mood Error:",
-      error
-    );
-
-    if (
-      error?.name ===
-      "ValidationError"
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid mood selected",
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message:
-        "Unable to update your mood",
     });
   }
 };
@@ -6441,9 +6220,6 @@ module.exports = {
   googleLogin,
 
   getProfile,
-
-  getCurrentMood,
-  updateCurrentMood,
 
   getCurrentIntent,
   updateCurrentIntent,

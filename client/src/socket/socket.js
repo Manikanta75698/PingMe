@@ -373,45 +373,6 @@ socket.on(
 );
 
 
-/* =========================
-   MOOD MATCH EVENTS
-========================= */
-
-socket.on(
-  "userMoodUpdated",
-  (payload) => {
-    if (isDevelopment) {
-      console.log(
-        "USER MOOD UPDATED:",
-        payload
-      );
-    }
-
-    dispatchAppEvent(
-      "user-mood:updated",
-      payload
-    );
-  }
-);
-
-socket.on(
-  "userMoodPrivacyUpdated",
-  (payload) => {
-    if (isDevelopment) {
-      console.log(
-        "USER MOOD PRIVACY UPDATED:",
-        payload
-      );
-    }
-
-    dispatchAppEvent(
-      "user-mood-privacy:updated",
-      payload
-    );
-  }
-);
-
-
 
 /* =========================
    FIND SOMEONE NOW EVENTS
@@ -441,10 +402,7 @@ socket.on(
 socket.io.on(
   "reconnect_attempt",
   (attemptNumber) => {
-    /*
-     * Login/token refresh jarigina
-     * tarvatha latest token use chesthundi.
-     */
+
     refreshSocketAuth();
 
     if (isDevelopment) {

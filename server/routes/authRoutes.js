@@ -30,8 +30,6 @@ const {
   changePassword,
 
   getProfile,
-  getCurrentMood,
-  updateCurrentMood,
 
   getCurrentIntent,
   updateCurrentIntent,
@@ -162,23 +160,9 @@ router.put(
   uploadProfilePicture
 );
 
-
 /* =========================
-   MOOD MATCH
+   FIND SOMEONE NOW INTENT
 ========================= */
-
-router.get(
-  "/mood",
-  protect,
-  getCurrentMood
-);
-
-router.patch(
-  "/mood",
-  protect,
-  updateCurrentMood
-);
-
 
 router.get(
   "/intent",
@@ -323,7 +307,6 @@ router.delete(
 /* =========================
    PUBLIC USER PROFILE
 ========================= */
-
 
 router.get(
   "/user/:username",

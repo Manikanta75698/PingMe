@@ -62,27 +62,6 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
-    // Mood Match
-    currentMood: {
-      type: String,
-      enum: [
-        "",
-        "happy",
-        "chill",
-        "bored",
-        "focused",
-        "low",
-        "excited",
-      ],
-      default: "",
-    },
-
-    moodUpdatedAt: {
-      type: Date,
-      default: null,
-    },
-
-
     // Find Someone Now
     currentIntent: {
       type: String,
@@ -223,10 +202,6 @@ const userSchema = new mongoose.Schema(
         default: false,
       },
 
-      showMoodInMatch: {
-        type: Boolean,
-        default: true,
-      },
       showOnlineStatus: {
         type: Boolean,
         default: true,

@@ -58,8 +58,7 @@ export const loginUser = async (
 
   if (
     !response?.data ||
-    typeof response.data !==
-    "object"
+    typeof response.data !== "object"
   ) {
     throw new Error(
       "Invalid login response"
@@ -212,8 +211,7 @@ export const googleLogin = async (
 
   if (
     !response?.data ||
-    typeof response.data !==
-    "object"
+    typeof response.data !== "object"
   ) {
     throw new Error(
       "Invalid Google login response"
@@ -234,41 +232,9 @@ export const getProfile = async () => {
   return response.data;
 };
 
-
 // =========================
-// GET CURRENT MOOD
+// GET CURRENT INTENT
 // =========================
-export const getCurrentMood = async () => {
-  const response = await api.get(
-    "/auth/mood"
-  );
-
-  return response.data;
-};
-
-// =========================
-// UPDATE CURRENT MOOD
-// =========================
-export const updateCurrentMood = async (
-  mood
-) => {
-  const normalizedMood = String(
-    mood || ""
-  )
-    .trim()
-    .toLowerCase();
-
-  const response = await api.patch(
-    "/auth/mood",
-    {
-      mood: normalizedMood,
-    }
-  );
-
-  return response.data;
-};
-
-
 export const getCurrentIntent = async () => {
   const response = await api.get(
     "/auth/intent"
@@ -277,6 +243,9 @@ export const getCurrentIntent = async () => {
   return response.data;
 };
 
+// =========================
+// UPDATE CURRENT INTENT
+// =========================
 export const updateCurrentIntent = async (
   intent
 ) => {
@@ -324,7 +293,6 @@ export const uploadProfilePicture =
 
     return response.data;
   };
-
 
 // =========================
 // SEARCH USERS

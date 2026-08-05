@@ -79,7 +79,6 @@ const getUsers = async (req, res) => {
             "followers",
             "following",
             "privacySettings.privateAccount",
-            "privacySettings.showMoodInMatch",
             "isOnline",
             "lastSeen",
           ].join(" ")
@@ -119,10 +118,6 @@ const getUsers = async (req, res) => {
               ?.privateAccount
           ),
 
-        showMoodInMatch:
-          user
-            ?.privacySettings
-            ?.showMoodInMatch !== false,
 
         followersCount:
           Array.isArray(
@@ -204,11 +199,8 @@ const getExploreUsers =
               "followers",
               "following",
               "blockedUsers",
-              "currentMood",
               "currentIntent",
               "intentUpdatedAt",
-              "moodUpdatedAt",
-              "privacySettings.showMoodInMatch",
             ].join(" ")
           )
           .lean();
@@ -283,13 +275,10 @@ const getExploreUsers =
               "followers",
               "following",
               "privacySettings.privateAccount",
-              "privacySettings.showMoodInMatch",
               "isOnline",
               "lastSeen",
               "currentIntent",
               "intentUpdatedAt",
-              "currentMood",
-              "moodUpdatedAt",
               "createdAt",
             ].join(" ")
           )
@@ -348,10 +337,6 @@ const getExploreUsers =
       const INTENT_ACTIVE_DURATION =
         60 * 60 * 1000;
 
-      const MOOD_ACTIVE_DURATION =
-        24 * 60 * 60 * 1000;
-
-
       const currentIntentIsActive =
         Boolean(
           currentUser.currentIntent &&
@@ -361,20 +346,6 @@ const getExploreUsers =
             currentUser.intentUpdatedAt
           ).getTime() <
           INTENT_ACTIVE_DURATION
-        );
-
-      const currentMoodIsActive =
-        Boolean(
-          currentUser
-            ?.privacySettings
-            ?.showMoodInMatch !== false &&
-          currentUser.currentMood &&
-          currentUser.moodUpdatedAt &&
-          Date.now() -
-          new Date(
-            currentUser.moodUpdatedAt
-          ).getTime() <
-          MOOD_ACTIVE_DURATION
         );
 
       const exploreUsers =
@@ -510,28 +481,6 @@ const getExploreUsers =
                 INTENT_ACTIVE_DURATION
               ),
 
-            currentMood:
-              user.currentMood || "",
-
-            moodUpdatedAt:
-              user.moodUpdatedAt || null,
-
-            sameMood:
-              Boolean(
-                currentMoodIsActive &&
-                user
-                  ?.privacySettings
-                  ?.showMoodInMatch !== false &&
-                user.currentMood ===
-                currentUser.currentMood &&
-                user.moodUpdatedAt &&
-                Date.now() -
-                new Date(
-                  user.moodUpdatedAt
-                ).getTime() <
-                MOOD_ACTIVE_DURATION
-              ),
-
             followsYou,
           };
         });
@@ -574,45 +523,6 @@ const getExploreUsers =
               return (
                 secondIntentTime -
                 firstIntentTime
-              );
-            }
-          }
-
-          if (
-            second.sameMood !==
-            first.sameMood
-          ) {
-            return (
-              Number(second.sameMood) -
-              Number(first.sameMood)
-            );
-          }
-
-          if (
-            first.sameMood &&
-            second.sameMood
-          ) {
-            const firstMoodTime =
-              first.moodUpdatedAt
-                ? new Date(
-                  first.moodUpdatedAt
-                ).getTime()
-                : 0;
-
-            const secondMoodTime =
-              second.moodUpdatedAt
-                ? new Date(
-                  second.moodUpdatedAt
-                ).getTime()
-                : 0;
-
-            if (
-              secondMoodTime !==
-              firstMoodTime
-            ) {
-              return (
-                secondMoodTime -
-                firstMoodTime
               );
             }
           }
@@ -666,26 +576,6 @@ const getExploreUsers =
           })
           : 0;
 
-      const sameMoodTotal =
-        currentMoodIsActive
-          ? await User.countDocuments({
-            ...query,
-
-            currentMood:
-              currentUser.currentMood,
-
-            moodUpdatedAt: {
-              $gte: new Date(
-                Date.now() -
-                MOOD_ACTIVE_DURATION
-              ),
-            },
-
-            "privacySettings.showMoodInMatch": {
-              $ne: false,
-            },
-          })
-          : 0;
 
       return res.status(200).json({
         success: true,
@@ -693,7 +583,7 @@ const getExploreUsers =
         count:
           exploreUsers.length,
 
-        sameMoodTotal,
+
         sameIntentTotal,
 
         users:
