@@ -1879,6 +1879,213 @@ const updateCurrentMood = async (
   }
 };
 
+
+
+const INTENT_ACTIVE_DURATION =
+  60 * 60 * 1000;
+
+const ALLOWED_INTENTS = new Set([
+  "",
+  "chat",
+  "gaming",
+  "study",
+  "music",
+  "fun",
+  "advice",
+]);
+
+const getCurrentIntent = async (
+  req,
+  res
+) => {
+  try {
+    const user =
+      await User.findById(
+        req.user._id
+      )
+        .select(
+          [
+            "currentIntent",
+            "intentUpdatedAt",
+          ].join(" ")
+        )
+        .lean();
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const intentIsActive =
+      Boolean(
+        user.currentIntent &&
+        user.intentUpdatedAt &&
+        Date.now() -
+        new Date(
+          user.intentUpdatedAt
+        ).getTime() <
+        INTENT_ACTIVE_DURATION
+      );
+
+    return res.status(200).json({
+      success: true,
+
+      currentIntent:
+        intentIsActive
+          ? user.currentIntent
+          : "",
+
+      intentUpdatedAt:
+        intentIsActive
+          ? user.intentUpdatedAt
+          : null,
+
+      expiresAt:
+        intentIsActive
+          ? new Date(
+            new Date(
+              user.intentUpdatedAt
+            ).getTime() +
+            INTENT_ACTIVE_DURATION
+          )
+          : null,
+    });
+  } catch (error) {
+    console.error(
+      "GET CURRENT INTENT ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to load current intent",
+    });
+  }
+};
+
+const updateCurrentIntent = async (
+  req,
+  res
+) => {
+  try {
+    const requestedIntent = String(
+      req.body?.intent || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    if (
+      !ALLOWED_INTENTS.has(
+        requestedIntent
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid intent",
+      });
+    }
+
+    const intentUpdatedAt =
+      requestedIntent
+        ? new Date()
+        : null;
+
+    const user =
+      await User.findByIdAndUpdate(
+        req.user._id,
+        {
+          $set: {
+            currentIntent:
+              requestedIntent,
+
+            intentUpdatedAt,
+          },
+        },
+        {
+          new: true,
+          runValidators: true,
+        }
+      )
+        .select(
+          [
+            "currentIntent",
+            "intentUpdatedAt",
+          ].join(" ")
+        )
+        .lean();
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    try {
+      const io = getIO();
+
+      io.emit(
+        "userIntentUpdated",
+        {
+          userId:
+            String(req.user._id),
+
+          currentIntent:
+            user.currentIntent || "",
+
+          intentUpdatedAt:
+            user.intentUpdatedAt ||
+            null,
+        }
+      );
+    } catch (socketError) {
+      console.error(
+        "INTENT UPDATE SOCKET ERROR:",
+        socketError
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+
+      message:
+        requestedIntent
+          ? "Intent updated successfully"
+          : "Intent cleared successfully",
+
+      currentIntent:
+        user.currentIntent || "",
+
+      intentUpdatedAt:
+        user.intentUpdatedAt || null,
+
+      expiresAt:
+        user.intentUpdatedAt
+          ? new Date(
+            new Date(
+              user.intentUpdatedAt
+            ).getTime() +
+            INTENT_ACTIVE_DURATION
+          )
+          : null,
+    });
+  } catch (error) {
+    console.error(
+      "UPDATE CURRENT INTENT ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to update current intent",
+    });
+  }
+};
+
 /* =========================
    UPDATE PROFILE
 ========================= */
@@ -6237,6 +6444,9 @@ module.exports = {
 
   getCurrentMood,
   updateCurrentMood,
+
+  getCurrentIntent,
+  updateCurrentIntent,
 
   getPrivacySettings,
   updatePrivacySettings,

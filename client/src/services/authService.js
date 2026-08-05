@@ -268,6 +268,28 @@ export const updateCurrentMood = async (
   return response.data;
 };
 
+
+export const getCurrentIntent = async () => {
+  const response = await api.get(
+    "/auth/intent"
+  );
+
+  return response.data;
+};
+
+export const updateCurrentIntent = async (
+  intent
+) => {
+  const response = await api.patch(
+    "/auth/intent",
+    {
+      intent,
+    }
+  );
+
+  return response.data;
+};
+
 // =========================
 // UPDATE PROFILE
 // =========================

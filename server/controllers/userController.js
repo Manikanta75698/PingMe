@@ -205,6 +205,8 @@ const getExploreUsers =
               "following",
               "blockedUsers",
               "currentMood",
+              "currentIntent",
+              "intentUpdatedAt",
               "moodUpdatedAt",
               "privacySettings.showMoodInMatch",
             ].join(" ")
@@ -284,6 +286,8 @@ const getExploreUsers =
               "privacySettings.showMoodInMatch",
               "isOnline",
               "lastSeen",
+              "currentIntent",
+              "intentUpdatedAt",
               "currentMood",
               "moodUpdatedAt",
               "createdAt",
@@ -341,8 +345,23 @@ const getExploreUsers =
           )
         );
 
+      const INTENT_ACTIVE_DURATION =
+        60 * 60 * 1000;
+
       const MOOD_ACTIVE_DURATION =
         24 * 60 * 60 * 1000;
+
+
+      const currentIntentIsActive =
+        Boolean(
+          currentUser.currentIntent &&
+          currentUser.intentUpdatedAt &&
+          Date.now() -
+          new Date(
+            currentUser.intentUpdatedAt
+          ).getTime() <
+          INTENT_ACTIVE_DURATION
+        );
 
       const currentMoodIsActive =
         Boolean(
@@ -472,6 +491,25 @@ const getExploreUsers =
                 ? requestId
                 : null,
 
+            currentIntent:
+              user.currentIntent || "",
+
+            intentUpdatedAt:
+              user.intentUpdatedAt || null,
+
+            sameIntent:
+              Boolean(
+                currentIntentIsActive &&
+                user.currentIntent ===
+                currentUser.currentIntent &&
+                user.intentUpdatedAt &&
+                Date.now() -
+                new Date(
+                  user.intentUpdatedAt
+                ).getTime() <
+                INTENT_ACTIVE_DURATION
+              ),
+
             currentMood:
               user.currentMood || "",
 
@@ -500,6 +538,45 @@ const getExploreUsers =
 
       exploreUsers.sort(
         (first, second) => {
+
+          if (
+            second.sameIntent !==
+            first.sameIntent
+          ) {
+            return (
+              Number(second.sameIntent) -
+              Number(first.sameIntent)
+            );
+          }
+
+          if (
+            first.sameIntent &&
+            second.sameIntent
+          ) {
+            const firstIntentTime =
+              first.intentUpdatedAt
+                ? new Date(
+                  first.intentUpdatedAt
+                ).getTime()
+                : 0;
+
+            const secondIntentTime =
+              second.intentUpdatedAt
+                ? new Date(
+                  second.intentUpdatedAt
+                ).getTime()
+                : 0;
+
+            if (
+              secondIntentTime !==
+              firstIntentTime
+            ) {
+              return (
+                secondIntentTime -
+                firstIntentTime
+              );
+            }
+          }
 
           if (
             second.sameMood !==
@@ -571,6 +648,24 @@ const getExploreUsers =
           total / limit
         );
 
+
+      const sameIntentTotal =
+        currentIntentIsActive
+          ? await User.countDocuments({
+            ...query,
+
+            currentIntent:
+              currentUser.currentIntent,
+
+            intentUpdatedAt: {
+              $gte: new Date(
+                Date.now() -
+                INTENT_ACTIVE_DURATION
+              ),
+            },
+          })
+          : 0;
+
       const sameMoodTotal =
         currentMoodIsActive
           ? await User.countDocuments({
@@ -599,6 +694,7 @@ const getExploreUsers =
           exploreUsers.length,
 
         sameMoodTotal,
+        sameIntentTotal,
 
         users:
           exploreUsers,

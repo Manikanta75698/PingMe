@@ -30,8 +30,10 @@ import {
 import {
   cancelFollowRequest,
   followUser,
+  getCurrentIntent,
   getCurrentMood,
   unfollowUser,
+  updateCurrentIntent,
   updateCurrentMood,
 } from "../../services/authService";
 
@@ -41,6 +43,63 @@ const PAGE_LIMIT = 12;
 
 const MOOD_STORAGE_KEY =
   "pingme-selected-mood";
+
+const INTENT_STORAGE_KEY =
+  "pingme-selected-intent";
+
+const INTENT_ACTIVE_DURATION =
+  60 * 60 * 1000;
+
+const INTENTS = [
+  {
+    id: "chat",
+    emoji: "💬",
+    label: "Chat",
+    title: "People ready to chat",
+    description:
+      "Meet people who are available for a conversation right now.",
+  },
+  {
+    id: "gaming",
+    emoji: "🎮",
+    label: "Gaming",
+    title: "Find a gaming buddy",
+    description:
+      "Connect with people who want to play and talk about games.",
+  },
+  {
+    id: "study",
+    emoji: "📚",
+    label: "Study",
+    title: "Study together",
+    description:
+      "Find learners who want company, motivation, or help.",
+  },
+  {
+    id: "music",
+    emoji: "🎵",
+    label: "Music",
+    title: "Share music",
+    description:
+      "Meet people who want to exchange songs and music recommendations.",
+  },
+  {
+    id: "fun",
+    emoji: "😂",
+    label: "Fun",
+    title: "Have some fun",
+    description:
+      "Find people interested in memes, jokes, and casual conversations.",
+  },
+  {
+    id: "advice",
+    emoji: "🧠",
+    label: "Advice",
+    title: "Talk and get advice",
+    description:
+      "Connect with people who are ready to listen and share ideas.",
+  },
+];
 
 const MOODS = [
   {
@@ -200,6 +259,15 @@ const getSameMoodTotal = (
     0
   );
 
+const getSameIntentTotal = (
+  response
+) =>
+  Number(
+    response?.data?.sameIntentTotal ??
+    response?.sameIntentTotal ??
+    0
+  );
+
 const getFollowResult = (
   response
 ) =>
@@ -249,6 +317,11 @@ const Explore = () => {
   ] = useState(false);
 
   const [
+    sameIntentTotal,
+    setSameIntentTotal,
+  ] = useState(0);
+
+  const [
     sameMoodTotal,
     setSameMoodTotal,
   ] = useState(0);
@@ -278,6 +351,32 @@ const Explore = () => {
     setActionMessage,
   ] = useState(null);
 
+
+  const [
+    selectedIntent,
+    setSelectedIntent,
+  ] = useState(() => {
+    try {
+      return (
+        window.localStorage.getItem(
+          INTENT_STORAGE_KEY
+        ) || ""
+      );
+    } catch {
+      return "";
+    }
+  });
+
+  const [
+    intentLoading,
+    setIntentLoading,
+  ] = useState(true);
+
+  const [
+    intentSaving,
+    setIntentSaving,
+  ] = useState(false);
+
   const [
     selectedMood,
     setSelectedMood,
@@ -304,6 +403,91 @@ const Explore = () => {
     setMoodSaving,
   ] = useState(false);
 
+
+  /* =========================
+     LOAD SAVED INTENT
+  ========================= */
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSavedIntent = async () => {
+      try {
+        setIntentLoading(true);
+
+        const response =
+          await getCurrentIntent();
+
+        if (!isMounted) {
+          return;
+        }
+
+        const savedIntent =
+          typeof response?.currentIntent ===
+            "string"
+            ? response.currentIntent
+              .trim()
+              .toLowerCase()
+            : "";
+
+        const intentUpdatedAt =
+          response?.intentUpdatedAt
+            ? new Date(
+              response.intentUpdatedAt
+            ).getTime()
+            : 0;
+
+        const intentIsActive =
+          Boolean(
+            savedIntent &&
+            intentUpdatedAt &&
+            Date.now() -
+            intentUpdatedAt <
+            INTENT_ACTIVE_DURATION
+          );
+
+        const activeSavedIntent =
+          intentIsActive
+            ? savedIntent
+            : "";
+
+        setSelectedIntent(
+          activeSavedIntent
+        );
+
+        try {
+          if (activeSavedIntent) {
+            window.localStorage.setItem(
+              INTENT_STORAGE_KEY,
+              activeSavedIntent
+            );
+          } else {
+            window.localStorage.removeItem(
+              INTENT_STORAGE_KEY
+            );
+          }
+        } catch {
+          // Local storage backup is optional.
+        }
+      } catch (loadIntentError) {
+        console.error(
+          "LOAD INTENT ERROR:",
+          loadIntentError?.response?.data ||
+          loadIntentError?.message
+        );
+      } finally {
+        if (isMounted) {
+          setIntentLoading(false);
+        }
+      }
+    };
+
+    loadSavedIntent();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
 
   /* =========================
@@ -488,10 +672,19 @@ const Explore = () => {
               response
             );
 
+          const intentMatchTotal =
+            getSameIntentTotal(
+              response
+            );
+
           const moodMatchTotal =
             getSameMoodTotal(
               response
             );
+
+          setSameIntentTotal(
+            intentMatchTotal
+          );
 
           setSameMoodTotal(
             moodMatchTotal
@@ -573,6 +766,32 @@ const Explore = () => {
       targetPage: 1,
       append: false,
     });
+  }, [loadExploreUsers]);
+
+
+  /* =========================
+   REAL-TIME INTENT UPDATES
+========================= */
+
+  useEffect(() => {
+    const handleIntentUpdate = () => {
+      loadExploreUsers({
+        targetPage: 1,
+        append: false,
+      });
+    };
+
+    window.addEventListener(
+      "user-intent:updated",
+      handleIntentUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        "user-intent:updated",
+        handleIntentUpdate
+      );
+    };
   }, [loadExploreUsers]);
 
 
@@ -1021,6 +1240,34 @@ const Explore = () => {
 
 
   /* =========================
+   FIND SOMEONE NOW
+========================= */
+
+  const activeIntent = useMemo(
+    () =>
+      INTENTS.find(
+        (intent) =>
+          intent.id === selectedIntent
+      ) || null,
+    [selectedIntent]
+  );
+
+  const loadedSameIntentCount =
+    useMemo(
+      () =>
+        users.filter(
+          (user) => user?.sameIntent
+        ).length,
+      [users]
+    );
+
+  const effectiveSameIntentTotal =
+    sameIntentTotal > 0
+      ? sameIntentTotal
+      : loadedSameIntentCount;
+
+
+  /* =========================
      MOOD MATCH
   ========================= */
 
@@ -1047,6 +1294,107 @@ const Explore = () => {
     sameMoodTotal > 0
       ? sameMoodTotal
       : loadedSameMoodCount;
+
+  const handleIntentSelect = async (
+    intentId
+  ) => {
+    if (
+      intentSaving ||
+      intentLoading
+    ) {
+      return;
+    }
+
+    const previousIntent =
+      selectedIntent;
+
+    const nextIntent =
+      selectedIntent === intentId
+        ? ""
+        : intentId;
+
+    setSelectedIntent(nextIntent);
+    setIntentSaving(true);
+
+    try {
+      const response =
+        await updateCurrentIntent(
+          nextIntent
+        );
+
+      const savedIntent =
+        typeof response?.currentIntent ===
+          "string"
+          ? response.currentIntent
+            .trim()
+            .toLowerCase()
+          : "";
+
+      setSelectedIntent(savedIntent);
+
+      try {
+        if (savedIntent) {
+          window.localStorage.setItem(
+            INTENT_STORAGE_KEY,
+            savedIntent
+          );
+        } else {
+          window.localStorage.removeItem(
+            INTENT_STORAGE_KEY
+          );
+        }
+      } catch {
+        // Local storage backup is optional.
+      }
+
+      await loadExploreUsers({
+        targetPage: 1,
+        append: false,
+      });
+
+      setActionMessage({
+        type: "success",
+        text: savedIntent
+          ? response?.message ||
+          "Activity updated"
+          : "Activity cleared",
+      });
+    } catch (saveIntentError) {
+      console.error(
+        "SAVE INTENT ERROR:",
+        saveIntentError?.response?.data ||
+        saveIntentError?.message
+      );
+
+      setSelectedIntent(
+        previousIntent
+      );
+
+      setActionMessage({
+        type: "error",
+        text:
+          saveIntentError?.response?.data
+            ?.message ||
+          "Unable to update your activity",
+      });
+    } finally {
+      setIntentSaving(false);
+    }
+  };
+
+  const clearIntent = async () => {
+    if (
+      !selectedIntent ||
+      intentSaving ||
+      intentLoading
+    ) {
+      return;
+    }
+
+    await handleIntentSelect(
+      selectedIntent
+    );
+  };
 
 
   const handleMoodSelect = async (
@@ -1193,6 +1541,141 @@ const Explore = () => {
               grow your connections.
             </p>
           </div>
+        </section>
+
+        <section
+          className={
+            styles.intentSection
+          }
+          aria-labelledby="find-someone-title"
+        >
+          <div
+            className={
+              styles.intentHeader
+            }
+          >
+            <div>
+              <span
+                className={
+                  styles.intentEyebrow
+                }
+              >
+                Find Someone Now
+              </span>
+
+              <h2 id="find-someone-title">
+                What do you want to do?
+              </h2>
+
+              <p>
+                Choose an activity and meet
+                people interested in the same
+                thing right now.
+              </p>
+            </div>
+
+            {selectedIntent && (
+              <button
+                type="button"
+                className={
+                  styles.clearIntentButton
+                }
+                onClick={clearIntent}
+                disabled={
+                  intentSaving ||
+                  intentLoading
+                }
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div
+            className={
+              styles.intentList
+            }
+            role="list"
+            aria-label="Choose an activity"
+          >
+            {INTENTS.map((intent) => {
+              const isSelected =
+                selectedIntent ===
+                intent.id;
+
+              return (
+                <button
+                  key={intent.id}
+                  type="button"
+                  role="listitem"
+                  className={`${styles.intentCard} ${isSelected
+                    ? styles.intentCardSelected
+                    : ""
+                    }`}
+                  onClick={() =>
+                    handleIntentSelect(
+                      intent.id
+                    )
+                  }
+                  aria-pressed={isSelected}
+                  disabled={
+                    intentSaving ||
+                    intentLoading
+                  }
+                >
+                  <span
+                    className={
+                      styles.intentEmoji
+                    }
+                    aria-hidden="true"
+                  >
+                    {intent.emoji}
+                  </span>
+
+                  <span
+                    className={
+                      styles.intentLabel
+                    }
+                  >
+                    {intent.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {activeIntent && (
+            <div
+              className={
+                styles.activeIntentBanner
+              }
+              role="status"
+            >
+              <span
+                className={
+                  styles.activeIntentBannerEmoji
+                }
+                aria-hidden="true"
+              >
+                {activeIntent.emoji}
+              </span>
+
+              <div>
+                <strong>
+                  {activeIntent.title}
+                </strong>
+
+                <p>
+                  {effectiveSameIntentTotal > 0
+                    ? `${effectiveSameIntentTotal} ${effectiveSameIntentTotal === 1
+                      ? "person is"
+                      : "people are"
+                    } interested right now.`
+                    : "No one else selected this activity yet."}
+                </p>
+              </div>
+            </div>
+          )}
         </section>
 
         <section
@@ -1361,20 +1844,29 @@ const Explore = () => {
             <div className={styles.resultsHeader}>
               <div>
                 <h2>
-                  {activeMood &&
-                    effectiveSameMoodTotal > 0
-                    ? "People for your vibe"
-                    : "People you may know"}
+                  {activeIntent &&
+                    effectiveSameIntentTotal > 0
+                    ? "People for your activity"
+                    : activeMood &&
+                      effectiveSameMoodTotal > 0
+                      ? "People for your vibe"
+                      : "People you may know"}
                 </h2>
 
                 <p>
-                  {activeMood &&
-                    effectiveSameMoodTotal > 0
-                    ? `${effectiveSameMoodTotal} ${effectiveSameMoodTotal === 1
-                      ? "match"
-                      : "matches"
+                  {activeIntent &&
+                    effectiveSameIntentTotal > 0
+                    ? `${effectiveSameIntentTotal} ${effectiveSameIntentTotal === 1
+                      ? "activity match"
+                      : "activity matches"
                     } found`
-                    : "Discover and connect with new people"}
+                    : activeMood &&
+                      effectiveSameMoodTotal > 0
+                      ? `${effectiveSameMoodTotal} ${effectiveSameMoodTotal === 1
+                        ? "mood match"
+                        : "mood matches"
+                      } found`
+                      : "Discover and connect with new people"}
                 </p>
               </div>
             </div>
@@ -1540,6 +2032,16 @@ const Explore = () => {
                             {user?.name || "User"}
                           </h2>
 
+                          {user?.sameIntent && (
+                            <span
+                              className={
+                                styles.sameActivityBadge
+                              }
+                            >
+                              Same activity
+                            </span>
+                          )}
+
                           {user?.sameMood && (
                             <span
                               className={
@@ -1681,9 +2183,9 @@ const Explore = () => {
       {actionMessage && (
         <div
           className={`${styles.toast} ${actionMessage.type ===
-            "error"
-            ? styles.toastError
-            : styles.toastSuccess
+              "error"
+              ? styles.toastError
+              : styles.toastSuccess
             }`}
           role={
             actionMessage.type ===

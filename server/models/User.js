@@ -82,6 +82,27 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+
+    // Find Someone Now
+    currentIntent: {
+      type: String,
+      enum: [
+        "",
+        "chat",
+        "gaming",
+        "study",
+        "music",
+        "fun",
+        "advice",
+      ],
+      default: "",
+    },
+
+    intentUpdatedAt: {
+      type: Date,
+      default: null,
+    },
+
     // Social
     followers: [
       {

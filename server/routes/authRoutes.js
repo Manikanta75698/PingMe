@@ -32,6 +32,10 @@ const {
   getProfile,
   getCurrentMood,
   updateCurrentMood,
+
+  getCurrentIntent,
+  updateCurrentIntent,
+
   updateProfile,
   uploadProfilePicture,
 
@@ -173,6 +177,19 @@ router.patch(
   "/mood",
   protect,
   updateCurrentMood
+);
+
+
+router.get(
+  "/intent",
+  protect,
+  getCurrentIntent
+);
+
+router.patch(
+  "/intent",
+  protect,
+  updateCurrentIntent
 );
 
 /* =========================

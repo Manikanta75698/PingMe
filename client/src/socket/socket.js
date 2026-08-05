@@ -411,6 +411,29 @@ socket.on(
   }
 );
 
+
+
+/* =========================
+   FIND SOMEONE NOW EVENTS
+========================= */
+
+socket.on(
+  "userIntentUpdated",
+  (payload) => {
+    if (isDevelopment) {
+      console.log(
+        "USER INTENT UPDATED:",
+        payload
+      );
+    }
+
+    dispatchAppEvent(
+      "user-intent:updated",
+      payload
+    );
+  }
+);
+
 /* =========================
    RECONNECTION EVENTS
 ========================= */
