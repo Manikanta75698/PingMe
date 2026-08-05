@@ -152,9 +152,7 @@ const GoogleLoginButton = ({
 
       try {
         const response =
-          await googleLogin(
-            credential
-          );
+          await googleLogin(credential);
 
         const token =
           response?.token;
@@ -257,8 +255,8 @@ const GoogleLoginButton = ({
     >
       <div
         className={`${styles.buttonWrapper} ${isDisabled
-            ? styles.disabled
-            : ""
+          ? styles.disabled
+          : ""
           }`}
         style={{
           width: `${buttonWidth}px`,

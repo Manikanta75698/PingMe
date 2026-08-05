@@ -184,34 +184,48 @@ export const changePassword = async (
 // =========================
 // GOOGLE LOGIN
 // =========================
+
 export const googleLogin = async (
-  credential
+  value
 ) => {
-  const normalizedCredential =
+  const rawCredential =
+    typeof value === "string"
+      ? value
+      : value?.credential;
+
+  const credential =
     String(
-      credential || ""
+      rawCredential || ""
     ).trim();
 
-  if (!normalizedCredential) {
+  if (
+    !credential ||
+    credential ===
+    "[object Object]" ||
+    credential.split(".").length !==
+    3
+  ) {
     throw new Error(
-      "Google credential is required"
+      "Invalid Google credential"
     );
   }
 
-  const response = await api.post(
-    "/auth/google",
-    {
-      credential:
-        normalizedCredential,
-    },
-    {
-      timeout: AUTH_TIMEOUT,
-    }
-  );
+  const response =
+    await api.post(
+      "/auth/google",
+      {
+        credential,
+      },
+      {
+        timeout:
+          AUTH_TIMEOUT,
+      }
+    );
 
   if (
     !response?.data ||
-    typeof response.data !== "object"
+    typeof response.data !==
+    "object"
   ) {
     throw new Error(
       "Invalid Google login response"
