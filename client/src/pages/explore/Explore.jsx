@@ -31,18 +31,14 @@ import {
   cancelFollowRequest,
   followUser,
   getCurrentIntent,
-  getCurrentMood,
   unfollowUser,
   updateCurrentIntent,
-  updateCurrentMood,
 } from "../../services/authService";
 
 import styles from "./Explore.module.css";
 
 const PAGE_LIMIT = 12;
 
-const MOOD_STORAGE_KEY =
-  "pingme-selected-mood";
 
 const INTENT_STORAGE_KEY =
   "pingme-selected-intent";
@@ -101,112 +97,6 @@ const INTENTS = [
   },
 ];
 
-const MOODS = [
-  {
-    id: "happy",
-    emoji: "😊",
-    label: "Happy",
-    title: "Share the good energy",
-    description:
-      "Discover positive people and cheerful conversations.",
-    keywords: [
-      "happy",
-      "positive",
-      "fun",
-      "smile",
-      "travel",
-      "friends",
-      "music",
-    ],
-  },
-  {
-    id: "chill",
-    emoji: "😌",
-    label: "Chill",
-    title: "Keep it calm",
-    description:
-      "Find relaxed people and easy-going conversations.",
-    keywords: [
-      "chill",
-      "calm",
-      "peace",
-      "nature",
-      "music",
-      "movies",
-      "coffee",
-    ],
-  },
-  {
-    id: "bored",
-    emoji: "🥱",
-    label: "Bored",
-    title: "Find something interesting",
-    description:
-      "Meet active people and discover something new.",
-    keywords: [
-      "gaming",
-      "games",
-      "movies",
-      "fun",
-      "chat",
-      "sports",
-      "memes",
-    ],
-  },
-  {
-    id: "focused",
-    emoji: "🎯",
-    label: "Focused",
-    title: "Connect with motivated people",
-    description:
-      "Discover creators, learners and goal-driven people.",
-    keywords: [
-      "student",
-      "developer",
-      "coding",
-      "business",
-      "fitness",
-      "learning",
-      "creator",
-    ],
-  },
-  {
-    id: "low",
-    emoji: "🌧️",
-    label: "Low",
-    title: "You are not alone",
-    description:
-      "Discover kind people and supportive conversations.",
-    keywords: [
-      "kind",
-      "support",
-      "friend",
-      "listener",
-      "peace",
-      "motivation",
-      "positive",
-    ],
-  },
-  {
-    id: "excited",
-    emoji: "⚡",
-    label: "Excited",
-    title: "Match your energy",
-    description:
-      "Find adventurous and energetic people.",
-    keywords: [
-      "adventure",
-      "travel",
-      "sports",
-      "fitness",
-      "party",
-      "creator",
-      "photography",
-    ],
-  },
-];
-
-
 /* =========================
    HELPERS
 ========================= */
@@ -250,14 +140,6 @@ const getPaginationFromResponse = (
   response?.pagination ||
   {};
 
-const getSameMoodTotal = (
-  response
-) =>
-  Number(
-    response?.data?.sameMoodTotal ??
-    response?.sameMoodTotal ??
-    0
-  );
 
 const getSameIntentTotal = (
   response
@@ -321,10 +203,6 @@ const Explore = () => {
     setSameIntentTotal,
   ] = useState(0);
 
-  const [
-    sameMoodTotal,
-    setSameMoodTotal,
-  ] = useState(0);
 
   const [
     loading,
@@ -375,32 +253,6 @@ const Explore = () => {
   const [
     intentSaving,
     setIntentSaving,
-  ] = useState(false);
-
-  const [
-    selectedMood,
-    setSelectedMood,
-  ] = useState(() => {
-    try {
-      return (
-        window.localStorage.getItem(
-          MOOD_STORAGE_KEY
-        ) || ""
-      );
-    } catch {
-      return "";
-    }
-  });
-
-
-  const [
-    moodLoading,
-    setMoodLoading,
-  ] = useState(true);
-
-  const [
-    moodSaving,
-    setMoodSaving,
   ] = useState(false);
 
 
@@ -489,89 +341,6 @@ const Explore = () => {
     };
   }, []);
 
-
-  /* =========================
-   LOAD SAVED MOOD
-========================= */
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadSavedMood = async () => {
-      try {
-        setMoodLoading(true);
-
-        const response =
-          await getCurrentMood();
-
-        if (!isMounted) {
-          return;
-        }
-
-        const savedMood =
-          typeof response?.mood === "string"
-            ? response.mood
-              .trim()
-              .toLowerCase()
-            : "";
-
-        const moodUpdatedAt =
-          response?.moodUpdatedAt
-            ? new Date(
-              response.moodUpdatedAt
-            ).getTime()
-            : 0;
-
-        const moodIsActive =
-          Boolean(
-            savedMood &&
-            moodUpdatedAt &&
-            Date.now() - moodUpdatedAt <
-            24 * 60 * 60 * 1000
-          );
-
-        const activeSavedMood =
-          moodIsActive
-            ? savedMood
-            : "";
-
-        setSelectedMood(
-          activeSavedMood
-        );
-
-        try {
-          if (activeSavedMood) {
-            window.localStorage.setItem(
-              MOOD_STORAGE_KEY,
-              activeSavedMood
-            );
-          } else {
-            window.localStorage.removeItem(
-              MOOD_STORAGE_KEY
-            );
-          }
-        } catch {
-          // Local storage backup is optional.
-        }
-      } catch (loadMoodError) {
-        console.error(
-          "LOAD MOOD ERROR:",
-          loadMoodError?.response?.data ||
-          loadMoodError?.message
-        );
-      } finally {
-        if (isMounted) {
-          setMoodLoading(false);
-        }
-      }
-    };
-
-    loadSavedMood();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   /* =========================
      TOAST AUTO CLEAR
@@ -677,18 +446,12 @@ const Explore = () => {
               response
             );
 
-          const moodMatchTotal =
-            getSameMoodTotal(
-              response
-            );
 
           setSameIntentTotal(
             intentMatchTotal
           );
 
-          setSameMoodTotal(
-            moodMatchTotal
-          );
+
 
           setUsers((previous) => {
             if (!append) {
@@ -794,41 +557,6 @@ const Explore = () => {
     };
   }, [loadExploreUsers]);
 
-
-  /* =========================
-   REAL-TIME MOOD UPDATES
-========================= */
-
-  useEffect(() => {
-    const handleMoodMatchUpdate = () => {
-      loadExploreUsers({
-        targetPage: 1,
-        append: false,
-      });
-    };
-
-    window.addEventListener(
-      "user-mood:updated",
-      handleMoodMatchUpdate
-    );
-
-    window.addEventListener(
-      "user-mood-privacy:updated",
-      handleMoodMatchUpdate
-    );
-
-    return () => {
-      window.removeEventListener(
-        "user-mood:updated",
-        handleMoodMatchUpdate
-      );
-
-      window.removeEventListener(
-        "user-mood-privacy:updated",
-        handleMoodMatchUpdate
-      );
-    };
-  }, [loadExploreUsers]);
 
   /* =========================
      LOCAL USER UPDATE
@@ -1267,33 +995,8 @@ const Explore = () => {
       : loadedSameIntentCount;
 
 
-  /* =========================
-     MOOD MATCH
-  ========================= */
-
-  const activeMood = useMemo(
-    () =>
-      MOODS.find(
-        (mood) =>
-          mood.id === selectedMood
-      ) || null,
-    [selectedMood]
-  );
-
   const displayedUsers = users;
 
-  const loadedSameMoodCount = useMemo(
-    () =>
-      users.filter(
-        (user) => user?.sameMood
-      ).length,
-    [users]
-  );
-
-  const effectiveSameMoodTotal =
-    sameMoodTotal > 0
-      ? sameMoodTotal
-      : loadedSameMoodCount;
 
   const handleIntentSelect = async (
     intentId
@@ -1396,106 +1099,6 @@ const Explore = () => {
     );
   };
 
-
-  const handleMoodSelect = async (
-    moodId
-  ) => {
-    if (moodSaving || moodLoading) {
-      return;
-    }
-
-    const previousMood = selectedMood;
-
-    const nextMood =
-      selectedMood === moodId
-        ? ""
-        : moodId;
-
-    /*
-     * Optimistic update:
-     * UI immediate ga change avuthundi.
-     */
-    setSelectedMood(nextMood);
-    setMoodSaving(true);
-
-    try {
-      const response =
-        await updateCurrentMood(
-          nextMood
-        );
-
-      const savedMood =
-        typeof response?.mood === "string"
-          ? response.mood
-            .trim()
-            .toLowerCase()
-          : "";
-
-      setSelectedMood(savedMood);
-
-      try {
-        if (savedMood) {
-          window.localStorage.setItem(
-            MOOD_STORAGE_KEY,
-            savedMood
-          );
-        } else {
-          window.localStorage.removeItem(
-            MOOD_STORAGE_KEY
-          );
-        }
-      } catch {
-        // Local storage backup is optional.
-      }
-
-      await loadExploreUsers({
-        targetPage: 1,
-        append: false,
-      });
-
-      setActionMessage({
-        type: "success",
-        text: savedMood
-          ? `${response?.message || "Mood updated"}`
-          : "Mood cleared",
-      });
-    } catch (saveMoodError) {
-      console.error(
-        "SAVE MOOD ERROR:",
-        saveMoodError?.response?.data ||
-        saveMoodError?.message
-      );
-
-      /*
-       * API fail ayithe old mood restore.
-       */
-      setSelectedMood(previousMood);
-
-      setActionMessage({
-        type: "error",
-        text:
-          saveMoodError?.response?.data
-            ?.message ||
-          "Unable to update your mood",
-      });
-    } finally {
-      setMoodSaving(false);
-    }
-  };
-
-  const clearMood = async () => {
-    if (
-      !selectedMood ||
-      moodSaving ||
-      moodLoading
-    ) {
-      return;
-    }
-
-    await handleMoodSelect(
-      selectedMood
-    );
-  };
 
   /* =========================
      CLEAR SEARCH
@@ -1678,126 +1281,6 @@ const Explore = () => {
           )}
         </section>
 
-        <section
-          className={
-            styles.moodSection
-          }
-          aria-labelledby="mood-match-title"
-        >
-          <div
-            className={
-              styles.moodHeader
-            }
-          >
-            <div>
-              <span
-                className={
-                  styles.moodEyebrow
-                }
-              >
-                Mood Match
-              </span>
-
-              <h2 id="mood-match-title">
-                How are you feeling?
-              </h2>
-
-              <p>
-                Pick your mood and discover
-                people matching your vibe.
-              </p>
-            </div>
-
-            {selectedMood && (
-              <button
-                type="button"
-                className={
-                  styles.clearMoodButton
-                }
-                onClick={clearMood}
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          <div
-            className={
-              styles.moodList
-            }
-            role="list"
-            aria-label="Choose your mood"
-          >
-            {MOODS.map((mood) => {
-              const isSelected =
-                selectedMood === mood.id;
-
-              return (
-                <button
-                  key={mood.id}
-                  type="button"
-                  role="listitem"
-                  className={`${styles.moodCard} ${isSelected
-                    ? styles.moodCardSelected
-                    : ""
-                    }`}
-                  onClick={() =>
-                    handleMoodSelect(mood.id)
-                  }
-                  aria-pressed={isSelected}
-                  disabled={
-                    moodSaving || moodLoading
-                  }
-                >
-                  <span
-                    className={styles.moodEmoji}
-                    aria-hidden="true"
-                  >
-                    {mood.emoji}
-                  </span>
-
-                  <span className={styles.moodLabel}>
-                    {mood.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {activeMood && (
-            <div
-              className={
-                styles.activeMoodBanner
-              }
-              role="status"
-            >
-              <span
-                className={
-                  styles.activeMoodBannerEmoji
-                }
-                aria-hidden="true"
-              >
-                {activeMood.emoji}
-              </span>
-
-              <div>
-                <strong>
-                  {activeMood.title}
-                </strong>
-
-                <p>
-                  {effectiveSameMoodTotal > 0
-                    ? `${effectiveSameMoodTotal} ${effectiveSameMoodTotal === 1
-                      ? "person matches"
-                      : "people match"
-                    } your current vibe.`
-                    : "No other people share this vibe yet."}
-                </p>
-              </div>
-            </div>
-          )}
-        </section>
-
         <div
           className={
             styles.searchWrapper
@@ -1844,27 +1327,25 @@ const Explore = () => {
             <div className={styles.resultsHeader}>
               <div>
                 <h2>
-                  {activeIntent &&
-                    effectiveSameIntentTotal > 0
-                    ? "People for your activity"
-                    : activeMood &&
-                      effectiveSameMoodTotal > 0
-                      ? "People for your vibe"
+                  {searchQuery
+                    ? "Search results"
+                    : activeIntent &&
+                      effectiveSameIntentTotal > 0
+                      ? "People for your activity"
                       : "People you may know"}
                 </h2>
 
                 <p>
-                  {activeIntent &&
-                    effectiveSameIntentTotal > 0
-                    ? `${effectiveSameIntentTotal} ${effectiveSameIntentTotal === 1
-                      ? "activity match"
-                      : "activity matches"
+                  {searchQuery
+                    ? `${users.length} ${users.length === 1
+                      ? "person"
+                      : "people"
                     } found`
-                    : activeMood &&
-                      effectiveSameMoodTotal > 0
-                      ? `${effectiveSameMoodTotal} ${effectiveSameMoodTotal === 1
-                        ? "mood match"
-                        : "mood matches"
+                    : activeIntent &&
+                      effectiveSameIntentTotal > 0
+                      ? `${effectiveSameIntentTotal} ${effectiveSameIntentTotal === 1
+                        ? "activity match"
+                        : "activity matches"
                       } found`
                       : "Discover and connect with new people"}
                 </p>
@@ -2042,16 +1523,6 @@ const Explore = () => {
                             </span>
                           )}
 
-                          {user?.sameMood && (
-                            <span
-                              className={
-                                styles.sameVibeBadge
-                              }
-                            >
-                              Same vibe
-                            </span>
-                          )}
-
                           {user?.privateAccount && (
                             <LockKeyhole size={14} />
                           )}
@@ -2183,9 +1654,9 @@ const Explore = () => {
       {actionMessage && (
         <div
           className={`${styles.toast} ${actionMessage.type ===
-              "error"
-              ? styles.toastError
-              : styles.toastSuccess
+            "error"
+            ? styles.toastError
+            : styles.toastSuccess
             }`}
           role={
             actionMessage.type ===
