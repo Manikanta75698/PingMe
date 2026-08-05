@@ -492,14 +492,7 @@ export const ChatProvider = ({
           )
         );
 
-        /*
-         * Existing notifications IDs
-         * store chestham.
-         *
-         * Socket reconnect ayinappudu
-         * old notification event duplicate
-         * ga vasthe badge increment kakudadhu.
-         */
+
         const notifications =
           Array.isArray(
             response?.data
@@ -847,8 +840,6 @@ export const ChatProvider = ({
 
     if (socket.connected) {
       loadNotifications();
-    } else {
-      connectSocket();
     }
 
     return () => {

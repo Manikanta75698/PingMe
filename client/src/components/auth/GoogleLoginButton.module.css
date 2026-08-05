@@ -13,19 +13,27 @@
 .buttonWrapper {
   position: relative;
 
-  width: min(100%, 400px);
+  min-width: 0;
   min-height: 44px;
-  margin: 0 auto;
+  margin-inline: auto;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
   box-sizing: border-box;
+
+  border-radius: 999px;
+}
+
+.buttonWrapper>div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .disabled {
-  opacity: 0.68;
+  opacity: 0.7;
   pointer-events: none;
   cursor: not-allowed;
 }
@@ -37,9 +45,10 @@
 .loadingOverlay {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 5;
 
   width: 100%;
+  height: 100%;
   min-height: 44px;
 
   display: flex;
@@ -54,7 +63,7 @@
 
   background:
     color-mix(in srgb,
-      var(--surface) 94%,
+      var(--surface) 96%,
       var(--primary));
 
   color: var(--text-primary);
@@ -88,7 +97,9 @@
       currentColor 22%,
       transparent);
 
-  border-top-color: currentColor;
+  border-top-color:
+    currentColor;
+
   border-radius: 50%;
 
   animation:
@@ -108,9 +119,11 @@
 .errorBox {
   width: min(100%, 400px);
   padding: 10px 12px;
+  margin-inline: auto;
 
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns:
+    auto minmax(0, 1fr) auto;
   align-items: start;
   gap: 9px;
 
@@ -140,7 +153,9 @@
 
   border-radius: 50%;
 
-  background: var(--danger, #dc2626);
+  background:
+    var(--danger, #dc2626);
+
   color: #ffffff;
 
   font-size: 12px;
@@ -152,7 +167,8 @@
   min-width: 0;
   margin: 0;
 
-  color: var(--danger, #dc2626);
+  color:
+    var(--danger, #dc2626);
 
   font-size: 12.5px;
   font-weight: 550;
@@ -195,7 +211,8 @@
       var(--danger, #dc2626) 10%,
       transparent);
 
-  color: var(--danger, #dc2626);
+  color:
+    var(--danger, #dc2626);
 }
 
 .dismissButton:active {
@@ -216,26 +233,47 @@
 
 @media (max-width: 480px) {
   .container {
+    width: 100%;
     align-items: center;
   }
 
   .buttonWrapper {
-    width: min(100%, 320px);
     margin-inline: auto;
-  }
-
-  .errorBox {
-    width: min(100%, 320px);
-    margin-inline: auto;
-    padding: 9px 10px;
   }
 
   .loadingOverlay {
     font-size: 12.75px;
   }
 
+  .errorBox {
+    width: calc(100% - 16px);
+    max-width: 400px;
+
+    padding: 9px 10px;
+  }
+
   .errorMessage {
     font-size: 12px;
+  }
+}
+
+/* =========================
+   VERY SMALL MOBILE
+========================= */
+
+@media (max-width: 340px) {
+  .loadingOverlay {
+    gap: 7px;
+    font-size: 12px;
+  }
+
+  .spinner {
+    width: 14px;
+    height: 14px;
+  }
+
+  .errorBox {
+    width: 100%;
   }
 }
 
