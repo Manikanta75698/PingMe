@@ -22,15 +22,16 @@ import {
 
 import styles from "./GoogleLoginButton.module.css";
 
+const GOOGLE_MAX_WIDTH = 400;
+const GOOGLE_DEFAULT_WIDTH = 300;
+
 const GoogleLoginButton = ({
   disabled = false,
 }) => {
   const navigate = useNavigate();
   const { setUser } = useAuth();
 
-  const buttonWrapperRef =
-    useRef(null);
-
+  const wrapperRef = useRef(null);
   const requestInFlightRef =
     useRef(false);
 
@@ -38,9 +39,11 @@ const GoogleLoginButton = ({
     useState(false);
 
   const [
-    googleButtonWidth,
-    setGoogleButtonWidth,
-  ] = useState(300);
+    buttonWidth,
+    setButtonWidth,
+  ] = useState(
+    GOOGLE_DEFAULT_WIDTH
+  );
 
   const [
     errorMessage,
@@ -51,12 +54,12 @@ const GoogleLoginButton = ({
     disabled || loading;
 
   /* =========================
-     RESPONSIVE BUTTON WIDTH
+     RESPONSIVE WIDTH
   ========================= */
 
   useEffect(() => {
     const wrapper =
-      buttonWrapperRef.current;
+      wrapperRef.current;
 
     if (!wrapper) {
       return undefined;
@@ -65,14 +68,20 @@ const GoogleLoginButton = ({
     const updateButtonWidth = () => {
       const availableWidth =
         Math.floor(
-          wrapper.clientWidth
+          wrapper.getBoundingClientRect()
+            .width
         );
 
-      if (availableWidth > 0) {
-        setGoogleButtonWidth(
-          availableWidth
-        );
+      if (availableWidth <= 0) {
+        return;
       }
+
+      setButtonWidth(
+        Math.min(
+          availableWidth,
+          GOOGLE_MAX_WIDTH
+        )
+      );
     };
 
     updateButtonWidth();
@@ -99,7 +108,8 @@ const GoogleLoginButton = ({
     credentialResponse
   ) => {
     if (
-      isDisabled ||
+      disabled ||
+      loading ||
       requestInFlightRef.current
     ) {
       return;
@@ -110,7 +120,7 @@ const GoogleLoginButton = ({
 
     if (!credential) {
       setErrorMessage(
-        "Google authentication did not return a valid credential."
+        "Google did not return a valid sign-in credential. Please try again."
       );
 
       return;
@@ -128,42 +138,54 @@ const GoogleLoginButton = ({
           credential
         );
 
+      const token =
+        response?.token;
+
+      const authenticatedUser =
+        response?.user;
+
       if (
-        !response?.token ||
-        !response?.user
+        !token ||
+        !authenticatedUser
       ) {
         throw new Error(
-          "Invalid Google login response"
+          "Invalid response received from Google sign-in."
         );
       }
 
       localStorage.setItem(
         "token",
-        response.token
+        token
       );
 
       localStorage.setItem(
         "user",
         JSON.stringify(
-          response.user
+          authenticatedUser
         )
       );
 
-      setUser(response.user);
+      setUser(
+        authenticatedUser
+      );
 
-      navigate("/home", {
-        replace: true,
-      });
+      navigate(
+        "/home",
+        {
+          replace: true,
+        }
+      );
     } catch (error) {
       console.error(
         "GOOGLE LOGIN ERROR:",
         error?.response?.data ||
-        error?.message
+        error?.message ||
+        error
       );
 
       if (!navigator.onLine) {
         setErrorMessage(
-          "You appear to be offline. Check your internet connection."
+          "You are offline. Check your internet connection and try again."
         );
       } else if (
         error?.code ===
@@ -177,7 +199,7 @@ const GoogleLoginButton = ({
           error?.response?.data
             ?.message ||
           error?.message ||
-          "Unable to continue with Google."
+          "Unable to continue with Google right now."
         );
       }
     } finally {
@@ -198,7 +220,7 @@ const GoogleLoginButton = ({
     }
 
     setErrorMessage(
-      "Google sign-in was cancelled or unsuccessful."
+      "Google sign-in was cancelled or could not be completed."
     );
   };
 
@@ -207,7 +229,7 @@ const GoogleLoginButton = ({
       className={styles.container}
     >
       <div
-        ref={buttonWrapperRef}
+        ref={wrapperRef}
         className={`${styles.buttonWrapper} ${isDisabled
             ? styles.disabled
             : ""
@@ -222,8 +244,9 @@ const GoogleLoginButton = ({
           shape="pill"
           size="large"
           text="continue_with"
+          logo_alignment="left"
           width={String(
-            googleButtonWidth
+            buttonWidth
           )}
           useOneTap={false}
           cancel_on_tap_outside
@@ -249,22 +272,50 @@ const GoogleLoginButton = ({
                 styles.loadingText
               }
             >
-              Signing in...
+              Signing you in...
             </span>
           </div>
         )}
       </div>
 
       {errorMessage && (
-        <p
+        <div
           className={
-            styles.errorMessage
+            styles.errorBox
           }
           role="alert"
           aria-live="assertive"
         >
-          {errorMessage}
-        </p>
+          <span
+            className={
+              styles.errorIcon
+            }
+            aria-hidden="true"
+          >
+            !
+          </span>
+
+          <p
+            className={
+              styles.errorMessage
+            }
+          >
+            {errorMessage}
+          </p>
+
+          <button
+            type="button"
+            className={
+              styles.dismissButton
+            }
+            onClick={() =>
+              setErrorMessage("")
+            }
+            aria-label="Dismiss Google sign-in error"
+          >
+            ×
+          </button>
+        </div>
       )}
     </div>
   );

@@ -4,7 +4,7 @@
 
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   gap: 10px;
 
   box-sizing: border-box;
@@ -13,7 +13,7 @@
 .buttonWrapper {
   position: relative;
 
-  width: 100%;
+  width: min(100%, 400px);
   min-width: 0;
   min-height: 44px;
 
@@ -22,34 +22,11 @@
   justify-content: center;
 
   box-sizing: border-box;
-
-  overflow: hidden;
   border-radius: 999px;
-
-  transition:
-    opacity 0.2s ease;
-}
-
-/* Google generated wrapper */
-
-.buttonWrapper>div {
-  width: 100% !important;
-  max-width: none !important;
-
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Google iframe */
-
-.buttonWrapper iframe {
-  width: 100% !important;
-  max-width: none !important;
 }
 
 .disabled {
-  opacity: 0.7;
+  opacity: 0.68;
   pointer-events: none;
   cursor: not-allowed;
 }
@@ -64,24 +41,30 @@
   z-index: 2;
 
   width: 100%;
-  height: 100%;
   min-height: 44px;
 
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 9px;
 
   box-sizing: border-box;
 
   border: 1px solid var(--border);
   border-radius: 999px;
 
-  background: var(--surface);
+  background:
+    color-mix(in srgb,
+      var(--surface) 94%,
+      var(--primary));
+
   color: var(--text-primary);
 
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.08);
+
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 650;
   line-height: 1;
 
   cursor: wait;
@@ -96,11 +79,10 @@
 ========================= */
 
 .spinner {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
 
   flex-shrink: 0;
-
   box-sizing: border-box;
 
   border: 2px solid color-mix(in srgb,
@@ -111,7 +93,7 @@
   border-radius: 50%;
 
   animation:
-    googleLoginSpin 0.75s linear infinite;
+    googleLoginSpin 0.72s linear infinite;
 }
 
 @keyframes googleLoginSpin {
@@ -121,21 +103,112 @@
 }
 
 /* =========================
-   ERROR MESSAGE
+   ERROR BOX
 ========================= */
 
+.errorBox {
+  width: min(100%, 400px);
+  padding: 10px 12px;
+
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 9px;
+
+  box-sizing: border-box;
+
+  border: 1px solid color-mix(in srgb,
+      var(--danger, #dc2626) 28%,
+      var(--border));
+
+  border-radius: 12px;
+
+  background:
+    color-mix(in srgb,
+      var(--danger, #dc2626) 7%,
+      var(--surface));
+}
+
+.errorIcon {
+  width: 20px;
+  height: 20px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: var(--danger, #dc2626);
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .errorMessage {
-  width: 100%;
+  min-width: 0;
   margin: 0;
 
   color: var(--danger, #dc2626);
 
   font-size: 12.5px;
-  font-weight: 500;
-  line-height: 1.4;
-  text-align: center;
+  font-weight: 550;
+  line-height: 1.45;
 
   overflow-wrap: anywhere;
+}
+
+.dismissButton {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 7px;
+  outline: none;
+
+  background: transparent;
+  color: var(--text-secondary);
+
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.15s ease;
+}
+
+.dismissButton:hover {
+  background:
+    color-mix(in srgb,
+      var(--danger, #dc2626) 10%,
+      transparent);
+
+  color: var(--danger, #dc2626);
+}
+
+.dismissButton:active {
+  transform: scale(0.92);
+}
+
+.dismissButton:focus-visible {
+  outline: 3px solid color-mix(in srgb,
+      var(--danger, #dc2626) 22%,
+      transparent);
+
+  outline-offset: 1px;
 }
 
 /* =========================
@@ -143,8 +216,18 @@
 ========================= */
 
 @media (max-width: 480px) {
+
+  .buttonWrapper,
+  .errorBox {
+    width: 100%;
+  }
+
   .loadingOverlay {
-    font-size: 13px;
+    font-size: 12.75px;
+  }
+
+  .errorBox {
+    padding: 9px 10px;
   }
 
   .errorMessage {
@@ -157,11 +240,11 @@
 ========================= */
 
 @media (prefers-reduced-motion: reduce) {
-  .buttonWrapper {
-    transition: none;
-  }
-
   .spinner {
     animation-duration: 1.4s;
+  }
+
+  .dismissButton {
+    transition: none;
   }
 }
