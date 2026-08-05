@@ -8,42 +8,147 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const socketHandler = require("./socket/socket");
-
 const connectDB = require("./config/db");
 
-const authRoutes = require("./routes/authRoutes");
-const postRoutes = require("./routes/postRoutes");
-const notificationRoutes = require("./routes/notificationRoutes");
-const storyRoutes = require("./routes/storyRoutes");
-const messageRoutes = require("./routes/messageRoutes");
+/* =========================
+   ROUTE IMPORTS
+========================= */
 
-const userRoutes = require("./routes/userRoutes");
-const startDeleteExpiredMessages = require("./cron/deleteExpiredMessages");
+const authRoutesModule =
+  require("./routes/authRoutes");
 
+const postRoutesModule =
+  require("./routes/postRoutes");
+
+const notificationRoutesModule =
+  require("./routes/notificationRoutes");
+
+const storyRoutesModule =
+  require("./routes/storyRoutes");
+
+const messageRoutesModule =
+  require("./routes/messageRoutes");
+
+const userRoutesModule =
+  require("./routes/userRoutes");
+
+/* =========================
+   CRON JOB IMPORTS
+========================= */
+
+const startDeleteExpiredMessages =
+  require("./cron/deleteExpiredMessages");
 
 const {
   startStoryCleanupJob,
-} = require(
-  "./cron/storyCleanup"
-);
+} = require("./cron/storyCleanup");
 
+/* =========================
+   ROUTER NORMALIZER
+========================= */
 
+const resolveRouter = (
+  routeModule,
+  routeName
+) => {
+  const router =
+    routeModule?.router ||
+    routeModule?.default ||
+    routeModule;
+
+  if (typeof router !== "function") {
+    console.error(
+      `❌ INVALID ROUTER EXPORT: ${routeName}`,
+      {
+        receivedType:
+          typeof routeModule,
+
+        receivedValue:
+          routeModule,
+      }
+    );
+
+    throw new TypeError(
+      `${routeName} must export an Express router using module.exports = router`
+    );
+  }
+
+  return router;
+};
+
+const authRoutes =
+  resolveRouter(
+    authRoutesModule,
+    "authRoutes"
+  );
+
+const postRoutes =
+  resolveRouter(
+    postRoutesModule,
+    "postRoutes"
+  );
+
+const notificationRoutes =
+  resolveRouter(
+    notificationRoutesModule,
+    "notificationRoutes"
+  );
+
+const storyRoutes =
+  resolveRouter(
+    storyRoutesModule,
+    "storyRoutes"
+  );
+
+const messageRoutes =
+  resolveRouter(
+    messageRoutesModule,
+    "messageRoutes"
+  );
+
+const userRoutes =
+  resolveRouter(
+    userRoutesModule,
+    "userRoutes"
+  );
+
+/* =========================
+   EXPRESS APP
+========================= */
 
 const app = express();
 const server = http.createServer(app);
 
-const normalizeOrigin = (value) =>
-  value ? value.replace(/\/+$/, "") : "";
+/* =========================
+   CORS
+========================= */
+
+const normalizeOrigin = (
+  value
+) => {
+  return value
+    ? value.replace(/\/+$/, "")
+    : "";
+};
 
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost",
   "capacitor://localhost",
-  normalizeOrigin(process.env.CLIENT_PRODUCTION_URL),
+
+  normalizeOrigin(
+    process.env
+      .CLIENT_PRODUCTION_URL
+  ),
 ].filter(Boolean);
 
-const isAllowedOrigin = (origin) => {
-  if (!origin || origin === "null") {
+const isAllowedOrigin = (
+  origin
+) => {
+  if (
+    !origin ||
+    origin === "null"
+  ) {
     return true;
   }
 
@@ -53,8 +158,13 @@ const isAllowedOrigin = (origin) => {
 };
 
 const corsOptions = {
-  origin(origin, callback) {
-    if (isAllowedOrigin(origin)) {
+  origin(
+    origin,
+    callback
+  ) {
+    if (
+      isAllowedOrigin(origin)
+    ) {
       callback(null, true);
       return;
     }
@@ -81,13 +191,37 @@ const corsOptions = {
     "DELETE",
     "OPTIONS",
   ],
+
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+  ],
 };
 
-// Middleware Pipeline
-app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+/* =========================
+   MIDDLEWARE
+========================= */
+
+app.use(
+  cors(corsOptions)
+);
+
+app.use(
+  express.json({
+    limit: "10mb",
+  })
+);
+
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: "10mb",
+  })
+);
+
+app.use(
+  cookieParser()
+);
 
 /* =========================
    HEALTH CHECK
@@ -101,103 +235,289 @@ app.get(
       "no-store"
     );
 
-    return res.status(200).json({
-      success: true,
-      status: "ok",
-      message:
-        "Backend is awake",
-      timestamp:
-        new Date().toISOString(),
-    });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        status: "ok",
+        message:
+          "Backend is awake",
+        timestamp:
+          new Date()
+            .toISOString(),
+      });
   }
 );
 
-// REST Endpoints
-app.use("/api/auth", authRoutes);
-app.use("/api/posts", postRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/stories", storyRoutes);
-app.use("/api/messages", messageRoutes);
+/* =========================
+   REST ROUTES
+========================= */
 
-app.use("/api/users", userRoutes);
+app.use(
+  "/api/auth",
+  authRoutes
+);
 
+app.use(
+  "/api/posts",
+  postRoutes
+);
 
-// Test Route
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message:
-      "🚀 Nexora Backend is Running in Production Mode...",
-  });
-});
+app.use(
+  "/api/notifications",
+  notificationRoutes
+);
 
-const PORT = process.env.PORT || 5000;
+app.use(
+  "/api/stories",
+  storyRoutes
+);
 
-// Socket.io Config Connection Secure Lock Setup
-const io = new Server(server, {
-  cors: {
-    origin(origin, callback) {
-      if (isAllowedOrigin(origin)) {
-        callback(null, true);
-        return;
+app.use(
+  "/api/messages",
+  messageRoutes
+);
+
+app.use(
+  "/api/users",
+  userRoutes
+);
+
+/* =========================
+   ROOT ROUTE
+========================= */
+
+app.get(
+  "/",
+  (req, res) => {
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message:
+          "🚀 Backend is running in production mode",
+      });
+  }
+);
+
+/* =========================
+   NOT FOUND HANDLER
+========================= */
+
+app.use(
+  (req, res) => {
+    return res
+      .status(404)
+      .json({
+        success: false,
+        message:
+          `Route not found: ${req.method} ${req.originalUrl}`,
+      });
+  }
+);
+
+/* =========================
+   GLOBAL ERROR HANDLER
+========================= */
+
+app.use(
+  (
+    error,
+    req,
+    res,
+    next
+  ) => {
+    console.error(
+      "GLOBAL SERVER ERROR:",
+      {
+        message:
+          error?.message,
+
+        stack:
+          process.env
+            .NODE_ENV ===
+            "development"
+            ? error?.stack
+            : undefined,
       }
+    );
 
-      console.error(
-        "SOCKET CORS BLOCKED:",
-        origin
-      );
+    if (
+      res.headersSent
+    ) {
+      return next(error);
+    }
 
-      callback(
-        new Error(
-          `Socket origin not allowed: ${origin}`
-        )
-      );
+    return res
+      .status(
+        error?.status ||
+        error?.statusCode ||
+        500
+      )
+      .json({
+        success: false,
+        message:
+          error?.message ||
+          "Internal server error",
+      });
+  }
+);
+
+/* =========================
+   SOCKET.IO
+========================= */
+
+const io = new Server(
+  server,
+  {
+    cors: {
+      origin(
+        origin,
+        callback
+      ) {
+        if (
+          isAllowedOrigin(
+            origin
+          )
+        ) {
+          callback(
+            null,
+            true
+          );
+
+          return;
+        }
+
+        console.error(
+          "SOCKET CORS BLOCKED:",
+          origin
+        );
+
+        callback(
+          new Error(
+            `Socket origin not allowed: ${origin}`
+          )
+        );
+      },
+
+      credentials: true,
+
+      methods: [
+        "GET",
+        "POST",
+      ],
     },
 
-    credentials: true,
+    connectionStateRecovery: {
+      maxDisconnectionDuration:
+        2 * 60 * 1000,
 
-    methods: ["GET", "POST"],
-  },
+      skipMiddlewares: true,
+    },
 
-  connectionStateRecovery: {
-    maxDisconnectionDuration:
-      2 * 60 * 1000,
+    pingTimeout: 60000,
+    pingInterval: 25000,
+  }
+);
 
-    skipMiddlewares: true,
-  },
-
-  pingTimeout: 60000,
-  pingInterval: 25000,
-});
+if (
+  typeof socketHandler !==
+  "function"
+) {
+  throw new TypeError(
+    "socketHandler must export a function"
+  );
+}
 
 socketHandler(io);
 
-const startServer = async () => {
-  try {
-    await connectDB();
+/* =========================
+   SERVER STARTUP
+========================= */
 
+const PORT =
+  process.env.PORT ||
+  5000;
+
+const runStartupJobs = () => {
+  if (
+    typeof
+    startDeleteExpiredMessages ===
+    "function"
+  ) {
     startDeleteExpiredMessages();
+  } else {
+    console.warn(
+      "⚠️ deleteExpiredMessages job is not a function"
+    );
+  }
+
+  if (
+    typeof
+    startStoryCleanupJob ===
+    "function"
+  ) {
     startStoryCleanupJob();
-
-    server.listen(
-      PORT,
-      "0.0.0.0",
-      () => {
-        console.log(
-          `✅ Production Secure Engine running on port: ${PORT}`
-        );
-      }
+  } else {
+    console.warn(
+      "⚠️ storyCleanup job is not a function"
     );
-  } catch (error) {
-    console.error(
-      "❌ SERVER STARTUP ERROR:",
-      error
-    );
-
-    process.exit(1);
   }
 };
 
+const startServer =
+  async () => {
+    try {
+      await connectDB();
+
+      runStartupJobs();
+
+      server.listen(
+        PORT,
+        "0.0.0.0",
+        () => {
+          console.log(
+            `✅ Production Secure Engine running on port: ${PORT}`
+          );
+
+          console.log(
+            "✅ All Express routes mounted successfully"
+          );
+        }
+      );
+    } catch (error) {
+      console.error(
+        "❌ SERVER STARTUP ERROR:",
+        error?.message ||
+        error
+      );
+
+      process.exit(1);
+    }
+  };
+
 startServer();
 
+/* =========================
+   PROCESS SAFETY
+========================= */
 
+process.on(
+  "unhandledRejection",
+  (error) => {
+    console.error(
+      "UNHANDLED PROMISE REJECTION:",
+      error
+    );
+  }
+);
+
+process.on(
+  "uncaughtException",
+  (error) => {
+    console.error(
+      "UNCAUGHT EXCEPTION:",
+      error
+    );
+  }
+);

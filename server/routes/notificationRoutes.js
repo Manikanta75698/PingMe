@@ -1,9 +1,4 @@
 const express = require("express");
-const router = express.Router();
-
-const {
-  protect,
-} = require("../middleware/authMiddleware");
 
 const {
   getNotifications,
@@ -14,6 +9,15 @@ const {
   "../controllers/notificationController"
 );
 
+const {
+  protect,
+} = require(
+  "../middleware/authMiddleware"
+);
+
+const router =
+  express.Router();
+
 router.get(
   "/",
   protect,
@@ -21,9 +25,9 @@ router.get(
 );
 
 router.put(
-  "/read-likes",
+  "/read/:id",
   protect,
-  markLikesAsRead
+  markAsRead
 );
 
 router.put(
@@ -33,7 +37,9 @@ router.put(
 );
 
 router.put(
-  "/read/:id",
+  "/read-likes",
   protect,
-  markAsRead
+  markLikesAsRead
 );
+
+module.exports = router;
