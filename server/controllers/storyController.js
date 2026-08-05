@@ -761,7 +761,7 @@ const viewStory = async (
           },
 
           {
-            new: true,
+            returnDocument: "after",
             runValidators:
               true,
           }

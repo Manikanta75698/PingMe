@@ -208,8 +208,7 @@ const markAsRead = async (
             },
           },
           {
-            new:
-              true,
+            returnDocument: "after",
 
             runValidators:
               true,

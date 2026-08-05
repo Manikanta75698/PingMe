@@ -659,7 +659,7 @@ const savePost = async (req, res) => {
           },
         },
         {
-          new: true,
+          returnDocument: "after",
           runValidators: true,
         }
       );
@@ -736,7 +736,7 @@ const unsavePost = async (req, res) => {
           },
         },
         {
-          new: true,
+          returnDocument: "after",
           runValidators: true,
         }
       );

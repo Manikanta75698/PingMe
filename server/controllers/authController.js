@@ -1596,7 +1596,7 @@ const updatePrivacySettings = async (
           $set: updates,
         },
         {
-          new: true,
+          returnDocument: "after",
           runValidators: true,
         }
       )
@@ -1881,7 +1881,7 @@ const updateCurrentIntent = async (
           },
         },
         {
-          new: true,
+          returnDocument: "after",
           runValidators: true,
         }
       )
@@ -3011,7 +3011,7 @@ const followUser = async (
             },
           },
           {
-            new: true,
+            returnDocument: "after",
 
             upsert: true,
 
@@ -4173,8 +4173,7 @@ const acceptFollowRequest =
                 upsert:
                   true,
 
-                new:
-                  true,
+                returnDocument: "after",
 
                 runValidators:
                   true,
