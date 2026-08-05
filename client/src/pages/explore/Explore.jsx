@@ -7,7 +7,6 @@ import {
 } from "react";
 
 import {
-  ArrowLeft,
   LoaderCircle,
   LockKeyhole,
   RefreshCw,
@@ -1117,15 +1116,6 @@ const Explore = () => {
   return (
     <div className={styles.page}>
       <main className={styles.main}>
-        <button
-          type="button"
-          className={styles.backButton}
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-        >
-          <ArrowLeft size={20} />
-
-        </button>
 
         <section className={styles.hero}>
           <div
