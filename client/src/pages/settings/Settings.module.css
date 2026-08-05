@@ -727,6 +727,16 @@
 }
 
 .permissionOption {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr) minmax(190px, 230px);
+
+  align-items: center;
+
+  gap: 24px;
+
+  min-height: 88px;
+
   border-bottom: 0;
 }
 
@@ -734,6 +744,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
+  min-width: 0;
   gap: 4px;
 }
 
@@ -747,6 +758,10 @@
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.permissionOption .privacyText strong {
+  white-space: nowrap;
 }
 
 .switch {
@@ -795,8 +810,11 @@
 
 .permissionDropdown {
   position: relative;
+
   width: 100%;
-  margin-top: 12px;
+  min-width: 0;
+
+  margin-top: 0;
 }
 
 .permissionTrigger {
@@ -944,17 +962,78 @@
   color: var(--primary);
 }
 
-@media (max-width: 600px) {
-  .permissionDropdown {
+@media (max-width: 768px) {
+  .privacyPanel {
+    padding: 6px 12px;
+  }
+
+  .permissionOption {
+    grid-template-columns: 1fr;
+
+    align-items: stretch;
+
+    gap: 12px;
+
+    min-height: auto;
+    padding: 16px 2px 18px;
+  }
+
+  .permissionOption .privacyText {
     width: 100%;
   }
 
+  .permissionOption .privacyText strong {
+    white-space: normal;
+
+    font-size: 14px;
+  }
+
+  .permissionOption .privacyText span {
+    max-width: none;
+
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .permissionDropdown {
+    width: 100%;
+    margin-top: 0;
+  }
+
   .permissionTrigger {
-    min-height: 46px;
+    width: 100%;
+    min-height: 48px;
+
+    padding: 0 14px;
+
     font-size: 14px;
   }
 
   .permissionMenu {
     top: calc(100% + 6px);
+
+    right: 0;
+    left: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .privacyPanel {
+    padding: 5px 10px;
+  }
+
+  .privacyOption,
+  .permissionOption {
+    gap: 12px;
+  }
+
+  .permissionTrigger {
+    min-height: 46px;
+
+    border-radius: 11px;
+  }
+
+  .permissionMenu {
+    border-radius: 12px;
   }
 }

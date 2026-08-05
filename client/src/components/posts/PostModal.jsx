@@ -508,6 +508,15 @@ const PostModal = ({
               post.caption || "Post"
             }
             className={styles.image}
+            onError={(event) => {
+              console.error(
+                "POST IMAGE LOAD FAILED:",
+                post.image
+              );
+
+              event.currentTarget.style.display =
+                "none";
+            }}
           />
         </div>
 
