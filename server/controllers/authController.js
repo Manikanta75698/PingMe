@@ -1242,83 +1242,180 @@ const loginUser = async (req, res) => {
 
 const googleLogin = async (req, res) => {
   try {
-    const { credential } = req.body;
+    const rawCredential =
+      req.body?.credential;
 
-    if (!credential) {
+    const credential =
+      typeof rawCredential === "string"
+        ? rawCredential.trim()
+        : typeof rawCredential?.credential ===
+          "string"
+          ? rawCredential.credential.trim()
+          : "";
+
+    if (
+      !credential ||
+      credential.split(".").length !== 3
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Google credential is required",
+        message:
+          "Invalid Google credential",
       });
     }
 
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    const ticket =
+      await client.verifyIdToken({
+        idToken: credential,
+        audience:
+          process.env.GOOGLE_CLIENT_ID,
+      });
 
-    const payload = ticket.getPayload();
+    const payload =
+      ticket.getPayload();
 
     const {
       email,
       name,
       picture,
       email_verified,
-    } = payload;
+    } = payload || {};
 
-    if (!email_verified) {
+    if (
+      !email ||
+      !email_verified
+    ) {
       return res.status(401).json({
         success: false,
-        message: "Google email not verified",
+        message:
+          "Google email not verified",
       });
     }
 
-    let user = await User.findOne({ email });
+    const cleanEmail =
+      String(email)
+        .trim()
+        .toLowerCase();
+
+    let user =
+      await User.findOne({
+        email: cleanEmail,
+      });
 
     if (!user) {
-      const username =
-        email.split("@")[0] +
-        Math.floor(Math.random() * 1000);
+      const baseUsername =
+        cleanEmail
+          .split("@")[0]
+          .replace(
+            /[^a-zA-Z0-9_]/g,
+            ""
+          );
+
+      let username =
+        `${baseUsername}${Math.floor(
+          1000 +
+          Math.random() * 9000
+        )}`;
+
+      while (
+        await User.exists({
+          username,
+        })
+      ) {
+        username =
+          `${baseUsername}${Math.floor(
+            1000 +
+            Math.random() * 9000
+          )}`;
+      }
 
       user = await User.create({
-        name,
-        email,
+        name:
+          String(name || "Google User")
+            .trim(),
+        email: cleanEmail,
         username,
-        profilePic: picture,
+        profilePic:
+          picture || "",
         provider: "google",
         isVerified: true,
       });
-    } else if (user.provider !== "google") {
-      user.provider = "google";
-      await user.save();
+    } else {
+      let shouldSave = false;
+
+      if (
+        user.provider !==
+        "google"
+      ) {
+        user.provider =
+          "google";
+
+        shouldSave = true;
+      }
+
+      if (
+        !user.profilePic &&
+        picture
+      ) {
+        user.profilePic =
+          picture;
+
+        shouldSave = true;
+      }
+
+      if (!user.isVerified) {
+        user.isVerified = true;
+        shouldSave = true;
+      }
+
+      if (shouldSave) {
+        await user.save();
+      }
     }
 
-    const token = generateToken(user._id);
+    const token =
+      generateToken(user._id);
 
-    return res.status(200).json({
-      success: true,
-      message: "Google Login Successful",
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        username: user.username,
-        email: user.email,
-        profilePic: user.profilePic,
-        savedPosts: user.savedPosts,
-        isVerified: user.isVerified,
-
-        provider: user.provider,
-        hasPassword: Boolean(user.password),
-      }
-    });
-
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message:
+          "Google Login Successful",
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          username:
+            user.username,
+          email: user.email,
+          profilePic:
+            user.profilePic,
+          savedPosts:
+            user.savedPosts || [],
+          isVerified:
+            user.isVerified,
+          provider:
+            user.provider,
+          hasPassword:
+            Boolean(
+              user.password
+            ),
+        },
+      });
   } catch (error) {
-    console.error("Google Login Error:", error);
+    console.error(
+      "Google Login Error:",
+      error
+    );
 
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return res
+      .status(401)
+      .json({
+        success: false,
+        message:
+          "Google authentication failed",
+      });
   }
 };
 
