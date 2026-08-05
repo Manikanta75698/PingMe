@@ -375,7 +375,294 @@ const markAsRead = async (
   }
 };
 
+/* =========================
+   MARK ALL NOTIFICATIONS READ
+========================= */
+
+const markAllAsRead = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeUserId(
+        req.user
+      );
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res
+        .status(401)
+        .json({
+          success: false,
+
+          message:
+            "Authentication required",
+        });
+    }
+
+    /*
+     * Current user ki unread ga unna
+     * notifications matrame update chestham.
+     */
+    const updateResult =
+      await Notification
+        .updateMany(
+          {
+            receiver:
+              currentUserId,
+
+            isRead:
+              false,
+          },
+          {
+            $set: {
+              isRead:
+                true,
+            },
+          }
+        );
+
+    /*
+     * DB source-of-truth unread count.
+     */
+    const unreadCount =
+      await Notification
+        .countDocuments({
+          receiver:
+            currentUserId,
+
+          isRead:
+            false,
+        });
+
+    /* =========================
+       SOCKET SYNC
+    ========================= */
+
+    try {
+      const io =
+        getIO();
+
+      /*
+       * Open Activity pages lo local
+       * notification list read style
+       * update cheyyadaniki.
+       */
+      io.to(
+        currentUserId
+      ).emit(
+        "allNotificationsRead",
+        {
+          unreadCount,
+
+          modifiedCount:
+            updateResult
+              ?.modifiedCount ||
+            0,
+        }
+      );
+
+      /*
+       * Header/sidebar/mobile badge
+       * exact count sync.
+       */
+      io.to(
+        currentUserId
+      ).emit(
+        "notificationBadgeUpdated",
+        {
+          action:
+            "set",
+
+          count:
+            unreadCount,
+
+          unreadCount,
+        }
+      );
+    } catch (
+    socketError
+    ) {
+      console.error(
+        "MARK ALL NOTIFICATIONS READ SOCKET ERROR:",
+        socketError?.message ||
+        socketError
+      );
+    }
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+
+        message:
+          "All notifications marked as read",
+
+        modifiedCount:
+          updateResult
+            ?.modifiedCount ||
+          0,
+
+        unreadCount,
+      });
+  } catch (error) {
+    console.error(
+      "MARK ALL NOTIFICATIONS READ ERROR:",
+      error
+    );
+
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          "Unable to update notifications",
+      });
+  }
+};
+
+
+/* =========================
+   MARK LIKE NOTIFICATIONS READ
+========================= */
+
+const markLikesAsRead = async (
+  req,
+  res
+) => {
+  try {
+    const currentUserId =
+      normalizeUserId(
+        req.user
+      );
+
+    if (
+      !currentUserId ||
+      !mongoose.isValidObjectId(
+        currentUserId
+      )
+    ) {
+      return res
+        .status(401)
+        .json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+    }
+
+    const updateResult =
+      await Notification
+        .updateMany(
+          {
+            receiver:
+              currentUserId,
+
+            type:
+              "like",
+
+            isRead:
+              false,
+          },
+          {
+            $set: {
+              isRead:
+                true,
+            },
+          }
+        );
+
+    const unreadCount =
+      await Notification
+        .countDocuments({
+          receiver:
+            currentUserId,
+
+          isRead:
+            false,
+        });
+
+    try {
+      const io =
+        getIO();
+
+      io.to(
+        currentUserId
+      ).emit(
+        "likeNotificationsRead",
+        {
+          unreadCount,
+
+          modifiedCount:
+            updateResult
+              ?.modifiedCount ||
+            0,
+        }
+      );
+
+      io.to(
+        currentUserId
+      ).emit(
+        "notificationBadgeUpdated",
+        {
+          action:
+            "set",
+
+          count:
+            unreadCount,
+
+          unreadCount,
+        }
+      );
+    } catch (socketError) {
+      console.error(
+        "MARK LIKES READ SOCKET ERROR:",
+        socketError?.message ||
+        socketError
+      );
+    }
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+
+        message:
+          "Like notifications marked as read",
+
+        modifiedCount:
+          updateResult
+            ?.modifiedCount ||
+          0,
+
+        unreadCount,
+      });
+  } catch (error) {
+    console.error(
+      "MARK LIKES READ ERROR:",
+      error
+    );
+
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          "Unable to update like notifications",
+      });
+  }
+};
+
 module.exports = {
   getNotifications,
   markAsRead,
+  markAllAsRead,
+  markLikesAsRead,
 };

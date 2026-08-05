@@ -1,8 +1,19 @@
 .authLayout {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--background);
+
   display: flex;
   justify-content: center;
   align-items: center;
+
   padding: 24px;
+  overflow-x: hidden;
+}
+
+@media (max-width: 480px) {
+  .authLayout {
+    min-height: 100dvh;
+    padding: 0;
+    align-items: stretch;
+  }
 }

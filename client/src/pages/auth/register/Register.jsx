@@ -607,7 +607,7 @@ const Register = () => {
           styles.container
         }
       >
-        <Logo size="xl" />
+        <Logo size="lg" />
 
         <div
           className={

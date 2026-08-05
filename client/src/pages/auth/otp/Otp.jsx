@@ -297,7 +297,7 @@ const Otp = () => {
   return (
     <AuthLayout>
       <div className={styles.container}>
-        <Logo size="xl" />
+        <Logo size="lg" />
 
         <div className={styles.heading}>
           <h1>Verify OTP</h1>

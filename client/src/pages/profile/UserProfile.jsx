@@ -662,7 +662,7 @@ const UserProfile = () => {
       return;
     }
 
-  
+
     setSelectedChat(
       user
     );
@@ -721,21 +721,54 @@ const UserProfile = () => {
   ========================= */
 
   if (error || !user) {
+    const isNotFound =
+      error
+        .toLowerCase()
+        .includes("not found");
+
     return (
       <div
         className={styles.loading}
       >
         <p>
-          {error ||
-            "User not found"}
+          {isNotFound
+            ? "This user is no longer available."
+            : error ||
+            "Unable to load profile"}
         </p>
 
-        <button
-          type="button"
-          onClick={fetchUser}
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            justifyContent:
+              "center",
+            flexWrap: "wrap",
+          }}
         >
-          Try Again
-        </button>
+          {!isNotFound && (
+            <button
+              type="button"
+              onClick={fetchUser}
+            >
+              Try Again
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                "/activity?tab=notifications",
+                {
+                  replace: true,
+                }
+              )
+            }
+          >
+            Back to Activity
+          </button>
+        </div>
       </div>
     );
   }

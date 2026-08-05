@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -27,11 +28,19 @@ const GoogleLoginButton = ({
   const navigate = useNavigate();
   const { setUser } = useAuth();
 
+  const buttonWrapperRef =
+    useRef(null);
+
   const requestInFlightRef =
     useRef(false);
 
   const [loading, setLoading] =
     useState(false);
+
+  const [
+    googleButtonWidth,
+    setGoogleButtonWidth,
+  ] = useState(300);
 
   const [
     errorMessage,
@@ -40,6 +49,51 @@ const GoogleLoginButton = ({
 
   const isDisabled =
     disabled || loading;
+
+  /* =========================
+     RESPONSIVE BUTTON WIDTH
+  ========================= */
+
+  useEffect(() => {
+    const wrapper =
+      buttonWrapperRef.current;
+
+    if (!wrapper) {
+      return undefined;
+    }
+
+    const updateButtonWidth = () => {
+      const availableWidth =
+        Math.floor(
+          wrapper.clientWidth
+        );
+
+      if (availableWidth > 0) {
+        setGoogleButtonWidth(
+          availableWidth
+        );
+      }
+    };
+
+    updateButtonWidth();
+
+    const resizeObserver =
+      new ResizeObserver(
+        updateButtonWidth
+      );
+
+    resizeObserver.observe(
+      wrapper
+    );
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  /* =========================
+     GOOGLE LOGIN SUCCESS
+  ========================= */
 
   const handleSuccess = async (
     credentialResponse
@@ -62,7 +116,9 @@ const GoogleLoginButton = ({
       return;
     }
 
-    requestInFlightRef.current = true;
+    requestInFlightRef.current =
+      true;
+
     setLoading(true);
     setErrorMessage("");
 
@@ -101,8 +157,8 @@ const GoogleLoginButton = ({
     } catch (error) {
       console.error(
         "GOOGLE LOGIN ERROR:",
-        error.response?.data ||
-        error.message
+        error?.response?.data ||
+        error?.message
       );
 
       if (!navigator.onLine) {
@@ -110,7 +166,7 @@ const GoogleLoginButton = ({
           "You appear to be offline. Check your internet connection."
         );
       } else if (
-        error.code ===
+        error?.code ===
         "ECONNABORTED"
       ) {
         setErrorMessage(
@@ -118,9 +174,9 @@ const GoogleLoginButton = ({
         );
       } else {
         setErrorMessage(
-          error.response?.data
+          error?.response?.data
             ?.message ||
-          error.message ||
+          error?.message ||
           "Unable to continue with Google."
         );
       }
@@ -132,8 +188,14 @@ const GoogleLoginButton = ({
     }
   };
 
+  /* =========================
+     GOOGLE LOGIN ERROR
+  ========================= */
+
   const handleError = () => {
-    if (isDisabled) return;
+    if (isDisabled) {
+      return;
+    }
 
     setErrorMessage(
       "Google sign-in was cancelled or unsuccessful."
@@ -142,31 +204,27 @@ const GoogleLoginButton = ({
 
   return (
     <div
-      className={
-        styles.container
-      }
+      className={styles.container}
     >
       <div
+        ref={buttonWrapperRef}
         className={`${styles.buttonWrapper} ${isDisabled
             ? styles.disabled
             : ""
           }`}
-        aria-disabled={
-          isDisabled
-        }
+        aria-disabled={isDisabled}
         aria-busy={loading}
       >
         <GoogleLogin
-          onSuccess={
-            handleSuccess
-          }
-          onError={
-            handleError
-          }
+          onSuccess={handleSuccess}
+          onError={handleError}
           theme="outline"
           shape="pill"
           size="large"
           text="continue_with"
+          width={String(
+            googleButtonWidth
+          )}
           useOneTap={false}
           cancel_on_tap_outside
         />
@@ -186,8 +244,12 @@ const GoogleLoginButton = ({
               aria-hidden="true"
             />
 
-            <span>
-              Signing in…
+            <span
+              className={
+                styles.loadingText
+              }
+            >
+              Signing in...
             </span>
           </div>
         )}

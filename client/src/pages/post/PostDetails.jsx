@@ -60,9 +60,11 @@ const PostDetails = () => {
             );
 
           setPost(
-            response?.post ||
-            null
-          );
+  response?.data?.post ||
+  response?.post ||
+  null
+);
+
         } catch (loadError) {
           console.error(
             "LOAD POST ERROR:",

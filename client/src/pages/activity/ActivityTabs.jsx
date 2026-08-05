@@ -17,7 +17,10 @@ import {
   UserRoundPlus,
 } from "lucide-react";
 
-import { useNavigate } from "react-router-dom";
+import {
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 
 import DefaultAvatar from "../../assets/default-avatar.png";
 
@@ -30,6 +33,8 @@ import {
 import {
   getNotifications,
   markNotificationAsRead,
+  markAllNotificationsAsRead,
+  markLikesAsRead,
 } from "../../services/notificationService";
 
 import {
@@ -198,6 +203,12 @@ const ActivityTabs = () => {
   const navigate =
     useNavigate();
 
+  const [searchParams] =
+    useSearchParams();
+
+  const requestedTab =
+    searchParams.get("tab");
+
   const {
     socket,
 
@@ -209,10 +220,30 @@ const ActivityTabs = () => {
   const [
     activeTab,
     setActiveTab,
-  ] = useState(
-    "follow-requests"
-  );
+  ] = useState(() => {
+    if (
+      requestedTab === "likes" ||
+      requestedTab === "notifications" ||
+      requestedTab === "follow-requests"
+    ) {
+      return requestedTab;
+    }
 
+    return "follow-requests";
+  });
+
+
+  useEffect(() => {
+    if (
+      requestedTab === "likes" ||
+      requestedTab === "notifications" ||
+      requestedTab === "follow-requests"
+    ) {
+      setActiveTab(
+        requestedTab
+      );
+    }
+  }, [requestedTab]);
   /* =========================
      FOLLOW REQUEST STATE
   ========================= */
@@ -710,27 +741,186 @@ const ActivityTabs = () => {
       ]
     );
 
+
+  const handleFollowRequestsTabClick =
+    () => {
+      setActiveTab(
+        "follow-requests"
+      );
+
+      navigate(
+        "/activity?tab=follow-requests",
+        {
+          replace: true,
+        }
+      );
+    };
+
+
+  const handleLikesTabClick =
+    async () => {
+      setActiveTab("likes");
+
+      navigate(
+        "/activity?tab=likes",
+        {
+          replace: true,
+        }
+      );
+
+      const hasUnreadLikes =
+        notifications.some(
+          (notification) =>
+            notification?.type === "like" &&
+            !notification?.isRead
+        );
+
+      if (!hasUnreadLikes) {
+        return;
+      }
+
+      /*
+       * Instant local badge removal
+       */
+      setNotifications((previous) =>
+        previous.map((notification) =>
+          notification?.type === "like"
+            ? {
+              ...notification,
+              isRead: true,
+            }
+            : notification
+        )
+      );
+
+      try {
+        const response =
+          await markLikesAsRead();
+
+        setNotificationUnreadCount(
+          Math.max(
+            0,
+            Number(
+              response?.data?.unreadCount
+            ) || 0
+          )
+        );
+      } catch (error) {
+        console.error(
+          "MARK LIKES READ ERROR:",
+          error?.response?.data ||
+          error?.message
+        );
+
+        await loadActivityNotifications();
+      }
+    };
+
+
+
+
+  /* =========================
+   OPEN NOTIFICATIONS TAB
+========================= */
+
+  const handleNotificationsTabClick =
+    async () => {
+      setActiveTab(
+        "notifications"
+      );
+
+      navigate(
+        "/activity?tab=notifications",
+        {
+          replace: true,
+        }
+      );
+
+      const hasUnreadNotifications =
+        notifications.some(
+          (notification) =>
+            !notification?.isRead
+        );
+
+
+      if (!hasUnreadNotifications) {
+        return;
+      }
+
+      setNotifications(
+        (previous) =>
+          previous.map(
+            (notification) => ({
+              ...notification,
+              isRead: true,
+            })
+          )
+      );
+
+      setNotificationUnreadCount(
+        0
+      );
+
+      try {
+        const response =
+          await markAllNotificationsAsRead();
+
+        setNotificationUnreadCount(
+          Math.max(
+            0,
+            Number(
+              response?.data?.unreadCount
+            ) || 0
+          )
+        );
+      } catch (error) {
+        console.error(
+          "MARK ALL NOTIFICATIONS READ ERROR:",
+          error?.response?.data ||
+          error?.message
+        );
+
+
+        await loadActivityNotifications();
+      }
+    };
+
+  useEffect(() => {
+    if (notificationsLoading) {
+      return;
+    }
+
+    if (requestedTab === "notifications") {
+      handleNotificationsTabClick();
+      return;
+    }
+
+    if (requestedTab === "likes") {
+      handleLikesTabClick();
+    }
+  }, [
+    requestedTab,
+    notificationsLoading,
+  ]);
+
   /* =========================
      NOTIFICATION CLICK
   ========================= */
 
   const handleNotificationClick =
-    async (
-      notification
-    ) => {
+    async (notification) => {
       await markOneAsRead(
         notification
       );
-
-      const senderId =
-        normalizeId(
-          notification?.sender
-        );
 
       const postId =
         normalizeId(
           notification?.post
         );
+
+      const senderUsername =
+        notification?.sender
+          ?.username;
 
       if (
         notification?.type ===
@@ -747,13 +937,23 @@ const ActivityTabs = () => {
         return;
       }
 
-      if (senderId) {
+      if (
+        notification?.type ===
+        "follow_request"
+      ) {
         navigate(
-          `/profile/${senderId}`
+          "/activity?tab=follow-requests"
+        );
+
+        return;
+      }
+
+      if (senderUsername) {
+        navigate(
+          `/user/${senderUsername}`
         );
       }
     };
-
   /* =========================
      SOCKET EVENTS
   ========================= */
@@ -922,6 +1122,28 @@ const ActivityTabs = () => {
         }
       };
 
+    const handleAllNotificationsRead =
+      (payload = {}) => {
+        setNotifications(
+          (previous) =>
+            previous.map(
+              (notification) => ({
+                ...notification,
+                isRead: true,
+              })
+            )
+        );
+
+        setNotificationUnreadCount(
+          Math.max(
+            0,
+            Number(
+              payload?.unreadCount
+            ) || 0
+          )
+        );
+      };
+
     const handleSocketConnect =
       () => {
         Promise.all([
@@ -961,6 +1183,11 @@ const ActivityTabs = () => {
     );
 
     socket.on(
+      "allNotificationsRead",
+      handleAllNotificationsRead
+    );
+
+    socket.on(
       "connect",
       handleSocketConnect
     );
@@ -989,6 +1216,11 @@ const ActivityTabs = () => {
       socket.off(
         "notificationRead",
         handleNotificationRead
+      );
+
+      socket.off(
+        "allNotificationsRead",
+        handleAllNotificationsRead
       );
 
       socket.off(
@@ -1572,10 +1804,8 @@ const ActivityTabs = () => {
             ? styles.active
             : ""
             }`}
-          onClick={() =>
-            setActiveTab(
-              "follow-requests"
-            )
+          onClick={
+            handleFollowRequestsTabClick
           }
         >
           <UserPlus
@@ -1611,10 +1841,8 @@ const ActivityTabs = () => {
             ? styles.active
             : ""
             }`}
-          onClick={() =>
-            setActiveTab(
-              "likes"
-            )
+          onClick={
+            handleLikesTabClick
           }
         >
           <Heart size={18} />
@@ -1650,10 +1878,8 @@ const ActivityTabs = () => {
             ? styles.active
             : ""
             }`}
-          onClick={() =>
-            setActiveTab(
-              "notifications"
-            )
+          onClick={
+            handleNotificationsTabClick
           }
         >
           <Bell size={18} />

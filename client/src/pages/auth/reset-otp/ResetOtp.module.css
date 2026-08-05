@@ -2,41 +2,62 @@
   width: 100%;
   max-width: 440px;
   margin: 0 auto;
+  padding: 24px;
+
+  box-sizing: border-box;
 }
 
 .heading {
-  margin: 28px 0 26px;
+  margin: 24px 0 22px;
   text-align: center;
 }
 
 .heading h1 {
-  margin: 0 0 10px;
-  font-size: 28px;
+  margin: 0 0 8px;
+
+  color: var(--text-primary);
+
+  font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.2;
+  letter-spacing: -0.025em;
 }
 
 .heading p {
   margin: 0;
+
+  color: var(--text-secondary);
+
   font-size: 14px;
-  line-height: 1.6;
-  opacity: 0.72;
+  line-height: 1.5;
 }
 
 .email {
   display: block;
-  margin-top: 8px;
-  color: #60a5fa;
-  font-size: 14px;
+  margin-top: 7px;
+
+  color: var(--primary);
+
+  font-size: 13.5px;
   font-weight: 600;
+  line-height: 1.4;
+
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
+/* =========================
+   OTP BOXES
+========================= */
+
 .otpBoxes {
+  width: 100%;
+  margin: 0 0 18px;
+
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns:
+    repeat(6, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 18px;
 }
 
 .otpBoxes input {
@@ -44,24 +65,42 @@
   min-width: 0;
   height: 54px;
   padding: 0;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.55);
-  color: #ffffff;
-  font-size: 22px;
-  font-weight: 700;
-  text-align: center;
+
+  box-sizing: border-box;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
   outline: none;
+
+  background: var(--surface);
+  color: var(--text-primary);
+
+  text-align: center;
+  font-size: 21px;
+  font-weight: 700;
+
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease,
+    background 0.18s ease;
+}
+
+.otpBoxes input:hover:not(:disabled) {
+  border-color:
+    color-mix(in srgb,
+      var(--primary) 35%,
+      var(--border));
 }
 
 .otpBoxes input:focus {
-  border-color: #3b82f6;
+  border-color: var(--primary);
+
   box-shadow:
-    0 0 0 3px rgba(59, 130, 246, 0.16);
+    0 0 0 3px color-mix(in srgb,
+      var(--primary) 18%,
+      transparent);
+
   transform: translateY(-1px);
 }
 
@@ -70,37 +109,71 @@
   cursor: not-allowed;
 }
 
-.error {
-  margin: 0 0 14px;
-  color: #f87171;
+/* =========================
+   STATUS MESSAGES
+========================= */
+
+.error,
+.success {
+  margin: 0 0 12px;
+
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.45;
   text-align: center;
+}
+
+.error {
+  color: var(--danger, #dc2626);
 }
 
 .success {
-  margin: 0 0 14px;
-  color: #4ade80;
-  font-size: 13px;
-  line-height: 1.5;
-  text-align: center;
+  color: var(--success, #16a34a);
 }
 
+/* =========================
+   RESEND
+========================= */
+
 .resend {
-  margin: 20px 0 0;
+  margin: 18px 0 0;
+
+  color: var(--text-secondary);
+
   font-size: 14px;
+  line-height: 1.45;
   text-align: center;
-  opacity: 0.82;
 }
 
 .resend button {
   padding: 0;
-  border: 0;
+
+  border: none;
+  outline: none;
+
   background: transparent;
-  color: #60a5fa;
+  color: var(--primary);
+
   font: inherit;
-  font-weight: 600;
+  font-weight: 650;
+
   cursor: pointer;
+
+  transition:
+    opacity 0.18s ease;
+}
+
+.resend button:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.resend button:focus-visible {
+  outline: 3px solid color-mix(in srgb,
+      var(--primary) 22%,
+      transparent);
+
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
 .resend button:disabled {
@@ -108,34 +181,166 @@
   cursor: not-allowed;
 }
 
+/* =========================
+   FOOTER
+========================= */
+
 .footer {
   margin: 18px 0 0;
   text-align: center;
 }
 
 .footer a {
-  color: #60a5fa;
+  color: var(--primary);
+
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 650;
   text-decoration: none;
 }
 
 .footer a:hover {
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
+/* =========================
+   TABLET / DESKTOP
+========================= */
+
+@media (min-width: 768px) {
+  .container {
+    padding: 40px;
+
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/* =========================
+   MOBILE
+========================= */
+
 @media (max-width: 480px) {
+  .container {
+    max-width: 100%;
+    padding: 16px 18px;
+  }
+
+  .heading {
+    margin: 16px 0 18px;
+  }
+
+  .heading h1 {
+    font-size: 1.5rem;
+  }
+
+  .heading p {
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
+
+  .email {
+    margin-top: 5px;
+    font-size: 13px;
+  }
+
   .otpBoxes {
     gap: 7px;
+    margin-bottom: 14px;
   }
 
   .otpBoxes input {
     height: 48px;
+
+    border-radius: 11px;
+
+    font-size: 19px;
+  }
+
+  .error,
+  .success {
+    margin-bottom: 10px;
+
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+
+  .resend {
+    margin-top: 14px;
+    font-size: 13px;
+  }
+
+  .footer {
+    margin-top: 14px;
+  }
+
+  .footer a {
+    font-size: 13px;
+  }
+}
+
+/* =========================
+   VERY SMALL MOBILE
+========================= */
+
+@media (max-width: 360px) {
+  .container {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .otpBoxes {
+    gap: 5px;
+  }
+
+  .otpBoxes input {
+    height: 44px;
+
     border-radius: 10px;
-    font-size: 20px;
+
+    font-size: 18px;
   }
 
   .heading h1 {
-    font-size: 24px;
+    font-size: 1.4rem;
+  }
+}
+
+/* =========================
+   SHORT MOBILE SCREENS
+========================= */
+
+@media (max-width: 480px) and (max-height: 650px) {
+  .container {
+    padding-top: 10px;
+    padding-bottom: 12px;
+  }
+
+  .heading {
+    margin: 10px 0 14px;
+  }
+
+  .otpBoxes {
+    margin-bottom: 10px;
+  }
+
+  .resend,
+  .footer {
+    margin-top: 10px;
+  }
+}
+
+/* =========================
+   REDUCED MOTION
+========================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .otpBoxes input,
+  .resend button {
+    transition: none;
   }
 }

@@ -46,7 +46,7 @@ const ForgotPassword = () => {
       if (!response?.success) {
         throw new Error(
           response?.message ||
-            "Unable to process request"
+          "Unable to process request"
         );
       }
 
@@ -65,8 +65,8 @@ const ForgotPassword = () => {
 
       setError(
         error.response?.data?.message ||
-          error.message ||
-          "Unable to send reset code"
+        error.message ||
+        "Unable to send reset code"
       );
     } finally {
       setLoading(false);
@@ -76,7 +76,7 @@ const ForgotPassword = () => {
   return (
     <AuthLayout>
       <div className={styles.container}>
-        <Logo size="xl" />
+        <Logo size="lg" />
 
         <div className={styles.heading}>
           <h1>Forgot Password?</h1>

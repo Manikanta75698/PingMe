@@ -242,7 +242,7 @@ const Login = () => {
           styles.container
         }
       >
-        <Logo size="xl" />
+        <Logo size="lg" />
 
         <div
           className={
@@ -344,8 +344,8 @@ const Login = () => {
 
         <div
           className={`${styles.googleLogin} ${loading
-              ? styles.googleDisabled
-              : ""
+            ? styles.googleDisabled
+            : ""
             }`}
           aria-disabled={
             loading

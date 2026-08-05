@@ -218,13 +218,13 @@ const ResetOtp = () => {
       console.error(
         "VERIFY RESET OTP ERROR:",
         error.response?.data ||
-          error.message
+        error.message
       );
 
       setError(
         error.response?.data?.message ||
-          error.message ||
-          "Unable to verify reset code"
+        error.message ||
+        "Unable to verify reset code"
       );
     } finally {
       setLoading(false);
@@ -267,7 +267,7 @@ const ResetOtp = () => {
 
       setMessage(
         response?.message ||
-          "A new reset code has been sent."
+        "A new reset code has been sent."
       );
 
       inputRefs.current[0]?.focus();
@@ -275,7 +275,7 @@ const ResetOtp = () => {
       console.error(
         "RESEND RESET OTP ERROR:",
         error.response?.data ||
-          error.message
+        error.message
       );
 
       const retryAfter =
@@ -287,7 +287,7 @@ const ResetOtp = () => {
 
       setError(
         error.response?.data?.message ||
-          "Unable to resend reset code"
+        "Unable to resend reset code"
       );
     } finally {
       setResending(false);
@@ -297,7 +297,7 @@ const ResetOtp = () => {
   return (
     <AuthLayout>
       <div className={styles.container}>
-        <Logo size="xl" />
+        <Logo size="lg" />
 
         <div className={styles.heading}>
           <h1>Verify Reset Code</h1>
@@ -338,9 +338,8 @@ const ResetOtp = () => {
                 disabled={
                   loading || resending
                 }
-                aria-label={`Reset code digit ${
-                  index + 1
-                }`}
+                aria-label={`Reset code digit ${index + 1
+                  }`}
                 onChange={(e) =>
                   handleChange(
                     index,

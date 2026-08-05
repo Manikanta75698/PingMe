@@ -8,21 +8,43 @@ const Button = ({
   fullWidth = false,
   disabled = false,
   loading = false,
+  loadingText = "Loading...",
   onClick,
+  className = "",
+  ...rest
 }) => {
+  const buttonClasses = [
+    styles.button,
+    styles[variant],
+    styles[size],
+    fullWidth ? styles.fullWidth : "",
+    loading ? styles.loading : "",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <button
       type={type}
       disabled={disabled || loading}
       onClick={onClick}
-      className={`
-        ${styles.button}
-        ${styles[variant]}
-        ${styles[size]}
-        ${fullWidth ? styles.fullWidth : ""}
-      `}
+      className={buttonClasses}
+      aria-busy={loading}
+      {...rest}
     >
-      {loading ? "Loading..." : children}
+      <span className={styles.content}>
+        {loading && (
+          <span
+            className={styles.spinner}
+            aria-hidden="true"
+          />
+        )}
+
+        <span className={styles.label}>
+          {loading ? loadingText : children}
+        </span>
+      </span>
     </button>
   );
 };
