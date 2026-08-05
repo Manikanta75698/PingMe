@@ -1186,10 +1186,10 @@ export const ChatProvider = ({
       handleLastSeenPrivacyChanged
     );
 
-    if (socket.connected) {
-      handleConnect();
-    } else {
+    if (!socket.connected) {
       connectSocket();
+    } else {
+      requestSelectedPresence();
     }
 
     return () => {

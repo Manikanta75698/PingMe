@@ -124,41 +124,38 @@ export const refreshSocketAuth =
     return token;
   };
 
-export const connectSocket =
-  () => {
-    const token =
-      refreshSocketAuth();
+export const connectSocket = () => {
+  const token =
+    refreshSocketAuth();
 
-    if (!token) {
-      if (isDevelopment) {
-        console.warn(
-          "Socket connection skipped: token missing"
-        );
-      }
-
-      return false;
+  if (!token) {
+    if (isDevelopment) {
+      console.warn(
+        "Socket connection skipped: token missing"
+      );
     }
 
-    if (!socket.connected) {
-      socket.connect();
-    }
+    return false;
+  }
 
-    return true;
+  if (
+    !socket.connected &&
+    !socket.active
+  ) {
+    socket.connect();
+  }
+
+  return true;
+};
+
+export const disconnectSocket = () => {
+
+  socket.disconnect();
+
+  socket.auth = {
+    token: "",
   };
-
-export const disconnectSocket =
-  () => {
-    if (
-      socket.connected ||
-      socket.active
-    ) {
-      socket.disconnect();
-    }
-
-    socket.auth = {
-      token: "",
-    };
-  };
+};
 
 /* =========================
    CONNECTION EVENTS

@@ -50,45 +50,34 @@ const Login = () => {
   ========================= */
 
   useEffect(() => {
-    const controller =
-      new AbortController();
+    let isActive = true;
 
     const warmUpBackend =
       async () => {
         try {
-          await api.get("/health", {
-            timeout: 90000,
+          await api.get(
+            "/health",
+            {
+              timeout: 90000,
 
-            signal:
-              controller.signal,
-
-            headers: {
-              "Cache-Control":
-                "no-cache",
-            },
-          });
-        } catch (error) {
-          if (
-            error.code ===
-            "ERR_CANCELED" ||
-            error.name ===
-            "CanceledError"
-          ) {
+              headers: {
+                "Cache-Control":
+                  "no-cache",
+              },
+            }
+          );
+        } catch {
+        
+          if (!isActive) {
             return;
           }
-
-          console.warn(
-            "BACKEND WARM-UP DELAYED:",
-            error.response?.data ||
-            error.message
-          );
         }
       };
 
     warmUpBackend();
 
     return () => {
-      controller.abort();
+      isActive = false;
     };
   }, []);
 
