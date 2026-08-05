@@ -18,9 +18,7 @@ import {
   useAuth,
 } from "../../context/AuthContext";
 
-import {
-  googleLogin,
-} from "../../services/authService";
+import api from "../../services/api";
 
 import styles from "./GoogleLoginButton.module.css";
 
@@ -151,8 +149,22 @@ const GoogleLoginButton = ({
       setErrorMessage("");
 
       try {
+        const apiResponse =
+          await api.post(
+            "/auth/google",
+            {
+              credential:
+                String(
+                  credential
+                ).trim(),
+            },
+            {
+              timeout: 90000,
+            }
+          );
+
         const response =
-          await googleLogin(credential);
+          apiResponse?.data;
 
         const token =
           response?.token;
