@@ -867,6 +867,7 @@ const sendMessage = async (
     const [
       blockState,
       messagePermissionResult,
+      existingConversation,
     ] = await Promise.all([
       getUserBlockState(
         senderId,
@@ -877,6 +878,19 @@ const sendMessage = async (
         senderId,
         receiverId
       ),
+
+      Message.exists({
+        $or: [
+          {
+            sender: senderId,
+            receiver: receiverId,
+          },
+          {
+            sender: receiverId,
+            receiver: senderId,
+          },
+        ],
+      }),
     ]);
 
 
@@ -909,30 +923,34 @@ const sendMessage = async (
       });
     }
 
-    if (
-      !messagePermissionResult.allowed
-    ) {
-      const permissionError =
-        getMessagePermissionError(
-          messagePermissionResult
-            .permission
-        );
+if (
+  !existingConversation &&
+  !messagePermissionResult.allowed
+) {
+  const permissionError =
+    getMessagePermissionError(
+      messagePermissionResult
+        .permission
+    );
 
-      return res.status(403).json({
-        success: false,
-        message:
-          permissionError.message,
-        code:
-          permissionError.code,
+  return res.status(403).json({
+    success: false,
 
-        data: {
-          userId: receiverId,
-          messagePermission:
-            messagePermissionResult
-              .permission,
-        },
-      });
-    }
+    message:
+      permissionError.message,
+
+    code:
+      permissionError.code,
+
+    data: {
+      userId: receiverId,
+
+      messagePermission:
+        messagePermissionResult
+          .permission,
+    },
+  });
+}
     logSendTiming(
       "access checks complete"
     );
