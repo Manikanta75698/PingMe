@@ -628,15 +628,20 @@ const HelpRequestDetails = () => {
   const handleOpenProfile = (
     user
   ) => {
-    const userId =
-      getId(user);
+    const username =
+      user?.username;
 
-    if (!userId) {
+    if (!username) {
       return;
     }
 
+    const cleanUsername =
+      username.startsWith("@")
+        ? username.slice(1)
+        : username;
+
     navigate(
-      `/profile/${userId}`
+      `/user/${cleanUsername}`
     );
   };
 
@@ -647,7 +652,9 @@ const HelpRequestDetails = () => {
           styles.page
         }
       >
-        <Header />
+        <div className={styles.desktopHeader}>
+          <Header />
+        </div>
 
         <main
           className={
@@ -685,7 +692,13 @@ const HelpRequestDetails = () => {
           styles.page
         }
       >
-        <Header />
+        <div
+          className={
+            styles.desktopHeader
+          }
+        >
+          <Header />
+        </div>
 
         <main
           className={
@@ -761,7 +774,13 @@ const HelpRequestDetails = () => {
         styles.page
       }
     >
-      <Header />
+      <div
+        className={
+          styles.desktopHeader
+        }
+      >
+        <Header />
+      </div>
 
       <main
         className={

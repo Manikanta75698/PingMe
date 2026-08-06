@@ -1119,3 +1119,30 @@
       1500ms;
   }
 }
+
+/* =========================
+   HELP MOBILE SHELL
+========================= */
+
+.desktopHeader {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .desktopHeader {
+    display: none;
+  }
+
+  .pageContent {
+    padding-top: 14px;
+    padding-bottom:
+      calc(28px + env(safe-area-inset-bottom,
+          0px));
+  }
+
+  .formFooter {
+    bottom:
+      calc(10px + env(safe-area-inset-bottom,
+          0px));
+  }
+}

@@ -467,7 +467,9 @@ const CreateHelpRequest = () => {
         styles.page
       }
     >
-      <Header />
+      <div className={styles.desktopHeader}>
+        <Header />
+      </div>
 
       <main
         className={
@@ -762,8 +764,8 @@ const CreateHelpRequest = () => {
                       }
                       type="button"
                       className={`${styles.categoryCard} ${isSelected
-                          ? styles.categoryCardSelected
-                          : ""
+                        ? styles.categoryCardSelected
+                        : ""
                         }`}
                       onClick={() =>
                         updateField(
@@ -887,7 +889,7 @@ const CreateHelpRequest = () => {
                           .toUpperCase()}${urgency.value.slice(
                             1
                           )}`
-                        ]
+                      ]
                         } ${isSelected
                           ? styles.urgencySelected
                           : ""
@@ -1113,9 +1115,9 @@ const CreateHelpRequest = () => {
             >
               <label
                 className={`${styles.contactOption} ${formData.contactPreference ===
-                    "chat"
-                    ? styles.contactOptionSelected
-                    : ""
+                  "chat"
+                  ? styles.contactOptionSelected
+                  : ""
                   }`}
               >
                 <input
@@ -1152,9 +1154,9 @@ const CreateHelpRequest = () => {
 
               <label
                 className={`${styles.contactOption} ${formData.contactPreference ===
-                    "phone"
-                    ? styles.contactOptionSelected
-                    : ""
+                  "phone"
+                  ? styles.contactOptionSelected
+                  : ""
                   }`}
               >
                 <input
@@ -1191,9 +1193,9 @@ const CreateHelpRequest = () => {
 
               <label
                 className={`${styles.contactOption} ${formData.contactPreference ===
-                    "both"
-                    ? styles.contactOptionSelected
-                    : ""
+                  "both"
+                  ? styles.contactOptionSelected
+                  : ""
                   }`}
               >
                 <input
@@ -1335,9 +1337,9 @@ const CreateHelpRequest = () => {
                     className={`${styles.expiryButton} ${Number(
                       formData.expiresInDays
                     ) ===
-                        option.value
-                        ? styles.expiryButtonSelected
-                        : ""
+                      option.value
+                      ? styles.expiryButtonSelected
+                      : ""
                       }`}
                     onClick={() =>
                       updateField(

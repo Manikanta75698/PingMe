@@ -519,7 +519,9 @@ const HelpFeed = () => {
         styles.helpPage
       }
     >
-      <Header />
+      <div className={styles.desktopHeader}>
+        <Header />
+      </div>
 
       <main
         className={
@@ -639,8 +641,8 @@ const HelpFeed = () => {
           <button
             type="button"
             className={`${styles.filterButton} ${hasActiveFilters
-                ? styles.filterButtonActive
-                : ""
+              ? styles.filterButtonActive
+              : ""
               }`}
             onClick={() =>
               setShowFilters(
@@ -854,8 +856,8 @@ const HelpFeed = () => {
                   }
                   type="button"
                   className={`${styles.categoryButton} ${isActive
-                      ? styles.categoryButtonActive
-                      : ""
+                    ? styles.categoryButtonActive
+                    : ""
                     }`}
                   onClick={() =>
                     setSelectedCategory(
@@ -1039,7 +1041,7 @@ const HelpFeed = () => {
                             .toUpperCase()}${request.urgency?.slice(
                               1
                             )}`
-                          ] || ""
+                        ] || ""
                           }`}
                       >
                         {
