@@ -36,14 +36,19 @@
   color-scheme: light dark;
 
   position: sticky;
+  right: 0;
   bottom: 0;
-  z-index: 30;
+  left: 0;
+  z-index: 40;
 
   display: flex;
   align-items: flex-end;
   gap: 8px;
 
   width: 100%;
+  min-width: 0;
+
+  box-sizing: border-box;
 
   padding:
     10px 14px calc(10px + env(safe-area-inset-bottom));
@@ -469,10 +474,38 @@
 
 @media (max-width: 768px) {
   .container {
+    position: sticky;
+    right: 0;
+    bottom: 0;
+    left: 0;
+
+    z-index: 60;
+
+    flex: 0 0 auto;
+
+    width: 100%;
+    min-width: 0;
+
     gap: 5px;
 
     padding:
       8px 8px calc(8px + env(safe-area-inset-bottom));
+
+    background:
+      color-mix(in srgb,
+        var(--composer-surface) 96%,
+        transparent);
+
+    border-top:
+      1px solid var(--composer-border);
+
+    box-sizing: border-box;
+
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   .icon {
@@ -657,24 +690,44 @@
   }
 }
 
-@media (max-width: 768px) {
+
+
+/* =========================
+   MOBILE KEYBOARD SAFETY
+========================= */
+
+@supports (height: 100dvh) {
+  @media (max-width: 768px) {
+    .container {
+      max-width: 100dvw;
+    }
+  }
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
   .container {
-    position: relative;
-    bottom: auto;
+    padding-top: 6px;
+    padding-bottom:
+      calc(6px + env(safe-area-inset-bottom));
+  }
 
-    flex: 0 0 auto;
+  .input {
+    max-height: 96px;
+  }
 
-    width: 100%;
+  .replyBar {
+    min-height: 50px;
+  }
+}
 
-    padding:
-      8px 8px calc(8px + env(safe-area-inset-bottom));
+@media (prefers-contrast: more) {
+  .inputWrapper {
+    border-color:
+      var(--composer-border);
+  }
 
-    background:
-      var(--composer-surface);
-
-    border-top:
-      1px solid var(--composer-border);
-
-    box-sizing: border-box;
+  .send,
+  .replyClose {
+    outline-offset: 3px;
   }
 }

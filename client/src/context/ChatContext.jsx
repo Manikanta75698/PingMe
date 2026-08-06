@@ -190,6 +190,12 @@ export const ChatProvider = ({
   const readReceiptIdsRef =
     useRef(new Set());
 
+  const summariesRequestRef =
+    useRef(null);
+
+  const summariesLoadedAtRef =
+    useRef(0);
+
   const selectedChatId =
     normalizeId(selectedChat);
 
@@ -197,10 +203,6 @@ export const ChatProvider = ({
      SELECTED CHAT REFERENCE
   ========================= */
 
-  /*
-   * Keep the latest selected-chat object available to
-   * socket callbacks without resetting composer state.
-   */
   useEffect(() => {
     selectedChatRef.current =
       selectedChat;
@@ -422,45 +424,120 @@ export const ChatProvider = ({
   ========================= */
 
   const loadChatSummaries =
-    useCallback(async () => {
-      const token =
-        localStorage.getItem("token");
+    useCallback(
+      async ({
+        force = false,
+        silent = false,
+      } = {}) => {
+        const token =
+          localStorage
+            .getItem("token")
+            ?.trim();
 
-      if (!token) {
-        setChatSummaries([]);
-        return;
-      }
+        /*
+         * Logout state lo stale chat data
+         * current user ki show kakudadhu.
+         */
+        if (!token) {
+          summariesRequestRef.current =
+            null;
 
-      try {
-        setSummariesLoading(true);
+          summariesLoadedAtRef.current =
+            0;
 
-        const response =
-          await getChatSummaries();
+          setChatSummaries([]);
+          setSummariesLoading(false);
 
-        const summaries =
-          response?.data?.chats;
+          return [];
+        }
 
-        const safeSummaries =
-          Array.isArray(summaries)
-            ? summaries
-            : [];
+        const now =
+          Date.now();
 
-        setChatSummaries(
-          safeSummaries
-        );
+        const cacheIsFresh =
+          now -
+          summariesLoadedAtRef.current <
+          15000;
 
-      } catch (error) {
-        console.error(
-          "LOAD CHAT SUMMARIES ERROR:",
-          error.response?.data ||
-          error.message
-        );
+        /*
+         * Last 15 seconds lo already
+         * successful fetch ayithe duplicate
+         * request avoid chestham.
+         */
+        if (
+          !force &&
+          cacheIsFresh
+        ) {
+          return null;
+        }
 
-        setChatSummaries([]);
-      } finally {
-        setSummariesLoading(false);
-      }
-    }, []);
+        /*
+         * Existing request running lo unte
+         * same promise return chestham.
+         */
+        if (
+          summariesRequestRef.current
+        ) {
+          return summariesRequestRef.current;
+        }
+
+        if (!silent) {
+          setSummariesLoading(true);
+        }
+
+        const request =
+          (async () => {
+            try {
+              const response =
+                await getChatSummaries();
+
+              const summaries =
+                response?.data?.chats;
+
+              const safeSummaries =
+                Array.isArray(summaries)
+                  ? summaries
+                  : [];
+
+              setChatSummaries(
+                safeSummaries
+              );
+
+              summariesLoadedAtRef.current =
+                Date.now();
+
+              return safeSummaries;
+            } catch (error) {
+              console.error(
+                "LOAD CHAT SUMMARIES ERROR:",
+                error.response?.data ||
+                error.message
+              );
+
+              /*
+               * IMPORTANT:
+               * Temporary network/Render
+               * cold-start error vachina old
+               * chat list ni empty cheyyakudadhu.
+               */
+              return null;
+            } finally {
+              summariesRequestRef.current =
+                null;
+
+              if (!silent) {
+                setSummariesLoading(false);
+              }
+            }
+          })();
+
+        summariesRequestRef.current =
+          request;
+
+        return request;
+      },
+      []
+    );
 
 
   /* =========================
@@ -540,31 +617,120 @@ export const ChatProvider = ({
     }, []);
 
   /* =========================
-     INITIAL DATA
-  ========================= */
+    INITIAL DATA
+ ========================= */
 
   useEffect(() => {
-    const token =
-      localStorage.getItem("token");
+    const loadInitialData =
+      async () => {
+        const token =
+          localStorage
+            .getItem("token")
+            ?.trim();
 
-    if (!token) {
-      return;
-    }
+        if (!token) {
+          return;
+        }
 
-    Promise.all([
-      loadChatSummaries(),
-      loadNotifications(),
-    ]).catch((error) => {
-      console.error(
-        "INITIAL APP DATA ERROR:",
-        error
-      );
-    });
+        await Promise.allSettled([
+          loadChatSummaries({
+            force: true,
+          }),
+
+          loadNotifications(),
+        ]);
+      };
+
+    void loadInitialData();
   }, [
     loadChatSummaries,
     loadNotifications,
   ]);
 
+  /* =========================
+     AUTH / SOCKET DATA RESYNC
+  ========================= */
+
+  useEffect(() => {
+    const resyncChatData =
+      () => {
+        const token =
+          localStorage
+            .getItem("token")
+            ?.trim();
+
+        if (!token) {
+          return;
+        }
+
+        /*
+         * Login or reconnect tarvatha
+         * latest chat list background lo
+         * immediate ga refresh avuthundi.
+         */
+        void loadChatSummaries({
+          force: true,
+          silent: true,
+        });
+
+        void loadNotifications();
+      };
+
+    window.addEventListener(
+      "socket:connected",
+      resyncChatData
+    );
+
+    window.addEventListener(
+      "socket:reconnected",
+      resyncChatData
+    );
+
+    window.addEventListener(
+      "online",
+      resyncChatData
+    );
+
+    const handleVisibilityChange =
+      () => {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          resyncChatData();
+        }
+      };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "socket:connected",
+        resyncChatData
+      );
+
+      window.removeEventListener(
+        "socket:reconnected",
+        resyncChatData
+      );
+
+      window.removeEventListener(
+        "online",
+        resyncChatData
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, [
+    loadChatSummaries,
+    loadNotifications,
+  ]);
   /* =========================
    NOTIFICATION SOCKETS
 ========================= */
@@ -1269,13 +1435,20 @@ export const ChatProvider = ({
           return;
         }
 
+        const selectedUserId =
+          normalizeId(
+            selectedChatRef.current
+          );
+
+        if (!selectedUserId) {
+          return;
+        }
+
         socket.emit(
           "presence:sync",
           {
             userId:
-              normalizeId(
-                selectedChatRef.current
-              ),
+              selectedUserId,
           }
         );
       };

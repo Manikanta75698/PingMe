@@ -553,6 +553,18 @@ const Chat = () => {
     useRef(null);
 
   const [
+    viewportMetrics,
+    setViewportMetrics,
+  ] = useState(() => ({
+    height:
+      typeof window !== "undefined"
+        ? window.innerHeight
+        : 0,
+
+    offsetTop: 0,
+  }));
+
+  const [
     messagesLoading,
     setMessagesLoading,
   ] = useState(false);
@@ -602,6 +614,122 @@ const Chat = () => {
       slowServerTimerRef.current =
         null;
     }, []);
+
+  /* =========================
+     MOBILE VISUAL VIEWPORT
+  ========================= */
+
+  useLayoutEffect(() => {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return undefined;
+    }
+
+    const viewport =
+      window.visualViewport;
+
+    let frameId = 0;
+
+    const syncViewport = () => {
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      frameId =
+        window.requestAnimationFrame(
+          () => {
+            const nextHeight =
+              Math.max(
+                320,
+                Math.round(
+                  viewport?.height ||
+                  window.innerHeight
+                )
+              );
+
+            const nextOffsetTop =
+              Math.max(
+                0,
+                Math.round(
+                  viewport?.offsetTop ||
+                  0
+                )
+              );
+
+            setViewportMetrics(
+              (previous) => {
+                if (
+                  previous.height ===
+                  nextHeight &&
+                  previous.offsetTop ===
+                  nextOffsetTop
+                ) {
+                  return previous;
+                }
+
+                return {
+                  height:
+                    nextHeight,
+
+                  offsetTop:
+                    nextOffsetTop,
+                };
+              }
+            );
+          }
+        );
+    };
+
+    syncViewport();
+
+    viewport?.addEventListener(
+      "resize",
+      syncViewport
+    );
+
+    viewport?.addEventListener(
+      "scroll",
+      syncViewport
+    );
+
+    window.addEventListener(
+      "resize",
+      syncViewport
+    );
+
+    window.addEventListener(
+      "orientationchange",
+      syncViewport
+    );
+
+    return () => {
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      viewport?.removeEventListener(
+        "resize",
+        syncViewport
+      );
+
+      viewport?.removeEventListener(
+        "scroll",
+        syncViewport
+      );
+
+      window.removeEventListener(
+        "resize",
+        syncViewport
+      );
+
+      window.removeEventListener(
+        "orientationchange",
+        syncViewport
+      );
+    };
+  }, []);
 
   /* =========================
      KEEP LATEST MESSAGES
@@ -1192,6 +1320,15 @@ const Chat = () => {
       className={
         styles.chatPage
       }
+      style={{
+        "--chat-visual-height":
+          viewportMetrics.height
+            ? `${viewportMetrics.height}px`
+            : "100dvh",
+
+        "--chat-visual-offset-top":
+          `${viewportMetrics.offsetTop}px`,
+      }}
     >
       <section
         className={`

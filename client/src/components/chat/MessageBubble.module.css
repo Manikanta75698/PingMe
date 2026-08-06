@@ -699,38 +699,38 @@
     pointer-events: auto;
   }
 
-.reactionSummary {
-  gap: 4px;
-  margin-top: 3px;
-}
+  .reactionSummary {
+    gap: 4px;
+    margin-top: 3px;
+  }
 
-.ownReactions {
-  margin-right: 2px;
-}
+  .ownReactions {
+    margin-right: 2px;
+  }
 
-.otherReactions {
-  margin-left: 2px;
-}
+  .otherReactions {
+    margin-left: 2px;
+  }
 
-.reactionChip {
-  min-width: 36px;
-  height: 26px;
+  .reactionChip {
+    min-width: 36px;
+    height: 26px;
 
-  padding-inline: 7px;
-}
+    padding-inline: 7px;
+  }
 
-.reactionEmoji {
-  font-size: 14px;
-}
+  .reactionEmoji {
+    font-size: 14px;
+  }
 
-.reactionCount {
-  font-size: 10px;
-}
+  .reactionCount {
+    font-size: 10px;
+  }
 
-.reactionError {
-  max-width:
-    calc(100vw - 80px);
-}
+  .reactionError {
+    max-width:
+      calc(100vw - 80px);
+  }
 }
 
 /* =========================
@@ -2063,5 +2063,158 @@
 @media (max-width: 420px) {
   .messageGroup {
     max-width: 86%;
+  }
+}
+
+/* =========================
+   FAILED MESSAGE + RETRY
+========================= */
+
+.failedBubble {
+  border-color:
+    color-mix(in srgb,
+      var(--bubble-danger) 48%,
+      transparent);
+
+  box-shadow:
+    0 0 0 1px color-mix(in srgb,
+      var(--bubble-danger) 12%,
+      transparent),
+    0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.failedBubble .status {
+  color:
+    var(--bubble-danger);
+
+  opacity: 1;
+}
+
+.failedDelivery {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+
+  width: fit-content;
+  max-width: 100%;
+
+  margin-top: 5px;
+
+  color:
+    var(--bubble-danger);
+
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.ownWrapper .failedDelivery {
+  align-self: flex-end;
+}
+
+.failedText {
+  max-width: 220px;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.retryMessageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  min-height: 30px;
+
+  padding:
+    5px 10px;
+
+  color:
+    var(--bubble-danger);
+
+  background:
+    color-mix(in srgb,
+      var(--bubble-danger) 9%,
+      var(--bubble-surface));
+
+  border:
+    1px solid color-mix(in srgb,
+      var(--bubble-danger) 30%,
+      transparent);
+
+  border-radius: 999px;
+
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+
+  cursor: pointer;
+
+  touch-action: manipulation;
+  -webkit-tap-highlight-color:
+    transparent;
+
+  transition:
+    transform 0.14s ease,
+    background-color 0.14s ease,
+    opacity 0.14s ease;
+}
+
+.retryMessageButton:hover:not(:disabled) {
+  background:
+    color-mix(in srgb,
+      var(--bubble-danger) 15%,
+      var(--bubble-surface));
+}
+
+.retryMessageButton:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.retryMessageButton:focus-visible {
+  outline:
+    2px solid var(--bubble-danger);
+
+  outline-offset: 2px;
+}
+
+.retryMessageButton:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.retryMessageButton svg {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 768px) {
+  .failedDelivery {
+    gap: 6px;
+
+    margin-top: 4px;
+
+    font-size: 10.5px;
+  }
+
+  .failedText {
+    max-width:
+      min(48vw, 190px);
+  }
+
+  .retryMessageButton {
+    min-height: 32px;
+
+    padding:
+      6px 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retryMessageButton {
+    transition: none;
   }
 }

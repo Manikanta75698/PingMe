@@ -2,6 +2,10 @@ import {
   io,
 } from "socket.io-client";
 
+/* =========================
+   ENVIRONMENT
+========================= */
+
 const isDevelopment =
   import.meta.env.MODE ===
   "development";
@@ -41,52 +45,9 @@ const getStoredToken = () => {
 };
 
 /* =========================
-   SOCKET INSTANCE
-========================= */
-
-const socket = io(
-  SOCKET_URL,
-  {
-    autoConnect: false,
-
-    transports: [
-      "polling",
-      "websocket",
-    ],
-
-    upgrade: true,
-
-    auth: {
-      token: getStoredToken(),
-    },
-
-    reconnection: true,
-
-    reconnectionAttempts:
-      Infinity,
-
-    reconnectionDelay: 1000,
-
-    reconnectionDelayMax:
-      5000,
-
-    randomizationFactor:
-      0.5,
-
-    timeout: 20000,
-  }
-);
-
-/* =========================
    WINDOW EVENT BRIDGE
 ========================= */
 
-/*
- * Socket events ni React components
- * direct socket dependency lekunda
- * window CustomEvent dwara receive
- * chesukovachu.
- */
 const dispatchAppEvent = (
   eventName,
   detail = null
@@ -109,6 +70,60 @@ const dispatchAppEvent = (
 };
 
 /* =========================
+   SOCKET INSTANCE
+========================= */
+
+const socket = io(
+  SOCKET_URL,
+  {
+    autoConnect: false,
+
+    /*
+     * WebSocket first.
+     * Unsupported/network restricted ayithe
+     * polling fallback use avuthundi.
+     */
+    transports: [
+      "websocket",
+      "polling",
+    ],
+
+    upgrade: true,
+
+    auth: {
+      token:
+        getStoredToken(),
+    },
+
+    reconnection: true,
+
+    reconnectionAttempts:
+      Infinity,
+
+    reconnectionDelay:
+      800,
+
+    reconnectionDelayMax:
+      5000,
+
+    randomizationFactor:
+      0.4,
+
+    timeout:
+      15000,
+  }
+);
+
+/* =========================
+   CONNECTION STATE
+========================= */
+
+let manualDisconnect = false;
+
+let lastAuthToken =
+  getStoredToken();
+
+/* =========================
    AUTH HELPERS
 ========================= */
 
@@ -117,12 +132,18 @@ export const refreshSocketAuth =
     const token =
       getStoredToken();
 
+    lastAuthToken = token;
+
     socket.auth = {
       token,
     };
 
     return token;
   };
+
+/* =========================
+   CONNECT SOCKET
+========================= */
 
 export const connectSocket = () => {
   const token =
@@ -138,24 +159,87 @@ export const connectSocket = () => {
     return false;
   }
 
-  if (
-    !socket.connected &&
-    !socket.active
-  ) {
-    socket.connect();
+  manualDisconnect = false;
+
+  /*
+   * Already connected ayithe
+   * reconnect unnecessary.
+   */
+  if (socket.connected) {
+    return true;
   }
 
-  return true;
+  /*
+   * Previous auth failure/reconnect manager
+   * stale state lo unna fresh connection
+   * start cheyyadaniki connect call.
+   */
+  try {
+    socket.connect();
+
+    return true;
+  } catch (error) {
+    console.error(
+      "Unable to connect socket:",
+      error
+    );
+
+    return false;
+  }
 };
 
-export const disconnectSocket = () => {
+/* =========================
+   DISCONNECT SOCKET
+========================= */
 
-  socket.disconnect();
+export const disconnectSocket =
+  () => {
+    manualDisconnect = true;
 
-  socket.auth = {
-    token: "",
+    if (
+      socket.connected ||
+      socket.active
+    ) {
+      socket.disconnect();
+    }
+
+    lastAuthToken = "";
+
+    socket.auth = {
+      token: "",
+    };
   };
-};
+
+/* =========================
+   RECONNECT WITH FRESH AUTH
+========================= */
+
+export const reconnectSocket =
+  () => {
+    const token =
+      refreshSocketAuth();
+
+    if (!token) {
+      disconnectSocket();
+
+      return false;
+    }
+
+    manualDisconnect = false;
+
+    /*
+     * Existing socket old token tho
+     * connected unte fresh handshake kosam
+     * disconnect + connect.
+     */
+    if (socket.connected) {
+      socket.disconnect();
+    }
+
+    socket.connect();
+
+    return true;
+  };
 
 /* =========================
    CONNECTION EVENTS
@@ -164,6 +248,8 @@ export const disconnectSocket = () => {
 socket.on(
   "connect",
   () => {
+    manualDisconnect = false;
+
     if (isDevelopment) {
       console.log(
         "GLOBAL SOCKET CONNECTED:",
@@ -171,15 +257,14 @@ socket.on(
       );
     }
 
-    /*
-     * Reconnect / fresh connect tarvatha
-     * components server data ni
-     * re-sync chesukovachu.
-     */
     dispatchAppEvent(
       "socket:connected",
       {
-        socketId: socket.id,
+        socketId:
+          socket.id,
+
+        connectedAt:
+          Date.now(),
       }
     );
   }
@@ -199,6 +284,12 @@ socket.on(
       "socket:disconnected",
       {
         reason,
+
+        manual:
+          manualDisconnect,
+
+        disconnectedAt:
+          Date.now(),
       }
     );
   }
@@ -208,20 +299,35 @@ socket.on(
   "connect_error",
   (error) => {
     const errorCode =
-      error?.data?.code ||
-      error?.code ||
-      "";
+      String(
+        error?.data?.code ||
+        error?.code ||
+        ""
+      );
 
     if (isDevelopment) {
       console.error(
         "GLOBAL SOCKET CONNECTION ERROR:",
         error?.message ||
         "Unknown socket error",
+
         errorCode
           ? `(${errorCode})`
           : ""
       );
     }
+
+    dispatchAppEvent(
+      "socket:connection-error",
+      {
+        code:
+          errorCode,
+
+        message:
+          error?.message ||
+          "Socket connection failed",
+      }
+    );
 
     const authenticationErrors =
       new Set([
@@ -233,11 +339,21 @@ socket.on(
 
     if (
       authenticationErrors.has(
-        String(errorCode)
+        errorCode
       )
     ) {
+      manualDisconnect = true;
+
       socket.disconnect();
+
+      return;
     }
+
+    /*
+     * Non-auth errors ki Socket.IO
+     * automatic reconnect continue chesthundi.
+     */
+    manualDisconnect = false;
   }
 );
 
@@ -245,10 +361,6 @@ socket.on(
    FOLLOW REQUEST EVENTS
 ========================= */
 
-/*
- * Private account owner ki
- * new request vachinappudu.
- */
 socket.on(
   "followRequestReceived",
   (payload) => {
@@ -266,10 +378,6 @@ socket.on(
   }
 );
 
-/*
- * Request sender ki:
- * owner request accept chesadu.
- */
 socket.on(
   "followRequestAccepted",
   (payload) => {
@@ -287,10 +395,6 @@ socket.on(
   }
 );
 
-/*
- * Request sender ki:
- * owner request decline chesadu.
- */
 socket.on(
   "followRequestDeclined",
   (payload) => {
@@ -308,10 +412,6 @@ socket.on(
   }
 );
 
-/*
- * Owner Activity list nundi
- * handled request remove cheyyadaniki.
- */
 socket.on(
   "followRequestRemoved",
   (payload) => {
@@ -333,11 +433,6 @@ socket.on(
    FOLLOW STATUS EVENTS
 ========================= */
 
-/*
- * Public follow / unfollow,
- * accepted request tarvatha other
- * components state sync kosam.
- */
 socket.on(
   "userFollowStatusUpdated",
   (payload) => {
@@ -369,8 +464,6 @@ socket.on(
   }
 );
 
-
-
 /* =========================
    FIND SOMEONE NOW EVENTS
 ========================= */
@@ -399,8 +492,21 @@ socket.on(
 socket.io.on(
   "reconnect_attempt",
   (attemptNumber) => {
+    const currentToken =
+      refreshSocketAuth();
 
-    refreshSocketAuth();
+    /*
+     * Logout tarvatha reconnect
+     * attempt continue kakudadhu.
+     */
+    if (
+      !currentToken ||
+      manualDisconnect
+    ) {
+      socket.disconnect();
+
+      return;
+    }
 
     if (isDevelopment) {
       console.log(
@@ -426,7 +532,12 @@ socket.io.on(
       "socket:reconnected",
       {
         attemptNumber,
-        socketId: socket.id,
+
+        socketId:
+          socket.id,
+
+        reconnectedAt:
+          Date.now(),
       }
     );
   }
@@ -442,6 +553,15 @@ socket.io.on(
         "Unknown reconnect error"
       );
     }
+
+    dispatchAppEvent(
+      "socket:reconnect-error",
+      {
+        message:
+          error?.message ||
+          "Socket reconnect failed",
+      }
+    );
   }
 );
 
@@ -453,7 +573,84 @@ socket.io.on(
         "GLOBAL SOCKET RECONNECT FAILED"
       );
     }
+
+    dispatchAppEvent(
+      "socket:reconnect-failed"
+    );
   }
 );
+
+/* =========================
+   BROWSER NETWORK EVENTS
+========================= */
+
+if (
+  typeof window !==
+  "undefined"
+) {
+  window.addEventListener(
+    "online",
+    () => {
+      const token =
+        getStoredToken();
+
+      if (
+        token &&
+        !manualDisconnect &&
+        !socket.connected
+      ) {
+        refreshSocketAuth();
+        socket.connect();
+      }
+
+      dispatchAppEvent(
+        "network:online"
+      );
+    }
+  );
+
+  window.addEventListener(
+    "offline",
+    () => {
+      dispatchAppEvent(
+        "network:offline"
+      );
+    }
+  );
+
+  window.addEventListener(
+    "focus",
+    () => {
+      const currentToken =
+        getStoredToken();
+
+      if (
+        !currentToken ||
+        manualDisconnect
+      ) {
+        return;
+      }
+
+      /*
+       * Login user/token changed kani
+       * old auth socket lo undipothe
+       * fresh handshake start chestham.
+       */
+      if (
+        currentToken !==
+        lastAuthToken
+      ) {
+        reconnectSocket();
+
+        return;
+      }
+
+      if (!socket.connected) {
+        refreshSocketAuth();
+        socket.connect();
+      }
+    }
+  );
+}
 
 export default socket;

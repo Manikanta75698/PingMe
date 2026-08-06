@@ -3,6 +3,8 @@
 ========================= */
 
 .chatPage {
+  position: relative;
+
   display: flex;
 
   width: 100%;
@@ -12,7 +14,17 @@
 
   overflow: hidden;
 
-  background: var(--background);
+  color: var(--text-primary,
+      CanvasText);
+
+  background:
+    var(--background,
+      Canvas);
+
+  color-scheme: light dark;
+  overscroll-behavior: none;
+
+  box-sizing: border-box;
 }
 
 /* =========================
@@ -21,19 +33,28 @@
 
 .sidebar {
   display: flex;
+
   flex: 0 0 340px;
 
   width: 340px;
   min-width: 340px;
+
   height: 100%;
   min-height: 0;
 
   overflow: hidden;
 
-  background: var(--surface);
+  background:
+    var(--surface,
+      Canvas);
 
   border-right:
-    1px solid var(--border);
+    1px solid var(--border,
+      color-mix(in srgb,
+        CanvasText 14%,
+        transparent));
+
+  box-sizing: border-box;
 }
 
 /* =========================
@@ -41,18 +62,26 @@
 ========================= */
 
 .chatArea {
+  position: relative;
+
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
 
   width: 100%;
   min-width: 0;
+
   height: 100%;
   min-height: 0;
 
   overflow: hidden;
 
-  background: var(--background);
+  background:
+    var(--background,
+      Canvas);
+
+  box-sizing: border-box;
+  isolation: isolate;
 }
 
 /* =========================
@@ -72,18 +101,27 @@
 
   overflow: hidden;
 
-  background: var(--background);
+  background:
+    var(--background,
+      Canvas);
+
+  box-sizing: border-box;
 }
 
 .chatMain {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
 
   width: 100%;
+  min-width: 0;
+
   height: 100%;
   min-height: 0;
 
   overflow: hidden;
+
+  box-sizing: border-box;
 }
 
 /* =========================
@@ -94,6 +132,7 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+
   align-items: stretch;
   justify-content: flex-end;
 
@@ -102,7 +141,8 @@
 
   gap: 18px;
 
-  padding: 24px 18px 32px;
+  padding:
+    24px 18px 32px;
 
   color:
     var(--text-secondary,
@@ -110,6 +150,8 @@
 
   font-size: 14px;
   text-align: center;
+
+  box-sizing: border-box;
 }
 
 .messageState p {
@@ -181,12 +223,14 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+
   align-items: center;
   justify-content: center;
 
   min-height: 220px;
 
   gap: 14px;
+
   padding: 24px;
 
   color:
@@ -196,6 +240,8 @@
   font-size: 14px;
   line-height: 1.45;
   text-align: center;
+
+  box-sizing: border-box;
 }
 
 .messageError p {
@@ -205,7 +251,8 @@
 .retryButton {
   min-height: 38px;
 
-  padding: 9px 16px;
+  padding:
+    9px 16px;
 
   color: #ffffff;
 
@@ -223,6 +270,16 @@
   cursor: pointer;
 
   touch-action: manipulation;
+  -webkit-tap-highlight-color:
+    transparent;
+
+  transition:
+    transform 0.14s ease,
+    filter 0.14s ease;
+}
+
+.retryButton:hover {
+  filter: brightness(1.05);
 }
 
 .retryButton:active {
@@ -236,6 +293,7 @@
 .syncBadge,
 .refreshWarning {
   position: absolute;
+
   top: 10px;
   left: 50%;
 
@@ -246,19 +304,24 @@
 .syncBadge {
   z-index: 5;
 
-  padding: 5px 10px;
+  padding:
+    5px 10px;
 
   color:
     var(--text-secondary,
       #64748b);
 
   background:
-    var(--surface,
-      rgba(255, 255, 255, 0.92));
+    color-mix(in srgb,
+      var(--surface,
+        Canvas) 92%,
+      transparent);
 
   border:
     1px solid var(--border,
-      rgba(15, 23, 42, 0.1));
+      color-mix(in srgb,
+        CanvasText 12%,
+        transparent));
 
   border-radius: 999px;
 
@@ -271,6 +334,9 @@
   white-space: nowrap;
 
   pointer-events: none;
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .refreshWarning {
@@ -279,7 +345,10 @@
   max-width:
     calc(100% - 24px);
 
-  padding: 7px 12px;
+  padding:
+    7px 12px;
+
+  overflow: hidden;
 
   color:
     var(--danger,
@@ -287,7 +356,7 @@
 
   background:
     var(--surface,
-      #ffffff);
+      Canvas);
 
   border:
     1px solid color-mix(in srgb,
@@ -301,9 +370,14 @@
   font-size: 12px;
   font-weight: 600;
 
+  text-overflow: ellipsis;
   white-space: nowrap;
 
   cursor: pointer;
+
+  touch-action: manipulation;
+  -webkit-tap-highlight-color:
+    transparent;
 }
 
 .refreshWarning:active {
@@ -321,21 +395,35 @@
 
   width: 100%;
 
-  padding: 12px 16px 4px;
+  padding:
+    12px 16px 4px;
 
-  background: var(--background);
+  background:
+    var(--background,
+      Canvas);
+
+  box-sizing: border-box;
 }
 
 .loadOlderButton {
   min-height: 36px;
 
-  padding: 7px 16px;
+  padding:
+    7px 16px;
 
-  color: var(--text-secondary);
-  background: var(--surface);
+  color:
+    var(--text-secondary,
+      CanvasText);
+
+  background:
+    var(--surface,
+      Canvas);
 
   border:
-    1px solid var(--border);
+    1px solid var(--border,
+      color-mix(in srgb,
+        CanvasText 14%,
+        transparent));
 
   border-radius: 999px;
 
@@ -344,11 +432,27 @@
   font-weight: 600;
 
   cursor: pointer;
+
+  touch-action: manipulation;
+  -webkit-tap-highlight-color:
+    transparent;
 }
 
 .loadOlderButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* =========================
+   VISIBILITY HELPERS
+========================= */
+
+.hideSidebar {
+  display: none;
+}
+
+.hideChat {
+  display: none;
 }
 
 /* =========================
@@ -366,39 +470,71 @@
 }
 
 /* =========================
+   TABLET
+========================= */
+
+@media (max-width: 1024px) and (min-width: 769px) {
+  .sidebar {
+    flex-basis: 310px;
+
+    width: 310px;
+    min-width: 310px;
+  }
+}
+
+/* =========================
    MOBILE
 ========================= */
 
 @media (max-width: 768px) {
   .chatPage {
     position: fixed;
-    inset: 0;
+
+    top:
+      var(--chat-visual-offset-top,
+        0px);
+
+    right: 0;
+    bottom: auto;
+    left: 0;
 
     display: flex;
 
     width: 100%;
-    height: 100dvh;
+    height:
+      var(--chat-visual-height,
+        100dvh);
+
     min-height: 0;
+    max-height:
+      var(--chat-visual-height,
+        100dvh);
 
     overflow: hidden;
 
     overscroll-behavior: none;
+
+    transform: translateZ(0);
   }
 
   .sidebar {
     position: relative;
 
     display: flex;
+
     flex: 1 1 auto;
 
     width: 100%;
     min-width: 0;
+
     height: 100%;
     min-height: 0;
 
     overflow: hidden;
 
-    background: var(--surface);
+    background:
+      var(--surface,
+        Canvas);
 
     border-right: none;
   }
@@ -411,13 +547,18 @@
     flex-direction: column;
 
     width: 100%;
-    height: 100%;
     min-width: 0;
+
+    height: 100%;
     min-height: 0;
 
     overflow: hidden;
 
-    background: var(--background);
+    background:
+      var(--background,
+        Canvas);
+
+    overscroll-behavior: none;
   }
 
   .hideSidebar {
@@ -430,7 +571,8 @@
 
   .messages {
     display: flex;
-    flex: 1 1 0;
+
+    flex: 1 1 auto;
     flex-direction: column;
 
     width: 100%;
@@ -438,6 +580,8 @@
     min-height: 0;
 
     overflow: hidden;
+
+    overscroll-behavior: contain;
   }
 
   .messageState {
@@ -460,13 +604,47 @@
     top: 8px;
   }
 
+  .syncBadge {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
   .refreshWarning {
     max-width:
       calc(100% - 16px);
+  }
+}
 
-    overflow: hidden;
+/* =========================
+   SMALL MOBILE
+========================= */
 
-    text-overflow: ellipsis;
+@media (max-width: 420px) {
+  .messageState {
+    padding-inline: 10px;
+  }
+
+  .messageError {
+    padding-inline: 18px;
+  }
+}
+
+/* =========================
+   MOBILE LANDSCAPE
+========================= */
+
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
+  .messageState {
+    min-height: 120px;
+
+    padding:
+      12px 14px 16px;
+  }
+
+  .messageError {
+    min-height: 120px;
+
+    padding: 16px;
   }
 }
 
@@ -482,5 +660,14 @@
   .retryButton,
   .loadOlderButton {
     transition: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+
+  .retryButton,
+  .loadOlderButton,
+  .refreshWarning {
+    border-width: 2px;
   }
 }

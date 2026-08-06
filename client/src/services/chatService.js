@@ -24,24 +24,32 @@ export const getConversation = (
   }
 
   const parsedLimit =
-    Number.parseInt(limit, 10);
+    Number.parseInt(
+      limit,
+      10
+    );
 
-  const safeLimit = Math.min(
-    Math.max(
-      Number.isNaN(parsedLimit)
-        ? 30
-        : parsedLimit,
-      1
-    ),
-    50
-  );
+  const safeLimit =
+    Math.min(
+      Math.max(
+        Number.isNaN(
+          parsedLimit
+        )
+          ? 30
+          : parsedLimit,
+        1
+      ),
+      50
+    );
 
   const params = {
-    limit: safeLimit,
+    limit:
+      safeLimit,
   };
 
   if (before) {
-    params.before = before;
+    params.before =
+      before;
   }
 
   return api.get(
@@ -68,7 +76,8 @@ export const sendMessage = (
   const isFormData =
     typeof FormData !==
     "undefined" &&
-    data instanceof FormData;
+    data instanceof
+    FormData;
 
   return api.post(
     "/messages/send",
@@ -81,6 +90,18 @@ export const sendMessage = (
             "application/json",
         },
       }
+  );
+};
+
+/* =========================
+   RETRY MESSAGE
+========================= */
+
+export const retryMessage = (
+  data
+) => {
+  return sendMessage(
+    data
   );
 };
 
@@ -104,10 +125,14 @@ export const toggleMessageReaction =
     emoji
   ) => {
     const safeMessageId =
-      normalizeId(messageId);
+      normalizeId(
+        messageId
+      );
 
     const safeEmoji =
-      String(emoji || "").trim();
+      String(
+        emoji || ""
+      ).trim();
 
     if (!safeMessageId) {
       throw new Error(
@@ -124,7 +149,8 @@ export const toggleMessageReaction =
     return api.patch(
       `/messages/${safeMessageId}/reaction`,
       {
-        emoji: safeEmoji,
+        emoji:
+          safeEmoji,
       }
     );
   };
@@ -138,11 +164,14 @@ export const deleteMessage = (
   mode = "forMe"
 ) => {
   const safeMessageId =
-    normalizeId(messageId);
+    normalizeId(
+      messageId
+    );
 
   const safeMode =
-    String(mode || "")
-      .trim();
+    String(
+      mode || ""
+    ).trim();
 
   if (!safeMessageId) {
     throw new Error(
@@ -151,8 +180,10 @@ export const deleteMessage = (
   }
 
   if (
-    safeMode !== "forMe" &&
-    safeMode !== "forEveryone"
+    safeMode !==
+    "forMe" &&
+    safeMode !==
+    "forEveryone"
   ) {
     throw new Error(
       "Delete mode must be forMe or forEveryone"
@@ -163,104 +194,133 @@ export const deleteMessage = (
     `/messages/${safeMessageId}`,
     {
       data: {
-        mode: safeMode,
+        mode:
+          safeMode,
       },
     }
   );
 };
 
-export const editMessage = async (
+/* =========================
+   EDIT MESSAGE
+========================= */
+
+export const editMessage = (
   messageId,
   text
 ) => {
-  const normalizedMessageId =
-    String(messageId || "").trim();
+  const safeMessageId =
+    normalizeId(
+      messageId
+    );
 
-  const normalizedText =
-    String(text || "").trim();
+  const safeText =
+    String(
+      text || ""
+    ).trim();
 
-  if (!normalizedMessageId) {
+  if (!safeMessageId) {
     throw new Error(
       "Message ID is required"
     );
   }
 
-  if (!normalizedText) {
+  if (!safeText) {
     throw new Error(
       "Edited message cannot be empty"
     );
   }
 
   return api.patch(
-    `/messages/${normalizedMessageId}`,
+    `/messages/${safeMessageId}`,
     {
-      text: normalizedText,
+      text:
+        safeText,
     }
   );
 };
 
-export const forwardMessage = async (
+/* =========================
+   FORWARD MESSAGE
+========================= */
+
+export const forwardMessage = (
   messageId,
   receiverId
 ) => {
-  const normalizedMessageId =
-    String(messageId || "").trim();
+  const safeMessageId =
+    normalizeId(
+      messageId
+    );
 
-  const normalizedReceiverId =
-    String(receiverId || "").trim();
+  const safeReceiverId =
+    normalizeId(
+      receiverId
+    );
 
-  if (!normalizedMessageId) {
+  if (!safeMessageId) {
     throw new Error(
       "Message ID is required"
     );
   }
 
-  if (!normalizedReceiverId) {
+  if (!safeReceiverId) {
     throw new Error(
       "Receiver ID is required"
     );
   }
 
   return api.post(
-    `/messages/${normalizedMessageId}/forward`,
+    `/messages/${safeMessageId}/forward`,
     {
       receiver:
-        normalizedReceiverId,
+        safeReceiverId,
     }
   );
 };
 
-export const togglePinMessage = async (
+/* =========================
+   PIN / UNPIN MESSAGE
+========================= */
+
+export const togglePinMessage = (
   messageId
 ) => {
-  const normalizedMessageId =
-    String(messageId || "").trim();
+  const safeMessageId =
+    normalizeId(
+      messageId
+    );
 
-  if (!normalizedMessageId) {
+  if (!safeMessageId) {
     throw new Error(
       "Message ID is required"
     );
   }
 
   return api.patch(
-    `/messages/${normalizedMessageId}/pin`
+    `/messages/${safeMessageId}/pin`
   );
 };
 
+/* =========================
+   GET PINNED MESSAGE
+========================= */
 
-export const getPinnedMessage = async (
+export const getPinnedMessage = (
   userId
 ) => {
-  const normalizedUserId =
-    String(userId || "").trim();
+  const safeUserId =
+    normalizeId(
+      userId
+    );
 
-  if (!normalizedUserId) {
+  if (!safeUserId) {
     throw new Error(
       "User ID is required"
     );
   }
 
   return api.get(
-    `/messages/conversation/${normalizedUserId}/pinned`
+    `/messages/conversation/${safeUserId}/pinned`
   );
 };

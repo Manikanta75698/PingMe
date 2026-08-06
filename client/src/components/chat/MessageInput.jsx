@@ -81,6 +81,13 @@ const MessageInput = () => {
   const textareaRef =
     useRef(null);
 
+  /*
+   * Edit session ni React render state nunchi
+   * independent ga preserve chesthundi.
+   */
+  const editingMessageRef =
+    useRef(null);
+
   const typingTimerRef =
     useRef(null);
 
@@ -116,6 +123,29 @@ const MessageInput = () => {
 
   const isEditing =
     Boolean(editingMessageId);
+
+  /*
+   * Context object refresh ayina edit target
+   * lose kakunda stable reference maintain.
+   */
+  useEffect(() => {
+    if (editingMessageId) {
+      editingMessageRef.current =
+        editingMessage;
+    }
+  }, [
+    editingMessageId,
+    editingMessage,
+  ]);
+
+  /*
+   * Actual conversation change ayithe old
+   * edit target next chat ki carry kakudadhu.
+   */
+  useEffect(() => {
+    editingMessageRef.current =
+      null;
+  }, [selectedChatId]);
 
   const blockedByMe =
     Boolean(
@@ -353,6 +383,9 @@ const MessageInput = () => {
       return undefined;
     }
 
+    editingMessageRef.current =
+      editingMessage;
+
     stopTyping();
 
     setReplyingTo(null);
@@ -407,32 +440,50 @@ const MessageInput = () => {
      CANCEL EDIT
   ========================= */
 
-  const cancelEditing = () => {
-    if (loading) {
-      return;
-    }
+  const cancelEditing =
+    useCallback(() => {
+      if (loading) {
+        return;
+      }
 
-    stopTyping();
+      stopTyping();
 
-    setEditingMessage(null);
+      editingMessageRef.current =
+        null;
 
-    setText("");
+      setEditingMessage(null);
+      setText("");
 
-    resetImage();
-    resetTextareaHeight();
+      resetImage();
+      resetTextareaHeight();
 
-    textareaRef.current?.focus();
-  };
+      window.requestAnimationFrame(
+        () => {
+          textareaRef.current
+            ?.focus();
+        }
+      );
+    }, [
+      loading,
+      stopTyping,
+      setEditingMessage,
+      resetImage,
+      resetTextareaHeight,
+    ]);
 
   /* =========================
      SAVE EDIT
   ========================= */
 
   const handleSaveEdit =
-    async () => {
+    async (
+      messageToEdit =
+        editingMessageRef.current ||
+        editingMessage
+    ) => {
       const messageId =
         getUserId(
-          editingMessage
+          messageToEdit
         );
 
       const currentText =
@@ -468,12 +519,12 @@ const MessageInput = () => {
 
       const originalText =
         String(
-          editingMessage?.text ||
+          messageToEdit?.text ||
           ""
         );
 
       const originalEditedAt =
-        editingMessage?.editedAt ||
+        messageToEdit?.editedAt ||
         null;
 
       /*
@@ -551,6 +602,9 @@ const MessageInput = () => {
               )
               : []
         );
+
+        editingMessageRef.current =
+          null;
 
         setEditingMessage(null);
 
@@ -752,6 +806,24 @@ const MessageInput = () => {
             : null,
 
         reactions: [],
+
+        retryPayload: {
+          receiver:
+            receiverId,
+
+          text:
+            currentText,
+
+          replyTo:
+            replyToSend?._id ||
+            "",
+
+          imageFile:
+            imageToSend ||
+            null,
+        },
+
+        sendError: "",
       };
 
       let previousSidebarMessage =
@@ -980,13 +1052,45 @@ const MessageInput = () => {
           error.message
         );
 
+        const sendErrorMessage =
+          error.response?.data
+            ?.message ||
+          error.userMessage ||
+          "Message failed to send";
+
         setMessages(
           (previous) =>
             Array.isArray(previous)
-              ? previous.filter(
+              ? previous.map(
                 (message) =>
-                  message?._id !==
-                  tempId
+                  message?._id ===
+                    tempId
+                    ? {
+                      ...message,
+
+                      status:
+                        "failed",
+
+                      sendError:
+                        sendErrorMessage,
+
+                      retryPayload: {
+                        receiver:
+                          receiverId,
+
+                        text:
+                          currentText,
+
+                        replyTo:
+                          replyToSend?._id ||
+                          "",
+
+                        imageFile:
+                          imageToSend ||
+                          null,
+                      },
+                    }
+                    : message
               )
               : []
         );
@@ -1018,55 +1122,29 @@ const MessageInput = () => {
                   return {
                     ...summary,
 
-                    lastMessage:
-                      previousSidebarMessage,
+                    lastMessage: {
+                      ...tempMessage,
+
+                      status:
+                        "failed",
+
+                      sendError:
+                        sendErrorMessage,
+                    },
                   };
                 }
               )
               : []
         );
 
-
-        setText(
-          (currentValue) =>
-            currentValue.trim()
-              ? currentValue
-              : currentText
-        );
-
-        /*
-         * Vere image select cheyyakapothe
-         * failed image restore.
-         */
-        if (imageToSend) {
-          setSelectedImage(
-            (currentImage) =>
-              currentImage ||
-              imageToSend
-          );
-        }
-
-        window.requestAnimationFrame(
-          () => {
-            resizeTextarea();
-
-            textareaRef.current
-              ?.focus();
-          }
-        );
-
         toast.error(
-          error.response?.data
-            ?.message ||
-          error.userMessage ||
-          "Unable to send message"
+          "Message not sent. Tap Retry on the bubble."
         );
       } finally {
-        if (optimisticImageUrl) {
-          URL.revokeObjectURL(
-            optimisticImageUrl
-          );
-        }
+        /*
+         * Failed image retry kosam optimistic
+         * blob URL page lifecycle varaku valid.
+         */
       }
     };
 
@@ -1076,8 +1154,28 @@ const MessageInput = () => {
 
   const handleSubmit =
     async () => {
-      if (isEditing) {
-        await handleSaveEdit();
+      if (loading) {
+        return;
+      }
+
+      const pendingEditMessage =
+        editingMessageRef.current ||
+        editingMessage;
+
+      const pendingEditMessageId =
+        getUserId(
+          pendingEditMessage
+        );
+
+      /*
+       * Pending edit target unte normal send
+       * endpoint eppudu call kakudadhu.
+       */
+      if (pendingEditMessageId) {
+        await handleSaveEdit(
+          pendingEditMessage
+        );
+
         return;
       }
 
@@ -1414,6 +1512,19 @@ const MessageInput = () => {
           onKeyDown={
             handleEnter
           }
+          onFocus={() => {
+            window.setTimeout(
+              () => {
+                textareaRef.current
+                  ?.scrollIntoView({
+                    block: "nearest",
+                    inline: "nearest",
+                    behavior: "smooth",
+                  });
+              },
+              250
+            );
+          }}
           onBlur={() => {
             if (!isEditing) {
               stopTyping();
@@ -1438,6 +1549,7 @@ const MessageInput = () => {
           }}
           disabled={
             composerDisabled ||
+            loading ||
             (
               isEditing &&
               !text.trim()

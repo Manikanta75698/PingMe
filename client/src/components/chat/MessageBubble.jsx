@@ -20,6 +20,7 @@ import {
   Forward as ForwardIcon,
   MoreVertical,
   Image as ImageIcon,
+  RotateCcw,
 } from "lucide-react";
 
 import styles from "./MessageBubble.module.css";
@@ -33,6 +34,7 @@ import {
 
 import {
   deleteMessage,
+  sendMessage,
   toggleMessageReaction,
   togglePinMessage,
 } from "../../services/chatService";
@@ -192,6 +194,7 @@ const MessageBubble = ({
 
   const {
     setMessages,
+    setChatSummaries,
     setPinnedMessage,
     blockStatus,
   } = useChat();
@@ -264,6 +267,16 @@ const MessageBubble = ({
     checkingSharedPost,
     setCheckingSharedPost,
   ] = useState(false);
+
+  const [
+    retryLoading,
+    setRetryLoading,
+  ] = useState(false);
+
+  const [
+    retryError,
+    setRetryError,
+  ] = useState("");
 
   const [
     sharedPostUnavailable,
@@ -464,6 +477,21 @@ const MessageBubble = ({
     Boolean(
       message?.editedAt
     );
+
+  const isFailed =
+    isOwn &&
+    message?.status ===
+    "failed";
+
+  const canRetry =
+    isFailed &&
+    String(
+      message?._id || ""
+    ).startsWith("temp-") &&
+    Boolean(
+      message?.retryPayload
+    ) &&
+    !retryLoading;
 
   const isForwarded =
     Boolean(
@@ -1141,6 +1169,253 @@ const MessageBubble = ({
       }
     }
   };
+
+  /* =========================
+     RETRY FAILED MESSAGE
+  ========================= */
+
+  const handleRetryMessage =
+    async (event) => {
+      event?.preventDefault();
+      event?.stopPropagation();
+
+      if (!canRetry) {
+        return;
+      }
+
+      const tempId =
+        normalizeId(
+          message?._id
+        );
+
+      const retryPayload =
+        message?.retryPayload &&
+          typeof message.retryPayload ===
+          "object"
+          ? message.retryPayload
+          : null;
+
+      const receiverId =
+        normalizeId(
+          retryPayload?.receiver ||
+          message?.receiver
+        );
+
+      const retryText =
+        String(
+          retryPayload?.text ??
+          message?.text ??
+          ""
+        ).trim();
+
+      const replyToId =
+        normalizeId(
+          retryPayload?.replyTo ||
+          message?.replyTo
+        );
+
+      const retryImage =
+        retryPayload?.imageFile ||
+        null;
+
+      if (
+        !tempId ||
+        !receiverId ||
+        (!retryText && !retryImage)
+      ) {
+        setRetryError(
+          "This message cannot be retried."
+        );
+
+        return;
+      }
+
+      setRetryLoading(true);
+      setRetryError("");
+
+      const markStatus = (
+        status,
+        sendError = ""
+      ) => {
+        setMessages(
+          (previous) =>
+            Array.isArray(previous)
+              ? previous.map(
+                (currentMessage) =>
+                  normalizeId(
+                    currentMessage?._id
+                  ) === tempId
+                    ? {
+                      ...currentMessage,
+                      status,
+                      sendError,
+                    }
+                    : currentMessage
+              )
+              : []
+        );
+
+        setChatSummaries(
+          (previous) =>
+            Array.isArray(previous)
+              ? previous.map(
+                (summary) =>
+                  normalizeId(
+                    summary?.lastMessage
+                      ?._id
+                  ) === tempId
+                    ? {
+                      ...summary,
+
+                      lastMessage: {
+                        ...summary.lastMessage,
+                        status,
+                        sendError,
+                      },
+                    }
+                    : summary
+              )
+              : []
+        );
+      };
+
+      markStatus("sending");
+
+      try {
+        let requestData;
+
+        if (retryImage) {
+          const formData =
+            new FormData();
+
+          formData.append(
+            "receiver",
+            receiverId
+          );
+
+          formData.append(
+            "text",
+            retryText
+          );
+
+          if (replyToId) {
+            formData.append(
+              "replyTo",
+              replyToId
+            );
+          }
+
+          formData.append(
+            "image",
+            retryImage
+          );
+
+          requestData =
+            formData;
+        } else {
+          requestData = {
+            receiver:
+              receiverId,
+
+            text:
+              retryText,
+
+            ...(replyToId
+              ? {
+                replyTo:
+                  replyToId,
+              }
+              : {}),
+          };
+        }
+
+        const response =
+          await sendMessage(
+            requestData
+          );
+
+        const realMessage =
+          response?.data?.data;
+
+        if (!realMessage?._id) {
+          throw new Error(
+            "Invalid message response from server"
+          );
+        }
+
+        setMessages(
+          (previous) =>
+            Array.isArray(previous)
+              ? previous.map(
+                (currentMessage) =>
+                  normalizeId(
+                    currentMessage?._id
+                  ) === tempId
+                    ? realMessage
+                    : currentMessage
+              )
+              : []
+        );
+
+        setChatSummaries(
+          (previous) =>
+            Array.isArray(previous)
+              ? previous.map(
+                (summary) =>
+                  normalizeId(
+                    summary?.lastMessage
+                      ?._id
+                  ) === tempId
+                    ? {
+                      ...summary,
+
+                      lastMessage:
+                        realMessage,
+                    }
+                    : summary
+              )
+              : []
+        );
+
+        if (
+          message?.image &&
+          String(
+            message.image
+          ).startsWith("blob:")
+        ) {
+          URL.revokeObjectURL(
+            message.image
+          );
+        }
+      } catch (error) {
+        console.error(
+          "RETRY MESSAGE ERROR:",
+          error.response?.data ||
+          error.message
+        );
+
+        const nextError =
+          error.response?.data
+            ?.message ||
+          error.userMessage ||
+          "Retry failed. Check your connection.";
+
+        markStatus(
+          "failed",
+          nextError
+        );
+
+        if (mountedRef.current) {
+          setRetryError(
+            nextError
+          );
+        }
+      } finally {
+        if (mountedRef.current) {
+          setRetryLoading(false);
+        }
+      }
+    };
 
   /* =========================
      DELETE
@@ -1884,6 +2159,9 @@ const MessageBubble = ({
               } ${isDeletedForEveryone
                 ? styles.deletedBubble
                 : ""
+              } ${isFailed
+                ? styles.failedBubble
+                : ""
               }`}
             aria-current={
               isActiveSearchMatch
@@ -2205,11 +2483,20 @@ const MessageBubble = ({
                         </span>
                       )}
 
+                    {message?.status ===
+                      "failed" && (
+                        <CircleSlash2
+                          size={14}
+                          aria-hidden="true"
+                        />
+                      )}
+
                     {![
                       "sending",
                       "sent",
                       "delivered",
                       "read",
+                      "failed",
                     ].includes(message?.status) && (
                         <Check
                           size={14}
@@ -2250,6 +2537,51 @@ const MessageBubble = ({
               )}
             </div>
           </div>
+
+          {isFailed && (
+            <div
+              className={
+                styles.failedDelivery
+              }
+              role="alert"
+            >
+              <span
+                className={
+                  styles.failedText
+                }
+              >
+                {retryError ||
+                  message?.sendError ||
+                  "Message not sent"}
+              </span>
+
+              <button
+                type="button"
+                className={
+                  styles.retryMessageButton
+                }
+                onClick={
+                  handleRetryMessage
+                }
+                disabled={
+                  retryLoading ||
+                  !canRetry
+                }
+                aria-label="Retry sending message"
+              >
+                <RotateCcw
+                  size={14}
+                  aria-hidden="true"
+                />
+
+                <span>
+                  {retryLoading
+                    ? "Sending…"
+                    : "Retry"}
+                </span>
+              </button>
+            </div>
+          )}
 
           {!isDeletedForEveryone &&
             reactionGroups.length > 0 && (
