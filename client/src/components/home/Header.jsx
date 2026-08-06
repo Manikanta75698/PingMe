@@ -1,4 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   useLocation,
@@ -6,28 +10,30 @@ import {
 } from "react-router-dom";
 
 import {
-  Home,
-  Search,
   Compass,
+  HandHeart,
   Heart,
+  Home,
   MessageCircle,
+  Search,
   SquarePlus,
 } from "lucide-react";
-
 
 import styles from "./Header.module.css";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import Avatar from "../ui/avatar/Avatar";
 
-
 const Header = ({
   scrollY = 0,
 }) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
-  const location = useLocation();
+  const navigate =
+    useNavigate();
+
+  const location =
+    useLocation();
 
   const isActive = (path) =>
     location.pathname === path ||
@@ -42,20 +48,25 @@ const Header = ({
     loadNotifications,
   } = useChat();
 
-  const totalUnreadMessages = Array.isArray(chatSummaries)
-    ? chatSummaries.reduce(
-      (total, chat) =>
-        total + (Number(chat?.unreadCount) || 0),
-      0
-    )
-    : 0;
+  const totalUnreadMessages =
+    Array.isArray(chatSummaries)
+      ? chatSummaries.reduce(
+        (total, chat) =>
+          total +
+          (Number(
+            chat?.unreadCount
+          ) || 0),
+        0
+      )
+      : 0;
 
-  const openChat = () => {
-    navigate("/chat");
-  };
+  const [
+    showTopHeader,
+    setShowTopHeader,
+  ] = useState(true);
 
-  // 🚀 Scroll to Hide State
-  const [showTopHeader, setShowTopHeader] = useState(true);
+  const lastScrollY =
+    useRef(0);
 
   useEffect(() => {
     Promise.all([
@@ -72,25 +83,43 @@ const Header = ({
     loadNotifications,
   ]);
 
-  const lastScrollY = useRef(0);
-
   useEffect(() => {
-    if (Math.abs(scrollY - lastScrollY.current) < 8) return;
+    if (
+      Math.abs(
+        scrollY -
+        lastScrollY.current
+      ) < 8
+    ) {
+      return;
+    }
 
-    if (scrollY > lastScrollY.current && scrollY > 60) {
+    if (
+      scrollY >
+      lastScrollY.current &&
+      scrollY > 60
+    ) {
       setShowTopHeader(false);
     } else {
       setShowTopHeader(true);
     }
 
-    lastScrollY.current = scrollY;
+    lastScrollY.current =
+      scrollY;
   }, [scrollY]);
+
+  const openChat = () => {
+    navigate("/chat");
+  };
 
   return (
     <>
-      {/* 📱 MOBILE TOP HEADER */}
-      <div className={`${styles.mobileTopHeader} ${!showTopHeader ? styles.hideTopHeader : ""}`}>
-        {/* Top Left Create Button */}
+      {/* MOBILE TOP HEADER */}
+      <div
+        className={`${styles.mobileTopHeader} ${!showTopHeader
+            ? styles.hideTopHeader
+            : ""
+          }`}
+      >
         <button
           type="button"
           className={
@@ -107,57 +136,112 @@ const Header = ({
           />
         </button>
 
-        {/* Center Logo */}
-        <div className={styles.topHeaderLogo} onClick={() => navigate("/home")}>
+        <button
+          type="button"
+          className={
+            styles.topHeaderLogo
+          }
+          onClick={() =>
+            navigate("/home")
+          }
+          aria-label="Open home"
+        >
           PingMe
-        </div>
+        </button>
 
-        {/* Top Right Profile Icon */}
-        <button className={styles.topHeaderBtn} onClick={() => navigate("/profile")}>
+        <button
+          type="button"
+          className={
+            styles.topHeaderBtn
+          }
+          onClick={() =>
+            navigate("/profile")
+          }
+          aria-label="Open profile"
+        >
           <Avatar
-            src={user?.profilePic || "https://ui-avatars.com/api/?name=User"}
+            src={
+              user?.profilePic ||
+              "https://ui-avatars.com/api/?name=User"
+            }
             alt="Profile"
-            className={styles.topHeaderProfileIcon}
+            className={
+              styles.topHeaderProfileIcon
+            }
           />
         </button>
       </div>
 
-      {/* 💻 MAIN SIDEBAR / BOTTOM NAV */}
-      <nav className={styles.sidebar}>
-        <div className={styles.logo} onClick={() => navigate("/home")}>
+      {/* DESKTOP SIDEBAR / MOBILE BOTTOM NAV */}
+      <nav
+        className={
+          styles.sidebar
+        }
+      >
+        <button
+          type="button"
+          className={
+            styles.logo
+          }
+          onClick={() =>
+            navigate("/home")
+          }
+          aria-label="Open home"
+        >
           PingMe
-        </div>
+        </button>
 
-        <div className={styles.navLinks}>
+        <div
+          className={
+            styles.navLinks
+          }
+        >
           <button
             type="button"
             className={`${styles.navItem} ${isActive("/home")
-              ? styles.active
-              : ""
+                ? styles.active
+                : ""
               }`}
             onClick={() =>
               navigate("/home")
             }
           >
-            <Home className={styles.icon} />
-            <span className={styles.text}>Home</span>
+            <Home
+              className={
+                styles.icon
+              }
+            />
+
+            <span
+              className={
+                styles.text
+              }
+            >
+              Home
+            </span>
           </button>
-
-
 
           <button
             type="button"
             className={`${styles.navItem} ${isActive("/search")
-              ? styles.active
-              : ""
+                ? styles.active
+                : ""
               }`}
             onClick={() =>
               navigate("/search")
             }
           >
-            <Search className={styles.icon} />
+            <Search
+              className={
+                styles.icon
+              }
+            />
 
-            <span className={styles.text}>
+            <span
+              className={
+                styles.text
+              }
+            >
               Search
             </span>
           </button>
@@ -165,41 +249,92 @@ const Header = ({
           <button
             type="button"
             className={`${styles.navItem} ${isActive("/explore")
-              ? styles.active
-              : ""
+                ? styles.active
+                : ""
               }`}
             onClick={() =>
               navigate("/explore")
             }
           >
-            <Compass className={styles.icon} />
+            <Compass
+              className={
+                styles.icon
+              }
+            />
 
-            <span className={styles.text}>
+            <span
+              className={
+                styles.text
+              }
+            >
               Explore
             </span>
           </button>
 
           <button
             type="button"
+            className={`${styles.navItem} ${isActive("/help")
+                ? styles.active
+                : ""
+              }`}
+            onClick={() =>
+              navigate("/help")
+            }
+          >
+            <HandHeart
+              className={
+                styles.icon
+              }
+            />
+
+            <span
+              className={
+                styles.text
+              }
+            >
+              Nearby Help
+            </span>
+          </button>
+
+          <button
+            type="button"
             className={`${styles.navItem} ${isActive("/chat")
-              ? styles.active
-              : ""
+                ? styles.active
+                : ""
               }`}
             onClick={openChat}
           >
-            <div className={styles.iconWrapper}>
-              <MessageCircle className={styles.icon} />
+            <div
+              className={
+                styles.iconWrapper
+              }
+            >
+              <MessageCircle
+                className={
+                  styles.icon
+                }
+              />
 
-              {totalUnreadMessages > 0 && (
-                <span className={styles.badge}>
-                  {totalUnreadMessages > 99
-                    ? "99+"
-                    : totalUnreadMessages}
-                </span>
-              )}
+              {totalUnreadMessages >
+                0 && (
+                  <span
+                    className={
+                      styles.badge
+                    }
+                  >
+                    {totalUnreadMessages >
+                      99
+                      ? "99+"
+                      : totalUnreadMessages}
+                  </span>
+                )}
             </div>
 
-            <span className={styles.text}>
+            <span
+              className={
+                styles.text
+              }
+            >
               Messages
             </span>
           </button>
@@ -207,36 +342,53 @@ const Header = ({
           <button
             type="button"
             className={`${styles.navItem} ${isActive("/activity")
-              ? styles.active
-              : ""
+                ? styles.active
+                : ""
               }`}
             onClick={() =>
               navigate("/activity")
             }
           >
-            <div className={styles.iconWrapper}>
-              <Heart className={styles.icon} />
+            <div
+              className={
+                styles.iconWrapper
+              }
+            >
+              <Heart
+                className={
+                  styles.icon
+                }
+              />
 
-              {notificationUnreadCount > 0 && (
-                <span className={styles.badge}>
-                  {notificationUnreadCount > 99
-                    ? "99+"
-                    : notificationUnreadCount}
-                </span>
-              )}
+              {notificationUnreadCount >
+                0 && (
+                  <span
+                    className={
+                      styles.badge
+                    }
+                  >
+                    {notificationUnreadCount >
+                      99
+                      ? "99+"
+                      : notificationUnreadCount}
+                  </span>
+                )}
             </div>
 
-            <span className={styles.text}>
+            <span
+              className={
+                styles.text
+              }
+            >
               Notifications
             </span>
           </button>
 
-          {/* Desktop Only Buttons */}
           <button
             type="button"
             className={`${styles.navItem} ${styles.desktopOnly} ${isActive("/create")
-              ? styles.active
-              : ""
+                ? styles.active
+                : ""
               }`}
             onClick={() =>
               navigate("/create")
@@ -273,10 +425,16 @@ const Header = ({
                 "https://ui-avatars.com/api/?name=User"
               }
               alt="Profile"
-              className={styles.profileIcon}
+              className={
+                styles.profileIcon
+              }
             />
 
-            <span className={styles.text}>
+            <span
+              className={
+                styles.text
+              }
+            >
               Profile
             </span>
           </button>

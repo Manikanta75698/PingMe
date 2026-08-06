@@ -22,11 +22,15 @@
 }
 
 .logo {
+    width: fit-content;
     margin-bottom: 32px;
     padding: 8px 12px;
 
+    border: none;
+    background: transparent;
     color: var(--primary);
 
+    font: inherit;
     font-size: 1.8rem;
     font-weight: 800;
     letter-spacing: -0.5px;
@@ -39,13 +43,13 @@
 
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .navItem {
     width: 100%;
-    min-height: 48px;
-    padding: 11px 12px;
+    min-height: 46px;
+    padding: 10px 12px;
 
     border: none;
     border-radius: var(--radius-md);
@@ -54,7 +58,7 @@
     color: var(--text-primary);
 
     font: inherit;
-    font-size: 1rem;
+    font-size: 0.96rem;
     font-weight: 500;
     text-align: left;
 
@@ -62,7 +66,7 @@
 
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 15px;
 
     transition:
         background-color 0.2s ease,
@@ -198,7 +202,7 @@
 }
 
 /* =========================================
-   SEARCH SUPPORT CLASSES
+   SEARCH SUPPORT
 ========================================= */
 
 .searchContainer {
@@ -285,7 +289,8 @@
 
         width: 100%;
         height: 60px;
-        padding: 0 18px;
+        padding:
+            env(safe-area-inset-top, 0) 18px 0;
 
         box-sizing: border-box;
 
@@ -297,7 +302,8 @@
         align-items: center;
         justify-content: space-between;
 
-        transition: transform 0.3s ease-in-out;
+        transition:
+            transform 0.3s ease-in-out;
     }
 
     .hideTopHeader {
@@ -327,8 +333,13 @@
     }
 
     .topHeaderLogo {
+        padding: 0;
+
+        border: none;
+        background: transparent;
         color: var(--primary);
 
+        font: inherit;
         font-size: 1.4rem;
         font-weight: 800;
 
@@ -376,8 +387,11 @@
         z-index: 100;
 
         width: 100%;
-        height: 54px;
-        padding: 0;
+        height:
+            calc(56px + env(safe-area-inset-bottom, 0px));
+
+        padding:
+            0 0 env(safe-area-inset-bottom, 0px);
 
         border-top: 1px solid var(--border);
         border-right: none;
@@ -385,6 +399,9 @@
         background: var(--surface);
 
         flex-direction: row;
+
+        box-shadow:
+            0 -4px 18px rgb(0 0 0 / 5%);
 
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
@@ -396,21 +413,32 @@
 
     .navLinks {
         width: 100%;
-        height: 100%;
+        height: 56px;
 
         padding: 0;
 
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+
+        /* 6 mobile items:
+       Home, Search, Explore,
+       Nearby Help, Messages,
+       Notifications
+    */
+        grid-template-columns:
+            repeat(6,
+                minmax(0, 1fr));
+
         align-items: stretch;
         gap: 0;
     }
 
     .navItem {
+        position: relative;
+
         width: 100%;
         min-width: 0;
-        min-height: 54px;
-        height: 54px;
+        min-height: 56px;
+        height: 56px;
         padding: 0;
 
         border: none;
@@ -425,6 +453,9 @@
         gap: 0;
 
         transform: none;
+
+        -webkit-tap-highlight-color:
+            transparent;
     }
 
     .navItem:hover,
@@ -447,14 +478,16 @@
         top: 0;
         left: 50%;
 
-        width: 28px;
+        width: 25px;
         height: 3px;
 
-        border-radius: 0 0 999px 999px;
+        border-radius:
+            0 0 999px 999px;
 
         background: var(--primary);
 
-        transform: translateX(-50%);
+        transform:
+            translateX(-50%);
     }
 
     .navItem.active .icon {
@@ -467,35 +500,35 @@
     }
 
     .icon {
-        width: 23px;
-        height: 23px;
-        flex-basis: 23px;
+        width: 22px;
+        height: 22px;
+        flex-basis: 22px;
 
         color: currentColor;
     }
 
     .iconWrapper {
-        width: 28px;
-        height: 28px;
+        width: 27px;
+        height: 27px;
     }
 
     .badge {
         top: -5px;
-        right: -7px;
+        right: -6px;
 
-        min-width: 17px;
-        height: 17px;
+        min-width: 16px;
+        height: 16px;
         padding: 0 4px;
 
         border-width: 2px;
 
-        font-size: 9px;
+        font-size: 8px;
     }
 
     .profileIcon {
-        width: 26px !important;
-        height: 26px !important;
-        min-width: 26px !important;
+        width: 25px !important;
+        height: 25px !important;
+        min-width: 25px !important;
 
         margin: 0 !important;
 
@@ -547,7 +580,9 @@
         position: fixed;
         top: auto;
         right: 16px;
-        bottom: 66px;
+        bottom:
+            calc(68px + env(safe-area-inset-bottom,
+                    0px));
         left: 16px;
 
         width: auto;
@@ -561,26 +596,43 @@
 
 @media (max-width: 380px) {
     .mobileTopHeader {
-        padding: 0 14px;
-    }
-
-    .navItem {
-        min-height: 52px;
-        height: 52px;
+        padding-right: 12px;
+        padding-left: 12px;
     }
 
     .sidebar {
-        height: 52px;
+        height:
+            calc(54px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .navLinks {
+        height: 54px;
+    }
+
+    .navItem {
+        min-height: 54px;
+        height: 54px;
     }
 
     .icon {
-        width: 22px;
-        height: 22px;
-        flex-basis: 22px;
+        width: 21px;
+        height: 21px;
+        flex-basis: 21px;
+    }
+
+    .iconWrapper {
+        width: 25px;
+        height: 25px;
     }
 
     .badge {
-        right: -6px;
+        top: -4px;
+        right: -5px;
+
+        min-width: 15px;
+        height: 15px;
+
+        font-size: 8px;
     }
 }
 

@@ -32,6 +32,9 @@ const messageRoutesModule =
 const userRoutesModule =
   require("./routes/userRoutes");
 
+const helpRequestRoutesModule =
+  require("./routes/helpRequestRoutes");
+
 /* =========================
    CRON JOB IMPORTS
 ========================= */
@@ -110,6 +113,12 @@ const userRoutes =
   resolveRouter(
     userRoutesModule,
     "userRoutes"
+  );
+
+const helpRequestRoutes =
+  resolveRouter(
+    helpRequestRoutesModule,
+    "helpRequestRoutes"
   );
 
 /* =========================
@@ -281,6 +290,11 @@ app.use(
 app.use(
   "/api/users",
   userRoutes
+);
+
+app.use(
+  "/api/help-requests",
+  helpRequestRoutes
 );
 
 /* =========================
@@ -482,6 +496,10 @@ const startServer =
 
           console.log(
             "✅ All Express routes mounted successfully"
+          );
+
+          console.log(
+            "✅ Help Request routes mounted at /api/help-requests"
           );
         }
       );

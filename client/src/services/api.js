@@ -16,14 +16,6 @@ const normalizeApiBaseUrl = (
     .trim()
     .replace(/\/+$/, "");
 
-  /*
-   * Environment URL:
-   * https://example.com
-   * or
-   * https://example.com/api
-   *
-   * Both formats are supported.
-   */
   if (
     normalizedValue
       .toLowerCase()

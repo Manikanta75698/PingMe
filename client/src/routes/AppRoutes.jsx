@@ -24,8 +24,11 @@ import Profile from "../pages/profile/Profile";
 import UserProfile from "../pages/profile/UserProfile";
 import CreatePost from "../components/home/CreatePost";
 import PostDetails from "../pages/post/PostDetails";
-
 import Explore from "../pages/explore/Explore";
+
+import HelpFeed from "../pages/help/HelpFeed";
+import CreateHelpRequest from "../pages/help/CreateHelpRequest";
+import HelpRequestDetails from "../pages/help/HelpRequestDetails";
 
 /* =========================
    AUTH HELPERS
@@ -164,6 +167,25 @@ const AppRoutes = () => {
         <Route
           path="/explore"
           element={<Explore />}
+        />
+
+        <Route
+          path="/help"
+          element={<HelpFeed />}
+        />
+
+        <Route
+          path="/help/create"
+          element={
+            <CreateHelpRequest />
+          }
+        />
+
+        <Route
+          path="/help/:requestId"
+          element={
+            <HelpRequestDetails />
+          }
         />
 
         <Route
