@@ -88,6 +88,14 @@ const MessageInput = () => {
   const editingMessageRef =
     useRef(null);
 
+  /*
+   * Edit submit ayyaka stale context/socket
+   * update input ni malli populate cheyyakunda
+   * current edit session track chesthundi.
+   */
+  const editSubmittingIdRef =
+    useRef("");
+
   const typingTimerRef =
     useRef(null);
 
@@ -129,7 +137,11 @@ const MessageInput = () => {
    * lose kakunda stable reference maintain.
    */
   useEffect(() => {
-    if (editingMessageId) {
+    if (
+      editingMessageId &&
+      editSubmittingIdRef.current !==
+      editingMessageId
+    ) {
       editingMessageRef.current =
         editingMessage;
     }
@@ -379,7 +391,11 @@ const MessageInput = () => {
   ========================= */
 
   useEffect(() => {
-    if (!editingMessageId) {
+    if (
+      !editingMessageId ||
+      editSubmittingIdRef.current ===
+      editingMessageId
+    ) {
       return undefined;
     }
 
@@ -542,6 +558,23 @@ const MessageInput = () => {
       setLoading(true);
       stopTyping();
 
+      /*
+       * Edit save tap chesina ventane composer
+       * normal empty mode ki return avuthundi.
+       * Socket messageEdited event/API response
+       * stale edited text ni input lo malli
+       * populate cheyyaledhu.
+       */
+      editSubmittingIdRef.current =
+        messageId;
+
+      editingMessageRef.current =
+        null;
+
+      setEditingMessage(null);
+      setText("");
+      resetTextareaHeight();
+
       const optimisticEditedAt =
         new Date().toISOString();
 
@@ -603,13 +636,8 @@ const MessageInput = () => {
               : []
         );
 
-        editingMessageRef.current =
-          null;
-
-        setEditingMessage(null);
-
-        setText("");
-        resetTextareaHeight();
+        editSubmittingIdRef.current =
+          "";
 
         loadChatSummaries()
           .catch((error) => {
@@ -664,6 +692,33 @@ const MessageInput = () => {
           }
         );
 
+        /*
+         * Request fail ayithe original edit mode
+         * and typed value restore chestham.
+         */
+        editSubmittingIdRef.current =
+          "";
+
+        editingMessageRef.current =
+          messageToEdit;
+
+        setEditingMessage(
+          messageToEdit
+        );
+
+        setText(
+          currentText
+        );
+
+        window.requestAnimationFrame(
+          () => {
+            resizeTextarea();
+
+            textareaRef.current
+              ?.focus();
+          }
+        );
+
         toast.error(
           error.response?.data
             ?.message ||
@@ -672,6 +727,14 @@ const MessageInput = () => {
         );
       } finally {
         setLoading(false);
+
+        if (
+          editSubmittingIdRef.current ===
+          messageId
+        ) {
+          editSubmittingIdRef.current =
+            "";
+        }
       }
     };
 
@@ -925,12 +988,12 @@ const MessageInput = () => {
 
       resetTextareaHeight();
 
-      window.requestAnimationFrame(
-        () => {
-          textareaRef.current
-            ?.focus();
-        }
-      );
+      /*
+       * Submit button pointer-down lo focus
+       * preserve chestham. Ikkada forced
+       * re-focus chesthe mobile keyboard
+       * hide/show flicker ravachu.
+       */
 
       try {
         let requestData;
@@ -1513,17 +1576,8 @@ const MessageInput = () => {
             handleEnter
           }
           onFocus={() => {
-            window.setTimeout(
-              () => {
-                textareaRef.current
-                  ?.scrollIntoView({
-                    block: "nearest",
-                    inline: "nearest",
-                    behavior: "smooth",
-                  });
-              },
-              250
-            );
+
+            resizeTextarea();
           }}
           onBlur={() => {
             if (!isEditing) {
@@ -1544,6 +1598,15 @@ const MessageInput = () => {
               ? "edit"
               : "send"
           }
+          onPointerDown={(event) => {
+            /*
+             * Button focus textarea nundi steal
+             * cheyyakunda prevent chestham.
+             * Keyboard send/edit request time lo
+             * continuously open ga untundi.
+             */
+            event.preventDefault();
+          }}
           onClick={() => {
             void handleSubmit();
           }}
