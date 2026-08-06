@@ -61,6 +61,35 @@ const normalizeId = (value) => {
   return String(value);
 };
 
+const getMessageKey = (
+  message
+) => {
+  const messageId =
+    normalizeId(message?._id);
+
+  if (messageId) {
+    return `id:${messageId}`;
+  }
+
+  const senderId =
+    normalizeId(message?.sender);
+
+  const clientMessageId =
+    String(
+      message?.clientMessageId ||
+      ""
+    ).trim();
+
+  if (
+    senderId &&
+    clientMessageId
+  ) {
+    return `client:${senderId}:${clientMessageId}`;
+  }
+
+  return "";
+};
+
 export const ChatProvider = ({
   children,
 }) => {
@@ -171,6 +200,9 @@ export const ChatProvider = ({
 
 
   const processedNotificationIdsRef =
+    useRef(new Set());
+
+  const processedMessageKeysRef =
     useRef(new Set());
 
   const [
@@ -444,6 +476,10 @@ export const ChatProvider = ({
 
           summariesLoadedAtRef.current =
             0;
+
+          processedMessageKeysRef
+            .current
+            .clear();
 
           setChatSummaries([]);
           setSummariesLoading(false);
@@ -1481,13 +1517,67 @@ export const ChatProvider = ({
   ========================= */
 
   useEffect(() => {
+    const rememberMessage = (
+      message
+    ) => {
+      const key =
+        getMessageKey(message);
+
+      /*
+       * Extremely old backend payload lo
+       * identity lekapothe normal flow allow.
+       */
+      if (!key) {
+        return true;
+      }
+
+      if (
+        processedMessageKeysRef
+          .current
+          .has(key)
+      ) {
+        return false;
+      }
+
+      processedMessageKeysRef
+        .current
+        .add(key);
+
+      /*
+       * Memory unlimited ga grow kakunda
+       * recent keys matrame preserve.
+       */
+      if (
+        processedMessageKeysRef
+          .current
+          .size > 600
+      ) {
+        const keys =
+          Array.from(
+            processedMessageKeysRef
+              .current
+          );
+
+        processedMessageKeysRef
+          .current =
+          new Set(
+            keys.slice(-300)
+          );
+      }
+
+      return true;
+    };
+
     const handleMessage = (
       message
     ) => {
-      console.log(
-        "🔥 newMessage RECEIVED:",
-        message
-      );
+      if (
+        !message ||
+        typeof message !==
+        "object"
+      ) {
+        return;
+      }
 
       const currentUserId =
         normalizeId(
@@ -1504,64 +1594,115 @@ export const ChatProvider = ({
           message?.sender
         );
 
-      const selectedChatId =
+      const selectedUserId =
         normalizeId(
           selectedChatRef.current
         );
 
+      const messageId =
+        normalizeId(
+          message?._id
+        );
+
       const isForCurrentUser =
         Boolean(currentUserId) &&
-        receiverId === currentUserId;
+        receiverId ===
+        currentUserId;
 
+      /*
+       * Vere user/device kosam vachina
+       * malformed event ni process cheyyam.
+       */
+      if (!isForCurrentUser) {
+        return;
+      }
+
+      /*
+       * Same socket message repeat ayithe:
+       * - bubble duplicate kaadhu
+       * - unread duplicate kaadhu
+       * - summary duplicate update kaadhu
+       */
+      if (!rememberMessage(message)) {
+        return;
+      }
 
       const isExactChatOpen =
-        isForCurrentUser &&
-        Boolean(selectedChatId) &&
-        senderId === selectedChatId;
+        Boolean(selectedUserId) &&
+        senderId ===
+        selectedUserId;
 
-      if (
-        isForCurrentUser &&
-        message?._id
-      ) {
+      /*
+       * Receiver server ki delivered
+       * acknowledgement pampisthadu.
+       */
+      if (messageId) {
         socket.emit(
           "messageDelivered",
           {
-            messageId:
-              message._id,
+            messageId,
           }
         );
       }
+
+      /* =========================
+         OPEN CONVERSATION
+      ========================= */
 
       if (isExactChatOpen) {
         setMessages(
           (previous) => {
+            const safeMessages =
+              Array.isArray(previous)
+                ? previous
+                : [];
+
+            const incomingKey =
+              getMessageKey(message);
+
             const alreadyExists =
-              previous.some(
-                (item) =>
-                  normalizeId(
-                    item?._id
-                  ) ===
-                  normalizeId(
-                    message?._id
-                  )
+              safeMessages.some(
+                (item) => {
+                  const existingId =
+                    normalizeId(
+                      item?._id
+                    );
+
+                  if (
+                    messageId &&
+                    existingId ===
+                    messageId
+                  ) {
+                    return true;
+                  }
+
+                  const existingKey =
+                    getMessageKey(item);
+
+                  return (
+                    incomingKey &&
+                    existingKey ===
+                    incomingKey
+                  );
+                }
               );
 
             if (alreadyExists) {
-              return previous;
+              return safeMessages;
             }
 
             return [
-              ...previous,
+              ...safeMessages,
               message,
             ];
           }
         );
-      }
 
-      if (
-        isForCurrentUser &&
-        !isExactChatOpen
-      ) {
+        /*
+         * Open chat lo unread count increase
+         * cheyyakudadhu. Summary latest message
+         * matrame update chestham.
+         */
         setChatSummaries(
           (previous) => {
             const safeSummaries =
@@ -1569,67 +1710,41 @@ export const ChatProvider = ({
                 ? previous
                 : [];
 
-            const existingIndex =
-              safeSummaries.findIndex(
-                (summary) =>
-                  normalizeId(
-                    summary?.user
-                  ) === senderId
-              );
-
-            if (
-              existingIndex === -1
-            ) {
-              return safeSummaries;
-            }
-
-            const updatedSummaries =
+            const updated =
               safeSummaries.map(
-                (
-                  summary,
-                  index
-                ) => {
+                (summary) => {
+                  const summaryUserId =
+                    normalizeId(
+                      summary?.user
+                    );
+
                   if (
-                    index !==
-                    existingIndex
+                    summaryUserId !==
+                    senderId
                   ) {
                     return summary;
                   }
 
                   return {
                     ...summary,
-
                     lastMessage:
                       message,
-
-                    unreadCount:
-                      (Number(
-                        summary
-                          ?.unreadCount
-                      ) || 0) + 1,
                   };
                 }
               );
 
-            return updatedSummaries.sort(
-              (
-                first,
-                second
-              ) => {
+            return updated.sort(
+              (first, second) => {
                 const firstTime =
                   new Date(
-                    first
-                      ?.lastMessage
-                      ?.createdAt ||
-                    0
+                    first?.lastMessage
+                      ?.createdAt || 0
                   ).getTime();
 
                 const secondTime =
                   new Date(
-                    second
-                      ?.lastMessage
-                      ?.createdAt ||
-                    0
+                    second?.lastMessage
+                      ?.createdAt || 0
                   ).getTime();
 
                 return (
@@ -1640,7 +1755,118 @@ export const ChatProvider = ({
             );
           }
         );
+
+        return;
       }
+
+      /* =========================
+         CLOSED CONVERSATION
+      ========================= */
+
+      setChatSummaries(
+        (previous) => {
+          const safeSummaries =
+            Array.isArray(previous)
+              ? previous
+              : [];
+
+          const existingIndex =
+            safeSummaries.findIndex(
+              (summary) =>
+                normalizeId(
+                  summary?.user
+                ) === senderId
+            );
+
+          /*
+           * Summary local cache lo lekapothe
+           * server nunchi latest list reload.
+           */
+          if (existingIndex === -1) {
+            void loadChatSummaries({
+              force: true,
+              silent: true,
+            });
+
+            return safeSummaries;
+          }
+
+          const existingSummary =
+            safeSummaries[
+            existingIndex
+            ];
+
+          const previousMessageKey =
+            getMessageKey(
+              existingSummary
+                ?.lastMessage
+            );
+
+          const incomingMessageKey =
+            getMessageKey(message);
+
+          /*
+           * Summary already same message ni
+           * contain chesthe unread repeat kaadhu.
+           */
+          if (
+            incomingMessageKey &&
+            incomingMessageKey ===
+            previousMessageKey
+          ) {
+            return safeSummaries;
+          }
+
+          const updatedSummaries =
+            safeSummaries.map(
+              (summary, index) => {
+                if (
+                  index !==
+                  existingIndex
+                ) {
+                  return summary;
+                }
+
+                return {
+                  ...summary,
+
+                  lastMessage:
+                    message,
+
+                  unreadCount:
+                    Math.max(
+                      0,
+                      Number(
+                        summary
+                          ?.unreadCount
+                      ) || 0
+                    ) + 1,
+                };
+              }
+            );
+
+          return updatedSummaries.sort(
+            (first, second) => {
+              const firstTime =
+                new Date(
+                  first?.lastMessage
+                    ?.createdAt || 0
+                ).getTime();
+
+              const secondTime =
+                new Date(
+                  second?.lastMessage
+                    ?.createdAt || 0
+                ).getTime();
+
+              return (
+                secondTime -
+                firstTime
+              );
+            }
+          );
+        }
+      );
     };
 
     socket.on(
@@ -1654,8 +1880,7 @@ export const ChatProvider = ({
         handleMessage
       );
     };
-  }, []);
-
+  }, [loadChatSummaries]);
 
   /* =========================
    MESSAGE EDITED

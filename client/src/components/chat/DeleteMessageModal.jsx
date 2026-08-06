@@ -1,4 +1,13 @@
 import {
+  useEffect,
+  useRef,
+} from "react";
+
+import {
+  createPortal,
+} from "react-dom";
+
+import {
   AlertTriangle,
   Trash2,
   UserRoundX,
@@ -17,12 +26,80 @@ const DeleteMessageModal = ({
   onDeleteForMe,
   onDeleteForEveryone,
 }) => {
-  if (!open) {
+  const modalRef =
+    useRef(null);
+
+  const isLoading =
+    Boolean(loadingMode);
+
+  /* =========================
+     MODAL EFFECTS
+  ========================= */
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const previousOverflow =
+      document.body.style.overflow;
+
+    document.body.style.overflow =
+      "hidden";
+
+    const frameId =
+      window.requestAnimationFrame(
+        () => {
+          modalRef.current?.focus();
+        }
+      );
+
+    const handleKeyDown = (
+      event
+    ) => {
+      if (
+        event.key === "Escape" &&
+        !isLoading
+      ) {
+        onClose?.();
+      }
+    };
+
+    document.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
+
+    return () => {
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      document.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+
+      document.body.style.overflow =
+        previousOverflow;
+    };
+  }, [
+    open,
+    isLoading,
+    onClose,
+  ]);
+
+  if (
+    !open ||
+    typeof document ===
+    "undefined"
+  ) {
     return null;
   }
 
-  const loading =
-    Boolean(loadingMode);
+  /* =========================
+     BACKDROP CLOSE
+  ========================= */
 
   const handleBackdropClick = (
     event
@@ -30,36 +107,44 @@ const DeleteMessageModal = ({
     if (
       event.target ===
       event.currentTarget &&
-      !loading
+      !isLoading
     ) {
       onClose?.();
     }
   };
 
-  return (
+  /* =========================
+     MODAL
+  ========================= */
+
+  return createPortal(
     <div
       className={styles.overlay}
+      role="presentation"
       onMouseDown={
         handleBackdropClick
       }
-      role="presentation"
     >
       <section
+        ref={modalRef}
         className={styles.modal}
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-message-title"
+        tabIndex={-1}
         onMouseDown={(event) => {
           event.stopPropagation();
         }}
       >
+        {/* CLOSE */}
+
         <button
           type="button"
           className={
             styles.closeButton
           }
           onClick={onClose}
-          disabled={loading}
+          disabled={isLoading}
           aria-label="Close delete message"
         >
           <X
@@ -67,6 +152,8 @@ const DeleteMessageModal = ({
             aria-hidden="true"
           />
         </button>
+
+        {/* ICON */}
 
         <div
           className={
@@ -78,6 +165,8 @@ const DeleteMessageModal = ({
             aria-hidden="true"
           />
         </div>
+
+        {/* TITLE */}
 
         <h2 id="delete-message-title">
           Delete message?
@@ -93,6 +182,8 @@ const DeleteMessageModal = ({
             : "This message will be removed only from your chat."}
         </p>
 
+        {/* ERROR */}
+
         {error && (
           <div
             className={styles.error}
@@ -101,6 +192,8 @@ const DeleteMessageModal = ({
             {error}
           </div>
         )}
+
+        {/* DELETE OPTIONS */}
 
         <div
           className={
@@ -115,7 +208,7 @@ const DeleteMessageModal = ({
             onClick={
               onDeleteForMe
             }
-            disabled={loading}
+            disabled={isLoading}
           >
             <span
               className={
@@ -148,8 +241,7 @@ const DeleteMessageModal = ({
               </strong>
 
               <small>
-                Remove this message only
-                from your chat
+                Remove only from your chat
               </small>
             </span>
           </button>
@@ -161,7 +253,7 @@ const DeleteMessageModal = ({
               onClick={
                 onDeleteForEveryone
               }
-              disabled={loading}
+              disabled={isLoading}
             >
               <span
                 className={`${styles.optionIcon} ${styles.dangerIcon}`}
@@ -192,13 +284,14 @@ const DeleteMessageModal = ({
                 </strong>
 
                 <small>
-                  Replace it with a deleted
-                  message notice
+                  Remove for everyone in this chat
                 </small>
               </span>
             </button>
           )}
         </div>
+
+        {/* FOOTER */}
 
         <div
           className={
@@ -211,7 +304,7 @@ const DeleteMessageModal = ({
               styles.cancelButton
             }
             onClick={onClose}
-            disabled={loading}
+            disabled={isLoading}
           >
             Cancel
           </button>
@@ -225,7 +318,7 @@ const DeleteMessageModal = ({
               onClick={
                 onDeleteForMe
               }
-              disabled={loading}
+              disabled={isLoading}
             >
               {loadingMode ===
                 "forMe" ? (
@@ -252,7 +345,8 @@ const DeleteMessageModal = ({
           )}
         </div>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 };
 

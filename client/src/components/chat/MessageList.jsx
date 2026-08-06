@@ -18,7 +18,6 @@ import {
 } from "../../context/AuthContext";
 
 import MessageBubble from "./MessageBubble";
-
 import ForwardMessageModal from "./ForwardMessageModal";
 
 const normalizeId = (value) => {
@@ -58,7 +57,6 @@ const MessageList = ({
   olderMessagesLoading = false,
   loadOlderMessages,
 }) => {
-
   const {
     messages,
     setMessages,
@@ -166,14 +164,9 @@ const MessageList = ({
       lastMessage?._id
     );
 
-  const lastSenderId =
-    normalizeId(
-      lastMessage?.sender
-    );
-
   /* =========================
- MESSAGE SEARCH
-========================= */
+     MESSAGE SEARCH
+  ========================= */
 
   const normalizedSearchQuery =
     String(
@@ -286,10 +279,6 @@ const MessageList = ({
       return;
     }
 
-    /*
-     * Message current list lo already
-     * loaded unte direct scroll.
-     */
     if (
       scrollToMessageById(
         requestedMessageId
@@ -306,10 +295,6 @@ const MessageList = ({
         pinnedMessage?._id
       );
 
-    /*
-     * Dedicated pinned API response
-     * requested message ki match avvali.
-     */
     if (
       !pinnedMessage ||
       pinnedMessageId !==
@@ -329,10 +314,6 @@ const MessageList = ({
     pendingPinnedScrollIdRef.current =
       requestedMessageId;
 
-    /*
-     * Old pinned message current
-     * pagination lo lekapothe insert.
-     */
     setMessages((previous) => {
       const safePrevious =
         Array.isArray(previous)
@@ -538,10 +519,6 @@ const MessageList = ({
         return;
       }
 
-      /*
-       * Search mode lo hidden navigation
-       * override cheyyakudadhu.
-       */
       if (messageSearchOpen) {
         return;
       }
@@ -554,6 +531,9 @@ const MessageList = ({
 
       window.requestAnimationFrame(
         () => {
+          container.scrollTop =
+            container.scrollHeight;
+
           bottomRef.current
             ?.scrollIntoView({
               behavior,
@@ -577,6 +557,10 @@ const MessageList = ({
     };
   }, [messageSearchOpen]);
 
+  /* =========================
+     SELECTED CHAT RESET
+  ========================= */
+
   useLayoutEffect(() => {
     initialScrollDoneRef.current =
       false;
@@ -597,9 +581,7 @@ const MessageList = ({
     pendingPinnedScrollIdRef.current =
       "";
 
-    setPinnedScrollTargetId(
-      ""
-    );
+    setPinnedScrollTargetId("");
 
     if (
       pinnedScrollTimerRef.current
@@ -611,9 +593,11 @@ const MessageList = ({
       pinnedScrollTimerRef.current =
         null;
     }
-
   }, [selectedChatId]);
 
+  /* =========================
+     INITIAL BOTTOM SCROLL
+  ========================= */
 
   useLayoutEffect(() => {
     const container =
@@ -664,6 +648,9 @@ const MessageList = ({
     firstMessageId,
   ]);
 
+  /* =========================
+     PRESERVE OLDER SCROLL
+  ========================= */
 
   useLayoutEffect(() => {
     const container =
@@ -707,17 +694,12 @@ const MessageList = ({
     safeMessages.length,
   ]);
 
-  /*
-   * New own message always bottom ki.
-   * Incoming message user bottom daggara
-   * unte matrame auto-scroll.
-   */
-  useEffect(() => {
-    const container =
-      containerRef.current;
+  /* =========================
+     NEW MESSAGE AUTO SCROLL
+  ========================= */
 
+  useEffect(() => {
     if (
-      !container ||
       !initialScrollDoneRef.current ||
       loadingOlderRef.current ||
       !lastMessageId ||
@@ -725,52 +707,209 @@ const MessageList = ({
     ) {
       return undefined;
     }
-    const isOwnNewMessage =
-      lastSenderId ===
-      currentUserId;
 
-    const distanceFromBottom =
-      container.scrollHeight -
-      container.scrollTop -
-      container.clientHeight;
+    const scrollToLatest = () => {
+      const container =
+        containerRef.current;
 
-    const isNearBottom =
-      distanceFromBottom < 220;
+      if (!container) {
+        return;
+      }
 
-    if (
-      !isOwnNewMessage &&
-      !isNearBottom
-    ) {
-      return undefined;
-    }
+      container.scrollTop =
+        container.scrollHeight;
 
-    const animationFrameId =
+      bottomRef.current
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "end",
+          inline: "nearest",
+        });
+    };
+
+    const frameId =
       window.requestAnimationFrame(
-        () => {
-          bottomRef.current
-            ?.scrollIntoView({
-              behavior: "smooth",
-              block: "end",
-            });
-        }
+        scrollToLatest
+      );
+
+    const timerId =
+      window.setTimeout(
+        scrollToLatest,
+        120
       );
 
     return () => {
       window.cancelAnimationFrame(
-        animationFrameId
+        frameId
+      );
+
+      window.clearTimeout(
+        timerId
       );
     };
   }, [
     lastMessageId,
-    lastSenderId,
-    currentUserId,
     messageSearchOpen,
   ]);
 
+  /* =========================
+     MOBILE KEYBOARD SCROLL
+  ========================= */
+
+  useEffect(() => {
+    const viewport =
+      window.visualViewport;
+
+    let frameId = 0;
+    let timerId = 0;
+
+    const scrollToLatest = () => {
+      if (
+        messageSearchOpen ||
+        loadingOlderRef.current ||
+        !initialScrollDoneRef.current
+      ) {
+        return;
+      }
+
+      const container =
+        containerRef.current;
+
+      if (!container) {
+        return;
+      }
+
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      window.clearTimeout(
+        timerId
+      );
+
+      frameId =
+        window.requestAnimationFrame(
+          () => {
+            container.scrollTop =
+              container.scrollHeight;
+
+            bottomRef.current
+              ?.scrollIntoView({
+                behavior: "auto",
+                block: "end",
+                inline: "nearest",
+              });
+          }
+        );
+
+      timerId =
+        window.setTimeout(
+          () => {
+            const latestContainer =
+              containerRef.current;
+
+            if (!latestContainer) {
+              return;
+            }
+
+            latestContainer.scrollTop =
+              latestContainer.scrollHeight;
+
+            bottomRef.current
+              ?.scrollIntoView({
+                behavior: "auto",
+                block: "end",
+                inline: "nearest",
+              });
+          },
+          200
+        );
+    };
+
+    const handleFocusChange = (
+      event
+    ) => {
+      const target =
+        event.target;
+
+      if (
+        target instanceof
+        HTMLTextAreaElement ||
+        target instanceof
+        HTMLInputElement
+      ) {
+        scrollToLatest();
+      }
+    };
+
+    viewport?.addEventListener(
+      "resize",
+      scrollToLatest
+    );
+
+    viewport?.addEventListener(
+      "scroll",
+      scrollToLatest
+    );
+
+    window.addEventListener(
+      "resize",
+      scrollToLatest
+    );
+
+    document.addEventListener(
+      "focusin",
+      handleFocusChange
+    );
+
+    document.addEventListener(
+      "focusout",
+      handleFocusChange
+    );
+
+    return () => {
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      window.clearTimeout(
+        timerId
+      );
+
+      viewport?.removeEventListener(
+        "resize",
+        scrollToLatest
+      );
+
+      viewport?.removeEventListener(
+        "scroll",
+        scrollToLatest
+      );
+
+      window.removeEventListener(
+        "resize",
+        scrollToLatest
+      );
+
+      document.removeEventListener(
+        "focusin",
+        handleFocusChange
+      );
+
+      document.removeEventListener(
+        "focusout",
+        handleFocusChange
+      );
+    };
+  }, [
+    selectedChatId,
+    lastMessageId,
+    messageSearchOpen,
+  ]);
 
   /* =========================
-   START EDITING MESSAGE
-========================= */
+     START EDITING MESSAGE
+  ========================= */
 
   const handleEditMessage =
     useCallback(
@@ -779,10 +918,6 @@ const MessageList = ({
           return;
         }
 
-        /*
-         * Reply and Edit modes
-         * same time lo undakudadhu.
-         */
         setReplyingTo(null);
         setEditingMessage(message);
       },
@@ -792,10 +927,9 @@ const MessageList = ({
       ]
     );
 
-
   /* =========================
-   START REPLYING TO MESSAGE
-========================= */
+     START REPLYING
+  ========================= */
 
   const handleReplyMessage =
     useCallback(
@@ -813,10 +947,9 @@ const MessageList = ({
       ]
     );
 
-
   /* =========================
- FORWARD MESSAGE
-========================= */
+     FORWARD MESSAGE
+  ========================= */
 
   const handleForwardMessage =
     useCallback(
@@ -834,13 +967,11 @@ const MessageList = ({
 
   const closeForwardModal =
     useCallback(() => {
-      setForwardingMessage(
-        null
-      );
+      setForwardingMessage(null);
     }, []);
 
   /* =========================
-     MARK VISIBLE MESSAGE READ
+     MARK MESSAGE READ
   ========================= */
 
   const handleMessageVisible =
@@ -916,8 +1047,8 @@ const MessageList = ({
     );
 
   /* =========================
- FLUSH PENDING READ RECEIPTS
-========================= */
+     FLUSH PENDING READS
+  ========================= */
 
   useEffect(() => {
     if (!socket) {
@@ -976,6 +1107,10 @@ const MessageList = ({
     };
   }, [socket]);
 
+  /* =========================
+     LOAD OLDER MESSAGES
+  ========================= */
+
   const handleScroll = async () => {
     const container =
       containerRef.current;
@@ -1006,10 +1141,6 @@ const MessageList = ({
     try {
       await loadOlderMessages();
 
-      /*
-       * No older messages returned
-       * ayithe pagination lock release.
-       */
       window.setTimeout(() => {
         const currentFirstId =
           normalizeId(

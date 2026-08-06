@@ -37,6 +37,20 @@ import {
 
 const MAX_MESSAGE_LENGTH = 5000;
 
+const createClientMessageId = () => {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID ===
+    "function"
+  ) {
+    return `msg-${crypto.randomUUID()}`;
+  }
+
+  return `msg-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 12)}`;
+};
+
 const getUserId = (value) => {
   if (!value) {
     return "";
@@ -820,10 +834,11 @@ const MessageInput = () => {
 
       stopTyping();
 
+      const clientMessageId =
+        createClientMessageId();
+
       const tempId =
-        `temp-${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 8)}`;
+        `temp-${clientMessageId}`;
 
 
       const optimisticImageUrl =
@@ -835,6 +850,8 @@ const MessageInput = () => {
 
       const tempMessage = {
         _id: tempId,
+
+        clientMessageId,
 
         text:
           currentText,
@@ -1028,6 +1045,11 @@ const MessageInput = () => {
           );
 
           formData.append(
+            "clientMessageId",
+            clientMessageId
+          );
+
+          formData.append(
             "text",
             currentText
           );
@@ -1049,6 +1071,8 @@ const MessageInput = () => {
           requestData = {
             receiver:
               receiverId,
+
+            clientMessageId,
 
             text:
               currentText,
@@ -1160,6 +1184,8 @@ const MessageInput = () => {
                       retryPayload: {
                         receiver:
                           receiverId,
+
+                        clientMessageId,
 
                         text:
                           currentText,

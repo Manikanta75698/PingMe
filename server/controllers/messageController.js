@@ -94,10 +94,7 @@ const normalizeId = (value) => {
       );
     }
 
-    /*
-     * Own id property unte matrame access.
-     * ObjectId prototype getter ni avoid chesthundi.
-     */
+
     if (
       Object.prototype
         .hasOwnProperty.call(
@@ -128,6 +125,30 @@ const normalizeId = (value) => {
     ? ""
     : stringValue;
 };
+
+const normalizeClientMessageId = (
+  value
+) => {
+  const normalized =
+    String(value || "").trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (
+    normalized.length > 120 ||
+    !/^[a-zA-Z0-9:_-]+$/.test(
+      normalized
+    )
+  ) {
+    return "";
+  }
+
+  return normalized;
+};
+
+
 
 const getUserBlockState =
   async (
@@ -745,7 +766,6 @@ const sendMessage = async (
   req,
   res
 ) => {
-
   const requestStartedAt =
     Date.now();
 
@@ -786,6 +806,21 @@ const sendMessage = async (
         req.body?.sharedPostId
       );
 
+    const rawClientMessageId =
+      String(
+        req.body?.clientMessageId ||
+        ""
+      ).trim();
+
+    const clientMessageId =
+      normalizeClientMessageId(
+        rawClientMessageId
+      );
+
+    /* =========================
+       AUTH VALIDATION
+    ========================= */
+
     if (
       !senderId ||
       !isValidObjectId(senderId)
@@ -816,13 +851,82 @@ const sendMessage = async (
       });
     }
 
+    /* =========================
+       CLIENT MESSAGE ID
+    ========================= */
+
+    if (
+      rawClientMessageId &&
+      !clientMessageId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid client message ID",
+        code:
+          "INVALID_CLIENT_MESSAGE_ID",
+      });
+    }
+
+    /*
+     * Retry request ayithe already saved
+     * message ni return chestham.
+     */
+    if (clientMessageId) {
+      const existingMessage =
+        await Message.findOne({
+          sender: senderId,
+          clientMessageId,
+        });
+
+      if (existingMessage) {
+        const existingReceiverId =
+          normalizeId(
+            existingMessage.receiver
+          );
+
+        /*
+         * Same key ni different receiver
+         * kosam reuse cheyyakudadhu.
+         */
+        if (
+          existingReceiverId !==
+          receiverId
+        ) {
+          return res.status(409).json({
+            success: false,
+            message:
+              "Client message ID is already in use",
+            code:
+              "CLIENT_MESSAGE_ID_CONFLICT",
+          });
+        }
+
+        await populateSentMessage(
+          existingMessage
+        );
+
+        return res.status(200).json({
+          success: true,
+          duplicate: true,
+          message:
+            "Message already sent",
+          data:
+            existingMessage.toObject(),
+        });
+      }
+    }
+
+    /* =========================
+       CONTENT VALIDATION
+    ========================= */
+
     if (
       normalizedText.length >
       MAX_MESSAGE_LENGTH
     ) {
       return res.status(400).json({
         success: false,
-
         message:
           `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`,
       });
@@ -864,6 +968,10 @@ const sendMessage = async (
       });
     }
 
+    /* =========================
+       ACCESS CHECKS
+    ========================= */
+
     const [
       blockState,
       messagePermissionResult,
@@ -892,7 +1000,6 @@ const sendMessage = async (
         ],
       }),
     ]);
-
 
     if (blockState.isBlocked) {
       return res.status(403).json({
@@ -923,40 +1030,43 @@ const sendMessage = async (
       });
     }
 
-if (
-  !existingConversation &&
-  !messagePermissionResult.allowed
-) {
-  const permissionError =
-    getMessagePermissionError(
-      messagePermissionResult
-        .permission
-    );
+    if (
+      !existingConversation &&
+      !messagePermissionResult.allowed
+    ) {
+      const permissionError =
+        getMessagePermissionError(
+          messagePermissionResult
+            .permission
+        );
 
-  return res.status(403).json({
-    success: false,
+      return res.status(403).json({
+        success: false,
+        message:
+          permissionError.message,
+        code:
+          permissionError.code,
 
-    message:
-      permissionError.message,
+        data: {
+          userId:
+            receiverId,
 
-    code:
-      permissionError.code,
+          messagePermission:
+            messagePermissionResult
+              .permission,
+        },
+      });
+    }
 
-    data: {
-      userId: receiverId,
-
-      messagePermission:
-        messagePermissionResult
-          .permission,
-    },
-  });
-}
     logSendTiming(
       "access checks complete"
     );
 
-    let sharedPostData =
-      null;
+    /* =========================
+       SHARED POST
+    ========================= */
+
+    let sharedPostData = null;
 
     if (sharedPostId) {
       const sharedPost =
@@ -1030,19 +1140,36 @@ if (
       };
     }
 
+    /* =========================
+       REPLY VALIDATION
+    ========================= */
+
     if (replyToId) {
       const repliedMessageExists =
         await Message.exists({
           _id: replyToId,
 
+          deletedForEveryone:
+            false,
+
+          deletedFor: {
+            $nin: [
+              senderId,
+            ],
+          },
+
           $or: [
             {
-              sender: senderId,
-              receiver: receiverId,
+              sender:
+                senderId,
+              receiver:
+                receiverId,
             },
             {
-              sender: receiverId,
-              receiver: senderId,
+              sender:
+                receiverId,
+              receiver:
+                senderId,
             },
           ],
         });
@@ -1050,12 +1177,15 @@ if (
       if (!repliedMessageExists) {
         return res.status(400).json({
           success: false,
-
           message:
             "Reply message was not found in this conversation",
         });
       }
     }
+
+    /* =========================
+       IMAGE UPLOAD
+    ========================= */
 
     if (req.file) {
       const uploaded =
@@ -1067,23 +1197,40 @@ if (
         uploaded.secure_url;
     }
 
+    /* =========================
+       CREATE MESSAGE
+    ========================= */
+
     persistedMessage =
       await Message.create({
-        sender: senderId,
-        receiver: receiverId,
+        sender:
+          senderId,
 
-        text: normalizedText,
-        image: uploadedImageUrl,
+        receiver:
+          receiverId,
+
+        clientMessageId:
+          clientMessageId ||
+          null,
+
+        text:
+          normalizedText,
+
+        image:
+          uploadedImageUrl,
 
         sharedPost:
           sharedPostData,
 
-        status: "sent",
+        status:
+          "sent",
 
         replyTo:
-          replyToId || null,
+          replyToId ||
+          null,
 
-        reactions: [],
+        reactions:
+          [],
       });
 
     logSendTiming(
@@ -1101,10 +1248,10 @@ if (
     const messagePayload =
       persistedMessage.toObject();
 
-    const io = getSafeIO();
+    const io =
+      getSafeIO();
 
     if (io) {
-
       io.to(receiverId).emit(
         "newMessage",
         messagePayload
@@ -1117,13 +1264,82 @@ if (
 
     return res.status(201).json({
       success: true,
-
+      duplicate: false,
       message:
         "Message sent successfully",
-
-      data: messagePayload,
+      data:
+        messagePayload,
     });
   } catch (error) {
+    /*
+     * Two same requests simultaneous ga
+     * vachina Mongo unique index one record
+     * matrame allow chesthundi.
+     */
+    const duplicateClientMessageId =
+      error?.code === 11000 &&
+      Boolean(
+        error?.keyPattern
+          ?.clientMessageId ||
+        error?.keyValue
+          ?.clientMessageId
+      );
+
+    if (
+      duplicateClientMessageId
+    ) {
+      const senderId =
+        normalizeId(req.user);
+
+      const receiverId =
+        normalizeId(
+          req.body?.receiver
+        );
+
+      const clientMessageId =
+        normalizeClientMessageId(
+          req.body?.clientMessageId
+        );
+
+      /*
+       * Duplicate request upload chesina
+       * extra Cloudinary image cleanup.
+       */
+      if (uploadedImageUrl) {
+        await deleteCloudinaryImage(
+          uploadedImageUrl
+        );
+
+        uploadedImageUrl = "";
+      }
+
+      const existingMessage =
+        await Message.findOne({
+          sender:
+            senderId,
+
+          receiver:
+            receiverId,
+
+          clientMessageId,
+        });
+
+      if (existingMessage) {
+        await populateSentMessage(
+          existingMessage
+        );
+
+        return res.status(200).json({
+          success: true,
+          duplicate: true,
+          message:
+            "Message already sent",
+          data:
+            existingMessage.toObject(),
+        });
+      }
+    }
+
     /*
      * DB lo message save kakapothe
      * uploaded image cleanup.
@@ -1152,7 +1368,8 @@ if (
       .status(result.status)
       .json({
         success: false,
-        message: result.message,
+        message:
+          result.message,
       });
   }
 };

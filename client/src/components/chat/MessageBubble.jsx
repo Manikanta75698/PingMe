@@ -1201,6 +1201,13 @@ const MessageBubble = ({
           message?.receiver
         );
 
+      const clientMessageId =
+        String(
+          retryPayload?.clientMessageId ||
+          message?.clientMessageId ||
+          ""
+        ).trim();
+
       const retryText =
         String(
           retryPayload?.text ??
@@ -1221,6 +1228,7 @@ const MessageBubble = ({
       if (
         !tempId ||
         !receiverId ||
+        !clientMessageId ||
         (!retryText && !retryImage)
       ) {
         setRetryError(
@@ -1294,6 +1302,11 @@ const MessageBubble = ({
           );
 
           formData.append(
+            "clientMessageId",
+            clientMessageId
+          );
+
+          formData.append(
             "text",
             retryText
           );
@@ -1316,6 +1329,8 @@ const MessageBubble = ({
           requestData = {
             receiver:
               receiverId,
+
+            clientMessageId,
 
             text:
               retryText,

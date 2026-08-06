@@ -117,6 +117,16 @@ const messageSchema =
         index: true,
       },
 
+      clientMessageId: {
+        type: String,
+        default: null,
+        trim: true,
+        maxlength: [
+          120,
+          "Client message ID cannot exceed 120 characters",
+        ],
+      },
+
       text: {
         type: String,
         default: "",
@@ -193,11 +203,7 @@ const messageSchema =
         default: null,
       },
 
-      /*
-       * Delete for me:
-       * Ee array lo unna users ki
-       * message conversation lo hide avuthundi.
-       */
+
       deletedFor: {
         type: [
           {
@@ -210,11 +216,7 @@ const messageSchema =
         default: [],
       },
 
-      /*
-       * Delete for everyone:
-       * Document retain chestham,
-       * content matrame clear chestham.
-       */
+
       deletedForEveryone: {
         type: Boolean,
         default: false,
@@ -252,10 +254,7 @@ const messageSchema =
 messageSchema.pre(
   "validate",
   function validateMessage() {
-    /*
-     * Delete-for-everyone placeholder
-     * ki original content compulsory kaadhu.
-     */
+
     if (this.deletedForEveryone) {
       return;
     }
@@ -347,6 +346,22 @@ messageSchema.index(
     partialFilterExpression: {
       expiresAt: {
         $type: "date",
+      },
+    },
+  }
+);
+
+messageSchema.index(
+  {
+    sender: 1,
+    clientMessageId: 1,
+  },
+  {
+    unique: true,
+
+    partialFilterExpression: {
+      clientMessageId: {
+        $type: "string",
       },
     },
   }
