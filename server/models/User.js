@@ -2,13 +2,7 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
-    // Basic Details
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
+    name: { type: String, required: true, trim: true },
     username: {
       type: String,
       required: true,
@@ -16,7 +10,6 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-
     email: {
       type: String,
       required: true,
@@ -24,56 +17,68 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-
-    password: {
-      type: String,
-      default: "",
-    },
-
+    password: { type: String, default: "" },
     provider: {
       type: String,
       enum: ["local", "google"],
       default: "local",
     },
 
-    // Profile
-    profilePic: {
-      type: String,
-      default: "",
+    profilePic: { type: String, default: "" },
+    coverPhoto: { type: String, default: "" },
+    bio: { type: String, default: "" },
+    website: { type: String, default: "" },
+    location: { type: String, default: "" },
+
+    nearbyHelpLocation: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: undefined,
+      },
+      coordinates: {
+        type: [Number],
+        default: undefined,
+        validate: {
+          validator(value) {
+            if (!value) return true;
+
+            return (
+              Array.isArray(value) &&
+              value.length === 2 &&
+              Number.isFinite(value[0]) &&
+              Number.isFinite(value[1]) &&
+              value[0] >= -180 &&
+              value[0] <= 180 &&
+              value[1] >= -90 &&
+              value[1] <= 90
+            );
+          },
+          message:
+            "Nearby Help coordinates must be [longitude, latitude]",
+        },
+      },
     },
 
-    coverPhoto: {
-      type: String,
-      default: "",
+    nearbyHelpLocationUpdatedAt: {
+      type: Date,
+      default: null,
     },
 
-    bio: {
-      type: String,
-      default: "",
+    nearbyHelpNotifications: {
+      type: Boolean,
+      default: true,
     },
 
-    website: {
-      type: String,
-      default: "",
+    nearbyHelpRadiusKm: {
+      type: Number,
+      enum: [2, 3],
+      default: 3,
     },
 
-    location: {
-      type: String,
-      default: "",
-    },
-
-    // Find Someone Now
     currentIntent: {
       type: String,
-      enum: [
-        "",
-        "chat",
-        "gaming",
-        "study",
-        "music",
-        "fun",
-        "advice",
-      ],
+      enum: ["", "chat", "gaming", "study", "music", "fun", "advice"],
       default: "",
     },
 
@@ -82,7 +87,6 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Social
     followers: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -111,7 +115,6 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    // Authentication
     isVerified: {
       type: Boolean,
       default: false,
@@ -141,7 +144,6 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
-    // Password Reset Security
     passwordResetOtp: {
       type: String,
       default: "",
@@ -178,7 +180,6 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
-    // Online Status
     isOnline: {
       type: Boolean,
       default: false,
@@ -189,7 +190,6 @@ const userSchema = new mongoose.Schema(
       default: Date.now,
     },
 
-    // Settings
     theme: {
       type: String,
       enum: ["system", "light", "dark"],
@@ -219,12 +219,7 @@ const userSchema = new mongoose.Schema(
 
       messagePermission: {
         type: String,
-        enum: [
-          "everyone",
-          "followers",
-          "following",
-          "no-one",
-        ],
+        enum: ["everyone", "followers", "following", "no-one"],
         default: "everyone",
       },
     },
@@ -240,28 +235,15 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+userSchema.index({ blockedUsers: 1 });
+userSchema.index({ name: "text", username: "text" });
+userSchema.index({ followers: 1 });
+userSchema.index({ following: 1 });
+userSchema.index({ createdAt: -1 });
+userSchema.index({ nearbyHelpLocation: "2dsphere" });
 userSchema.index({
-  blockedUsers: 1,
+  nearbyHelpNotifications: 1,
+  nearbyHelpLocationUpdatedAt: -1,
 });
 
-userSchema.index({
-  name: "text",
-  username: "text",
-});
-
-userSchema.index({
-  followers: 1,
-});
-
-userSchema.index({
-  following: 1,
-});
-
-userSchema.index({
-  createdAt: -1,
-});
-
-module.exports = mongoose.model(
-  "User",
-  userSchema
-);
+module.exports = mongoose.model("User", userSchema);

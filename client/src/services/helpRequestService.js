@@ -1,9 +1,5 @@
 import api from "./api";
 
-/* =========================
-   RESPONSE HELPERS
-========================= */
-
 const getResponseData = (response) => {
   return response?.data || {};
 };
@@ -24,10 +20,7 @@ const throwServiceError = (
   fallbackMessage
 ) => {
   const serviceError = new Error(
-    getErrorMessage(
-      error,
-      fallbackMessage
-    )
+    getErrorMessage(error, fallbackMessage)
   );
 
   serviceError.status =
@@ -39,32 +32,33 @@ const throwServiceError = (
   throw serviceError;
 };
 
-/* =========================
-   REQUEST NORMALIZER
-========================= */
+const cleanText = (value) => {
+  return typeof value === "string"
+    ? value.trim()
+    : "";
+};
 
 const normalizeHelpRequestPayload = (
   requestData = {}
 ) => {
   return {
-    title:
-      requestData.title?.trim() || "",
-
-    description:
-      requestData.description?.trim() ||
-      "",
-
+    title: cleanText(requestData.title),
+    description: cleanText(
+      requestData.description
+    ),
     category:
       requestData.category || "other",
-
     urgency:
       requestData.urgency || "medium",
+    city: cleanText(requestData.city),
+    area: cleanText(requestData.area),
 
-    city:
-      requestData.city?.trim() || "",
+    exactAddress:
+      cleanText(requestData.exactAddress) ||
+      cleanText(requestData.locationName),
 
-    area:
-      requestData.area?.trim() || "",
+    locationName:
+      cleanText(requestData.locationName),
 
     latitude:
       requestData.latitude ?? null,
@@ -77,28 +71,44 @@ const normalizeHelpRequestPayload = (
       "chat",
 
     contactPhone:
-      requestData.contactPhone?.trim() ||
-      "",
+      cleanText(requestData.contactPhone),
 
     expiresInDays:
-      Number(
-        requestData.expiresInDays
-      ) || 7,
+      Number(requestData.expiresInDays) ||
+      7,
 
     image:
-      requestData.image?.trim() || "",
+      cleanText(requestData.image),
   };
 };
 
-/* =========================
-   CREATE REQUEST
-========================= */
+export const updateNearbyHelpLocation =
+  async ({
+    latitude,
+    longitude,
+    radiusKm = 3,
+    notificationsEnabled = true,
+  }) => {
+    try {
+      const response = await api.patch(
+        "/help-requests/my/location",
+        {
+          latitude,
+          longitude,
+          radiusKm,
+          notificationsEnabled,
+        }
+      );
 
-/**
- * Create a community help request.
- *
- * POST /api/help-requests
- */
+      return getResponseData(response);
+    } catch (error) {
+      throwServiceError(
+        error,
+        "Unable to update Nearby Help location"
+      );
+    }
+  };
+
 export const createHelpRequest = async (
   requestData
 ) => {
@@ -122,25 +132,6 @@ export const createHelpRequest = async (
   }
 };
 
-/* =========================
-   HELP REQUEST FEED
-========================= */
-
-/**
- * Load community help requests.
- *
- * Supported filters:
- * page
- * limit
- * category
- * urgency
- * status
- * city
- * search
- * sort
- *
- * GET /api/help-requests
- */
 export const getHelpRequests = async (
   filters = {}
 ) => {
@@ -153,26 +144,24 @@ export const getHelpRequests = async (
       urgency:
         filters.urgency || "all",
       status:
-        filters.status || "open",
+        filters.status || "active",
       city:
-        filters.city?.trim() || "",
+        cleanText(filters.city),
       search:
-        filters.search?.trim() || "",
+        cleanText(filters.search),
       sort:
         filters.sort || "latest",
     };
 
-    Object.keys(params).forEach(
-      (key) => {
-        if (
-          params[key] === "" ||
-          params[key] === null ||
-          params[key] === undefined
-        ) {
-          delete params[key];
-        }
+    Object.keys(params).forEach((key) => {
+      if (
+        params[key] === "" ||
+        params[key] === null ||
+        params[key] === undefined
+      ) {
+        delete params[key];
       }
-    );
+    });
 
     const response = await api.get(
       "/help-requests",
@@ -190,15 +179,6 @@ export const getHelpRequests = async (
   }
 };
 
-/* =========================
-   SINGLE REQUEST
-========================= */
-
-/**
- * Load complete request details.
- *
- * GET /api/help-requests/:requestId
- */
 export const getHelpRequestById =
   async (requestId) => {
     try {
@@ -221,30 +201,19 @@ export const getHelpRequestById =
     }
   };
 
-/* =========================
-   CURRENT USER REQUESTS
-========================= */
-
-/**
- * Load requests created by the current user.
- *
- * GET /api/help-requests/my/requests
- */
 export const getMyHelpRequests = async (
   filters = {}
 ) => {
   try {
-    const params = {
-      page: filters.page || 1,
-      limit: filters.limit || 10,
-      status:
-        filters.status || "all",
-    };
-
     const response = await api.get(
       "/help-requests/my/requests",
       {
-        params,
+        params: {
+          page: filters.page || 1,
+          limit: filters.limit || 10,
+          status:
+            filters.status || "all",
+        },
       }
     );
 
@@ -257,15 +226,38 @@ export const getMyHelpRequests = async (
   }
 };
 
-/* =========================
-   UPDATE REQUEST
-========================= */
+export const getMyHelpHistory =
+  async () => {
+    try {
+      const response = await api.get(
+        "/help-requests/my/history"
+      );
 
-/**
- * Update a help request owned by the user.
- *
- * PATCH /api/help-requests/:requestId
- */
+      return getResponseData(response);
+    } catch (error) {
+      throwServiceError(
+        error,
+        "Unable to load your help history"
+      );
+    }
+  };
+
+export const getCommunityImpact =
+  async () => {
+    try {
+      const response = await api.get(
+        "/help-requests/community/impact"
+      );
+
+      return getResponseData(response);
+    } catch (error) {
+      throwServiceError(
+        error,
+        "Unable to load community impact"
+      );
+    }
+  };
+
 export const updateHelpRequest = async (
   requestId,
   requestData
@@ -277,82 +269,10 @@ export const updateHelpRequest = async (
       );
     }
 
-    const payload = {};
-
-    if (
-      requestData.title !== undefined
-    ) {
-      payload.title =
-        requestData.title.trim();
-    }
-
-    if (
-      requestData.description !==
-      undefined
-    ) {
-      payload.description =
-        requestData.description.trim();
-    }
-
-    if (
-      requestData.category !== undefined
-    ) {
-      payload.category =
-        requestData.category;
-    }
-
-    if (
-      requestData.urgency !== undefined
-    ) {
-      payload.urgency =
-        requestData.urgency;
-    }
-
-    if (
-      requestData.city !== undefined
-    ) {
-      payload.city =
-        requestData.city.trim();
-    }
-
-    if (
-      requestData.area !== undefined
-    ) {
-      payload.area =
-        requestData.area.trim();
-    }
-
-    if (
-      requestData.contactPreference !==
-      undefined
-    ) {
-      payload.contactPreference =
-        requestData.contactPreference;
-    }
-
-    if (
-      requestData.contactPhone !==
-      undefined
-    ) {
-      payload.contactPhone =
-        requestData.contactPhone.trim();
-    }
-
-    if (
-      requestData.image !== undefined
-    ) {
-      payload.image =
-        requestData.image.trim();
-    }
-
-    if (
-      requestData.expiresInDays !==
-      undefined
-    ) {
-      payload.expiresInDays = Number(
-        requestData.expiresInDays
+    const payload =
+      normalizeHelpRequestPayload(
+        requestData
       );
-    }
 
     const response = await api.patch(
       `/help-requests/${requestId}`,
@@ -368,30 +288,15 @@ export const updateHelpRequest = async (
   }
 };
 
-/* =========================
-   OFFER HELP
-========================= */
-
-/**
- * Offer help for a community request.
- *
- * POST /api/help-requests/:requestId/offer
- */
 export const offerHelp = async (
   requestId,
   message = ""
 ) => {
   try {
-    if (!requestId) {
-      throw new Error(
-        "Help request ID is required"
-      );
-    }
-
     const response = await api.post(
       `/help-requests/${requestId}/offer`,
       {
-        message: message.trim(),
+        message: cleanText(message),
       }
     );
 
@@ -404,20 +309,9 @@ export const offerHelp = async (
   }
 };
 
-/**
- * Withdraw current user's help offer.
- *
- * DELETE /api/help-requests/:requestId/offer
- */
 export const withdrawHelpOffer =
   async (requestId) => {
     try {
-      if (!requestId) {
-        throw new Error(
-          "Help request ID is required"
-        );
-      }
-
       const response = await api.delete(
         `/help-requests/${requestId}/offer`
       );
@@ -431,27 +325,11 @@ export const withdrawHelpOffer =
     }
   };
 
-/* =========================
-   ACCEPT HELPER
-========================= */
-
-/**
- * Accept one helper.
- *
- * PATCH
- * /api/help-requests/:requestId/helpers/:helperId/accept
- */
 export const acceptHelper = async (
   requestId,
   helperId
 ) => {
   try {
-    if (!requestId || !helperId) {
-      throw new Error(
-        "Request ID and helper ID are required"
-      );
-    }
-
     const response = await api.patch(
       `/help-requests/${requestId}/helpers/${helperId}/accept`
     );
@@ -465,24 +343,9 @@ export const acceptHelper = async (
   }
 };
 
-/* =========================
-   REQUEST STATUS
-========================= */
-
-/**
- * Mark a request as resolved.
- *
- * PATCH /api/help-requests/:requestId/resolve
- */
 export const resolveHelpRequest =
   async (requestId) => {
     try {
-      if (!requestId) {
-        throw new Error(
-          "Help request ID is required"
-        );
-      }
-
       const response = await api.patch(
         `/help-requests/${requestId}/resolve`
       );
@@ -496,20 +359,9 @@ export const resolveHelpRequest =
     }
   };
 
-/**
- * Cancel a request.
- *
- * PATCH /api/help-requests/:requestId/cancel
- */
 export const cancelHelpRequest =
   async (requestId) => {
     try {
-      if (!requestId) {
-        throw new Error(
-          "Help request ID is required"
-        );
-      }
-
       const response = await api.patch(
         `/help-requests/${requestId}/cancel`
       );
@@ -523,26 +375,11 @@ export const cancelHelpRequest =
     }
   };
 
-/* =========================
-   REPORT REQUEST
-========================= */
-
-/**
- * Report an unsafe or suspicious request.
- *
- * POST /api/help-requests/:requestId/report
- */
 export const reportHelpRequest = async (
   requestId,
   reason = "other"
 ) => {
   try {
-    if (!requestId) {
-      throw new Error(
-        "Help request ID is required"
-      );
-    }
-
     const response = await api.post(
       `/help-requests/${requestId}/report`,
       {
@@ -559,25 +396,9 @@ export const reportHelpRequest = async (
   }
 };
 
-/* =========================
-   DELETE REQUEST
-========================= */
-
-/**
- * Permanently delete the current user's
- * help request.
- *
- * DELETE /api/help-requests/:requestId
- */
 export const deleteHelpRequest =
   async (requestId) => {
     try {
-      if (!requestId) {
-        throw new Error(
-          "Help request ID is required"
-        );
-      }
-
       const response = await api.delete(
         `/help-requests/${requestId}`
       );
@@ -591,15 +412,14 @@ export const deleteHelpRequest =
     }
   };
 
-/* =========================
-   DEFAULT EXPORT
-========================= */
-
 const helpRequestService = {
+  updateNearbyHelpLocation,
   createHelpRequest,
   getHelpRequests,
   getHelpRequestById,
   getMyHelpRequests,
+  getMyHelpHistory,
+  getCommunityImpact,
   updateHelpRequest,
   offerHelp,
   withdrawHelpOffer,

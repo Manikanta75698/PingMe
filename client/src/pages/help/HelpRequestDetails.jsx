@@ -12,12 +12,14 @@ import {
   Check,
   CheckCircle2,
   Clock3,
+  Copy,
   Flag,
   HandHeart,
   LoaderCircle,
   MapPin,
   MessageCircle,
   MoreVertical,
+  Navigation,
   Phone,
   RefreshCw,
   ShieldAlert,
@@ -391,6 +393,52 @@ const HelpRequestDetails = () => {
       creatorId === currentUserId
     );
 
+  const acceptedHelperId =
+    getId(
+      helpRequest?.acceptedHelper
+    );
+
+  const isAcceptedHelper =
+    Boolean(
+      currentUserId &&
+      acceptedHelperId === currentUserId
+    );
+
+  const canViewPrivateDetails =
+    Boolean(
+      helpRequest?.canViewPrivateDetails ||
+      isOwner ||
+      isAcceptedHelper
+    );
+
+  const exactAddress =
+    helpRequest?.location?.exactAddress ||
+    "";
+
+  const googleMapsUrl =
+    helpRequest?.googleMapsUrl ||
+    (() => {
+      const latitude =
+        helpRequest?.location?.coordinates
+          ?.latitude;
+
+      const longitude =
+        helpRequest?.location?.coordinates
+          ?.longitude;
+
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude)
+      ) {
+        return "";
+      }
+
+      return (
+        "https://www.google.com/maps/dir/" +
+        `?api=1&destination=${latitude},${longitude}`
+      );
+    })();
+
   const userAlreadyOffered =
     hasUserOffered(
       helpRequest,
@@ -490,7 +538,13 @@ const HelpRequestDetails = () => {
       setOfferMessage("");
       setShowOfferForm(false);
 
-      await loadRequest();
+      if (response.helpRequest) {
+        setHelpRequest(
+          response.helpRequest
+        );
+      } else {
+        await loadRequest();
+      }
     };
 
   const handleWithdrawOffer =
@@ -505,7 +559,13 @@ const HelpRequestDetails = () => {
         );
 
       if (response) {
-        await loadRequest();
+        if (response.helpRequest) {
+          setHelpRequest(
+            response.helpRequest
+          );
+        } else {
+          await loadRequest();
+        }
       }
     };
 
@@ -522,7 +582,13 @@ const HelpRequestDetails = () => {
         );
 
       if (response) {
-        await loadRequest();
+        if (response.helpRequest) {
+          setHelpRequest(
+            response.helpRequest
+          );
+        } else {
+          await loadRequest();
+        }
       }
     };
 
@@ -544,7 +610,13 @@ const HelpRequestDetails = () => {
 
         setShowOwnerMenu(false);
 
-        await loadRequest();
+        if (response.helpRequest) {
+          setHelpRequest(
+            response.helpRequest
+          );
+        } else {
+          await loadRequest();
+        }
       }
     };
 
@@ -566,7 +638,13 @@ const HelpRequestDetails = () => {
 
         setShowOwnerMenu(false);
 
-        await loadRequest();
+        if (response.helpRequest) {
+          setHelpRequest(
+            response.helpRequest
+          );
+        } else {
+          await loadRequest();
+        }
       }
     };
 
@@ -643,6 +721,41 @@ const HelpRequestDetails = () => {
     navigate(
       `/user/${cleanUsername}`
     );
+  };
+
+  const handleOpenMaps = () => {
+    if (!googleMapsUrl) {
+      setActionError(
+        "Exact map location is not available"
+      );
+      return;
+    }
+
+    window.open(
+      googleMapsUrl,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  const handleCopyPhone = async () => {
+    if (!helpRequest?.contactPhone) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(
+        helpRequest.contactPhone
+      );
+
+      setSuccessMessage(
+        "Phone number copied"
+      );
+    } catch {
+      setActionError(
+        "Unable to copy phone number"
+      );
+    }
   };
 
   if (loading) {
@@ -1791,7 +1904,7 @@ const HelpRequestDetails = () => {
                 </span>
               </button>
 
-              {!isOwner && (
+              {isAcceptedHelper && (
                 <button
                   type="button"
                   className={
@@ -1873,23 +1986,99 @@ const HelpRequestDetails = () => {
                 </div>
               </div>
 
-              {isOwner &&
-                helpRequest.contactPhone && (
-                  <a
-                    href={`tel:${helpRequest.contactPhone}`}
-                    className={
-                      styles.phoneLink
-                    }
-                  >
-                    <Phone
-                      size={17}
-                    />
+              {canViewPrivateDetails ? (
+                <div
+                  className={
+                    styles.privateContactBlock
+                  }
+                >
+                  {helpRequest.contactPhone && (
+                    <div
+                      className={
+                        styles.privatePhoneRow
+                      }
+                    >
+                      <a
+                        href={`tel:${helpRequest.contactPhone}`}
+                        className={
+                          styles.phoneLink
+                        }
+                      >
+                        <Phone size={17} />
+                        {
+                          helpRequest.contactPhone
+                        }
+                      </a>
 
-                    {
-                      helpRequest.contactPhone
-                    }
-                  </a>
-                )}
+                      <button
+                        type="button"
+                        className={
+                          styles.copyButton
+                        }
+                        onClick={
+                          handleCopyPhone
+                        }
+                        aria-label="Copy phone number"
+                      >
+                        <Copy size={16} />
+                      </button>
+                    </div>
+                  )}
+
+                  {(exactAddress ||
+                    googleMapsUrl) && (
+                    <div
+                      className={
+                        styles.privateLocation
+                      }
+                    >
+                      <div>
+                        <MapPin size={18} />
+
+                        <span>
+                          <small>
+                            Exact location
+                          </small>
+
+                          <strong>
+                            {exactAddress ||
+                              getLocation(
+                                helpRequest
+                              )}
+                          </strong>
+                        </span>
+                      </div>
+
+                      {googleMapsUrl && (
+                        <button
+                          type="button"
+                          className={
+                            styles.mapButton
+                          }
+                          onClick={
+                            handleOpenMaps
+                          }
+                        >
+                          <Navigation
+                            size={17}
+                          />
+                          Open map
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p
+                  className={
+                    styles.privateLockedText
+                  }
+                >
+                  Phone and exact location
+                  unlock after the requester
+                  accepts your help offer.
+                </p>
+              )}
             </section>
 
             <section

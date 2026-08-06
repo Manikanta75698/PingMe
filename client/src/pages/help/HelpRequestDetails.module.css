@@ -1682,3 +1682,174 @@
           0px));
   }
 }
+
+/* =========================
+   PRIVATE CONTACT ACCESS
+========================= */
+
+.privateContactBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border, #e5e7eb);
+}
+
+.privatePhoneRow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.privatePhoneRow .phoneLink {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+}
+
+.copyButton {
+  display: inline-flex;
+  width: 42px;
+  min-width: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  background: var(--surface-light, #f3f4f6);
+  color: var(--text-primary, #111827);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.copyButton:hover {
+  border-color: var(--primary, #2563eb);
+  color: var(--primary, #2563eb);
+}
+
+.copyButton:active {
+  transform: scale(0.96);
+}
+
+.privateLocation {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 13px;
+  border: 1px solid rgb(37 99 235 / 18%);
+  border-radius: 14px;
+  background: rgb(37 99 235 / 6%);
+}
+
+.privateLocation > div {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.privateLocation > div > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--primary, #2563eb);
+}
+
+.privateLocation span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.privateLocation small {
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.privateLocation strong {
+  color: var(--text-primary, #111827);
+  font-size: 0.77rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.mapButton {
+  display: inline-flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 11px;
+  background: var(--primary, #2563eb);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 760;
+  cursor: pointer;
+  transition:
+    filter 160ms ease,
+    transform 160ms ease;
+}
+
+.mapButton:hover {
+  filter: brightness(0.96);
+}
+
+.mapButton:active {
+  transform: scale(0.985);
+}
+
+.privateLockedText {
+  margin: 13px 0 0;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--surface-light, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+/* Keep long request content inside the viewport. */
+.requestCard,
+.contactCard,
+.creatorCard,
+.acceptedHelperCard {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .pageContent {
+    width: 100%;
+    padding-bottom:
+      calc(
+        76px +
+        env(safe-area-inset-bottom, 0px)
+      );
+  }
+
+  .layout {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .requestCard h1,
+  .description,
+  .metaItem strong {
+    overflow-wrap: anywhere;
+  }
+
+  .acceptedHelperCard {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .acceptedHelperCard > button {
+    width: 100%;
+  }
+}

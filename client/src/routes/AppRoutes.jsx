@@ -29,6 +29,8 @@ import Explore from "../pages/explore/Explore";
 import HelpFeed from "../pages/help/HelpFeed";
 import CreateHelpRequest from "../pages/help/CreateHelpRequest";
 import HelpRequestDetails from "../pages/help/HelpRequestDetails";
+import MyHelpHistory from "../pages/help/MyHelpHistory";
+import CommunityImpact from "../pages/help/CommunityImpact";
 
 /* =========================
    AUTH HELPERS
@@ -179,6 +181,16 @@ const AppRoutes = () => {
           element={
             <CreateHelpRequest />
           }
+        />
+
+        <Route
+          path="/help/history"
+          element={<MyHelpHistory />}
+        />
+
+        <Route
+          path="/help/community-impact"
+          element={<CommunityImpact />}
         />
 
         <Route

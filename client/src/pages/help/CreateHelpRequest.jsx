@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -167,6 +166,7 @@ const INITIAL_FORM = {
   urgency: "medium",
   city: "",
   area: "",
+  locationName: "",
   latitude: null,
   longitude: null,
   contactPreference: "chat",
@@ -251,32 +251,6 @@ const validateForm = (
 const CreateHelpRequest = () => {
   const navigate =
     useNavigate();
-
-  useEffect(() => {
-    const html =
-      document.documentElement;
-
-    const body =
-      document.body;
-
-    html.classList.add(
-      "helpCreatePageOpen"
-    );
-
-    body.classList.add(
-      "helpCreatePageOpen"
-    );
-
-    return () => {
-      html.classList.remove(
-        "helpCreatePageOpen"
-      );
-
-      body.classList.remove(
-        "helpCreatePageOpen"
-      );
-    };
-  }, []);
 
   const [
     formData,
