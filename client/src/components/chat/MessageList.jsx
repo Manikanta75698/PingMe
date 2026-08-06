@@ -7,6 +7,10 @@ import {
   useState,
 } from "react";
 
+import {
+  ArrowDown,
+} from "lucide-react";
+
 import styles from "./MessageList.module.css";
 
 import {
@@ -92,6 +96,16 @@ const MessageList = ({
     setPinnedScrollTargetId,
   ] = useState("");
 
+  const [
+    showScrollButton,
+    setShowScrollButton,
+  ] = useState(false);
+
+  const [
+    unreadNewMessages,
+    setUnreadNewMessages,
+  ] = useState(0);
+
   const pinnedScrollTimerRef =
     useRef(null);
 
@@ -128,6 +142,71 @@ const MessageList = ({
   const pendingReadIdsRef =
     useRef(new Set());
 
+  const isNearBottomRef =
+    useRef(true);
+
+  const previousLastMessageIdRef =
+    useRef("");
+
+
+  /* =========================
+ BOTTOM SCROLL HELPERS
+========================= */
+
+  const checkIsNearBottom =
+    useCallback(() => {
+      const container =
+        containerRef.current;
+
+      if (!container) {
+        return true;
+      }
+
+      const distanceFromBottom =
+        container.scrollHeight -
+        container.scrollTop -
+        container.clientHeight;
+
+      return distanceFromBottom < 180;
+    }, []);
+
+  const scrollToLatest =
+    useCallback(
+      (
+        behavior = "smooth",
+        {
+          clearUnread = true,
+        } = {}
+      ) => {
+        const container =
+          containerRef.current;
+
+        if (!container) {
+          return;
+        }
+
+        container.scrollTop =
+          container.scrollHeight;
+
+        bottomRef.current
+          ?.scrollIntoView({
+            behavior,
+            block: "end",
+            inline: "nearest",
+          });
+
+        isNearBottomRef.current =
+          true;
+
+        setShowScrollButton(false);
+
+        if (clearUnread) {
+          setUnreadNewMessages(0);
+        }
+      },
+      []
+    );
+
   const selectedChatId =
     normalizeId(selectedChat);
 
@@ -162,6 +241,11 @@ const MessageList = ({
   const lastMessageId =
     normalizeId(
       lastMessage?._id
+    );
+
+  const lastSenderId =
+    normalizeId(
+      lastMessage?.sender
     );
 
   /* =========================
@@ -512,13 +596,6 @@ const MessageList = ({
     const handleScrollToBottom = (
       event
     ) => {
-      const container =
-        containerRef.current;
-
-      if (!container) {
-        return;
-      }
-
       if (messageSearchOpen) {
         return;
       }
@@ -531,15 +608,9 @@ const MessageList = ({
 
       window.requestAnimationFrame(
         () => {
-          container.scrollTop =
-            container.scrollHeight;
-
-          bottomRef.current
-            ?.scrollIntoView({
-              behavior,
-              block: "end",
-              inline: "nearest",
-            });
+          scrollToLatest(
+            behavior
+          );
         }
       );
     };
@@ -555,7 +626,10 @@ const MessageList = ({
         handleScrollToBottom
       );
     };
-  }, [messageSearchOpen]);
+  }, [
+    messageSearchOpen,
+    scrollToLatest,
+  ]);
 
   /* =========================
      SELECTED CHAT RESET
@@ -571,8 +645,14 @@ const MessageList = ({
     previousFirstMessageIdRef.current =
       "";
 
+    previousLastMessageIdRef.current =
+      "";
+
     loadingOlderRef.current =
       false;
+
+    isNearBottomRef.current =
+      true;
 
     readEmittedIdsRef.current.clear();
     pendingReadIdsRef.current.clear();
@@ -582,6 +662,8 @@ const MessageList = ({
       "";
 
     setPinnedScrollTargetId("");
+    setShowScrollButton(false);
+    setUnreadNewMessages(0);
 
     if (
       pinnedScrollTimerRef.current
@@ -618,8 +700,17 @@ const MessageList = ({
       initialScrollDoneRef.current =
         true;
 
+      isNearBottomRef.current =
+        true;
+
       previousFirstMessageIdRef.current =
         firstMessageId;
+
+      previousLastMessageIdRef.current =
+        lastMessageId;
+
+      setShowScrollButton(false);
+      setUnreadNewMessages(0);
     };
 
     const animationFrameId =
@@ -646,8 +737,8 @@ const MessageList = ({
     selectedChatId,
     safeMessages.length,
     firstMessageId,
+    lastMessageId,
   ]);
-
   /* =========================
      PRESERVE OLDER SCROLL
   ========================= */
@@ -705,51 +796,97 @@ const MessageList = ({
       !lastMessageId ||
       messageSearchOpen
     ) {
+      previousLastMessageIdRef.current =
+        lastMessageId;
+
       return undefined;
     }
 
-    const scrollToLatest = () => {
-      const container =
-        containerRef.current;
+    const previousLastMessageId =
+      previousLastMessageIdRef.current;
 
-      if (!container) {
-        return;
-      }
+    previousLastMessageIdRef.current =
+      lastMessageId;
 
-      container.scrollTop =
-        container.scrollHeight;
+    /*
+     * Status/update render ayithe
+     * new message ga treat cheyyam.
+     */
+    if (
+      previousLastMessageId ===
+      lastMessageId
+    ) {
+      return undefined;
+    }
 
-      bottomRef.current
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "end",
-          inline: "nearest",
-        });
-    };
+    /*
+     * Own message send chesthe
+     * always latest message ki scroll.
+     */
+    const isOwnMessage =
+      lastSenderId ===
+      currentUserId;
 
-    const frameId =
-      window.requestAnimationFrame(
-        scrollToLatest
-      );
+    if (isOwnMessage) {
+      const frameId =
+        window.requestAnimationFrame(
+          () => {
+            scrollToLatest(
+              "smooth"
+            );
+          }
+        );
 
-    const timerId =
-      window.setTimeout(
-        scrollToLatest,
-        120
-      );
+      return () => {
+        window.cancelAnimationFrame(
+          frameId
+        );
+      };
+    }
 
-    return () => {
-      window.cancelAnimationFrame(
-        frameId
-      );
+    /*
+     * Receiver message:
+     * user already bottom daggara unte
+     * automatic scroll.
+     */
+    if (isNearBottomRef.current) {
+      const frameId =
+        window.requestAnimationFrame(
+          () => {
+            scrollToLatest(
+              "smooth"
+            );
+          }
+        );
 
-      window.clearTimeout(
-        timerId
-      );
-    };
+      return () => {
+        window.cancelAnimationFrame(
+          frameId
+        );
+      };
+    }
+
+    /*
+     * User old messages chusthunte
+     * scroll position disturb cheyyam.
+     */
+    setShowScrollButton(true);
+
+    setUnreadNewMessages(
+      (previous) =>
+        Math.min(
+          previous + 1,
+          99
+        )
+    );
+
+    return undefined;
   }, [
     lastMessageId,
+    lastSenderId,
+    currentUserId,
     messageSearchOpen,
+    scrollToLatest,
   ]);
 
   /* =========================
@@ -763,108 +900,72 @@ const MessageList = ({
     let frameId = 0;
     let timerId = 0;
 
-    const scrollToLatest = () => {
-      if (
-        messageSearchOpen ||
-        loadingOlderRef.current ||
-        !initialScrollDoneRef.current
-      ) {
-        return;
-      }
+    const maintainLatestPosition =
+      () => {
+        /*
+         * User old messages chusthunte
+         * keyboard resize force scroll cheyyakudadhu.
+         */
+        if (
+          messageSearchOpen ||
+          loadingOlderRef.current ||
+          !initialScrollDoneRef.current ||
+          !isNearBottomRef.current
+        ) {
+          return;
+        }
 
-      const container =
-        containerRef.current;
-
-      if (!container) {
-        return;
-      }
-
-      window.cancelAnimationFrame(
-        frameId
-      );
-
-      window.clearTimeout(
-        timerId
-      );
-
-      frameId =
-        window.requestAnimationFrame(
-          () => {
-            container.scrollTop =
-              container.scrollHeight;
-
-            bottomRef.current
-              ?.scrollIntoView({
-                behavior: "auto",
-                block: "end",
-                inline: "nearest",
-              });
-          }
+        window.cancelAnimationFrame(
+          frameId
         );
 
-      timerId =
-        window.setTimeout(
-          () => {
-            const latestContainer =
-              containerRef.current;
+        window.clearTimeout(
+          timerId
+        );
 
-            if (!latestContainer) {
-              return;
+        frameId =
+          window.requestAnimationFrame(
+            () => {
+              scrollToLatest(
+                "auto"
+              );
             }
+          );
 
-            latestContainer.scrollTop =
-              latestContainer.scrollHeight;
-
-            bottomRef.current
-              ?.scrollIntoView({
-                behavior: "auto",
-                block: "end",
-                inline: "nearest",
-              });
-          },
-          200
-        );
-    };
-
-    const handleFocusChange = (
-      event
-    ) => {
-      const target =
-        event.target;
-
-      if (
-        target instanceof
-        HTMLTextAreaElement ||
-        target instanceof
-        HTMLInputElement
-      ) {
-        scrollToLatest();
-      }
-    };
+        timerId =
+          window.setTimeout(
+            () => {
+              scrollToLatest(
+                "auto"
+              );
+            },
+            200
+          );
+      };
 
     viewport?.addEventListener(
       "resize",
-      scrollToLatest
+      maintainLatestPosition
     );
 
     viewport?.addEventListener(
       "scroll",
-      scrollToLatest
+      maintainLatestPosition
     );
 
     window.addEventListener(
       "resize",
-      scrollToLatest
+      maintainLatestPosition
     );
 
     document.addEventListener(
       "focusin",
-      handleFocusChange
+      maintainLatestPosition
     );
 
     document.addEventListener(
       "focusout",
-      handleFocusChange
+      maintainLatestPosition
     );
 
     return () => {
@@ -878,33 +979,33 @@ const MessageList = ({
 
       viewport?.removeEventListener(
         "resize",
-        scrollToLatest
+        maintainLatestPosition
       );
 
       viewport?.removeEventListener(
         "scroll",
-        scrollToLatest
+        maintainLatestPosition
       );
 
       window.removeEventListener(
         "resize",
-        scrollToLatest
+        maintainLatestPosition
       );
 
       document.removeEventListener(
         "focusin",
-        handleFocusChange
+        maintainLatestPosition
       );
 
       document.removeEventListener(
         "focusout",
-        handleFocusChange
+        maintainLatestPosition
       );
     };
   }, [
     selectedChatId,
-    lastMessageId,
     messageSearchOpen,
+    scrollToLatest,
   ]);
 
   /* =========================
@@ -1108,15 +1209,40 @@ const MessageList = ({
   }, [socket]);
 
   /* =========================
-     LOAD OLDER MESSAGES
+     HANDLE LIST SCROLL
   ========================= */
 
   const handleScroll = async () => {
     const container =
       containerRef.current;
 
+    if (!container) {
+      return;
+    }
+
+    const nearBottom =
+      checkIsNearBottom();
+
+    isNearBottomRef.current =
+      nearBottom;
+
+    /*
+     * User latest message daggaraki
+     * manual ga scroll chesthe button
+     * and unread count clear.
+     */
+    if (nearBottom) {
+      setShowScrollButton(false);
+      setUnreadNewMessages(0);
+    } else {
+      setShowScrollButton(true);
+    }
+
+    /*
+     * Top daggara scroll chesinappudu
+     * older messages load.
+     */
     if (
-      !container ||
       container.scrollTop > 80 ||
       !hasMoreMessages ||
       olderMessagesLoading ||
@@ -1190,159 +1316,203 @@ const MessageList = ({
 
   return (
     <div
-      ref={containerRef}
       className={
-        styles.container
+        styles.listShell
       }
-      onScroll={handleScroll}
     >
       <div
+        ref={containerRef}
         className={
-          styles.messagesInner
+          styles.container
         }
+        onScroll={handleScroll}
       >
-        {olderMessagesLoading && (
-          <div
-            className={
-              styles.loadingOlder
-            }
-          >
-            Loading older messages...
-          </div>
-        )}
-
-        {!hasMoreMessages &&
-          safeMessages.length > 0 && (
+        <div
+          className={
+            styles.messagesInner
+          }
+        >
+          {olderMessagesLoading && (
             <div
               className={
-                styles.startText
+                styles.loadingOlder
               }
             >
-              Beginning of conversation
+              Loading older messages...
             </div>
           )}
 
-        {safeMessages.map(
-          (message, index) => {
-            const messageId =
-              normalizeId(
-                message?._id
-              );
-
-            const senderId =
-              normalizeId(
-                message?.sender
-              );
-
-            const fallbackKey =
-              `${senderId}-${message?.createdAt ||
-              index
-              }-${index}`;
-
-            const isSearchMatch =
-              Boolean(messageId) &&
-              messageSearchMatches.includes(
-                messageId
-              );
-
-            const isActiveSearchMatch =
-              Boolean(messageId) &&
-              activeSearchMessageId ===
-              messageId;
-
-            const isPinnedScrollTarget =
-              Boolean(messageId) &&
-              pinnedScrollTargetId ===
-              messageId;
-
-            return (
+          {!hasMoreMessages &&
+            safeMessages.length > 0 && (
               <div
-                key={
-                  messageId ||
-                  fallbackKey
-                }
-                ref={(element) => {
-                  if (!messageId) {
-                    return;
-                  }
-
-                  if (element) {
-                    messageElementRefs.current.set(
-                      messageId,
-                      element
-                    );
-                  } else {
-                    messageElementRefs.current.delete(
-                      messageId
-                    );
-                  }
-                }}
-                data-message-id={
-                  messageId ||
-                  undefined
+                className={
+                  styles.startText
                 }
               >
-                <MessageBubble
-                  message={message}
-                  isOwn={
-                    senderId ===
-                    currentUserId
-                  }
-                  onReply={
-                    handleReplyMessage
-                  }
-                  onEdit={
-                    handleEditMessage
-                  }
-                  onForward={
-                    handleForwardMessage
-                  }
-                  onVisible={
-                    handleMessageVisible
-                  }
-                  visibilityRoot={
-                    containerRef
-                  }
-                  searchQuery={
-                    messageSearchQuery
-                  }
-                  isSearchMatch={
-                    isSearchMatch
-                  }
-                  isActiveSearchMatch={
-                    isActiveSearchMatch
-                  }
-                  isPinnedScrollTarget={
-                    isPinnedScrollTarget
-                  }
-                />
+                Beginning of conversation
               </div>
-            );
-          }
-        )}
+            )}
 
-        <ForwardMessageModal
-          open={
-            Boolean(
+          {safeMessages.map(
+            (message, index) => {
+              const messageId =
+                normalizeId(
+                  message?._id
+                );
+
+              const senderId =
+                normalizeId(
+                  message?.sender
+                );
+
+              const fallbackKey =
+                `${senderId}-${message?.createdAt ||
+                index
+                }-${index}`;
+
+              const isSearchMatch =
+                Boolean(messageId) &&
+                messageSearchMatches.includes(
+                  messageId
+                );
+
+              const isActiveSearchMatch =
+                Boolean(messageId) &&
+                activeSearchMessageId ===
+                messageId;
+
+              const isPinnedScrollTarget =
+                Boolean(messageId) &&
+                pinnedScrollTargetId ===
+                messageId;
+
+              return (
+                <div
+                  key={
+                    messageId ||
+                    fallbackKey
+                  }
+                  ref={(element) => {
+                    if (!messageId) {
+                      return;
+                    }
+
+                    if (element) {
+                      messageElementRefs.current.set(
+                        messageId,
+                        element
+                      );
+                    } else {
+                      messageElementRefs.current.delete(
+                        messageId
+                      );
+                    }
+                  }}
+                  data-message-id={
+                    messageId ||
+                    undefined
+                  }
+                >
+                  <MessageBubble
+                    message={message}
+                    isOwn={
+                      senderId ===
+                      currentUserId
+                    }
+                    onReply={
+                      handleReplyMessage
+                    }
+                    onEdit={
+                      handleEditMessage
+                    }
+                    onForward={
+                      handleForwardMessage
+                    }
+                    onVisible={
+                      handleMessageVisible
+                    }
+                    visibilityRoot={
+                      containerRef
+                    }
+                    searchQuery={
+                      messageSearchQuery
+                    }
+                    isSearchMatch={
+                      isSearchMatch
+                    }
+                    isActiveSearchMatch={
+                      isActiveSearchMatch
+                    }
+                    isPinnedScrollTarget={
+                      isPinnedScrollTarget
+                    }
+                  />
+                </div>
+              );
+            }
+          )}
+
+          <ForwardMessageModal
+            open={
+              Boolean(
+                forwardingMessage
+              )
+            }
+            message={
               forwardingMessage
-            )
-          }
-          message={
-            forwardingMessage
-          }
-          onClose={
-            closeForwardModal
-          }
-        />
+            }
+            onClose={
+              closeForwardModal
+            }
+          />
 
-        <div
-          ref={bottomRef}
-          className={
-            styles.bottomAnchor
-          }
-          aria-hidden="true"
-        />
+          <div
+            ref={bottomRef}
+            className={
+              styles.bottomAnchor
+            }
+            aria-hidden="true"
+          />
+        </div>
       </div>
+
+      {showScrollButton &&
+        !messageSearchOpen && (
+          <button
+            type="button"
+            className={
+              styles.scrollToBottomButton
+            }
+            onClick={() =>
+              scrollToLatest(
+                "smooth"
+              )
+            }
+            aria-label={
+              unreadNewMessages > 0
+                ? `${unreadNewMessages} new messages. Scroll to latest message.`
+                : "Scroll to latest message"
+            }
+          >
+            <ArrowDown
+              size={20}
+              strokeWidth={2.2}
+              aria-hidden="true"
+            />
+
+            {unreadNewMessages > 0 && (
+              <span
+                className={
+                  styles.newMessageCount
+                }
+              >
+                {unreadNewMessages > 99
+                  ? "99+"
+                  : unreadNewMessages}
+              </span>
+            )}
+          </button>
+        )}
     </div>
   );
 };
