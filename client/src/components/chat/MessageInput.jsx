@@ -639,6 +639,26 @@ const MessageInput = () => {
         editSubmittingIdRef.current =
           "";
 
+        /*
+         * Edit success ayyaka conversation latest
+         * message daggaraki move avvadaniki
+         * MessageList ki explicit request.
+         */
+        window.dispatchEvent(
+          new CustomEvent(
+            "chat:scroll-bottom",
+            {
+              detail: {
+                behavior:
+                  "smooth",
+
+                reason:
+                  "message-edited",
+              },
+            }
+          )
+        );
+
         loadChatSummaries()
           .catch((error) => {
             console.error(
@@ -1576,7 +1596,12 @@ const MessageInput = () => {
             handleEnter
           }
           onFocus={() => {
-
+            /*
+             * Chat parent visualViewport height
+             * already keyboard ni handle chesthundi.
+             * Delayed smooth scroll mobile lo
+             * 250–500ms jump/flicker create chesthundi.
+             */
             resizeTextarea();
           }}
           onBlur={() => {

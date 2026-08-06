@@ -523,6 +523,60 @@ const MessageList = ({
       safeMessages;
   }, [safeMessages]);
 
+  /* =========================
+     EXPLICIT BOTTOM SCROLL
+  ========================= */
+
+  useEffect(() => {
+    const handleScrollToBottom = (
+      event
+    ) => {
+      const container =
+        containerRef.current;
+
+      if (!container) {
+        return;
+      }
+
+      /*
+       * Search mode lo hidden navigation
+       * override cheyyakudadhu.
+       */
+      if (messageSearchOpen) {
+        return;
+      }
+
+      const behavior =
+        event?.detail?.behavior ===
+          "auto"
+          ? "auto"
+          : "smooth";
+
+      window.requestAnimationFrame(
+        () => {
+          bottomRef.current
+            ?.scrollIntoView({
+              behavior,
+              block: "end",
+              inline: "nearest",
+            });
+        }
+      );
+    };
+
+    window.addEventListener(
+      "chat:scroll-bottom",
+      handleScrollToBottom
+    );
+
+    return () => {
+      window.removeEventListener(
+        "chat:scroll-bottom",
+        handleScrollToBottom
+      );
+    };
+  }, [messageSearchOpen]);
+
   useLayoutEffect(() => {
     initialScrollDoneRef.current =
       false;

@@ -531,8 +531,27 @@ const MessageActionsMenu = ({
   };
 
   const handleDelete = () => {
-    onDelete?.();
+    if (
+      typeof onDelete !==
+      "function"
+    ) {
+      return;
+    }
+
+    /*
+     * Menu portal ni first close chesi,
+     * next animation frame lo delete modal
+     * open chestham. Same click event/backdrop
+     * propagation valla modal immediate ga
+     * close avvakunda idi prevent chesthundi.
+     */
     closeImmediately();
+
+    window.requestAnimationFrame(
+      () => {
+        onDelete();
+      }
+    );
   };
 
   const stopMenuEvent = (
@@ -786,6 +805,10 @@ const MessageActionsMenu = ({
               <button
                 type="button"
                 className={`${styles.actionButton} ${styles.deleteButton}`}
+                onPointerDown={(event) => {
+                 
+                  event.stopPropagation();
+                }}
                 onClick={
                   handleDelete
                 }
