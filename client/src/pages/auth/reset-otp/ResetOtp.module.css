@@ -1,295 +1,793 @@
-.container {
-  width: 100%;
-  max-width: 440px;
-  margin: 0 auto;
-  padding: 24px;
+/* =========================================================
+   PINGME — RESET OTP
+   Premium production password recovery verification
+========================================================= */
 
-  box-sizing: border-box;
+.container {
+  position: relative;
+
+  display: flex;
+
+  width: min(100%, 470px);
+  min-height: 100%;
+
+  flex-direction: column;
+  justify-content: center;
+
+  margin: 0 auto;
+  padding: 34px;
+
+  overflow: hidden;
+
+  border:
+    1px solid color-mix(in srgb,
+      var(--border) 90%,
+      transparent);
+
+  border-radius: 28px;
+
+  background:
+    color-mix(in srgb,
+      var(--surface) 96%,
+      transparent);
+
+  color:
+    var(--text-primary);
+
+  box-shadow:
+    var(--shadow-lg,
+      0 28px 80px rgb(15 23 42 / 14%));
+
+  backdrop-filter:
+    blur(26px) saturate(120%);
+
+  -webkit-backdrop-filter:
+    blur(26px) saturate(120%);
+
+  isolation: isolate;
+
+  animation:
+    resetOtpEnter 280ms cubic-bezier(0.22,
+      1,
+      0.36,
+      1);
 }
 
+.container::before {
+  content: "";
+
+  position: absolute;
+  z-index: -1;
+
+  top: -130px;
+  left: -110px;
+
+  width: 340px;
+  height: 340px;
+
+  border-radius: 50%;
+
+  background:
+    color-mix(in srgb,
+      var(--primary) 11%,
+      transparent);
+
+  filter: blur(72px);
+
+  pointer-events: none;
+}
+
+.container::after {
+  content: "";
+
+  position: absolute;
+  z-index: -1;
+
+  right: -150px;
+  bottom: -165px;
+
+  width: 370px;
+  height: 370px;
+
+  border-radius: 50%;
+
+  background:
+    color-mix(in srgb,
+      var(--accent) 9%,
+      transparent);
+
+  filter: blur(80px);
+
+  pointer-events: none;
+}
+
+/* =========================================
+   TOP BAR
+========================================= */
+
+.topBar {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.secureBadge {
+  display: inline-flex;
+
+  align-items: center;
+  gap: 6px;
+
+  padding: 7px 10px;
+
+  border:
+    1px solid color-mix(in srgb,
+      var(--success) 22%,
+      var(--border));
+
+  border-radius: 999px;
+
+  background:
+    color-mix(in srgb,
+      var(--success) 8%,
+      var(--surface));
+
+  color:
+    var(--success);
+
+  font-size: 0.59rem;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+/* =========================================
+   ICON
+========================================= */
+
+.iconWrapper {
+  display: grid;
+
+  width: 62px;
+  height: 62px;
+
+  place-items: center;
+
+  margin-top: 31px;
+
+  border:
+    1px solid color-mix(in srgb,
+      var(--primary) 22%,
+      var(--border));
+
+  border-radius: 20px;
+
+  background:
+    linear-gradient(135deg,
+      var(--primary-soft),
+      var(--accent-soft));
+
+  color:
+    var(--primary);
+
+  box-shadow:
+    0 12px 30px color-mix(in srgb,
+      var(--primary) 14%,
+      transparent);
+}
+
+/* =========================================
+   HEADING
+========================================= */
+
 .heading {
-  margin: 24px 0 22px;
-  text-align: center;
+  margin:
+    19px 0 25px;
+}
+
+.eyebrow {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color:
+    var(--primary);
+
+  font-size: 0.63rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+
+  text-transform: uppercase;
 }
 
 .heading h1 {
-  margin: 0 0 8px;
+  margin: 0;
 
-  color: var(--text-primary);
+  color:
+    var(--text-primary);
 
-  font-size: 1.75rem;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.025em;
+  font-size:
+    clamp(1.9rem,
+      5vw,
+      2.3rem);
+
+  font-weight: 870;
+  letter-spacing: -0.047em;
+  line-height: 1.08;
 }
 
 .heading p {
-  margin: 0;
+  max-width: 390px;
 
-  color: var(--text-secondary);
+  margin:
+    11px 0 0;
 
-  font-size: 14px;
-  line-height: 1.5;
+  color:
+    var(--text-secondary);
+
+  font-size: 0.8rem;
+  line-height: 1.62;
 }
 
 .email {
-  display: block;
-  margin-top: 7px;
+  display: inline-flex;
 
-  color: var(--primary);
+  max-width: 100%;
 
-  font-size: 13.5px;
-  font-weight: 600;
-  line-height: 1.4;
+  align-items: center;
+  gap: 7px;
 
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  margin-top: 12px;
+  padding: 7px 11px;
+
+  overflow: hidden;
+
+  border:
+    1px solid color-mix(in srgb,
+      var(--primary) 18%,
+      var(--border));
+
+  border-radius: 999px;
+
+  background:
+    var(--primary-soft);
+
+  color:
+    var(--primary);
+
+  font-size: 0.68rem;
+  font-weight: 720;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* =========================
-   OTP BOXES
-========================= */
+.email svg {
+  flex: 0 0 auto;
+}
+
+/* =========================================
+   FORM
+========================================= */
+
+.form {
+  display: flex;
+
+  flex-direction: column;
+  gap: 19px;
+}
+
+.otpFieldset {
+  min-width: 0;
+
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+}
 
 .otpBoxes {
-  width: 100%;
-  margin: 0 0 18px;
-
   display: grid;
+
+  width: 100%;
+
   grid-template-columns:
-    repeat(6, minmax(0, 1fr));
+    repeat(6,
+      minmax(0, 1fr));
+
   gap: 10px;
 }
 
 .otpBoxes input {
   width: 100%;
   min-width: 0;
-  height: 54px;
+
+  aspect-ratio: 0.92 / 1;
+
   padding: 0;
 
-  box-sizing: border-box;
+  border:
+    1px solid var(--border);
 
-  border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: 16px;
+
   outline: none;
 
-  background: var(--surface);
-  color: var(--text-primary);
+  background:
+    color-mix(in srgb,
+      var(--surface-light) 88%,
+      transparent);
+
+  color:
+    var(--text-primary);
+
+  caret-color:
+    var(--primary);
 
   text-align: center;
-  font-size: 21px;
-  font-weight: 700;
+
+  font: inherit;
+  font-size: 1.42rem;
+  font-weight: 820;
+  line-height: 1;
+
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 4%);
 
   transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease,
-    background 0.18s ease;
+    transform 150ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
 }
 
 .otpBoxes input:hover:not(:disabled) {
   border-color:
     color-mix(in srgb,
-      var(--primary) 35%,
+      var(--primary) 38%,
       var(--border));
 }
 
 .otpBoxes input:focus {
-  border-color: var(--primary);
+  transform:
+    translateY(-2px);
+
+  border-color:
+    var(--primary);
+
+  background:
+    var(--surface-solid,
+      var(--surface));
 
   box-shadow:
-    0 0 0 3px color-mix(in srgb,
-      var(--primary) 18%,
+    0 0 0 4px var(--primary-soft),
+    0 10px 24px color-mix(in srgb,
+      var(--primary) 13%,
       transparent);
+}
 
-  transform: translateY(-1px);
+.otpBoxes input:not( :placeholder-shown) {
+  border-color:
+    color-mix(in srgb,
+      var(--primary) 46%,
+      var(--border));
+
+  background:
+    color-mix(in srgb,
+      var(--primary) 5%,
+      var(--surface));
 }
 
 .otpBoxes input:disabled {
-  opacity: 0.6;
+  opacity: 0.58;
   cursor: not-allowed;
 }
 
-/* =========================
-   STATUS MESSAGES
-========================= */
+/* =========================================
+   FEEDBACK
+========================================= */
+
+.feedbackArea {
+  min-height: 0;
+}
 
 .error,
 .success {
-  margin: 0 0 12px;
+  display: flex;
 
-  font-size: 13px;
-  line-height: 1.45;
-  text-align: center;
+  width: 100%;
+
+  align-items: flex-start;
+  gap: 9px;
+
+  margin: 0;
+  padding: 11px 12px;
+
+  border-radius: 13px;
+
+  font-size: 0.69rem;
+  font-weight: 610;
+  line-height: 1.5;
+
+  animation:
+    feedbackEnter 170ms ease-out;
 }
 
 .error {
-  color: var(--danger, #dc2626);
+  border:
+    1px solid color-mix(in srgb,
+      var(--danger) 28%,
+      var(--border));
+
+  background:
+    var(--danger-soft);
+
+  color:
+    var(--danger);
 }
 
 .success {
-  color: var(--success, #16a34a);
+  border:
+    1px solid color-mix(in srgb,
+      var(--success) 25%,
+      var(--border));
+
+  background:
+    color-mix(in srgb,
+      var(--success) 8%,
+      var(--surface));
+
+  color:
+    var(--success);
 }
 
-/* =========================
+.error svg,
+.success svg {
+  flex: 0 0 auto;
+
+  margin-top: 1px;
+}
+
+/* =========================================
+   BUTTON
+========================================= */
+
+.buttonContent {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  animation:
+    spin 0.72s linear infinite;
+}
+
+/* =========================================
    RESEND
-========================= */
+========================================= */
 
-.resend {
-  margin: 18px 0 0;
+.resendSection {
+  display: flex;
 
-  color: var(--text-secondary);
+  flex-direction: column;
+  align-items: center;
 
-  font-size: 14px;
-  line-height: 1.45;
+  margin-top: 23px;
+
   text-align: center;
 }
 
-.resend button {
-  padding: 0;
+.resendSection p {
+  margin: 0 0 6px;
 
-  border: none;
-  outline: none;
+  color:
+    var(--text-secondary);
+
+  font-size: 0.71rem;
+}
+
+.resendButton {
+  display: inline-flex;
+
+  min-height: 28px;
+
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  padding: 2px 6px;
+
+  border: 0;
+  border-radius: 7px;
 
   background: transparent;
-  color: var(--primary);
+
+  color:
+    var(--primary);
 
   font: inherit;
-  font-weight: 650;
+  font-size: 0.7rem;
+  font-weight: 750;
 
   cursor: pointer;
 
   transition:
-    opacity 0.18s ease;
+    color 150ms ease,
+    opacity 150ms ease,
+    background 150ms ease;
 }
 
-.resend button:hover:not(:disabled) {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.resendButton:hover:not(:disabled) {
+  background:
+    var(--primary-soft);
+
+  color:
+    var(--accent);
 }
 
-.resend button:focus-visible {
-  outline: 3px solid color-mix(in srgb,
-      var(--primary) 22%,
-      transparent);
+.resendButton:focus-visible {
+  outline:
+    3px solid var(--primary-soft);
 
-  outline-offset: 3px;
-  border-radius: 6px;
+  outline-offset: 2px;
 }
 
-.resend button:disabled {
-  opacity: 0.55;
+.resendButton:disabled {
+  color:
+    var(--text-muted,
+      var(--text-secondary));
+
+  opacity: 0.68;
+
   cursor: not-allowed;
 }
 
-/* =========================
+.timerTrack {
+  width: min(100%, 220px);
+  height: 3px;
+
+  margin-top: 9px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background:
+    var(--border);
+}
+
+.timerTrack span {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  border-radius: inherit;
+
+  background:
+    linear-gradient(90deg,
+      var(--primary),
+      var(--accent));
+
+  transform-origin: left;
+
+  transition:
+    transform 1s linear;
+}
+
+/* =========================================
    FOOTER
-========================= */
+========================================= */
 
 .footer {
-  margin: 18px 0 0;
-  text-align: center;
+  display: flex;
+
+  justify-content: center;
+
+  margin-top: 24px;
 }
 
 .footer a {
-  color: var(--primary);
+  display: inline-flex;
 
-  font-size: 14px;
-  font-weight: 650;
+  align-items: center;
+  gap: 6px;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 0.7rem;
+  font-weight: 700;
   text-decoration: none;
+
+  transition:
+    color 150ms ease,
+    transform 150ms ease;
 }
 
 .footer a:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  transform:
+    translateX(-2px);
+
+  color:
+    var(--primary);
 }
 
-/* =========================
-   TABLET / DESKTOP
-========================= */
+.footer a:focus-visible {
+  outline:
+    3px solid var(--primary-soft);
 
-@media (min-width: 768px) {
-  .container {
-    padding: 40px;
+  outline-offset: 3px;
 
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 28px;
+  border-radius: 5px;
+}
 
-    box-shadow: var(--shadow-lg);
+/* =========================================
+   ACCESSIBILITY
+========================================= */
+
+.visuallyHidden {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  margin: -1px;
+  padding: 0;
+
+  overflow: hidden;
+
+  border: 0;
+
+  white-space: nowrap;
+
+  clip:
+    rect(0,
+      0,
+      0,
+      0);
+
+  clip-path:
+    inset(50%);
+}
+
+/* =========================================
+   ANIMATIONS
+========================================= */
+
+@keyframes resetOtpEnter {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(12px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0) scale(1);
   }
 }
 
-/* =========================
-   MOBILE
-========================= */
+@keyframes feedbackEnter {
+  from {
+    opacity: 0;
 
-@media (max-width: 480px) {
+    transform:
+      translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 768px) {
   .container {
-    max-width: 100%;
-    padding: 16px 18px;
+    padding:
+      30px 25px;
+
+    border-radius: 25px;
+  }
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 520px) {
+  .container {
+    width: 100%;
+    max-width: none;
+    min-height: 100dvh;
+
+    padding:
+      calc(23px + env(safe-area-inset-top,
+          0px)) 18px calc(24px + env(safe-area-inset-bottom,
+          0px));
+
+    border: none;
+    border-radius: 0;
+
+    background: transparent;
+
+    box-shadow: none;
+
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .iconWrapper {
+    width: 57px;
+    height: 57px;
+
+    margin-top: 27px;
+
+    border-radius: 18px;
   }
 
   .heading {
-    margin: 16px 0 18px;
+    margin:
+      17px 0 23px;
   }
 
   .heading h1 {
-    font-size: 1.5rem;
+    font-size: 1.85rem;
   }
 
   .heading p {
-    font-size: 13.5px;
-    line-height: 1.4;
-  }
+    max-width: 335px;
 
-  .email {
-    margin-top: 5px;
-    font-size: 13px;
+    font-size: 0.76rem;
   }
 
   .otpBoxes {
     gap: 7px;
-    margin-bottom: 14px;
   }
 
   .otpBoxes input {
-    height: 48px;
+    border-radius: 13px;
 
-    border-radius: 11px;
-
-    font-size: 19px;
-  }
-
-  .error,
-  .success {
-    margin-bottom: 10px;
-
-    font-size: 12.5px;
-    line-height: 1.4;
-  }
-
-  .resend {
-    margin-top: 14px;
-    font-size: 13px;
-  }
-
-  .footer {
-    margin-top: 14px;
-  }
-
-  .footer a {
-    font-size: 13px;
+    font-size: 1.22rem;
   }
 }
 
-/* =========================
-   VERY SMALL MOBILE
-========================= */
+/* =========================================
+   SMALL MOBILE
+========================================= */
 
-@media (max-width: 360px) {
+@media (max-width: 370px) {
   .container {
-    padding-left: 14px;
     padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .secureBadge {
+    display: none;
+  }
+
+  .heading h1 {
+    font-size: 1.68rem;
   }
 
   .otpBoxes {
@@ -297,50 +795,36 @@
   }
 
   .otpBoxes input {
-    height: 44px;
+    border-radius: 11px;
 
-    border-radius: 10px;
-
-    font-size: 18px;
-  }
-
-  .heading h1 {
-    font-size: 1.4rem;
+    font-size: 1.08rem;
   }
 }
 
-/* =========================
-   SHORT MOBILE SCREENS
-========================= */
+/* =========================================
+   DARK THEME
+========================================= */
 
-@media (max-width: 480px) and (max-height: 650px) {
-  .container {
-    padding-top: 10px;
-    padding-bottom: 12px;
-  }
-
-  .heading {
-    margin: 10px 0 14px;
-  }
-
-  .otpBoxes {
-    margin-bottom: 10px;
-  }
-
-  .resend,
-  .footer {
-    margin-top: 10px;
-  }
+:global( :root[data-theme="dark"]) .container {
+  box-shadow:
+    0 32px 92px rgb(0 0 0 / 44%);
 }
 
-/* =========================
+/* =========================================
    REDUCED MOTION
-========================= */
+========================================= */
 
 @media (prefers-reduced-motion: reduce) {
 
+  .container,
   .otpBoxes input,
-  .resend button {
+  .error,
+  .success,
+  .resendButton,
+  .timerTrack span,
+  .footer a,
+  .spinner {
+    animation: none;
     transition: none;
   }
 }

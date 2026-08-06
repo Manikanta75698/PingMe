@@ -1,7 +1,11 @@
+/* =========================================
+   CREATE POST BACKDROP
+========================================= */
+
 .modalBackdrop {
   position: fixed;
-  inset: 0;
   z-index: 1500;
+  inset: 0;
 
   display: flex;
   align-items: center;
@@ -9,90 +13,162 @@
 
   padding: 22px;
 
-  background: rgba(5, 10, 20, 0.72);
+  background:
+    radial-gradient(circle at 15% 10%,
+      color-mix(in srgb,
+        var(--primary) 16%,
+        transparent),
+      transparent 34%),
+    radial-gradient(circle at 86% 85%,
+      color-mix(in srgb,
+        var(--accent) 14%,
+        transparent),
+      transparent 36%),
+    rgb(2 6 23 / 74%);
 
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter:
+    blur(14px) saturate(120%);
+
+  -webkit-backdrop-filter:
+    blur(14px) saturate(120%);
+
+  animation:
+    createBackdropEnter 180ms ease-out;
 }
+
+/* =========================================
+   MAIN MODAL
+========================================= */
 
 .modal {
   position: relative;
 
-  width: min(980px, 100%);
-  height: min(720px,
+  display: flex;
+  width: min(1020px, 100%);
+  height:
+    min(750px,
       calc(100dvh - 44px));
 
-  display: flex;
   flex-direction: column;
 
   overflow: hidden;
 
-  color: var(--text-primary);
-  background: var(--surface);
+  border:
+    1px solid color-mix(in srgb,
+      var(--border) 88%,
+      transparent);
 
-  border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: 26px;
+
+  background:
+    color-mix(in srgb,
+      var(--surface-solid, var(--surface)) 97%,
+      transparent);
+
+  color:
+    var(--text-primary);
 
   box-shadow:
-    0 34px 100px rgba(0, 0, 0, 0.48);
+    0 38px 120px rgb(0 0 0 / 48%);
+
+  backdrop-filter:
+    blur(24px);
+
+  -webkit-backdrop-filter:
+    blur(24px);
+
+  animation:
+    createModalEnter 220ms cubic-bezier(0.22,
+      1,
+      0.36,
+      1);
 }
 
-/* =========================
+/* =========================================
    HEADER
-========================= */
+========================================= */
 
 .modalHeader {
-  min-height: 68px;
+  position: relative;
+  z-index: 30;
 
   display: grid;
+
+  min-height: 70px;
+
   grid-template-columns:
     44px 1fr auto;
+
   align-items: center;
   gap: 14px;
 
-  padding: 10px 18px;
+  padding:
+    10px 17px;
 
   border-bottom:
     1px solid var(--border);
+
+  background:
+    color-mix(in srgb,
+      var(--surface-solid, var(--surface)) 92%,
+      transparent);
+
+  backdrop-filter:
+    blur(20px);
+
+  -webkit-backdrop-filter:
+    blur(20px);
 }
 
 .headerIconButton {
+  display: grid;
+
   width: 42px;
   height: 42px;
-  padding: 0;
 
-  display: grid;
   place-items: center;
 
-  color: var(--text-primary);
-  background:
-    var(--surface-secondary);
+  padding: 0;
 
-  border: 1px solid var(--border);
-  border-radius: 50%;
+  border:
+    1px solid var(--border);
+
+  border-radius: 14px;
+
+  background:
+    var(--surface-light);
+
+  color:
+    var(--text-primary);
 
   cursor: pointer;
 
+  box-shadow:
+    0 5px 16px rgb(15 23 42 / 6%);
+
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.15s ease;
+    background 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease,
+    color 150ms ease;
 }
 
-.headerIconButton:hover:not( :disabled) {
-  background:
-    color-mix(in srgb,
-      var(--primary) 7%,
-      var(--surface-secondary));
-
+.headerIconButton:hover:not(:disabled) {
   border-color:
     color-mix(in srgb,
-      var(--primary) 35%,
+      var(--primary) 36%,
       var(--border));
+
+  background:
+    var(--primary-soft);
+
+  color:
+    var(--primary);
 }
 
-.headerIconButton:active:not( :disabled) {
-  transform: scale(0.94);
+.headerIconButton:active:not(:disabled) {
+  transform:
+    scale(0.94);
 }
 
 .headerIconButton svg {
@@ -101,64 +177,94 @@
 }
 
 .headerTitle {
+  display: flex;
+
   min-width: 0;
 
-  display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
 .headerTitle strong {
-  font-size: 17px;
-  font-weight: 760;
+  color:
+    var(--text-primary);
+
+  font-size: 0.98rem;
+  font-weight: 820;
+  letter-spacing: -0.025em;
   line-height: 1.25;
 }
 
 .headerTitle span {
-  color: var(--text-secondary);
+  overflow: hidden;
 
-  font-size: 11px;
+  color:
+    var(--text-secondary);
+
+  font-size: 0.67rem;
+  font-weight: 540;
   line-height: 1.4;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .headerPostButton {
-  min-height: 42px;
-  padding: 0 17px;
-
   display: inline-flex;
+
+  min-height: 43px;
+
   align-items: center;
   justify-content: center;
   gap: 8px;
 
-  color: #ffffff;
-  background: var(--primary);
+  padding:
+    0 17px;
 
-  border: 0;
-  border-radius: 12px;
+  border:
+    1px solid transparent;
+
+  border-radius: 14px;
+
+  background:
+    linear-gradient(135deg,
+      var(--primary),
+      var(--accent));
+
+  color:
+    var(--on-primary, #ffffff);
+
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 760;
 
   cursor: pointer;
 
-  font: inherit;
-  font-size: 13px;
-  font-weight: 730;
-
   box-shadow:
-    0 8px 22px color-mix(in srgb,
-      var(--primary) 28%,
+    0 10px 26px color-mix(in srgb,
+      var(--primary) 27%,
       transparent);
 
   transition:
-    filter 0.18s ease,
-    transform 0.15s ease,
-    opacity 0.18s ease;
+    filter 150ms ease,
+    transform 150ms ease,
+    opacity 150ms ease,
+    box-shadow 150ms ease;
 }
 
-.headerPostButton:hover:not( :disabled) {
-  filter: brightness(0.95);
+.headerPostButton:hover:not(:disabled) {
+  filter:
+    brightness(1.04);
+
+  box-shadow:
+    0 14px 34px color-mix(in srgb,
+      var(--primary) 32%,
+      transparent);
 }
 
-.headerPostButton:active:not( :disabled) {
-  transform: scale(0.97);
+.headerPostButton:active:not(:disabled) {
+  transform:
+    scale(0.97);
 }
 
 .headerPostButton svg {
@@ -166,142 +272,216 @@
   height: 17px;
 }
 
-/* =========================
-   UPLOAD STAGE
-========================= */
+/* =========================================
+   INITIAL UPLOAD STAGE
+========================================= */
 
 .uploadStage {
-  flex: 1;
+  position: relative;
 
   display: flex;
+
+  min-height: 0;
+  flex: 1;
+
   flex-direction: column;
+
   align-items: center;
   justify-content: center;
   gap: 16px;
 
-  padding: 30px;
+  padding: 32px;
+
+  overflow-y: auto;
 
   background:
-    color-mix(in srgb,
-      var(--surface-secondary) 72%,
-      #000000);
+    radial-gradient(circle at 50% 35%,
+      color-mix(in srgb,
+        var(--primary) 8%,
+        transparent),
+      transparent 44%),
+    var(--background);
 }
 
 .dropZone {
-  width: min(560px, 100%);
-  min-height: 430px;
-  padding: 34px;
+  position: relative;
 
   display: flex;
+
+  width: min(570px, 100%);
+  min-height: 440px;
+
   flex-direction: column;
+
   align-items: center;
   justify-content: center;
   gap: 12px;
 
-  color: var(--text-primary);
-  background: var(--surface);
+  padding: 36px;
+
+  overflow: hidden;
 
   border:
     1.5px dashed color-mix(in srgb,
-      var(--primary) 42%,
+      var(--primary) 44%,
       var(--border));
 
-  border-radius: 24px;
-
-  cursor: pointer;
-  text-align: center;
-
-  transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    background 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-.dropZone:hover,
-.dropZoneActive {
-  transform: translateY(-2px);
-
-  border-color: var(--primary);
+  border-radius: 26px;
 
   background:
     color-mix(in srgb,
-      var(--primary) 6%,
+      var(--surface) 94%,
+      transparent);
+
+  color:
+    var(--text-primary);
+
+  text-align: center;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 18px 52px rgb(15 23 42 / 8%);
+
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.dropZone::before {
+  content: "";
+
+  position: absolute;
+
+  width: 220px;
+  height: 220px;
+
+  border-radius: 50%;
+
+  background:
+    color-mix(in srgb,
+      var(--primary) 9%,
+      transparent);
+
+  filter: blur(45px);
+
+  pointer-events: none;
+}
+
+.dropZone>* {
+  position: relative;
+  z-index: 1;
+}
+
+.dropZone:hover:not(:disabled),
+.dropZoneActive {
+  transform:
+    translateY(-3px);
+
+  border-color:
+    var(--primary);
+
+  background:
+    linear-gradient(135deg,
+      var(--primary-soft),
       var(--surface));
 
   box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.12);
+    0 24px 65px color-mix(in srgb,
+      var(--primary) 17%,
+      transparent);
 }
 
 .uploadIcon {
-  width: 72px;
-  height: 72px;
-
   display: grid;
+
+  width: 76px;
+  height: 76px;
+
   place-items: center;
 
-  color: var(--primary);
+  border:
+    1px solid color-mix(in srgb,
+      var(--primary) 24%,
+      var(--border));
+
+  border-radius: 23px;
 
   background:
-    color-mix(in srgb,
-      var(--primary) 12%,
-      transparent);
+    linear-gradient(135deg,
+      var(--primary-soft),
+      var(--accent-soft));
 
-  border-radius: 22px;
+  color:
+    var(--primary);
+
+  box-shadow:
+    0 14px 34px color-mix(in srgb,
+      var(--primary) 15%,
+      transparent);
 }
 
 .uploadIcon svg {
-  width: 31px;
-  height: 31px;
+  width: 32px;
+  height: 32px;
 }
 
 .dropZone strong {
-  margin-top: 4px;
+  margin-top: 5px;
 
-  font-size: 19px;
-  font-weight: 760;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .dropZone span {
-  max-width: 310px;
+  max-width: 320px;
 
-  color: var(--text-secondary);
+  color:
+    var(--text-secondary);
 
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 0.77rem;
+  line-height: 1.55;
 }
 
 .dropZone small {
-  color: var(--text-secondary);
+  color:
+    var(--text-muted, var(--text-secondary));
 
-  font-size: 11px;
+  font-size: 0.66rem;
+  font-weight: 580;
 }
 
-/* =========================
+/* =========================================
    COMPOSER BODY
-========================= */
+========================================= */
 
 .composerBody {
+  display: grid;
+
   min-height: 0;
   flex: 1;
 
-  display: grid;
   grid-template-columns:
-    minmax(0, 1fr) 350px;
+    minmax(0, 1fr) 360px;
 
   overflow: hidden;
 }
 
-/* =========================
-   PREVIEW PANEL
-========================= */
+/* =========================================
+   IMAGE PREVIEW PANEL
+========================================= */
 
 .previewPanel {
+  display: flex;
+
   min-width: 0;
   min-height: 0;
 
-  display: flex;
   flex-direction: column;
+
   align-items: center;
   justify-content: center;
   gap: 14px;
@@ -311,35 +491,58 @@
   overflow: hidden;
 
   background:
-    color-mix(in srgb,
-      var(--surface-secondary) 70%,
-      #000000);
+    radial-gradient(circle at 50% 40%,
+      rgb(255 255 255 / 5%),
+      transparent 45%),
+    #080b12;
 }
 
 .editorCanvas {
   position: relative;
 
-  touch-action: none;
-  user-select: none;
-  cursor: grab;
   width: auto;
-  height: min(560px,
-      calc(100% - 56px));
+  height:
+    min(575px,
+      calc(100% - 58px));
+
   max-width: 100%;
 
   aspect-ratio: 4 / 5;
 
   overflow: hidden;
 
-  background: #000000;
-
   border:
-    1px solid rgba(255, 255, 255, 0.12);
+    1px solid rgb(255 255 255 / 14%);
 
-  border-radius: 18px;
+  border-radius: 20px;
+
+  background:
+    #000000;
 
   box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.34);
+    0 26px 75px rgb(0 0 0 / 48%);
+
+  cursor: grab;
+
+  touch-action: none;
+
+  user-select: none;
+  -webkit-user-select: none;
+
+  isolation: isolate;
+}
+
+.editorCanvas::after {
+  content: "";
+
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+
+  border:
+    1px solid rgb(255 255 255 / 6%);
+
+  pointer-events: none;
 }
 
 .editorCanvas:active {
@@ -347,19 +550,21 @@
 }
 
 .previewImage {
-  width: 100%;
-  height: 100%;
-
   display: block;
 
-  will-change: transform;
-  transform-origin: center;
+  width: 100%;
+  height: 100%;
 
   object-position: center;
   transform-origin: center;
 
-  user-select: none;
   pointer-events: none;
+
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+
+  will-change: transform;
 }
 
 .previewFill {
@@ -370,59 +575,116 @@
   object-fit: contain;
 }
 
-/* =========================
-   QUICK TOOLS
-========================= */
+.dragHint {
+  position: absolute;
+  z-index: 8;
+
+  left: 50%;
+  bottom: 14px;
+
+  padding:
+    7px 11px;
+
+  border:
+    1px solid rgb(255 255 255 / 16%);
+
+  border-radius: 999px;
+
+  background:
+    rgb(0 0 0 / 58%);
+
+  color:
+    #ffffff;
+
+  font-size: 0.61rem;
+  font-weight: 680;
+
+  white-space: nowrap;
+
+  pointer-events: none;
+
+  transform:
+    translateX(-50%);
+
+  backdrop-filter:
+    blur(10px);
+
+  -webkit-backdrop-filter:
+    blur(10px);
+}
+
+/* =========================================
+   QUICK IMAGE TOOLS
+========================================= */
 
 .quickTools {
   display: flex;
+
+  max-width: 100%;
+
   flex-wrap: wrap;
+
   justify-content: center;
   gap: 8px;
 }
 
 .quickTools button {
-  min-height: 38px;
-  padding: 0 12px;
-
   display: inline-flex;
+
+  min-height: 39px;
+
   align-items: center;
   justify-content: center;
   gap: 7px;
 
-  color: var(--text-primary);
-  background: var(--surface);
+  padding:
+    0 12px;
 
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border:
+    1px solid rgb(255 255 255 / 13%);
+
+  border-radius: 11px;
+
+  background:
+    rgb(255 255 255 / 8%);
+
+  color:
+    rgb(255 255 255 / 92%);
+
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 680;
 
   cursor: pointer;
 
-  font: inherit;
-  font-size: 11px;
-  font-weight: 680;
+  backdrop-filter:
+    blur(12px);
+
+  -webkit-backdrop-filter:
+    blur(12px);
 
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease,
-    transform 0.15s ease;
+    background 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease,
+    color 150ms ease;
 }
 
-.quickTools button:hover:not( :disabled) {
-  background:
-    color-mix(in srgb,
-      var(--primary) 6%,
-      var(--surface));
-
+.quickTools button:hover:not(:disabled) {
   border-color:
     color-mix(in srgb,
-      var(--primary) 32%,
-      var(--border));
+      var(--primary) 54%,
+      rgb(255 255 255 / 18%));
+
+  background:
+    color-mix(in srgb,
+      var(--primary) 22%,
+      rgb(255 255 255 / 8%));
 }
 
-.quickTools button:active:not( :disabled) {
-  transform: scale(0.96);
+.quickTools button:active:not(:disabled) {
+  transform:
+    scale(0.96);
 }
 
 .quickTools svg {
@@ -431,34 +693,67 @@
 }
 
 .quickTools .removeButton {
-  color: #dc2626;
+  color:
+    #fca5a5;
 }
 
-/* =========================
+.quickTools .removeButton:hover:not(:disabled) {
+  border-color:
+    rgb(239 68 68 / 52%);
+
+  background:
+    rgb(239 68 68 / 14%);
+}
+
+/* =========================================
    COMPOSE PANEL
-========================= */
+========================================= */
 
 .composePanel {
+  display: flex;
+
   min-width: 0;
   min-height: 0;
 
-  display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 17px;
 
   padding: 20px;
 
   overflow-y: auto;
-  overscroll-behavior: contain;
-
-  background: var(--surface);
 
   border-left:
     1px solid var(--border);
+
+  background:
+    var(--surface-solid, var(--surface));
+
+  overscroll-behavior:
+    contain;
+
+  scrollbar-width:
+    thin;
+
+  scrollbar-color:
+    var(--border) transparent;
 }
+
+.composePanel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.composePanel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--border);
+}
+
+/* =========================================
+   USER ROW
+========================================= */
 
 .userRow {
   display: flex;
+
   align-items: center;
   gap: 11px;
 }
@@ -466,17 +761,29 @@
 .userRow img {
   width: 43px;
   height: 43px;
+  flex-shrink: 0;
+
+  border:
+    2px solid color-mix(in srgb,
+      var(--primary) 28%,
+      var(--border));
+
+  border-radius: 50%;
+
+  background:
+    var(--surface-light);
 
   object-fit: cover;
 
-  border: 1px solid var(--border);
-  border-radius: 50%;
+  box-shadow:
+    0 5px 14px rgb(15 23 42 / 7%);
 }
 
 .userRow div {
+  display: flex;
+
   min-width: 0;
 
-  display: flex;
   flex-direction: column;
   gap: 2px;
 }
@@ -484,118 +791,168 @@
 .userRow strong {
   overflow: hidden;
 
-  font-size: 13px;
-  font-weight: 720;
+  color:
+    var(--text-primary);
+
+  font-size: 0.78rem;
+  font-weight: 760;
 
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .userRow span {
-  color: var(--text-secondary);
+  color:
+    var(--text-secondary);
 
-  font-size: 11px;
+  font-size: 0.66rem;
+  font-weight: 560;
 }
 
-/* =========================
-   CAPTION
-========================= */
+/* =========================================
+   CAPTION COMPOSER
+========================================= */
 
 .captionCard {
   padding: 14px;
 
-  background:
-    var(--surface-secondary);
+  border:
+    1px solid var(--border);
 
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 17px;
+
+  background:
+    var(--surface-light);
+
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease;
+}
+
+.captionCard:focus-within {
+  border-color:
+    var(--primary);
+
+  background:
+    var(--surface-solid, var(--surface));
+
+  box-shadow:
+    0 0 0 3px var(--primary-soft);
 }
 
 .captionCard textarea {
-  width: 100%;
-  min-height: 155px;
-  padding: 0;
-
   display: block;
+
+  width: 100%;
+  min-height: 160px;
 
   resize: none;
 
-  color: var(--text-primary);
-  background: transparent;
+  padding: 0;
 
-  border: 0;
-  outline: 0;
+  border: none;
+
+  outline: none;
+
+  background:
+    transparent;
+
+  color:
+    var(--text-primary);
 
   font: inherit;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 0.8rem;
+  line-height: 1.6;
 }
 
 .captionCard textarea::placeholder {
-  color: var(--text-secondary);
+  color:
+    var(--text-muted, var(--text-secondary));
 }
 
 .captionMeta {
   display: flex;
+
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 
   padding-top: 10px;
 
-  color: var(--text-secondary);
-
   border-top:
     1px solid var(--border);
 
-  font-size: 10px;
+  color:
+    var(--text-secondary);
+
+  font-size: 0.61rem;
+  font-weight: 570;
 }
 
 .captionLimit {
-  color: #dc2626;
+  color:
+    var(--danger) !important;
 
-  font-weight: 700;
+  font-weight: 760 !important;
 }
 
-/* =========================
+/* =========================================
    PHOTO OPTIONS
-========================= */
+========================================= */
 
 .toolsToggle {
-  min-height: 44px;
-  padding: 0 12px;
-
   display: grid;
+
+  min-height: 45px;
+
   grid-template-columns:
     20px 1fr auto;
+
   align-items: center;
   gap: 9px;
 
-  color: var(--text-primary);
-  background: transparent;
+  padding:
+    0 12px;
 
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border:
+    1px solid var(--border);
+
+  border-radius: 13px;
+
+  background:
+    transparent;
+
+  color:
+    var(--text-primary);
+
+  text-align: left;
+
+  font: inherit;
+  font-size: 0.71rem;
+  font-weight: 690;
 
   cursor: pointer;
 
-  font: inherit;
-  font-size: 12px;
-  font-weight: 680;
-  text-align: left;
-
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease;
+    background 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease;
 }
 
-.toolsToggle:hover:not( :disabled) {
-  background:
-    var(--surface-secondary);
-
+.toolsToggle:hover:not(:disabled) {
   border-color:
     color-mix(in srgb,
-      var(--primary) 30%,
+      var(--primary) 32%,
       var(--border));
+
+  background:
+    var(--surface-light);
+}
+
+.toolsToggle:active:not(:disabled) {
+  transform:
+    scale(0.985);
 }
 
 .toolsToggle svg {
@@ -604,159 +961,199 @@
 }
 
 .toolsToggle span {
-  color: var(--text-secondary);
+  color:
+    var(--text-secondary);
 
-  font-size: 10px;
+  font-size: 0.61rem;
 }
 
 .toolsPanel {
   display: grid;
+
   grid-template-columns:
     1fr 1fr;
+
   gap: 9px;
 
   padding: 13px;
 
-  background:
-    var(--surface-secondary);
+  border:
+    1px solid var(--border);
 
-  border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: 14px;
+
+  background:
+    var(--surface-light);
+
+  animation:
+    toolsEnter 160ms ease-out;
 }
 
 .toolsPanel button {
-  min-height: 40px;
-  padding: 0 10px;
+  min-height: 41px;
 
-  color: var(--text-primary);
-  background: var(--surface);
+  padding:
+    0 10px;
 
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border:
+    1px solid var(--border);
+
+  border-radius: 11px;
+
+  background:
+    var(--surface-solid, var(--surface));
+
+  color:
+    var(--text-primary);
+
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 680;
 
   cursor: pointer;
 
-  font: inherit;
-  font-size: 11px;
-  font-weight: 680;
-
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.15s ease;
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
 }
 
-.toolsPanel button:hover:not( :disabled) {
+.toolsPanel button:hover:not(:disabled) {
   border-color:
     color-mix(in srgb,
-      var(--primary) 35%,
+      var(--primary) 36%,
       var(--border));
 }
 
-.toolsPanel button:active:not( :disabled) {
-  transform: scale(0.97);
+.toolsPanel button:active:not(:disabled) {
+  transform:
+    scale(0.97);
 }
 
 .toolActive {
-  color: var(--primary) !important;
+  border-color:
+    var(--primary) !important;
 
   background:
-    color-mix(in srgb,
-      var(--primary) 9%,
-      var(--surface)) !important;
+    var(--primary-soft) !important;
 
-  border-color:
+  color:
     var(--primary) !important;
 }
 
-/* =========================
-   ERROR
-========================= */
+/* =========================================
+   ERRORS
+========================================= */
 
 .errorMessage {
   display: flex;
+
   align-items: flex-start;
   gap: 8px;
 
-  padding: 10px 11px;
+  width: min(570px, 100%);
 
-  color: #dc2626;
-  background:
-    rgba(239, 68, 68, 0.1);
+  padding:
+    10px 12px;
 
   border:
-    1px solid rgba(239, 68, 68, 0.2);
+    1px solid color-mix(in srgb,
+      var(--danger) 28%,
+      transparent);
 
-  border-radius: 10px;
+  border-radius: 12px;
 
-  font-size: 11px;
-  line-height: 1.45;
+  background:
+    var(--danger-soft);
+
+  color:
+    var(--danger);
+
+  font-size: 0.68rem;
+  font-weight: 620;
+  line-height: 1.48;
+
+  animation:
+    errorEnter 160ms ease-out;
 }
 
 .errorMessage svg {
   width: 16px;
   height: 16px;
-
   flex-shrink: 0;
 }
 
-/* =========================
+/* =========================================
    MOBILE SHARE BUTTON
-========================= */
+========================================= */
 
 .mobileShareButton {
   display: none;
 }
 
-/* =========================
-   PROCESSING
-========================= */
+/* =========================================
+   PROCESSING OVERLAY
+========================================= */
 
 .processingOverlay {
   position: absolute;
-  inset: 68px 0 0;
-  z-index: 20;
+  z-index: 40;
+
+  inset:
+    70px 0 0;
 
   display: flex;
+
   flex-direction: column;
+
   align-items: center;
   justify-content: center;
   gap: 9px;
 
-  color: var(--text-primary);
-
   background:
     color-mix(in srgb,
-      var(--surface) 82%,
+      var(--surface-solid, var(--surface)) 84%,
       transparent);
 
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  color:
+    var(--text-primary);
+
+  backdrop-filter:
+    blur(12px);
+
+  -webkit-backdrop-filter:
+    blur(12px);
 }
 
 .processingOverlay svg {
-  width: 30px;
-  height: 30px;
+  width: 31px;
+  height: 31px;
+
+  color:
+    var(--primary);
 }
 
 .processingOverlay strong {
-  font-size: 14px;
+  font-size: 0.82rem;
+  font-weight: 760;
 }
 
 .processingOverlay span {
-  color: var(--text-secondary);
+  color:
+    var(--text-secondary);
 
-  font-size: 11px;
+  font-size: 0.66rem;
 }
 
-/* =========================
-   DISCARD DIALOG
-========================= */
+/* =========================================
+   DISCARD CONFIRMATION
+========================================= */
 
 .confirmBackdrop {
   position: fixed;
+  z-index: 1800;
   inset: 0;
-  z-index: 1700;
 
   display: flex;
   align-items: center;
@@ -764,182 +1161,341 @@
 
   padding: 20px;
 
-  background: rgba(0, 0, 0, 0.7);
+  background:
+    rgb(2 6 23 / 74%);
 
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter:
+    blur(10px);
+
+  -webkit-backdrop-filter:
+    blur(10px);
+
+  animation:
+    createBackdropEnter 160ms ease-out;
 }
 
 .confirmDialog {
-  width: min(370px, 100%);
-  padding: 26px 22px 22px;
-
   display: flex;
+
+  width:
+    min(390px, 100%);
+
   flex-direction: column;
+
   align-items: center;
 
-  color: var(--text-primary);
-  background: var(--surface);
+  padding:
+    27px 23px 22px;
 
-  border: 1px solid var(--border);
-  border-radius: 18px;
+  border:
+    1px solid var(--border);
 
-  box-shadow:
-    0 28px 80px rgba(0, 0, 0, 0.42);
+  border-radius: 22px;
+
+  background:
+    var(--surface-solid, var(--surface));
+
+  color:
+    var(--text-primary);
 
   text-align: center;
+
+  box-shadow:
+    0 30px 90px rgb(0 0 0 / 44%);
+
+  animation:
+    confirmEnter 190ms ease-out;
 }
 
 .confirmIcon {
-  width: 52px;
-  height: 52px;
-  margin-bottom: 14px;
-
   display: grid;
+
+  width: 56px;
+  height: 56px;
+
   place-items: center;
 
-  color: #dc2626;
-  background:
-    rgba(239, 68, 68, 0.12);
+  margin-bottom: 15px;
 
-  border-radius: 50%;
+  border-radius: 18px;
+
+  background:
+    var(--danger-soft);
+
+  color:
+    var(--danger);
 }
 
 .confirmIcon svg {
-  width: 23px;
-  height: 23px;
+  width: 24px;
+  height: 24px;
 }
 
 .confirmDialog h2 {
   margin: 0;
 
-  font-size: 18px;
+  color:
+    var(--text-primary);
+
+  font-size: 1.03rem;
+  font-weight: 790;
+  letter-spacing: -0.02em;
 }
 
 .confirmDialog p {
-  margin: 8px 0 20px;
+  max-width: 310px;
 
-  color: var(--text-secondary);
+  margin:
+    8px 0 21px;
 
-  font-size: 12px;
-  line-height: 1.5;
+  color:
+    var(--text-secondary);
+
+  font-size: 0.72rem;
+  line-height: 1.58;
 }
 
 .confirmActions {
+  display: grid;
+
   width: 100%;
 
-  display: grid;
   grid-template-columns:
     1fr 1fr;
+
   gap: 9px;
 }
 
 .confirmActions button {
-  min-height: 42px;
+  min-height: 43px;
 
-  color: var(--text-primary);
+  border:
+    1px solid var(--border);
+
+  border-radius: 12px;
+
   background:
-    var(--surface-secondary);
+    var(--surface-light);
 
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  color:
+    var(--text-primary);
+
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 720;
 
   cursor: pointer;
 
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
+  transition:
+    transform 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.confirmActions button:hover:not(:disabled) {
+  border-color:
+    color-mix(in srgb,
+      var(--primary) 28%,
+      var(--border));
+}
+
+.confirmActions button:active:not(:disabled) {
+  transform:
+    scale(0.97);
 }
 
 .confirmActions .discardButton {
-  color: #ffffff;
-  background: #dc2626;
+  border-color:
+    transparent;
 
-  border-color: transparent;
+  background:
+    var(--danger);
+
+  color:
+    #ffffff;
 }
 
-/* =========================
-   STATES
-========================= */
+/* =========================================
+   COMMON STATES
+========================================= */
 
 .spinner {
   animation:
-    spin 0.7s linear infinite;
+    spin 0.72s linear infinite;
 }
 
 .modal button:disabled,
 .confirmDialog button:disabled {
-  cursor: not-allowed;
   opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .modal button:focus-visible,
 .modal textarea:focus-visible,
 .confirmDialog button:focus-visible {
   outline:
-    2px solid var(--primary);
+    3px solid var(--primary-soft);
 
   outline-offset: 2px;
 }
 
-@keyframes spin {
+/* =========================================
+   ANIMATIONS
+========================================= */
+
+@keyframes createBackdropEnter {
+  from {
+    opacity: 0;
+  }
+
   to {
-    transform: rotate(360deg);
+    opacity: 1;
   }
 }
 
-/* =========================
-   TABLET
-========================= */
+@keyframes createModalEnter {
+  from {
+    opacity: 0;
 
-@media (max-width: 900px) {
+    transform:
+      translateY(14px) scale(0.975);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0) scale(1);
+  }
+}
+
+@keyframes confirmEnter {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(10px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0) scale(1);
+  }
+}
+
+@keyframes toolsEnter {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+@keyframes errorEnter {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 930px) {
   .composerBody {
     grid-template-columns:
-      minmax(0, 1fr) 320px;
+      minmax(0, 1fr) 330px;
   }
 
   .composePanel {
     padding: 17px;
   }
+
+  .modal {
+    width:
+      min(940px, 100%);
+  }
 }
 
-/* =========================
-   MOBILE
-========================= */
+/* =========================================
+   MOBILE FULL-SCREEN COMPOSER
+========================================= */
 
 @media (max-width: 760px) {
   .modalBackdrop {
-    align-items: stretch;
+    align-items:
+      stretch;
 
     padding: 0;
+
+    background:
+      var(--background);
   }
 
   .modal {
     width: 100%;
     height: 100dvh;
 
-    border: 0;
+    border: none;
+
     border-radius: 0;
+
+    box-shadow: none;
+
+    animation: none;
   }
 
   .modalHeader {
     position: sticky;
+    z-index: 50;
     top: 0;
-    z-index: 10;
 
-    min-height: 62px;
+    min-height:
+      calc(62px + env(safe-area-inset-top,
+          0px));
 
     grid-template-columns:
       42px 1fr auto;
 
     padding:
-      calc(8px + env(safe-area-inset-top)) 12px 8px;
+      calc(8px + env(safe-area-inset-top,
+          0px)) 12px 8px;
   }
 
   .headerTitle {
-    align-items: center;
+    align-items:
+      center;
 
-    text-align: center;
+    text-align:
+      center;
   }
 
   .headerTitle span {
@@ -948,7 +1504,9 @@
 
   .headerPostButton {
     min-width: 42px;
-    padding: 0 11px;
+
+    padding:
+      0 11px;
   }
 
   .headerPostButton span {
@@ -956,32 +1514,51 @@
   }
 
   .uploadStage {
-    padding: 14px;
+    padding:
+      14px 14px calc(20px + env(safe-area-inset-bottom,
+          0px));
   }
 
   .dropZone {
-    min-height: 390px;
+    min-height:
+      min(430px,
+        67dvh);
+
+    padding:
+      28px 20px;
+
+    border-radius:
+      22px;
   }
 
   .composerBody {
     display: flex;
+
     flex-direction: column;
 
     overflow-y: auto;
+
+    overscroll-behavior:
+      contain;
   }
 
   .previewPanel {
     min-height: auto;
+
     padding: 12px;
 
     overflow: visible;
   }
 
   .editorCanvas {
-    width: min(100%, 430px);
+    width:
+      min(100%, 430px);
+
     height: auto;
 
     aspect-ratio: 4 / 5;
+
+    border-radius: 17px;
   }
 
   .quickTools {
@@ -989,136 +1566,167 @@
   }
 
   .quickTools button {
-    flex: 1;
     min-width: 72px;
+    flex: 1;
   }
 
   .composePanel {
     min-height: auto;
 
     padding:
-      18px 15px calc(22px + env(safe-area-inset-bottom));
+      18px 15px calc(24px + env(safe-area-inset-bottom,
+          0px));
 
     overflow: visible;
 
     border-top:
       1px solid var(--border);
 
-    border-left: 0;
+    border-left: none;
   }
 
   .captionCard textarea {
-    min-height: 115px;
+    min-height: 120px;
   }
 
   .mobileShareButton {
-    min-height: 48px;
-
     display: flex;
+
+    min-height: 49px;
+
     align-items: center;
     justify-content: center;
     gap: 8px;
 
-    color: #ffffff;
-    background: var(--primary);
+    border: none;
 
-    border: 0;
-    border-radius: 13px;
+    border-radius: 14px;
+
+    background:
+      linear-gradient(135deg,
+        var(--primary),
+        var(--accent));
+
+    color:
+      var(--on-primary, #ffffff);
+
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 750;
 
     cursor: pointer;
 
-    font: inherit;
-    font-size: 13px;
-    font-weight: 730;
+    box-shadow:
+      0 12px 30px color-mix(in srgb,
+        var(--primary) 25%,
+        transparent);
   }
 
-  .mobileShareButton svg {
-    width: 17px;
-    height: 17px;
+  .mobileShareButton:active:not(:disabled) {
+    transform:
+      scale(0.98);
   }
 
   .processingOverlay {
     inset:
-      calc(62px + env(safe-area-inset-top)) 0 0;
+      calc(62px + env(safe-area-inset-top,
+          0px)) 0 0;
   }
 }
 
-/* =========================
+/* =========================================
    SMALL MOBILE
-========================= */
+========================================= */
 
 @media (max-width: 430px) {
   .dropZone {
-    min-height: 330px;
+    min-height:
+      min(360px,
+        61dvh);
   }
 
   .quickTools {
     display: grid;
+
     grid-template-columns:
       1fr 1fr;
   }
 
   .toolsPanel {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      1fr;
   }
 
   .confirmBackdrop {
-    align-items: flex-end;
+    align-items:
+      flex-end;
 
     padding:
-      10px 10px calc(10px + env(safe-area-inset-bottom));
+      10px 10px calc(10px + env(safe-area-inset-bottom,
+          0px));
   }
 
   .confirmDialog {
     width: 100%;
+
+    border-radius:
+      22px;
+  }
+
+  .confirmActions {
+    grid-template-columns:
+      1fr;
+  }
+
+  .confirmActions .discardButton {
+    grid-row: 1;
   }
 }
 
-/* =========================
+/* =========================================
+   DARK THEME POLISH
+========================================= */
+
+:global(:root[data-theme="dark"]) .modal {
+  box-shadow:
+    0 40px 120px rgb(0 0 0 / 64%);
+}
+
+:global(:root[data-theme="dark"]) .composePanel {
+  background:
+    color-mix(in srgb,
+      var(--surface-solid, var(--surface)) 98%,
+      #000000);
+}
+
+:global(:root[data-theme="dark"]) .dropZone {
+  box-shadow:
+    0 20px 56px rgb(0 0 0 / 30%);
+}
+
+/* =========================================
    REDUCED MOTION
-========================= */
+========================================= */
 
 @media (prefers-reduced-motion: reduce) {
 
-  .spinner,
+  .modalBackdrop,
+  .modal,
+  .confirmBackdrop,
+  .confirmDialog,
+  .toolsPanel,
+  .errorMessage,
+  .spinner {
+    animation: none;
+  }
+
   .headerIconButton,
   .headerPostButton,
   .dropZone,
   .quickTools button,
   .toolsToggle,
-  .toolsPanel button {
-    animation: none;
+  .toolsPanel button,
+  .confirmActions button {
     transition: none;
   }
-}
-
-
-.dragHint {
-  position: absolute;
-  left: 50%;
-  bottom: 14px;
-
-  padding: 7px 11px;
-
-  color: #ffffff;
-  background:
-    rgba(0, 0, 0, 0.58);
-
-  border:
-    1px solid rgba(255, 255, 255, 0.14);
-
-  border-radius: 999px;
-
-  font-size: 10px;
-  font-weight: 650;
-
-  white-space: nowrap;
-
-  transform:
-    translateX(-50%);
-
-  pointer-events: none;
-
-  backdrop-filter:
-    blur(8px);
 }

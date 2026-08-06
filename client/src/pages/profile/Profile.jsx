@@ -1,16 +1,24 @@
-import styles from "./Profile.module.css";
-
 import ProfileHeader from "../../components/profile/ProfileHeader";
 import ProfileTabs from "../../components/profile/ProfileTabs";
 
+import styles from "./Profile.module.css";
+
 const Profile = () => {
   return (
-    <div className={styles.profilePage}>
-      <div className={styles.container}>
+    <main className={styles.profilePage}>
+      <div
+        className={styles.backgroundGlow}
+        aria-hidden="true"
+      />
+
+      <section
+        className={styles.container}
+        aria-label="Your profile"
+      >
         <ProfileHeader />
         <ProfileTabs />
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

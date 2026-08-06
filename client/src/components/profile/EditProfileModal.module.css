@@ -1,156 +1,240 @@
+/* =========================================
+   MODAL OVERLAY
+========================================= */
+
 .overlay {
   position: fixed;
+  z-index: 2000;
   inset: 0;
-  z-index: 999;
-
-  padding: 20px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
-  background:
-    rgba(15, 23, 42, 0.62);
-
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  padding: 20px;
 
   overflow-y: auto;
 
+  background:
+    rgb(2 6 23 / 68%);
+
+  backdrop-filter:
+    blur(9px) saturate(115%);
+
+  -webkit-backdrop-filter:
+    blur(9px) saturate(115%);
+
   animation:
-    overlayFadeIn 0.18s ease-out;
+    overlayEnter 180ms ease-out;
 }
 
+/* =========================================
+   MODAL
+========================================= */
+
 .modal {
-  width: min(100%, 500px);
+  position: relative;
+
+  width:
+    min(100%,
+      520px);
+
   max-height:
     calc(100dvh - 40px);
-
-  padding: 26px;
 
   overflow-y: auto;
   overscroll-behavior: contain;
 
-  background:
-    var(--surface, #ffffff);
+  padding:
+    27px;
 
   border:
-    1px solid var(--border, #e2e8f0);
+    1px solid color-mix(in srgb,
+      var(--border) 92%,
+      transparent);
 
-  border-radius: 22px;
+  border-radius:
+    24px;
+
+  background:
+    color-mix(in srgb,
+      var(--surface-solid, var(--surface)) 97%,
+      transparent);
+
+  color:
+    var(--text-primary);
 
   box-shadow:
-    0 24px 70px rgba(15, 23, 42, 0.28);
+    0 30px 90px rgb(2 6 23 / 36%);
 
-  box-sizing: border-box;
+  scrollbar-width:
+    thin;
+
+  backdrop-filter:
+    blur(22px);
+
+  -webkit-backdrop-filter:
+    blur(22px);
 
   animation:
-    modalEnter 0.2s ease-out;
+    modalEnter 220ms cubic-bezier(0.22,
+      1,
+      0.36,
+      1);
 }
 
-/* =========================
+/* =========================================
    HEADER
-========================= */
+========================================= */
 
 .header {
-  margin-bottom: 22px;
-
   display: flex;
-  align-items: center;
+
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
+
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color:
+    var(--primary);
+
+  font-size: 0.62rem;
+  font-weight: 820;
+  letter-spacing: 0.13em;
+  line-height: 1.2;
+
+  text-transform:
+    uppercase;
 }
 
 .header h2 {
   margin: 0;
 
   color:
-    var(--text-primary, #0f172a);
+    var(--text-primary);
 
-  font-size: 1.75rem;
-  font-weight: 750;
-  line-height: 1.2;
-  letter-spacing: -0.03em;
+  font-size: 1.72rem;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
 }
 
-.header button {
-  width: 38px;
-  height: 38px;
-  padding: 0;
+.header p {
+  margin:
+    7px 0 0;
 
-  flex: 0 0 38px;
+  color:
+    var(--text-secondary);
 
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.closeButton {
   display: inline-flex;
+
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+
   align-items: center;
   justify-content: center;
 
+  padding: 0;
+
   border:
-    1px solid transparent;
-  border-radius: 50%;
+    1px solid var(--border);
 
-  background: transparent;
+  border-radius:
+    13px;
+
+  background:
+    var(--surface-light);
+
   color:
-    var(--text-primary, #0f172a);
-
-  font: inherit;
-  font-size: 20px;
-  line-height: 1;
+    var(--text-secondary);
 
   cursor: pointer;
 
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease,
-    transform 0.15s ease;
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
 }
 
-.header button:hover:not(:disabled) {
-  background:
-    var(--background, #f8fafc);
+.closeButton:hover:not(:disabled) {
+  transform:
+    rotate(6deg);
 
   border-color:
-    var(--border, #e2e8f0);
+    color-mix(in srgb,
+      var(--danger) 30%,
+      var(--border));
+
+  background:
+    var(--danger-soft);
+
+  color:
+    var(--danger);
 }
 
-.header button:active:not(:disabled) {
-  transform: scale(0.94);
+.closeButton:active:not(:disabled) {
+  transform:
+    scale(0.94);
 }
 
-.header button:focus-visible {
-  outline:
-    3px solid color-mix(in srgb,
-      var(--primary, #2563eb) 24%,
-      transparent);
-
-  outline-offset: 2px;
-}
-
-/* =========================
+/* =========================================
    FORM
-========================= */
+========================================= */
 
 .modal form {
   display: flex;
+
   flex-direction: column;
   gap: 18px;
 }
 
 .field {
-  position: relative;
-
   display: flex;
+
+  min-width: 0;
+
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
 }
 
-.field label {
-  color:
-    var(--text-primary, #0f172a);
+.labelRow {
+  display: flex;
 
-  font-size: 13px;
-  font-weight: 650;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.labelRow label {
+  color:
+    var(--text-primary);
+
+  font-size: 0.74rem;
+  font-weight: 720;
   line-height: 1.4;
+}
+
+.labelRow span {
+  color:
+    var(--text-muted, var(--text-secondary));
+
+  font-size: 0.61rem;
+  font-weight: 620;
 }
 
 .field input,
@@ -158,33 +242,35 @@
   width: 100%;
   min-width: 0;
 
-  padding: 13px 14px;
+  padding:
+    13px 14px;
 
   border:
-    1px solid var(--border, #cbd5e1);
+    1px solid var(--border);
 
-  border-radius: 13px;
-
-  background:
-    var(--background, #f8fafc);
-
-  color:
-    var(--text-primary, #0f172a);
-
-  font: inherit;
-  font-size: 15px;
-  line-height: 1.5;
+  border-radius:
+    13px;
 
   outline: none;
-  box-sizing: border-box;
+
+  background:
+    var(--surface-light);
+
+  color:
+    var(--text-primary);
+
   caret-color:
-    var(--primary, #2563eb);
+    var(--primary);
+
+  font: inherit;
+  font-size: 0.84rem;
+  line-height: 1.5;
 
   transition:
-    border-color 0.18s ease,
-    background 0.18s ease,
-    box-shadow 0.18s ease,
-    opacity 0.18s ease;
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
 }
 
 .field input {
@@ -192,7 +278,7 @@
 }
 
 .field textarea {
-  min-height: 112px;
+  min-height: 120px;
 
   resize: vertical;
 }
@@ -200,295 +286,280 @@
 .field input::placeholder,
 .field textarea::placeholder {
   color:
-    var(--text-secondary, #64748b);
-
-  opacity: 0.82;
+    var(--text-muted, var(--text-secondary));
 }
 
 .field input:hover:not(:disabled),
 .field textarea:hover:not(:disabled) {
   border-color:
     color-mix(in srgb,
-      var(--primary, #2563eb) 34%,
-      var(--border, #cbd5e1));
+      var(--primary) 30%,
+      var(--border));
 }
 
 .field input:focus,
 .field textarea:focus {
   border-color:
-    var(--primary, #2563eb);
+    var(--primary);
 
   background:
-    var(--surface, #ffffff);
+    var(--surface-solid, var(--surface));
 
   box-shadow:
-    0 0 0 3px color-mix(in srgb,
-      var(--primary, #2563eb) 16%,
-      transparent);
+    0 0 0 4px var(--primary-soft);
 }
 
 .field input:disabled,
 .field textarea:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
-  opacity: 0.62;
 }
 
-/* =========================
-   BROWSER AUTOFILL
-========================= */
+/* =========================================
+   USERNAME INPUT
+========================================= */
+
+.usernameInput {
+  position: relative;
+}
+
+.usernameInput input {
+  padding-right: 44px;
+  padding-left: 34px;
+}
+
+.usernamePrefix {
+  position: absolute;
+  z-index: 2;
+
+  top: 50%;
+  left: 14px;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 0.84rem;
+  font-weight: 700;
+
+  pointer-events: none;
+
+  transform:
+    translateY(-50%);
+}
+
+.statusSpinner,
+.availableIcon {
+  position: absolute;
+
+  top: 50%;
+  right: 14px;
+
+  transform:
+    translateY(-50%);
+}
+
+.statusSpinner {
+  color:
+    var(--primary);
+
+  animation:
+    spin 0.7s linear infinite;
+}
+
+.availableIcon {
+  color:
+    var(--success);
+}
+
+/* =========================================
+   USERNAME STATUS
+========================================= */
+
+.usernameMessage {
+  min-height: 18px;
+
+  margin:
+    0 3px;
+
+  overflow-wrap:
+    anywhere;
+
+  font-size: 0.66rem;
+  font-weight: 610;
+  line-height: 18px;
+}
+
+.usernameChecking,
+.usernameNeutral {
+  color:
+    var(--text-secondary);
+}
+
+.usernameAvailable {
+  color:
+    var(--success);
+}
+
+.usernameTaken {
+  color:
+    var(--danger);
+}
+
+/* =========================================
+   AUTOFILL
+========================================= */
 
 .field input:-webkit-autofill,
 .field input:-webkit-autofill:hover,
 .field input:-webkit-autofill:focus {
   -webkit-text-fill-color:
-    var(--text-primary, #0f172a);
+    var(--text-primary);
 
   box-shadow:
-    0 0 0 1000px var(--background, #f8fafc) inset;
+    0 0 0 1000px var(--surface-light) inset;
 
   transition:
     background-color 9999s ease-out;
 }
 
-/* =========================
-   USERNAME STATUS
-========================= */
-
-.usernameMessage,
-.usernameChecking,
-.usernameAvailable,
-.usernameTaken,
-.usernameNeutral {
-  min-height: 18px;
-  margin: 0 3px;
-
-  font-size: 12px;
-  font-weight: 550;
-  line-height: 18px;
-
-  overflow-wrap: anywhere;
-
-  transition:
-    color 0.18s ease,
-    opacity 0.18s ease;
-}
-
-.usernameChecking,
-.usernameNeutral {
-  color:
-    var(--text-secondary, #64748b);
-}
-
-.usernameAvailable {
-  color:
-    var(--success, #16a34a);
-}
-
-.usernameTaken {
-  color:
-    var(--danger, #dc2626);
-}
-
-/* =========================
-   BIO COUNTER
-========================= */
-
-.counter {
-  min-height: 16px;
-  margin-top: -2px;
-
-  align-self: flex-end;
-
-  color:
-    var(--text-secondary, #64748b);
-
-  font-size: 11px;
-  font-weight: 550;
-  line-height: 16px;
-}
-
-/* =========================
-   ACTION BUTTONS
-========================= */
+/* =========================================
+   ACTIONS
+========================================= */
 
 .buttons {
-  margin-top: 4px;
-
   display: flex;
+
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+
+  margin-top: 5px;
+  padding-top: 18px;
+
+  border-top:
+    1px solid var(--border);
 }
 
 .cancel,
 .save {
-  min-height: 44px;
-  padding: 10px 18px;
+  display: inline-flex;
 
-  border-radius: 11px;
+  min-height: 45px;
+
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding:
+    0 18px;
+
+  border-radius:
+    13px;
 
   font: inherit;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 0.74rem;
+  font-weight: 750;
 
   cursor: pointer;
 
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.15s ease,
-    opacity 0.18s ease;
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease;
 }
 
 .cancel {
   border:
-    1px solid var(--border, #cbd5e1);
+    1px solid var(--border);
 
   background:
-    var(--background, #f1f5f9);
+    var(--surface-light);
 
   color:
-    var(--text-primary, #111827);
+    var(--text-primary);
 }
 
 .cancel:hover:not(:disabled) {
+  border-color:
+    color-mix(in srgb,
+      var(--text-primary) 20%,
+      var(--border));
+
   background:
     color-mix(in srgb,
-      var(--background, #f1f5f9) 78%,
-      var(--text-secondary, #64748b));
+      var(--text-primary) 6%,
+      var(--surface));
 }
 
 .save {
+  min-width: 145px;
+
   border:
-    1px solid var(--primary, #2563eb);
+    1px solid transparent;
 
   background:
-    var(--primary, #2563eb);
+    linear-gradient(135deg,
+      var(--primary),
+      var(--accent));
 
-  color: #ffffff;
+  color:
+    var(--on-primary, #ffffff);
 
   box-shadow:
-    0 8px 20px rgba(37, 99, 235, 0.2);
+    0 10px 25px color-mix(in srgb,
+      var(--primary) 25%,
+      transparent);
 }
 
 .save:hover:not(:disabled) {
-  filter: brightness(0.94);
+  transform:
+    translateY(-2px);
+
+  filter:
+    brightness(1.04);
 
   box-shadow:
-    0 10px 24px rgba(37, 99, 235, 0.26);
+    0 14px 32px color-mix(in srgb,
+      var(--primary) 31%,
+      transparent);
 }
 
 .cancel:active:not(:disabled),
 .save:active:not(:disabled) {
-  transform: scale(0.97);
+  transform:
+    scale(0.97);
 }
 
+.closeButton:focus-visible,
 .cancel:focus-visible,
 .save:focus-visible {
   outline:
-    3px solid color-mix(in srgb,
-      var(--primary, #2563eb) 24%,
-      transparent);
+    3px solid var(--primary-soft);
 
   outline-offset: 2px;
 }
 
-.save:disabled,
+.closeButton:disabled,
 .cancel:disabled,
-.header button:disabled {
-  cursor: not-allowed;
+.save:disabled {
   opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
 }
 
-/* =========================
-   MOBILE
-========================= */
-
-@media (max-width: 600px) {
-  .overlay {
-    padding:
-      max(12px,
-        env(safe-area-inset-top)) 12px max(12px,
-        env(safe-area-inset-bottom));
-
-    align-items: flex-end;
-  }
-
-  .modal {
-    width: 100%;
-    max-width: none;
-    max-height:
-      calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-
-    padding: 22px 18px 18px;
-
-    border-radius:
-      22px 22px 16px 16px;
-  }
-
-  .header {
-    margin-bottom: 20px;
-  }
-
-  .header h2 {
-    font-size: 1.55rem;
-  }
-
-  .modal form {
-    gap: 16px;
-  }
-
-  .field input {
-    min-height: 48px;
-  }
-
-  .buttons {
-    position: sticky;
-    bottom: 0;
-
-    padding-top: 10px;
-
-    background:
-      var(--surface, #ffffff);
-  }
-
-  .cancel,
-  .save {
-    flex: 1;
-  }
+.saveSpinner {
+  animation:
+    spin 0.7s linear infinite;
 }
 
-/* =========================
-   VERY SMALL MOBILE
-========================= */
-
-@media (max-width: 380px) {
-  .modal {
-    padding-left: 15px;
-    padding-right: 15px;
-  }
-
-  .buttons {
-    flex-direction: column-reverse;
-  }
-
-  .cancel,
-  .save {
-    width: 100%;
-  }
-}
-
-/* =========================
+/* =========================================
    ANIMATIONS
-========================= */
+========================================= */
 
-@keyframes overlayFadeIn {
+@keyframes overlayEnter {
   from {
     opacity: 0;
   }
@@ -501,38 +572,167 @@
 @keyframes modalEnter {
   from {
     opacity: 0;
+
     transform:
-      translateY(10px) scale(0.985);
+      translateY(12px) scale(0.98);
   }
 
   to {
     opacity: 1;
+
     transform:
       translateY(0) scale(1);
   }
 }
 
-/* =========================
+@keyframes spin {
+  to {
+    transform:
+      translateY(-50%) rotate(360deg);
+  }
+}
+
+/* =========================================
+   MOBILE BOTTOM SHEET
+========================================= */
+
+@media (max-width: 600px) {
+  .overlay {
+    align-items: flex-end;
+
+    padding:
+      max(12px,
+        env(safe-area-inset-top,
+          0px)) 10px max(10px,
+        env(safe-area-inset-bottom,
+          0px));
+  }
+
+  .modal {
+    width: 100%;
+    max-width: none;
+
+    max-height:
+      calc(100dvh - 20px - env(safe-area-inset-top,
+          0px) - env(safe-area-inset-bottom,
+          0px));
+
+    padding:
+      23px 17px 17px;
+
+    border-radius:
+      24px 24px 16px 16px;
+  }
+
+  .modal::before {
+    content: "";
+
+    display: block;
+
+    width: 42px;
+    height: 4px;
+
+    margin:
+      -10px auto 17px;
+
+    border-radius:
+      999px;
+
+    background:
+      color-mix(in srgb,
+        var(--text-secondary) 38%,
+        transparent);
+  }
+
+  .header {
+    margin-bottom: 21px;
+  }
+
+  .header h2 {
+    font-size: 1.5rem;
+  }
+
+  .buttons {
+    position: sticky;
+
+    right: 0;
+    bottom:
+      calc(-17px - env(safe-area-inset-bottom,
+          0px));
+
+    left: 0;
+
+    z-index: 5;
+
+    margin-right: -17px;
+    margin-left: -17px;
+
+    padding:
+      13px 17px calc(17px + env(safe-area-inset-bottom,
+          0px));
+
+    background:
+      color-mix(in srgb,
+        var(--surface-solid, var(--surface)) 96%,
+        transparent);
+
+    backdrop-filter:
+      blur(16px);
+
+    -webkit-backdrop-filter:
+      blur(16px);
+  }
+
+  .cancel,
+  .save {
+    flex: 1;
+  }
+}
+
+/* =========================================
+   SMALL MOBILE
+========================================= */
+
+@media (max-width: 380px) {
+  .modal {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .buttons {
+    margin-right: -14px;
+    margin-left: -14px;
+
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+}
+
+/* =========================================
+   DARK THEME
+========================================= */
+
+:global(:root[data-theme="dark"]) .modal {
+  box-shadow:
+    0 32px 100px rgb(0 0 0 / 64%);
+}
+
+/* =========================================
    REDUCED MOTION
-========================= */
+========================================= */
 
 @media (prefers-reduced-motion: reduce) {
 
   .overlay,
-  .modal {
-    animation: none;
-  }
-
-  .header button,
+  .modal,
+  .closeButton,
   .field input,
   .field textarea,
-  .usernameMessage,
-  .usernameChecking,
-  .usernameAvailable,
-  .usernameTaken,
-  .usernameNeutral,
   .cancel,
-  .save {
+  .save,
+  .statusSpinner,
+  .saveSpinner {
+    animation: none;
     transition: none;
   }
 }

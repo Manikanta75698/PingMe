@@ -1,19 +1,30 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 
 import {
-  useNavigate,
   Link,
+  useNavigate,
 } from "react-router-dom";
+
+import {
+  AtSign,
+  Check,
+  CircleAlert,
+  LoaderCircle,
+  LockKeyhole,
+  Mail,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 
 import AuthLayout from "../../../layouts/auth-layout";
 import Logo from "../../../components/ui/logo";
 import Input from "../../../components/ui/input";
 import Button from "../../../components/ui/button";
-
 import GoogleLoginButton from "../../../components/auth/GoogleLoginButton";
 
 import {
@@ -21,40 +32,69 @@ import {
 } from "../../../components/ui/toast/ToastProvider";
 
 import {
-  registerUser,
   checkUsernameAvailability,
+  registerUser,
 } from "../../../services/authService";
 
 import styles from "./Register.module.css";
 
+const NAME_MAX_LENGTH = 50;
 const USERNAME_MIN_LENGTH = 3;
 const USERNAME_MAX_LENGTH = 30;
-const USERNAME_DEBOUNCE_MS = 800;
+const USERNAME_DEBOUNCE_MS = 650;
+
+const EMAIL_PATTERN =
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const PASSWORD_RULES = [
+  {
+    id: "length",
+    label: "At least 8 characters",
+    test: (password) =>
+      password.length >= 8,
+  },
+  {
+    id: "uppercase",
+    label: "One uppercase letter",
+    test: (password) =>
+      /[A-Z]/.test(password),
+  },
+  {
+    id: "lowercase",
+    label: "One lowercase letter",
+    test: (password) =>
+      /[a-z]/.test(password),
+  },
+  {
+    id: "number",
+    label: "One number",
+    test: (password) =>
+      /\d/.test(password),
+  },
+];
 
 const getUsernameAvailability = (
   response
-) => {
-  return (
-    response?.available ??
-    response?.data?.available ??
-    response?.data?.data?.available ??
-    false
-  );
-};
+) =>
+  response?.available ??
+  response?.data?.available ??
+  response?.data?.data
+    ?.available ??
+  false;
 
 const getUsernameMessage = (
   response,
   available
-) => {
-  return (
-    response?.message ||
-    response?.data?.message ||
-    response?.data?.data?.message ||
-    (available
+) =>
+  response?.message ||
+  response?.data?.message ||
+  response?.data?.data
+    ?.message ||
+  (
+    available
       ? "Username is available"
-      : "Username is already taken")
+      : "Username is already taken"
   );
-};
 
 const Register = () => {
   const navigate =
@@ -63,12 +103,6 @@ const Register = () => {
   const toast =
     useToastContext();
 
-  /*
-   * Latest username request ni track
-   * chesthundi. Old API response vachina
-   * current username state ni overwrite
-   * cheyyakunda prevent chesthundi.
-   */
   const usernameRequestRef =
     useRef(0);
 
@@ -86,10 +120,6 @@ const Register = () => {
     confirmPassword: "",
   });
 
-  /*
-   * Registration submit loading matrame.
-   * Username checking kosam idi use cheyyamu.
-   */
   const [
     loading,
     setLoading,
@@ -104,9 +134,65 @@ const Register = () => {
     message: "",
   });
 
-  /* =========================
+  const cleanName =
+    formData.name.trim();
+
+  const cleanUsername =
+    formData.username
+      .trim()
+      .toLowerCase();
+
+  const cleanEmail =
+    formData.email
+      .trim()
+      .toLowerCase();
+
+  const passwordRuleResults =
+    useMemo(
+      () =>
+        PASSWORD_RULES.map(
+          (rule) => ({
+            ...rule,
+            passed:
+              rule.test(
+                formData.password
+              ),
+          })
+        ),
+      [formData.password]
+    );
+
+  const passedPasswordRules =
+    passwordRuleResults.filter(
+      (rule) => rule.passed
+    ).length;
+
+  const passwordStrength =
+    passedPasswordRules === 4
+      ? "strong"
+      : passedPasswordRules >= 2
+        ? "medium"
+        : "weak";
+
+  const passwordsMatch =
+    Boolean(
+      formData.confirmPassword
+    ) &&
+    formData.password ===
+    formData.confirmPassword;
+
+  const allFieldsCompleted =
+    Boolean(
+      cleanName &&
+      cleanUsername &&
+      cleanEmail &&
+      formData.password &&
+      formData.confirmPassword
+    );
+
+  /* =====================================
      INPUT CHANGE
-  ========================= */
+  ===================================== */
 
   const handleChange = (
     event
@@ -116,15 +202,10 @@ const Register = () => {
       value,
     } = event.target;
 
-    if (name === "username") {
-      /*
-       * Username input enter chesthunappude
-       * normalize chestham.
-       *
-       * Invalid characters UI lo enter
-       * avvakunda prevent chesthundi.
-       */
-      const cleanUsername =
+    if (
+      name === "username"
+    ) {
+      const cleanValue =
         value
           .toLowerCase()
           .replace(
@@ -136,24 +217,35 @@ const Register = () => {
             USERNAME_MAX_LENGTH
           );
 
+      usernameRequestRef.current += 1;
+
       setFormData(
         (previous) => ({
           ...previous,
-          username:
-            cleanUsername,
+          username: cleanValue,
         })
       );
 
-      /*
-       * Previous username result immediate
-       * ga clear chestham. Main page loading
-       * or page loader trigger avvadu.
-       */
       setUsernameStatus({
         checking: false,
         available: null,
         message: "",
       });
+
+      return;
+    }
+
+    if (name === "name") {
+      setFormData(
+        (previous) => ({
+          ...previous,
+          name:
+            value.slice(
+              0,
+              NAME_MAX_LENGTH
+            ),
+        })
+      );
 
       return;
     }
@@ -166,29 +258,22 @@ const Register = () => {
     );
   };
 
-  /* =========================
-     USERNAME AVAILABILITY
-     DEBOUNCED CHECK
-  ========================= */
+  /* =====================================
+     USERNAME AVAILABILITY CHECK
+  ===================================== */
 
   useEffect(() => {
     const username =
-      formData.username
-        .trim()
-        .toLowerCase();
+      cleanUsername;
 
-    /*
-     * Previous pending request stale
-     * response ni invalidate chestham.
-     */
     usernameRequestRef.current += 1;
 
     const currentRequestId =
       usernameRequestRef.current;
 
     if (!username) {
-      lastCheckedUsernameRef.current =
-        "";
+      lastCheckedUsernameRef
+        .current = "";
 
       setUsernameStatus({
         checking: false,
@@ -203,8 +288,8 @@ const Register = () => {
       username.length <
       USERNAME_MIN_LENGTH
     ) {
-      lastCheckedUsernameRef.current =
-        "";
+      lastCheckedUsernameRef
+        .current = "";
 
       setUsernameStatus({
         checking: false,
@@ -217,29 +302,12 @@ const Register = () => {
     }
 
     if (
-      username.length >
-      USERNAME_MAX_LENGTH
-    ) {
-      lastCheckedUsernameRef.current =
-        "";
-
-      setUsernameStatus({
-        checking: false,
-        available: false,
-        message:
-          `Username cannot exceed ${USERNAME_MAX_LENGTH} characters`,
-      });
-
-      return undefined;
-    }
-
-    if (
       !/^[a-z0-9._]+$/.test(
         username
       )
     ) {
-      lastCheckedUsernameRef.current =
-        "";
+      lastCheckedUsernameRef
+        .current = "";
 
       setUsernameStatus({
         checking: false,
@@ -251,13 +319,9 @@ const Register = () => {
       return undefined;
     }
 
-    /*
-     * Same username already successfully
-     * check ayithe duplicate API call vaddu.
-     */
     if (
-      lastCheckedUsernameRef.current ===
-      username &&
+      lastCheckedUsernameRef
+        .current === username &&
       usernameStatus.available !==
       null
     ) {
@@ -267,11 +331,6 @@ const Register = () => {
     const timer =
       window.setTimeout(
         async () => {
-          /*
-           * Main visible message ni
-           * "Checking..." ga marchamu.
-           * Kabatti form/page blink avvadu.
-           */
           setUsernameStatus(
             (previous) => ({
               ...previous,
@@ -285,10 +344,6 @@ const Register = () => {
                 username
               );
 
-            /*
-             * User meanwhile vere username
-             * type chesunte old response ignore.
-             */
             if (
               currentRequestId !==
               usernameRequestRef.current
@@ -303,8 +358,8 @@ const Register = () => {
                 )
               );
 
-            lastCheckedUsernameRef.current =
-              username;
+            lastCheckedUsernameRef
+              .current = username;
 
             setUsernameStatus({
               checking: false,
@@ -315,7 +370,9 @@ const Register = () => {
                   available
                 ),
             });
-          } catch (error) {
+          } catch (
+          checkError
+          ) {
             if (
               currentRequestId !==
               usernameRequestRef.current
@@ -325,12 +382,13 @@ const Register = () => {
 
             console.error(
               "USERNAME CHECK ERROR:",
-              error?.response?.data ||
-              error?.message
+              checkError
+                ?.response?.data ||
+              checkError?.message
             );
 
-            lastCheckedUsernameRef.current =
-              "";
+            lastCheckedUsernameRef
+              .current = "";
 
             setUsernameStatus({
               checking: false,
@@ -349,12 +407,12 @@ const Register = () => {
       );
     };
   }, [
-    formData.username,
+    cleanUsername,
   ]);
 
-  /* =========================
-     REGISTER
-  ========================= */
+  /* =====================================
+     REGISTER SUBMIT
+  ===================================== */
 
   const handleSubmit =
     async (event) => {
@@ -364,28 +422,20 @@ const Register = () => {
         return;
       }
 
-      const cleanName =
-        formData.name.trim();
+      if (!allFieldsCompleted) {
+        toast.warning(
+          "Please complete all fields"
+        );
 
-      const cleanUsername =
-        formData.username
-          .trim()
-          .toLowerCase();
-
-      const cleanEmail =
-        formData.email
-          .trim()
-          .toLowerCase();
+        return;
+      }
 
       if (
-        !cleanName ||
-        !cleanUsername ||
-        !cleanEmail ||
-        !formData.password ||
-        !formData.confirmPassword
+        cleanName.length >
+        NAME_MAX_LENGTH
       ) {
         toast.warning(
-          "Please fill in all fields"
+          `Name cannot exceed ${NAME_MAX_LENGTH} characters`
         );
 
         return;
@@ -430,65 +480,41 @@ const Register = () => {
       ) {
         toast.warning(
           usernameStatus.message ||
-          "Please choose an available username"
+          "Choose an available username"
         );
 
         return;
       }
 
       if (
-        formData.password !==
-        formData.confirmPassword
+        !EMAIL_PATTERN.test(
+          cleanEmail
+        )
       ) {
+        toast.warning(
+          "Enter a valid email address"
+        );
+
+        return;
+      }
+
+      const failedRule =
+        passwordRuleResults.find(
+          (rule) =>
+            !rule.passed
+        );
+
+      if (failedRule) {
+        toast.warning(
+          failedRule.label
+        );
+
+        return;
+      }
+
+      if (!passwordsMatch) {
         toast.warning(
           "Passwords do not match"
-        );
-
-        return;
-      }
-
-      if (
-        formData.password.length <
-        8
-      ) {
-        toast.warning(
-          "Password must be at least 8 characters"
-        );
-
-        return;
-      }
-
-      if (
-        !/[A-Z]/.test(
-          formData.password
-        )
-      ) {
-        toast.warning(
-          "Password must contain at least one uppercase letter"
-        );
-
-        return;
-      }
-
-      if (
-        !/[a-z]/.test(
-          formData.password
-        )
-      ) {
-        toast.warning(
-          "Password must contain at least one lowercase letter"
-        );
-
-        return;
-      }
-
-      if (
-        !/\d/.test(
-          formData.password
-        )
-      ) {
-        toast.warning(
-          "Password must contain at least one number"
         );
 
         return;
@@ -542,87 +568,139 @@ const Register = () => {
             replace: true,
           }
         );
-      } catch (error) {
+      } catch (
+      registerError
+      ) {
         console.error(
           "REGISTER ERROR:",
-          error?.response?.data ||
-          error?.message
+          registerError
+            ?.response?.data ||
+          registerError?.message
         );
 
         const errorData =
-          error?.response?.data;
+          registerError
+            ?.response?.data;
+
+        const status =
+          registerError
+            ?.response?.status;
 
         if (
           errorData?.field ===
           "username"
         ) {
-          lastCheckedUsernameRef.current =
+          lastCheckedUsernameRef
+            .current =
             cleanUsername;
 
           setUsernameStatus({
             checking: false,
             available: false,
-
             message:
               errorData.message ||
               "Username is already taken",
           });
         }
 
-        toast.error(
-          errorData?.message ||
-          "Unable to create account"
-        );
+        if (
+          !navigator.onLine
+        ) {
+          toast.error(
+            "You appear to be offline"
+          );
+        } else if (
+          status === 429
+        ) {
+          toast.error(
+            "Too many attempts. Please wait and try again."
+          );
+        } else {
+          toast.error(
+            errorData?.message ||
+            registerError?.message ||
+            "Unable to create account"
+          );
+        }
       } finally {
         setLoading(false);
       }
     };
 
-  /* =========================
-     USERNAME STATUS UI
-  ========================= */
-
   const usernameMessageClass =
-    usernameStatus.available ===
-      true
-      ? styles.usernameAvailable
+    usernameStatus.checking
+      ? styles.usernameChecking
       : usernameStatus.available ===
-        false
-        ? styles.usernameTaken
-        : styles.usernameNeutral;
+        true
+        ? styles.usernameAvailable
+        : usernameStatus.available ===
+          false
+          ? styles.usernameTaken
+          : styles.usernameNeutral;
 
-  const usernameMessage =
-    usernameStatus.available ===
-      true
-      ? `✓ ${usernameStatus.message}`
-      : usernameStatus.available ===
-        false
-        ? `✕ ${usernameStatus.message}`
-        : usernameStatus.message;
+  const submitDisabled =
+    loading ||
+    !allFieldsCompleted ||
+    usernameStatus.checking ||
+    usernameStatus.available !==
+    true ||
+    !passwordsMatch ||
+    passedPasswordRules !== 4;
 
   return (
     <AuthLayout>
-      <div
+      <main
         className={
           styles.container
         }
+        aria-labelledby="register-title"
       >
-        <Logo size="lg" />
-
         <div
+          className={
+            styles.topBar
+          }
+        >
+          <Logo size="lg" />
+
+          <span
+            className={
+              styles.secureBadge
+            }
+          >
+            <ShieldCheck
+              size={14}
+              aria-hidden="true"
+            />
+
+            Secure registration
+          </span>
+        </div>
+
+        <header
           className={
             styles.heading
           }
         >
-          <h1>
-            Create Account
+          <span
+            className={
+              styles.eyebrow
+            }
+          >
+            Join PingMe
+          </span>
+
+          <h1
+            id="register-title"
+          >
+            Create your account
           </h1>
 
           <p>
-            Join Nexora and connect
-            with friends
+            Build your profile,
+            discover people and start
+            meaningful conversations.
           </p>
-        </div>
+        </header>
 
         <form
           className={
@@ -633,116 +711,363 @@ const Register = () => {
           }
           noValidate
         >
-          <Input
-            label="Full Name"
-            name="name"
-            value={
-              formData.name
+          <div
+            className={
+              styles.fieldGroup
             }
-            onChange={
-              handleChange
-            }
-            placeholder="Enter your full name"
-            autoComplete="name"
-            disabled={loading}
-          />
+          >
+            <span
+              className={
+                styles.fieldIcon
+              }
+              aria-hidden="true"
+            >
+              <UserRound
+                size={17}
+              />
+            </span>
+
+            <Input
+              label="Full Name"
+              name="name"
+              value={
+                formData.name
+              }
+              onChange={
+                handleChange
+              }
+              placeholder="Enter your full name"
+              autoComplete="name"
+              maxLength={
+                NAME_MAX_LENGTH
+              }
+              disabled={loading}
+            />
+          </div>
 
           <div
             className={
               styles.usernameField
             }
           >
-            <Input
-              label="Username"
-              name="username"
-              value={
-                formData.username
+            <div
+              className={
+                styles.fieldGroup
               }
-              onChange={
-                handleChange
-              }
-              placeholder="Choose username"
-              autoComplete="username"
-              autoCapitalize="none"
-              spellCheck={false}
-              disabled={loading}
-            />
+            >
+              <span
+                className={
+                  styles.fieldIcon
+                }
+                aria-hidden="true"
+              >
+                <AtSign
+                  size={17}
+                />
+              </span>
+
+              <Input
+                label="Username"
+                name="username"
+                value={
+                  formData.username
+                }
+                onChange={
+                  handleChange
+                }
+                placeholder="Choose a username"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                maxLength={
+                  USERNAME_MAX_LENGTH
+                }
+                disabled={loading}
+              />
+
+              <span
+                className={
+                  styles.usernameStatusIcon
+                }
+                aria-hidden="true"
+              >
+                {usernameStatus
+                  .checking && (
+                    <LoaderCircle
+                      size={17}
+                      className={
+                        styles.spinner
+                      }
+                    />
+                  )}
+
+                {!usernameStatus
+                  .checking &&
+                  usernameStatus
+                    .available ===
+                  true && (
+                    <Check
+                      size={18}
+                    />
+                  )}
+
+                {!usernameStatus
+                  .checking &&
+                  usernameStatus
+                    .available ===
+                  false && (
+                    <CircleAlert
+                      size={17}
+                    />
+                  )}
+              </span>
+            </div>
 
             <p
               className={`${styles.usernameMessage} ${usernameMessageClass}`}
               role={
-                usernameStatus.available ===
+                usernameStatus
+                  .available ===
                   false
                   ? "alert"
                   : "status"
               }
               aria-live="polite"
             >
-              {usernameMessage ||
+              {usernameStatus
+                .checking
+                ? "Checking username..."
+                : usernameStatus
+                  .message ||
                 "\u00A0"}
             </p>
           </div>
 
-          <Input
-            label="Email Address"
-            name="email"
-            type="email"
-            value={
-              formData.email
+          <div
+            className={
+              styles.fieldGroup
             }
-            onChange={
-              handleChange
-            }
-            placeholder="Enter your email"
-            autoComplete="email"
-            disabled={loading}
-          />
+          >
+            <span
+              className={
+                styles.fieldIcon
+              }
+              aria-hidden="true"
+            >
+              <Mail size={17} />
+            </span>
 
-          <Input
-            label="Password"
-            name="password"
-            type="password"
-            value={
-              formData.password
-            }
-            onChange={
-              handleChange
-            }
-            placeholder="Create password"
-            autoComplete="new-password"
-            disabled={loading}
-          />
+            <Input
+              label="Email Address"
+              name="email"
+              type="email"
+              value={
+                formData.email
+              }
+              onChange={
+                handleChange
+              }
+              placeholder="you@example.com"
+              autoComplete="email"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              disabled={loading}
+            />
+          </div>
 
-          <Input
-            label="Confirm Password"
-            name="confirmPassword"
-            type="password"
-            value={
-              formData.confirmPassword
+          <div
+            className={
+              styles.fieldGroup
             }
-            onChange={
-              handleChange
+          >
+            <span
+              className={
+                styles.fieldIcon
+              }
+              aria-hidden="true"
+            >
+              <LockKeyhole
+                size={17}
+              />
+            </span>
+
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              value={
+                formData.password
+              }
+              onChange={
+                handleChange
+              }
+              placeholder="Create a strong password"
+              autoComplete="new-password"
+              disabled={loading}
+            />
+          </div>
+
+          {formData.password && (
+            <div
+              className={
+                styles.passwordPanel
+              }
+            >
+              <div
+                className={
+                  styles.strengthHeader
+                }
+              >
+                <span>
+                  Password strength
+                </span>
+
+                <strong
+                  data-strength={
+                    passwordStrength
+                  }
+                >
+                  {passwordStrength}
+                </strong>
+              </div>
+
+              <div
+                className={
+                  styles.strengthBars
+                }
+                data-strength={
+                  passwordStrength
+                }
+                aria-hidden="true"
+              >
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+
+              <div
+                className={
+                  styles.passwordRules
+                }
+              >
+                {passwordRuleResults.map(
+                  (rule) => (
+                    <span
+                      key={rule.id}
+                      className={
+                        rule.passed
+                          ? styles.rulePassed
+                          : ""
+                      }
+                    >
+                      <Check
+                        size={13}
+                        aria-hidden="true"
+                      />
+
+                      {rule.label}
+                    </span>
+                  )
+                )}
+              </div>
+            </div>
+          )}
+
+          <div
+            className={
+              styles.fieldGroup
             }
-            placeholder="Confirm password"
-            autoComplete="new-password"
-            disabled={loading}
-          />
+          >
+            <span
+              className={
+                styles.fieldIcon
+              }
+              aria-hidden="true"
+            >
+              <LockKeyhole
+                size={17}
+              />
+            </span>
+
+            <Input
+              label="Confirm Password"
+              name="confirmPassword"
+              type="password"
+              value={
+                formData.confirmPassword
+              }
+              onChange={
+                handleChange
+              }
+              placeholder="Enter your password again"
+              autoComplete="new-password"
+              disabled={loading}
+            />
+          </div>
+
+          {formData
+            .confirmPassword && (
+              <p
+                className={
+                  passwordsMatch
+                    ? styles.passwordMatch
+                    : styles.passwordMismatch
+                }
+                role={
+                  passwordsMatch
+                    ? "status"
+                    : "alert"
+                }
+              >
+                {passwordsMatch
+                  ? "Passwords match"
+                  : "Passwords do not match"}
+              </p>
+            )}
+
+          <p
+            className={
+              styles.terms
+            }
+          >
+            By creating an account,
+            you agree to PingMe&apos;s
+            terms and privacy policy.
+          </p>
 
           <Button
             fullWidth
             type="submit"
             disabled={
-              loading ||
-              usernameStatus.checking ||
-              usernameStatus.available ===
-              false
+              submitDisabled
             }
           >
-            {loading
-              ? "Creating Account..."
-              : usernameStatus.checking
-                ? "Checking Username..."
-                : "Create Account"}
+            <span
+              className={
+                styles.buttonContent
+              }
+            >
+              {loading && (
+                <LoaderCircle
+                  size={18}
+                  className={
+                    styles.spinner
+                  }
+                  aria-hidden="true"
+                />
+              )}
+
+              {loading
+                ? "Creating account..."
+                : usernameStatus
+                  .checking
+                  ? "Checking username..."
+                  : "Create Account"}
+            </span>
           </Button>
         </form>
 
@@ -750,16 +1075,25 @@ const Register = () => {
           className={
             styles.divider
           }
+          aria-hidden="true"
         >
-          <span>OR</span>
+          <span>
+            or continue with
+          </span>
         </div>
 
         <div
-          className={
-            styles.googleLogin
+          className={`${styles.googleLogin} ${loading
+              ? styles.googleDisabled
+              : ""
+            }`}
+          aria-disabled={
+            loading
           }
         >
-          <GoogleLoginButton />
+          <GoogleLoginButton
+            disabled={loading}
+          />
         </div>
 
         <p
@@ -767,14 +1101,13 @@ const Register = () => {
             styles.footer
           }
         >
-          Already have an
-          account?{" "}
+          Already have an account?
 
           <Link to="/">
-            Login
+            Sign in
           </Link>
         </p>
-      </div>
+      </main>
     </AuthLayout>
   );
 };

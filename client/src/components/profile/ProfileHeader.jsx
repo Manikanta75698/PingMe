@@ -1,16 +1,20 @@
 import {
+  useCallback,
   useEffect,
-  useState,
   useRef,
+  useState,
 } from "react";
 
 import {
   Camera,
+  LoaderCircle,
+  Settings,
   SquarePen,
-  Settings
 } from "lucide-react";
 
-import { useNavigate } from "react-router-dom";
+import {
+  useNavigate,
+} from "react-router-dom";
 
 import EditProfileModal from "./EditProfileModal";
 
@@ -26,6 +30,16 @@ import {
 } from "../ui/toast/ToastProvider";
 
 import styles from "./ProfileHeader.module.css";
+
+const MAX_PROFILE_IMAGE_SIZE =
+  5 * 1024 * 1024;
+
+const ALLOWED_PROFILE_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
 
 const getStoredUser = () => {
   try {
@@ -45,147 +59,298 @@ const getStoredUser = () => {
   }
 };
 
+const getProfileUser = (
+  response
+) =>
+  response?.user ||
+  response?.data?.user ||
+  response?.data ||
+  null;
+
+const getSafeCount = (
+  directCount,
+  collection
+) => {
+  const numericCount =
+    Number(directCount);
+
+  if (
+    Number.isFinite(numericCount) &&
+    numericCount >= 0
+  ) {
+    return numericCount;
+  }
+
+  return Array.isArray(collection)
+    ? collection.length
+    : 0;
+};
+
 const ProfileHeader = () => {
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
   const toast =
     useToastContext();
 
-  const [user, setUser] = useState(
-    getStoredUser
-  );
+  const [
+    user,
+    setUser,
+  ] = useState(getStoredUser);
 
-  const [showModal, setShowModal] =
-    useState(false);
+  const [
+    showModal,
+    setShowModal,
+  ] = useState(false);
 
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    error,
+    setError,
+  ] = useState("");
 
-  const [error, setError] =
-    useState("");
+  const [
+    uploading,
+    setUploading,
+  ] = useState(false);
 
-  const [uploading, setUploading] =
-    useState(false);
+  const fileInputRef =
+    useRef(null);
 
-  const fileInputRef = useRef(null);
+  const persistUser =
+    useCallback(
+      (nextUser) => {
+        if (!nextUser) {
+          return;
+        }
 
-  // =========================
-  // FETCH FRESH PROFILE
-  // =========================
+        setUser(nextUser);
+
+        try {
+          localStorage.setItem(
+            "user",
+            JSON.stringify(
+              nextUser
+            )
+          );
+        } catch (storageError) {
+          console.error(
+            "Profile Storage Error:",
+            storageError
+          );
+        }
+      },
+      []
+    );
+
+  const fetchProfile =
+    useCallback(
+      async ({
+        showLoading = true,
+      } = {}) => {
+        try {
+          if (showLoading) {
+            setLoading(true);
+          }
+
+          setError("");
+
+          const response =
+            await getProfile();
+
+          const freshUser =
+            getProfileUser(
+              response
+            );
+
+          if (!freshUser) {
+            throw new Error(
+              "Invalid profile response"
+            );
+          }
+
+          persistUser(
+            freshUser
+          );
+        } catch (fetchError) {
+          console.error(
+            "GET PROFILE ERROR:",
+            fetchError
+              ?.response?.data ||
+            fetchError?.message
+          );
+
+          setUser(
+            (currentUser) => {
+              if (!currentUser) {
+                setError(
+                  fetchError
+                    ?.response?.data
+                    ?.message ||
+                  "Unable to load profile"
+                );
+              }
+
+              return currentUser;
+            }
+          );
+        } finally {
+          setLoading(false);
+        }
+      },
+      [persistUser]
+    );
+
   useEffect(() => {
     let cancelled = false;
 
-    const fetchProfile = async () => {
-      try {
-        setLoading(true);
-        setError("");
+    const loadProfile =
+      async () => {
+        try {
+          setLoading(true);
+          setError("");
 
-        const response =
-          await getProfile();
+          const response =
+            await getProfile();
 
-        if (cancelled) return;
+          if (cancelled) {
+            return;
+          }
 
-        if (!response?.user) {
-          throw new Error(
-            "Invalid profile response"
+          const freshUser =
+            getProfileUser(
+              response
+            );
+
+          if (!freshUser) {
+            throw new Error(
+              "Invalid profile response"
+            );
+          }
+
+          persistUser(
+            freshUser
           );
-        }
+        } catch (fetchError) {
+          if (cancelled) {
+            return;
+          }
 
-        setUser(response.user);
-
-        // Keep localStorage fresh
-        localStorage.setItem(
-          "user",
-          JSON.stringify(response.user)
-        );
-      } catch (error) {
-        if (cancelled) return;
-
-        console.error(
-          "GET PROFILE ERROR:",
-          error.response?.data ||
-          error.message
-        );
-
-        // Keep cached user visible
-        // if localStorage user exists
-        if (!user) {
-          setError(
-            error.response?.data?.message ||
-            "Unable to load profile"
+          console.error(
+            "GET PROFILE ERROR:",
+            fetchError
+              ?.response?.data ||
+            fetchError?.message
           );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
 
-    fetchProfile();
+          setUser(
+            (currentUser) => {
+              if (!currentUser) {
+                setError(
+                  fetchError
+                    ?.response?.data
+                    ?.message ||
+                  "Unable to load profile"
+                );
+              }
+
+              return currentUser;
+            }
+          );
+        } finally {
+          if (!cancelled) {
+            setLoading(false);
+          }
+        }
+      };
+
+    void loadProfile();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [persistUser]);
 
-  // =========================
-  // PROFILE UPDATED
-  // =========================
-  const handleProfileUpdated = (
-    updatedUser
-  ) => {
-    if (!updatedUser) return;
+  const handleProfileUpdated =
+    useCallback(
+      (updatedUser) => {
+        if (!updatedUser) {
+          return;
+        }
 
-    // Preserve postsCount because
-    // updateProfile response may not
-    // include it
-    const mergedUser = {
-      ...user,
-      ...updatedUser,
-      postsCount:
-        updatedUser.postsCount ??
-        user?.postsCount ??
-        0,
-    };
+        setUser(
+          (currentUser) => {
+            const mergedUser = {
+              ...currentUser,
+              ...updatedUser,
 
-    setUser(mergedUser);
+              postsCount:
+                updatedUser
+                  .postsCount ??
+                currentUser
+                  ?.postsCount ??
+                0,
+            };
 
-    localStorage.setItem(
-      "user",
-      JSON.stringify(mergedUser)
+            try {
+              localStorage.setItem(
+                "user",
+                JSON.stringify(
+                  mergedUser
+                )
+              );
+            } catch (storageError) {
+              console.error(
+                "Profile Update Storage Error:",
+                storageError
+              );
+            }
+
+            return mergedUser;
+          }
+        );
+      },
+      []
     );
-  };
 
   const handleProfilePictureChange =
     async (event) => {
       const file =
-        event.target.files?.[0];
+        event.target
+          .files?.[0];
 
       if (!file) {
         return;
       }
 
       if (
-        !file.type.startsWith(
-          "image/"
-        )
+        !ALLOWED_PROFILE_IMAGE_TYPES
+          .includes(file.type)
       ) {
         toast.warning(
-          "Please select an image"
+          "Choose a JPG, PNG or WebP image"
         );
+
+        event.target.value =
+          "";
 
         return;
       }
 
       if (
         file.size >
-        5 * 1024 * 1024
+        MAX_PROFILE_IMAGE_SIZE
       ) {
         toast.warning(
           "Image must be below 5 MB"
         );
+
+        event.target.value =
+          "";
 
         return;
       }
@@ -206,32 +371,51 @@ const ProfileHeader = () => {
             formData
           );
 
+        const responseUser =
+          getProfileUser(
+            response
+          );
+
+        if (!responseUser) {
+          throw new Error(
+            "Invalid upload response"
+          );
+        }
+
         const updatedUser = {
           ...user,
-          ...response.user,
+          ...responseUser,
         };
 
-        setUser(updatedUser);
-
-        localStorage.setItem(
-          "user",
-          JSON.stringify(
-            updatedUser
-          )
+        persistUser(
+          updatedUser
         );
 
         toast.success(
-          "Profile picture updated successfully"
+          "Profile picture updated"
         );
-      } catch (error) {
+
+        window.dispatchEvent(
+          new CustomEvent(
+            "profile:updated",
+            {
+              detail:
+                updatedUser,
+            }
+          )
+        );
+      } catch (uploadError) {
         console.error(
           "PROFILE PICTURE UPLOAD ERROR:",
-          error.response?.data ||
-          error.message
+          uploadError
+            ?.response?.data ||
+          uploadError?.message
         );
 
         toast.error(
-          error.response?.data?.message ||
+          uploadError
+            ?.response?.data
+            ?.message ||
           "Unable to upload profile picture"
         );
       } finally {
@@ -240,117 +424,314 @@ const ProfileHeader = () => {
         if (
           fileInputRef.current
         ) {
-          fileInputRef.current.value =
-            "";
+          fileInputRef
+            .current
+            .value = "";
         }
       }
     };
 
-  // =========================
-  // INITIAL LOADING
-  // =========================
+  const openImagePicker = () => {
+    if (uploading) {
+      return;
+    }
+
+    fileInputRef.current
+      ?.click();
+  };
+
   if (loading && !user) {
     return (
-      <div className={styles.profileCard}>
+      <section
+        className={
+          styles.profileCard
+        }
+        aria-label="Loading profile"
+      >
+        <div
+          className={
+            styles.state
+          }
+          role="status"
+        >
+          <LoaderCircle
+            className={
+              styles.stateSpinner
+            }
+            aria-hidden="true"
+          />
 
-        <div className={styles.empty}>
-          Loading profile...
+          <strong>
+            Loading profile
+          </strong>
+
+          <span>
+            Getting your latest
+            profile information.
+          </span>
         </div>
-      </div>
+      </section>
     );
   }
 
-  // =========================
-  // ERROR WITHOUT CACHE
-  // =========================
   if (error && !user) {
     return (
-      <div className={styles.profileCard}>
-        <div className={styles.empty}>
-          {error}
-        </div>
-      </div>
-    );
-  }
-
-  // =========================
-  // NO USER
-  // =========================
-  if (!user) {
-    return (
-      <div className={styles.profileCard}>
-        <div className={styles.empty}>
-          Unable to load profile.
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles.profileCard}>
-
-      <button
-        type="button"
-        className={styles.settingsBtn}
-        onClick={() => navigate("/settings")}
+      <section
+        className={
+          styles.profileCard
+        }
+        aria-label="Profile error"
       >
-        <Settings size={20} />
-      </button>
-      <div className={styles.profileInfo}>
-        <div className={styles.avatarWrapper}>
+        <div
+          className={
+            styles.state
+          }
+          role="alert"
+        >
+          <strong>
+            Unable to load profile
+          </strong>
 
-          <img
-            src={
-              user.profilePic ||
-              DefaultAvatar
-            }
-            alt={user.name || "Profile"}
-            className={styles.avatar}
-            onError={(e) => {
-              e.currentTarget.src =
-                DefaultAvatar;
-            }}
-          />
+          <span>
+            {error}
+          </span>
 
           <button
             type="button"
-            className={styles.cameraBtn}
-            onClick={() =>
-              fileInputRef.current.click()
+            className={
+              styles.retryButton
             }
-            disabled={uploading}
+            onClick={() => {
+              void fetchProfile();
+            }}
           >
-            {uploading ? "..." : <Camera size={14} />}
+            Try again
           </button>
-
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            hidden
-            onChange={
-              handleProfilePictureChange
-            }
-          />
-
         </div>
-        <div className={styles.details}>
-          <h2>
-            {user.name || "PingMe User"}
-          </h2>
+      </section>
+    );
+  }
 
-          <p>
-            @{user.username || "username"}
-          </p>
+  if (!user) {
+    return (
+      <section
+        className={
+          styles.profileCard
+        }
+        aria-label="Profile unavailable"
+      >
+        <div
+          className={
+            styles.state
+          }
+        >
+          <strong>
+            Profile unavailable
+          </strong>
 
+          <span>
+            We could not find your
+            profile information.
+          </span>
+        </div>
+      </section>
+    );
+  }
 
-          {/* =====================
-              STATS
-          ====================== */}
-          <div className={styles.stats}>
+  const postsCount =
+    getSafeCount(
+      user.postsCount,
+      user.posts
+    );
+
+  const followersCount =
+    getSafeCount(
+      user.followersCount,
+      user.followers
+    );
+
+  const followingCount =
+    getSafeCount(
+      user.followingCount,
+      user.following
+    );
+
+  return (
+    <section
+      className={
+        styles.profileCard
+      }
+      aria-label="Profile overview"
+    >
+      <button
+        type="button"
+        className={
+          styles.settingsBtn
+        }
+        onClick={() =>
+          navigate("/settings")
+        }
+        aria-label="Open settings"
+        title="Settings"
+      >
+        <Settings
+          size={19}
+          aria-hidden="true"
+        />
+      </button>
+
+      <div
+        className={
+          styles.profileInfo
+        }
+      >
+        <div
+          className={
+            styles.avatarColumn
+          }
+        >
+          <div
+            className={
+              styles.avatarWrapper
+            }
+          >
+            <img
+              src={
+                user.profilePic ||
+                DefaultAvatar
+              }
+              alt={
+                user.name
+                  ? `${user.name}'s profile`
+                  : "Profile"
+              }
+              className={
+                styles.avatar
+              }
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              onError={(event) => {
+                event.currentTarget
+                  .onerror = null;
+
+                event.currentTarget
+                  .src =
+                  DefaultAvatar;
+              }}
+            />
+
+            {uploading && (
+              <span
+                className={
+                  styles.uploadOverlay
+                }
+                aria-hidden="true"
+              >
+                <LoaderCircle
+                  className={
+                    styles.uploadSpinner
+                  }
+                />
+              </span>
+            )}
+
+            <button
+              type="button"
+              className={
+                styles.cameraBtn
+              }
+              onClick={
+                openImagePicker
+              }
+              disabled={uploading}
+              aria-label={
+                uploading
+                  ? "Uploading profile picture"
+                  : "Change profile picture"
+              }
+              title="Change profile picture"
+            >
+              {uploading ? (
+                <LoaderCircle
+                  size={15}
+                  className={
+                    styles.uploadSpinner
+                  }
+                  aria-hidden="true"
+                />
+              ) : (
+                <Camera
+                  size={15}
+                  aria-hidden="true"
+                />
+              )}
+            </button>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              onChange={
+                handleProfilePictureChange
+              }
+              aria-hidden="true"
+              tabIndex={-1}
+            />
+          </div>
+
+          <span
+            className={
+              styles.avatarHint
+            }
+          >
+            Tap the camera to
+            update your photo
+          </span>
+        </div>
+
+        <div
+          className={
+            styles.details
+          }
+        >
+          <div
+            className={
+              styles.identity
+            }
+          >
+            <h1>
+              {user.name ||
+                "PingMe User"}
+            </h1>
+
+            <p>
+              @
+              {user.username ||
+                "username"}
+            </p>
+
+            {user.bio && (
+              <span
+                className={
+                  styles.bio
+                }
+              >
+                {user.bio}
+              </span>
+            )}
+          </div>
+
+          <div
+            className={
+              styles.stats
+            }
+            aria-label="Profile statistics"
+          >
             <div>
               <strong>
-                {user.postsCount ?? 0}
+                {postsCount}
               </strong>
 
               <span>Posts</span>
@@ -358,41 +739,52 @@ const ProfileHeader = () => {
 
             <div>
               <strong>
-                {user.followers?.length ??
-                  0}
+                {followersCount}
               </strong>
 
-              <span>Followers</span>
+              <span>
+                Followers
+              </span>
             </div>
 
             <div>
               <strong>
-                {user.following?.length ??
-                  0}
+                {followingCount}
               </strong>
 
-              <span>Following</span>
+              <span>
+                Following
+              </span>
             </div>
           </div>
 
-          {/* =====================
-              EDIT PROFILE
-          ====================== */}
-          <button
-            type="button"
-            className={styles.editBtn}
-            onClick={() => setShowModal(true)}
+          <div
+            className={
+              styles.actions
+            }
           >
-            <SquarePen size={16} />
-            <span>Edit Profile</span>
-          </button>
+            <button
+              type="button"
+              className={
+                styles.editBtn
+              }
+              onClick={() =>
+                setShowModal(true)
+              }
+            >
+              <SquarePen
+                size={16}
+                aria-hidden="true"
+              />
 
+              <span>
+                Edit Profile
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* =====================
-          EDIT PROFILE MODAL
-      ====================== */}
       {showModal && (
         <EditProfileModal
           user={user}
@@ -404,8 +796,7 @@ const ProfileHeader = () => {
           }
         />
       )}
-
-    </div>
+    </section>
   );
 };
 

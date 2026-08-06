@@ -16,7 +16,8 @@ import Stories from "../../components/home/Stories";
 import Feed from "../../components/home/Feed";
 
 const Home = () => {
-  const feedRef = useRef(null);
+  const feedRef =
+    useRef(null);
 
   const scrollFrameRef =
     useRef(null);
@@ -27,8 +28,10 @@ const Home = () => {
   const [searchParams] =
     useSearchParams();
 
-  const [scrollPos, setScrollPos] =
-    useState(0);
+  const [
+    scrollPosition,
+    setScrollPosition,
+  ] = useState(0);
 
   const targetPostId =
     String(
@@ -41,19 +44,21 @@ const Home = () => {
   ========================= */
 
   useEffect(() => {
-    const handlePostRefresh = () => {
-      feedRef.current?.refreshFeed?.();
-    };
+    const handlePostCreated =
+      () => {
+        feedRef.current
+          ?.refreshFeed?.();
+      };
 
     window.addEventListener(
       "postCreated",
-      handlePostRefresh
+      handlePostCreated
     );
 
     return () => {
       window.removeEventListener(
         "postCreated",
-        handlePostRefresh
+        handlePostCreated
       );
     };
   }, []);
@@ -64,7 +69,7 @@ const Home = () => {
 
   useEffect(() => {
     if (!targetPostId) {
-      return;
+      return undefined;
     }
 
     const timer =
@@ -73,10 +78,12 @@ const Home = () => {
           ?.scrollToPost?.(
             targetPostId
           );
-      }, 100);
+      }, 120);
 
     return () => {
-      window.clearTimeout(timer);
+      window.clearTimeout(
+        timer
+      );
     };
   }, [targetPostId]);
 
@@ -84,13 +91,14 @@ const Home = () => {
      OPTIMIZED SCROLL HANDLER
   ========================= */
 
-  const handleScroll = useCallback(
-    (event) => {
+  const handleScroll =
+    useCallback((event) => {
       pendingScrollPositionRef.current =
         event.currentTarget.scrollTop;
 
       if (
-        scrollFrameRef.current !== null
+        scrollFrameRef.current !==
+        null
       ) {
         return;
       }
@@ -103,8 +111,10 @@ const Home = () => {
                 pendingScrollPositionRef.current
               );
 
-            setScrollPos(
-              (previousPosition) =>
+            setScrollPosition(
+              (
+                previousPosition
+              ) =>
                 previousPosition ===
                   nextPosition
                   ? previousPosition
@@ -115,9 +125,7 @@ const Home = () => {
               null;
           }
         );
-    },
-    []
-  );
+    }, []);
 
   /* =========================
      CLEANUP
@@ -126,7 +134,8 @@ const Home = () => {
   useEffect(() => {
     return () => {
       if (
-        scrollFrameRef.current !== null
+        scrollFrameRef.current !==
+        null
       ) {
         window.cancelAnimationFrame(
           scrollFrameRef.current
@@ -141,20 +150,56 @@ const Home = () => {
       className={styles.home}
       onScroll={handleScroll}
     >
-      <Header scrollY={scrollPos} />
+      <Header
+        scrollY={scrollPosition}
+      />
 
-      <div
-        className={styles.container}
+      <main
+        className={styles.page}
       >
-        <Stories />
-
-        <Feed
-          ref={feedRef}
-          targetPostId={
-            targetPostId
+        <div
+          className={
+            styles.decorativeGlowLeft
           }
+          aria-hidden="true"
         />
-      </div>
+
+        <div
+          className={
+            styles.decorativeGlowRight
+          }
+          aria-hidden="true"
+        />
+
+        <div
+          className={
+            styles.container
+          }
+        >
+          <section
+            className={
+              styles.storiesSection
+            }
+            aria-label="Stories"
+          >
+            <Stories />
+          </section>
+
+          <section
+            className={
+              styles.feedSection
+            }
+            aria-label="Home feed"
+          >
+            <Feed
+              ref={feedRef}
+              targetPostId={
+                targetPostId
+              }
+            />
+          </section>
+        </div>
+      </main>
     </div>
   );
 };

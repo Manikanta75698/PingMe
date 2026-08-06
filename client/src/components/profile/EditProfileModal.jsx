@@ -1,23 +1,31 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 
-import styles from "./EditProfileModal.module.css";
+import {
+  Check,
+  LoaderCircle,
+  X,
+} from "lucide-react";
 
 import {
-  updateProfile,
   checkUsernameAvailability,
+  updateProfile,
 } from "../../services/authService";
 
 import {
   useToastContext,
 } from "../ui/toast/ToastProvider";
 
+import styles from "./EditProfileModal.module.css";
+
+const NAME_MAX_LENGTH = 50;
 const USERNAME_MIN_LENGTH = 3;
 const USERNAME_MAX_LENGTH = 30;
-const USERNAME_DEBOUNCE_MS = 800;
+const USERNAME_DEBOUNCE_MS = 650;
 const BIO_MAX_LENGTH = 160;
 
 const normalizeUsername = (
@@ -27,12 +35,28 @@ const normalizeUsername = (
     .trim()
     .toLowerCase();
 
+const normalizeFormData = (
+  user
+) => ({
+  name: String(
+    user?.name || ""
+  ),
+  username:
+    normalizeUsername(
+      user?.username
+    ),
+  bio: String(
+    user?.bio || ""
+  ),
+});
+
 const getAvailabilityValue = (
   response
 ) =>
   response?.available ??
   response?.data?.available ??
-  response?.data?.data?.available ??
+  response?.data?.data
+    ?.available ??
   false;
 
 const getAvailabilityMessage = (
@@ -41,10 +65,21 @@ const getAvailabilityMessage = (
 ) =>
   response?.message ||
   response?.data?.message ||
-  response?.data?.data?.message ||
-  (available
-    ? "Username is available"
-    : "Username is already taken");
+  response?.data?.data
+    ?.message ||
+  (
+    available
+      ? "Username is available"
+      : "Username is already taken"
+  );
+
+const getUpdatedUser = (
+  response
+) =>
+  response?.user ||
+  response?.data?.user ||
+  response?.data?.data?.user ||
+  null;
 
 const EditProfileModal = ({
   user,
@@ -54,81 +89,194 @@ const EditProfileModal = ({
   const toast =
     useToastContext();
 
+  const modalRef =
+    useRef(null);
+
+  const nameInputRef =
+    useRef(null);
+
   const requestIdRef =
     useRef(0);
 
   const lastCheckedUsernameRef =
     useRef("");
 
-  const originalUsernameRef =
-    useRef(
-      normalizeUsername(
-        user?.username
-      )
+  const originalForm =
+    useMemo(
+      () =>
+        normalizeFormData(
+          user
+        ),
+      [user]
     );
+
+  const originalUsername =
+    originalForm.username;
 
   const [
     formData,
     setFormData,
-  ] = useState(() => ({
-    name:
-      String(user?.name || ""),
-    username:
-      normalizeUsername(
-        user?.username
-      ),
-    bio:
-      String(user?.bio || ""),
-  }));
+  ] = useState(
+    originalForm
+  );
 
   const [
-    loading,
-    setLoading,
+    saving,
+    setSaving,
   ] = useState(false);
 
   const [
     usernameStatus,
     setUsernameStatus,
-  ] = useState(() => ({
+  ] = useState({
     checking: false,
     available: true,
     message:
       "Current username",
-  }));
+  });
 
-  const originalUsername =
-    originalUsernameRef.current;
+  const cleanForm =
+    useMemo(
+      () => ({
+        name:
+          formData.name.trim(),
 
-  /* =========================
-     LOCK PAGE SCROLL
-  ========================= */
+        username:
+          normalizeUsername(
+            formData.username
+          ),
+
+        bio:
+          formData.bio.trim(),
+      }),
+      [formData]
+    );
+
+  const hasChanges =
+    cleanForm.name !==
+    originalForm.name.trim() ||
+    cleanForm.username !==
+    originalForm.username ||
+    cleanForm.bio !==
+    originalForm.bio.trim();
+
+  const usernameChanged =
+    cleanForm.username !==
+    originalUsername;
+
+  const requestClose = () => {
+    if (saving) {
+      return;
+    }
+
+    if (
+      hasChanges &&
+      !window.confirm(
+        "Discard your unsaved changes?"
+      )
+    ) {
+      return;
+    }
+
+    onClose();
+  };
+
+  /* =====================================
+     BODY SCROLL LOCK + INITIAL FOCUS
+  ===================================== */
 
   useEffect(() => {
     const previousOverflow =
-      document.body.style.overflow;
+      document.body.style
+        .overflow;
 
-    document.body.style.overflow =
-      "hidden";
+    document.body.style
+      .overflow = "hidden";
+
+    const focusTimer =
+      window.setTimeout(
+        () => {
+          nameInputRef.current
+            ?.focus();
+        },
+        80
+      );
 
     return () => {
-      document.body.style.overflow =
+      document.body.style
+        .overflow =
         previousOverflow;
+
+      window.clearTimeout(
+        focusTimer
+      );
     };
   }, []);
 
-  /* =========================
-     KEYBOARD CLOSE
-  ========================= */
+  /* =====================================
+     ESCAPE + FOCUS TRAP
+  ===================================== */
 
   useEffect(() => {
     const handleKeyDown = (
       event
     ) => {
       if (
-        event.key === "Escape" &&
-        !loading
+        event.key === "Escape"
       ) {
-        onClose();
+        event.preventDefault();
+        requestClose();
+        return;
+      }
+
+      if (
+        event.key !== "Tab" ||
+        !modalRef.current
+      ) {
+        return;
+      }
+
+      const focusableElements =
+        modalRef.current
+          .querySelectorAll(
+            [
+              "button:not([disabled])",
+              "input:not([disabled])",
+              "textarea:not([disabled])",
+              "[tabindex]:not([tabindex='-1'])",
+            ].join(",")
+          );
+
+      if (
+        focusableElements
+          .length === 0
+      ) {
+        return;
+      }
+
+      const firstElement =
+        focusableElements[0];
+
+      const lastElement =
+        focusableElements[
+        focusableElements
+          .length - 1
+        ];
+
+      if (
+        event.shiftKey &&
+        document.activeElement ===
+        firstElement
+      ) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (
+        !event.shiftKey &&
+        document.activeElement ===
+        lastElement
+      ) {
+        event.preventDefault();
+        firstElement.focus();
       }
     };
 
@@ -144,13 +292,13 @@ const EditProfileModal = ({
       );
     };
   }, [
-    loading,
-    onClose,
+    saving,
+    hasChanges,
   ]);
 
-  /* =========================
+  /* =====================================
      INPUT CHANGE
-  ========================= */
+  ===================================== */
 
   const handleChange = (
     event
@@ -160,7 +308,9 @@ const EditProfileModal = ({
       value,
     } = event.target;
 
-    if (name === "username") {
+    if (
+      name === "username"
+    ) {
       const cleanedUsername =
         value
           .toLowerCase()
@@ -173,9 +323,6 @@ const EditProfileModal = ({
             USERNAME_MAX_LENGTH
           );
 
-      /*
-       * Pending response invalidate.
-       */
       requestIdRef.current += 1;
 
       setFormData(
@@ -186,11 +333,6 @@ const EditProfileModal = ({
         })
       );
 
-      /*
-       * Typing సమయంలో checking state
-       * immediate ga set cheyyamu.
-       * Anduke page/modal blink avvadu.
-       */
       if (
         normalizeUsername(
           cleanedUsername
@@ -217,27 +359,34 @@ const EditProfileModal = ({
       setFormData(
         (previous) => ({
           ...previous,
-          bio: value.slice(
-            0,
-            BIO_MAX_LENGTH
-          ),
+          bio:
+            value.slice(
+              0,
+              BIO_MAX_LENGTH
+            ),
         })
       );
 
       return;
     }
 
-    setFormData(
-      (previous) => ({
-        ...previous,
-        [name]: value,
-      })
-    );
+    if (name === "name") {
+      setFormData(
+        (previous) => ({
+          ...previous,
+          name:
+            value.slice(
+              0,
+              NAME_MAX_LENGTH
+            ),
+        })
+      );
+    }
   };
 
-  /* =========================
-     DEBOUNCED USERNAME CHECK
-  ========================= */
+  /* =====================================
+     USERNAME AVAILABILITY CHECK
+  ===================================== */
 
   useEffect(() => {
     const username =
@@ -251,8 +400,8 @@ const EditProfileModal = ({
       requestIdRef.current;
 
     if (!username) {
-      lastCheckedUsernameRef.current =
-        "";
+      lastCheckedUsernameRef
+        .current = "";
 
       setUsernameStatus({
         checking: false,
@@ -268,8 +417,8 @@ const EditProfileModal = ({
       username ===
       originalUsername
     ) {
-      lastCheckedUsernameRef.current =
-        username;
+      lastCheckedUsernameRef
+        .current = username;
 
       setUsernameStatus({
         checking: false,
@@ -285,8 +434,8 @@ const EditProfileModal = ({
       username.length <
       USERNAME_MIN_LENGTH
     ) {
-      lastCheckedUsernameRef.current =
-        "";
+      lastCheckedUsernameRef
+        .current = "";
 
       setUsernameStatus({
         checking: false,
@@ -299,29 +448,12 @@ const EditProfileModal = ({
     }
 
     if (
-      username.length >
-      USERNAME_MAX_LENGTH
-    ) {
-      lastCheckedUsernameRef.current =
-        "";
-
-      setUsernameStatus({
-        checking: false,
-        available: false,
-        message:
-          `Username cannot exceed ${USERNAME_MAX_LENGTH} characters`,
-      });
-
-      return undefined;
-    }
-
-    if (
       !/^[a-z0-9._]+$/.test(
         username
       )
     ) {
-      lastCheckedUsernameRef.current =
-        "";
+      lastCheckedUsernameRef
+        .current = "";
 
       setUsernameStatus({
         checking: false,
@@ -334,8 +466,8 @@ const EditProfileModal = ({
     }
 
     if (
-      lastCheckedUsernameRef.current ===
-      username &&
+      lastCheckedUsernameRef
+        .current === username &&
       usernameStatus.available !==
       null
     ) {
@@ -345,10 +477,6 @@ const EditProfileModal = ({
     const timer =
       window.setTimeout(
         async () => {
-          /*
-           * Typing stop ayina 800ms
-           * tarvatha matrame checking.
-           */
           setUsernameStatus(
             (previous) => ({
               ...previous,
@@ -376,8 +504,8 @@ const EditProfileModal = ({
                 )
               );
 
-            lastCheckedUsernameRef.current =
-              username;
+            lastCheckedUsernameRef
+              .current = username;
 
             setUsernameStatus({
               checking: false,
@@ -388,7 +516,9 @@ const EditProfileModal = ({
                   available
                 ),
             });
-          } catch (error) {
+          } catch (
+          checkError
+          ) {
             if (
               currentRequestId !==
               requestIdRef.current
@@ -398,12 +528,13 @@ const EditProfileModal = ({
 
             console.error(
               "USERNAME CHECK ERROR:",
-              error?.response?.data ||
-              error?.message
+              checkError
+                ?.response?.data ||
+              checkError?.message
             );
 
-            lastCheckedUsernameRef.current =
-              "";
+            lastCheckedUsernameRef
+              .current = "";
 
             setUsernameStatus({
               checking: false,
@@ -426,47 +557,46 @@ const EditProfileModal = ({
     originalUsername,
   ]);
 
-  /* =========================
+  /* =====================================
      SUBMIT
-  ========================= */
+  ===================================== */
 
   const handleSubmit =
     async (event) => {
       event.preventDefault();
 
-      if (loading) {
+      if (
+        saving ||
+        !hasChanges
+      ) {
         return;
       }
 
-      const cleanName =
-        formData.name.trim();
-
-      const cleanUsername =
-        normalizeUsername(
-          formData.username
-        );
-
-      const cleanBio =
-        formData.bio.trim();
-
-      if (!cleanName) {
+      if (!cleanForm.name) {
         toast.warning(
           "Name cannot be empty"
         );
 
+        nameInputRef.current
+          ?.focus();
+
         return;
       }
 
-      if (!cleanUsername) {
+      if (
+        cleanForm.name.length >
+        NAME_MAX_LENGTH
+      ) {
         toast.warning(
-          "Username is required"
+          `Name cannot exceed ${NAME_MAX_LENGTH} characters`
         );
 
         return;
       }
 
       if (
-        cleanUsername.length <
+        cleanForm.username
+          .length <
         USERNAME_MIN_LENGTH
       ) {
         toast.warning(
@@ -478,7 +608,7 @@ const EditProfileModal = ({
 
       if (
         !/^[a-z0-9._]+$/.test(
-          cleanUsername
+          cleanForm.username
         )
       ) {
         toast.warning(
@@ -499,34 +629,37 @@ const EditProfileModal = ({
       }
 
       if (
-        cleanUsername !==
-        originalUsername &&
+        usernameChanged &&
         usernameStatus.available !==
         true
       ) {
         toast.warning(
           usernameStatus.message ||
-          "Please choose an available username"
+          "Choose an available username"
         );
 
         return;
       }
 
       try {
-        setLoading(true);
+        setSaving(true);
 
         const response =
           await updateProfile({
-            name: cleanName,
+            name:
+              cleanForm.name,
+
             username:
-              cleanUsername,
-            bio: cleanBio,
+              cleanForm.username,
+
+            bio:
+              cleanForm.bio,
           });
 
         const updatedUser =
-          response?.user ||
-          response?.data?.user ||
-          response?.data?.data?.user;
+          getUpdatedUser(
+            response
+          );
 
         if (!updatedUser) {
           throw new Error(
@@ -534,40 +667,69 @@ const EditProfileModal = ({
           );
         }
 
-        localStorage.setItem(
-          "user",
-          JSON.stringify(
-            updatedUser
-          )
-        );
+        const mergedUser = {
+          ...user,
+          ...updatedUser,
+        };
+
+        try {
+          localStorage.setItem(
+            "user",
+            JSON.stringify(
+              mergedUser
+            )
+          );
+        } catch (
+        storageError
+        ) {
+          console.error(
+            "PROFILE STORAGE ERROR:",
+            storageError
+          );
+        }
 
         onUpdated?.(
-          updatedUser
+          mergedUser
+        );
+
+        window.dispatchEvent(
+          new CustomEvent(
+            "profile:updated",
+            {
+              detail:
+                mergedUser,
+            }
+          )
         );
 
         toast.success(
           response?.message ||
-          response?.data?.message ||
+          response?.data
+            ?.message ||
           "Profile updated successfully"
         );
 
         onClose();
-      } catch (error) {
+      } catch (
+      updateError
+      ) {
         const errorData =
-          error?.response?.data;
+          updateError
+            ?.response?.data;
 
         console.error(
           "PROFILE UPDATE ERROR:",
           errorData ||
-          error?.message
+          updateError?.message
         );
 
         if (
           errorData?.field ===
           "username"
         ) {
-          lastCheckedUsernameRef.current =
-            cleanUsername;
+          lastCheckedUsernameRef
+            .current =
+            cleanForm.username;
 
           setUsernameStatus({
             checking: false,
@@ -580,17 +742,13 @@ const EditProfileModal = ({
 
         toast.error(
           errorData?.message ||
-          error?.message ||
+          updateError?.message ||
           "Profile update failed"
         );
       } finally {
-        setLoading(false);
+        setSaving(false);
       }
     };
-
-  /* =========================
-     STATUS UI
-  ========================= */
 
   const usernameMessageClass =
     usernameStatus.checking
@@ -603,24 +761,10 @@ const EditProfileModal = ({
           ? styles.usernameTaken
           : styles.usernameNeutral;
 
-  const usernameMessage =
-    usernameStatus.checking
-      ? "Checking username..."
-      : usernameStatus.available ===
-        true
-        ? `✓ ${usernameStatus.message}`
-        : usernameStatus.available ===
-          false
-          ? `✕ ${usernameStatus.message}`
-          : usernameStatus.message;
-
-  const usernameChanged =
-    normalizeUsername(
-      formData.username
-    ) !== originalUsername;
-
   const submitDisabled =
-    loading ||
+    saving ||
+    !hasChanges ||
+    !cleanForm.name ||
     usernameStatus.checking ||
     (
       usernameChanged &&
@@ -638,50 +782,73 @@ const EditProfileModal = ({
       ) => {
         if (
           event.target ===
-          event.currentTarget &&
-          !loading
+          event.currentTarget
         ) {
-          onClose();
+          requestClose();
         }
       }}
+      role="presentation"
     >
-      <div
+      <section
+        ref={modalRef}
         className={
           styles.modal
         }
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-profile-title"
+        aria-describedby="edit-profile-description"
         onMouseDown={(
           event
         ) => {
           event.stopPropagation();
         }}
       >
-        <div
+        <header
           className={
             styles.header
           }
         >
-          <h2
-            id="edit-profile-title"
-          >
-            Edit Profile
-          </h2>
+          <div>
+            <span
+              className={
+                styles.eyebrow
+              }
+            >
+              Account details
+            </span>
+
+            <h2
+              id="edit-profile-title"
+            >
+              Edit Profile
+            </h2>
+
+            <p
+              id="edit-profile-description"
+            >
+              Keep your public
+              information accurate.
+            </p>
+          </div>
 
           <button
             type="button"
+            className={
+              styles.closeButton
+            }
             onClick={
-              onClose
+              requestClose
             }
-            disabled={
-              loading
-            }
+            disabled={saving}
             aria-label="Close edit profile"
           >
-            ✕
+            <X
+              size={19}
+              aria-hidden="true"
+            />
           </button>
-        </div>
+        </header>
 
         <form
           onSubmit={
@@ -695,28 +862,40 @@ const EditProfileModal = ({
               styles.field
             }
           >
-            <label
-              htmlFor="edit-profile-name"
+            <div
+              className={
+                styles.labelRow
+              }
             >
-              Name
-            </label>
+              <label
+                htmlFor="edit-profile-name"
+              >
+                Name
+              </label>
+
+              <span>
+                {formData.name.length}/
+                {NAME_MAX_LENGTH}
+              </span>
+            </div>
 
             <input
+              ref={nameInputRef}
               id="edit-profile-name"
               type="text"
               name="name"
-              placeholder="Name"
+              placeholder="Your name"
               value={
                 formData.name
               }
               onChange={
                 handleChange
               }
-              maxLength={50}
-              disabled={
-                loading
+              maxLength={
+                NAME_MAX_LENGTH
               }
-              autoComplete="off"
+              disabled={saving}
+              autoComplete="name"
             />
           </div>
 
@@ -725,57 +904,108 @@ const EditProfileModal = ({
               styles.field
             }
           >
-            <label
-              htmlFor="edit-profile-username"
+            <div
+              className={
+                styles.labelRow
+              }
             >
-              Username
-            </label>
+              <label
+                htmlFor="edit-profile-username"
+              >
+                Username
+              </label>
 
-            <input
-              id="edit-profile-username"
-              type="text"
-              name="profile_username"
-              placeholder="Username"
-              value={
-                formData.username
+              <span>
+                {
+                  formData
+                    .username
+                    .length
+                }
+                /
+                {
+                  USERNAME_MAX_LENGTH
+                }
+              </span>
+            </div>
+
+            <div
+              className={
+                styles.usernameInput
               }
-              onChange={(
-                event
-              ) =>
-                handleChange({
-                  target: {
-                    name:
-                      "username",
-                    value:
-                      event.target
-                        .value,
-                  },
-                })
-              }
-              maxLength={
-                USERNAME_MAX_LENGTH
-              }
-              disabled={
-                loading
-              }
-              autoComplete="off"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              inputMode="text"
-            />
+            >
+              <span
+                className={
+                  styles.usernamePrefix
+                }
+                aria-hidden="true"
+              >
+                @
+              </span>
+
+              <input
+                id="edit-profile-username"
+                type="text"
+                name="username"
+                placeholder="username"
+                value={
+                  formData.username
+                }
+                onChange={
+                  handleChange
+                }
+                maxLength={
+                  USERNAME_MAX_LENGTH
+                }
+                disabled={saving}
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+
+              {usernameStatus
+                .checking && (
+                  <LoaderCircle
+                    size={17}
+                    className={
+                      styles.statusSpinner
+                    }
+                    aria-hidden="true"
+                  />
+                )}
+
+              {!usernameStatus
+                .checking &&
+                usernameChanged &&
+                usernameStatus
+                  .available ===
+                true && (
+                  <Check
+                    size={18}
+                    className={
+                      styles.availableIcon
+                    }
+                    aria-hidden="true"
+                  />
+                )}
+            </div>
 
             <p
               className={`${styles.usernameMessage} ${usernameMessageClass}`}
               role={
-                usernameStatus.available ===
+                usernameStatus
+                  .available ===
                   false
                   ? "alert"
                   : "status"
               }
               aria-live="polite"
             >
-              {usernameMessage ||
+              {usernameStatus
+                .checking
+                ? "Checking username..."
+                : usernameStatus
+                  .message ||
                 "\u00A0"}
             </p>
           </div>
@@ -785,17 +1015,28 @@ const EditProfileModal = ({
               styles.field
             }
           >
-            <label
-              htmlFor="edit-profile-bio"
+            <div
+              className={
+                styles.labelRow
+              }
             >
-              Bio
-            </label>
+              <label
+                htmlFor="edit-profile-bio"
+              >
+                Bio
+              </label>
+
+              <span>
+                {formData.bio.length}/
+                {BIO_MAX_LENGTH}
+              </span>
+            </div>
 
             <textarea
               id="edit-profile-bio"
-              rows="4"
+              rows={4}
               name="bio"
-              placeholder="Tell people about yourself"
+              placeholder="Tell people something about yourself"
               value={
                 formData.bio
               }
@@ -805,37 +1046,24 @@ const EditProfileModal = ({
               maxLength={
                 BIO_MAX_LENGTH
               }
-              disabled={
-                loading
-              }
+              disabled={saving}
             />
-
-            <span
-              className={
-                styles.counter
-              }
-            >
-              {formData.bio.length}/
-              {BIO_MAX_LENGTH}
-            </span>
           </div>
 
-          <div
+          <footer
             className={
               styles.buttons
             }
           >
             <button
               type="button"
-              onClick={
-                onClose
-              }
               className={
                 styles.cancel
               }
-              disabled={
-                loading
+              onClick={
+                requestClose
               }
+              disabled={saving}
             >
               Cancel
             </button>
@@ -849,15 +1077,25 @@ const EditProfileModal = ({
                 submitDisabled
               }
             >
-              {loading
-                ? "Saving..."
-                : usernameStatus.checking
-                  ? "Checking..."
+              {saving && (
+                <LoaderCircle
+                  size={17}
+                  className={
+                    styles.saveSpinner
+                  }
+                  aria-hidden="true"
+                />
+              )}
+
+              <span>
+                {saving
+                  ? "Saving..."
                   : "Save Changes"}
+              </span>
             </button>
-          </div>
+          </footer>
         </form>
-      </div>
+      </section>
     </div>
   );
 };

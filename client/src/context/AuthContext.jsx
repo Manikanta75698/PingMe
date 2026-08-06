@@ -21,9 +21,9 @@ import {
 const AuthContext =
   createContext(null);
 
-/* =========================
+/* =====================================
    STORAGE HELPERS
-========================= */
+===================================== */
 
 const getStoredToken = () => {
   try {
@@ -54,14 +54,13 @@ const getStoredUser = () => {
     }
 
     const parsedUser =
-      JSON.parse(
-        storedUser
-      );
+      JSON.parse(storedUser);
 
     if (
       !parsedUser ||
       typeof parsedUser !==
-        "object"
+      "object" ||
+      Array.isArray(parsedUser)
     ) {
       localStorage.removeItem(
         "user"
@@ -77,9 +76,13 @@ const getStoredUser = () => {
       error
     );
 
-    localStorage.removeItem(
-      "user"
-    );
+    try {
+      localStorage.removeItem(
+        "user"
+      );
+    } catch {
+      // Storage unavailable.
+    }
 
     return null;
   }
@@ -111,9 +114,9 @@ const storeUser = (
   }
 };
 
-/* =========================
-   USER NORMALIZER
-========================= */
+/* =====================================
+   USER HELPERS
+===================================== */
 
 const normalizeUser = (
   value
@@ -121,19 +124,11 @@ const normalizeUser = (
   if (
     !value ||
     typeof value !==
-      "object"
+    "object"
   ) {
     return null;
   }
 
-  /*
-   * Different backend response shapes:
-   *
-   * response.user
-   * response.data.user
-   * response.profile
-   * response.data
-   */
   const candidate =
     value?.user ||
     value?.profile ||
@@ -145,7 +140,7 @@ const normalizeUser = (
   if (
     !candidate ||
     typeof candidate !==
-      "object" ||
+    "object" ||
     Array.isArray(candidate)
   ) {
     return null;
@@ -172,28 +167,21 @@ const normalizeUser = (
   };
 };
 
-/* =========================
-   MERGE USER DATA
-========================= */
-
 const mergeUserData = (
   previousUser,
   nextUser
 ) => {
   const normalizedNextUser =
-    normalizeUser(
-      nextUser
-    );
+    normalizeUser(nextUser);
 
   if (!normalizedNextUser) {
-    return previousUser ||
-      null;
+    return (
+      previousUser || null
+    );
   }
 
   const mergedUser = {
-    ...(previousUser ||
-      {}),
-
+    ...(previousUser || {}),
     ...normalizedNextUser,
   };
 
@@ -222,15 +210,14 @@ const mergeUserData = (
   };
 };
 
-/* =========================
-   CLEAR CHAT CACHE
-========================= */
+/* =====================================
+   CHAT CACHE
+===================================== */
 
 const clearConversationCache =
   () => {
     try {
-      const keysToRemove =
-        [];
+      const keysToRemove = [];
 
       for (
         let index = 0;
@@ -269,36 +256,88 @@ const clearConversationCache =
     }
   };
 
-/* =========================
+/* =====================================
    AUTH PROVIDER
-========================= */
+===================================== */
 
 export const AuthProvider = ({
   children,
 }) => {
-  const initialProfileLoadedRef =
+  const mountedRef =
+    useRef(true);
+
+  const bootstrapStartedRef =
     useRef(false);
+
+  const [
+    token,
+    setToken,
+  ] = useState(
+    getStoredToken
+  );
 
   const [
     user,
     setUserState,
-  ] = useState(() => {
-    const storedUser =
-      getStoredUser();
+  ] = useState(() =>
+    normalizeUser(
+      getStoredUser()
+    )
+  );
 
-    return normalizeUser(
-      storedUser
-    );
-  });
+  const [
+    authReady,
+    setAuthReady,
+  ] = useState(false);
 
   const [
     profileLoading,
     setProfileLoading,
   ] = useState(false);
 
-  /* =========================
+  /* =====================================
+     CLEAR SESSION
+  ===================================== */
+
+  const clearSession =
+    useCallback(
+      ({
+        clearCache = true,
+      } = {}) => {
+        disconnectSocket();
+
+        try {
+          localStorage.removeItem(
+            "token"
+          );
+
+          localStorage.removeItem(
+            "user"
+          );
+
+          sessionStorage.removeItem(
+            "authRedirecting"
+          );
+        } catch (error) {
+          console.error(
+            "Unable to clear auth storage:",
+            error
+          );
+        }
+
+        if (clearCache) {
+          clearConversationCache();
+        }
+
+        setToken("");
+        setUserState(null);
+      },
+      []
+    );
+
+  /* =====================================
      SET USER
-  ========================= */
+  ===================================== */
 
   const setUser =
     useCallback(
@@ -318,6 +357,7 @@ export const AuthProvider = ({
               null
             ) {
               storeUser(null);
+
               return null;
             }
 
@@ -334,30 +374,38 @@ export const AuthProvider = ({
             return mergedUser;
           }
         );
+
+        /*
+         * Login pages token ni storage lo
+         * save chesina tarvatha setUser call
+         * chesthayi. Local token state kuda
+         * immediate ga synchronize chestham.
+         */
+        setToken(
+          getStoredToken()
+        );
       },
       []
     );
 
-  /* =========================
+  /* =====================================
      REFRESH PROFILE
-  ========================= */
+  ===================================== */
 
   const refreshProfile =
     useCallback(
       async ({
         silent = true,
       } = {}) => {
-        const token =
+        const currentToken =
           getStoredToken();
 
-        if (!token) {
+        if (!currentToken) {
           return null;
         }
 
         if (!silent) {
-          setProfileLoading(
-            true
-          );
+          setProfileLoading(true);
         }
 
         try {
@@ -394,90 +442,163 @@ export const AuthProvider = ({
             }
           );
 
-          return updatedUser;
-        } catch (
-          error
-        ) {
-          console.error(
-            "REFRESH PROFILE ERROR:",
-            error.response?.data ||
-            error.message
+          setToken(
+            currentToken
           );
 
-          /*
-           * 401 handling api interceptor
-           * already chesthe ikkada logout
-           * duplicate ga cheyyamu.
-           */
+          return updatedUser;
+        } catch (error) {
+          console.error(
+            "REFRESH PROFILE ERROR:",
+            error?.response
+              ?.data ||
+            error?.message
+          );
+
+          const status =
+            error?.response
+              ?.status;
+
+          if (
+            status === 401 ||
+            status === 403
+          ) {
+            clearSession({
+              clearCache: true,
+            });
+          }
+
           return null;
         } finally {
-          if (!silent) {
+          if (
+            !silent &&
+            mountedRef.current
+          ) {
             setProfileLoading(
               false
             );
           }
         }
       },
-      []
+      [clearSession]
     );
 
-  /* =========================
-     INITIAL PROFILE SYNC
-  ========================= */
+  /* =====================================
+     INITIAL AUTH BOOTSTRAP
+  ===================================== */
 
   useEffect(() => {
-    const token =
-      getStoredToken();
-
     if (
-      !token ||
-      initialProfileLoadedRef
-        .current
+      bootstrapStartedRef.current
     ) {
-      return;
+      return undefined;
     }
 
-    initialProfileLoadedRef.current =
+    bootstrapStartedRef.current =
       true;
 
-    refreshSocketAuth();
-    connectSocket();
+    const bootstrapAuth =
+      async () => {
+        const storedToken =
+          getStoredToken();
 
-    /*
-     * App load ayinappudu backend
-     * nunchi latest profile fetch.
-     *
-     * Sidebar, Header, Stories anni
-     * updated profilePic use chestayi.
-     */
-    void refreshProfile({
-      silent: true,
-    });
+        const storedUser =
+          normalizeUser(
+            getStoredUser()
+          );
+
+        if (!storedToken) {
+          setToken("");
+          setUserState(null);
+          setAuthReady(true);
+
+          return;
+        }
+
+        setToken(
+          storedToken
+        );
+
+        if (storedUser) {
+          setUserState(
+            storedUser
+          );
+
+          /*
+           * Cached session valid-looking ga
+           * undhi kabatti UI immediate ga open
+           * avvachu. Latest profile background
+           * lo sync avuthundi.
+           */
+          setAuthReady(true);
+
+          refreshSocketAuth();
+          connectSocket();
+
+          void refreshProfile({
+            silent: true,
+          });
+
+          return;
+        }
+
+        /*
+         * Token undhi kani stored user ledu.
+         * Backend profile tho session verify
+         * chesina tarvatha route decision.
+         */
+        const freshUser =
+          await refreshProfile({
+            silent: true,
+          });
+
+        if (
+          mountedRef.current &&
+          !freshUser
+        ) {
+          const latestToken =
+            getStoredToken();
+
+          if (!latestToken) {
+            setToken("");
+            setUserState(null);
+          }
+        }
+
+        if (
+          mountedRef.current
+        ) {
+          setAuthReady(true);
+        }
+      };
+
+    void bootstrapAuth();
+
+    return undefined;
   }, [refreshProfile]);
 
-  /* =========================
-     USER UPDATE EVENT
-  ========================= */
+  /* =====================================
+     USER UPDATED EVENT
+  ===================================== */
 
   useEffect(() => {
-    const handleUserUpdated = (
-      event
-    ) => {
-      const updatedUser =
-        event?.detail;
+    const handleUserUpdated =
+      (event) => {
+        const updatedUser =
+          event?.detail;
 
-      if (
-        !updatedUser ||
-        typeof updatedUser !==
+        if (
+          !updatedUser ||
+          typeof updatedUser !==
           "object"
-      ) {
-        return;
-      }
+        ) {
+          return;
+        }
 
-      setUser(
-        updatedUser
-      );
-    };
+        setUser(
+          updatedUser
+        );
+      };
 
     window.addEventListener(
       "auth:user-updated",
@@ -492,128 +613,107 @@ export const AuthProvider = ({
     };
   }, [setUser]);
 
-  /* =========================
-     LOGOUT
-  ========================= */
+  /* =====================================
+     SOCKET LIFECYCLE
+  ===================================== */
 
-  const logout =
-    useCallback(() => {
-      disconnectSocket();
-
-      localStorage.removeItem(
-        "token"
-      );
-
-      localStorage.removeItem(
-        "user"
-      );
-
-      sessionStorage.removeItem(
-        "authRedirecting"
-      );
-
-      clearConversationCache();
-
-      initialProfileLoadedRef.current =
-        false;
-
-      setUserState(null);
-    }, []);
-
-  /* =========================
-     DEFENSIVE SOCKET CLEANUP
-  ========================= */
+  const isAuthenticated =
+    Boolean(
+      user && token
+    );
 
   useEffect(() => {
-    const token =
-      getStoredToken();
+    if (!authReady) {
+      return;
+    }
 
-    if (!user || !token) {
+    if (!isAuthenticated) {
       disconnectSocket();
+
       return;
     }
 
     refreshSocketAuth();
     connectSocket();
-  }, [user]);
+  }, [
+    authReady,
+    isAuthenticated,
+    token,
+  ]);
 
-  /* =========================
+  /* =====================================
      MULTI-TAB AUTH SYNC
-  ========================= */
+  ===================================== */
 
   useEffect(() => {
-    const handleStorageChange = (
-      event
-    ) => {
-      if (
-        event.key ===
-          "token" &&
-        !event.newValue
-      ) {
-        disconnectSocket();
+    const handleStorageChange =
+      (event) => {
+        if (
+          event.key ===
+          "token"
+        ) {
+          const nextToken =
+            event.newValue
+              ?.trim() || "";
 
-        initialProfileLoadedRef.current =
-          false;
-
-        setUserState(null);
-
-        return;
-      }
-
-      if (
-        event.key !==
-        "user"
-      ) {
-        return;
-      }
-
-      if (!event.newValue) {
-        disconnectSocket();
-
-        setUserState(null);
-
-        return;
-      }
-
-      try {
-        const updatedUser =
-          normalizeUser(
-            JSON.parse(
-              event.newValue
-            )
+          setToken(
+            nextToken
           );
 
-        if (!updatedUser) {
-          throw new Error(
-            "Invalid stored user"
-          );
+          if (!nextToken) {
+            disconnectSocket();
+            setUserState(null);
+          }
+
+          return;
         }
 
-        setUserState(
-          updatedUser
-        );
-      } catch (error) {
-        console.error(
-          "Unable to sync stored user:",
-          error
-        );
-
-        disconnectSocket();
-
-        localStorage.removeItem(
-          "token"
-        );
-
-        localStorage.removeItem(
+        if (
+          event.key !==
           "user"
-        );
+        ) {
+          return;
+        }
 
-        initialProfileLoadedRef.current =
-          false;
+        if (!event.newValue) {
+          disconnectSocket();
+          setUserState(null);
 
-        setUserState(null);
-      }
-    };
+          return;
+        }
+
+        try {
+          const updatedUser =
+            normalizeUser(
+              JSON.parse(
+                event.newValue
+              )
+            );
+
+          if (!updatedUser) {
+            throw new Error(
+              "Invalid stored user"
+            );
+          }
+
+          setUserState(
+            updatedUser
+          );
+
+          setToken(
+            getStoredToken()
+          );
+        } catch (error) {
+          console.error(
+            "Unable to sync stored user:",
+            error
+          );
+
+          clearSession({
+            clearCache: true,
+          });
+        }
+      };
 
     window.addEventListener(
       "storage",
@@ -626,61 +726,80 @@ export const AuthProvider = ({
         handleStorageChange
       );
     };
+  }, [clearSession]);
+
+  /* =====================================
+     LOGOUT
+  ===================================== */
+
+  const logout =
+    useCallback(() => {
+      clearSession({
+        clearCache: true,
+      });
+
+      setAuthReady(true);
+    }, [clearSession]);
+
+  /* =====================================
+     MOUNT CLEANUP
+  ===================================== */
+
+  useEffect(() => {
+    mountedRef.current =
+      true;
+
+    return () => {
+      mountedRef.current =
+        false;
+
+      disconnectSocket();
+    };
   }, []);
 
-  /* =========================
-     AUTH STATUS
-  ========================= */
-
-  const isAuthenticated =
-    Boolean(
-      user &&
-      getStoredToken()
-    );
-
-  /* =========================
+  /* =====================================
      CONTEXT VALUE
-  ========================= */
+  ===================================== */
 
   const contextValue =
     useMemo(
       () => ({
         user,
+        token,
 
         setUser,
-
         logout,
 
         refreshProfile,
-
         profileLoading,
 
+        authReady,
         isAuthenticated,
       }),
       [
         user,
+        token,
         setUser,
         logout,
         refreshProfile,
         profileLoading,
+        authReady,
         isAuthenticated,
       ]
     );
 
   return (
     <AuthContext.Provider
-      value={
-        contextValue
-      }
+      value={contextValue}
     >
       {children}
     </AuthContext.Provider>
   );
 };
 
-/* =========================
+/* =====================================
    AUTH HOOK
-========================= */
+===================================== */
 
 export const useAuth = () => {
   const context =

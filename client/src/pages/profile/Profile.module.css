@@ -1,10 +1,169 @@
+/* =========================================
+   PROFILE PAGE
+========================================= */
+
 .profilePage {
+  position: relative;
+
   min-height: 100vh;
-  background: var(--background);
+  min-height: 100dvh;
+
+  margin-left: 250px;
+
+  overflow-x: hidden;
+
+  background:
+    radial-gradient(circle at 16% 2%,
+      color-mix(in srgb,
+        var(--primary) 9%,
+        transparent),
+      transparent 34%),
+    radial-gradient(circle at 88% 12%,
+      color-mix(in srgb,
+        var(--accent) 7%,
+        transparent),
+      transparent 31%),
+    var(--background);
+
+  color: var(--text-primary);
+
+  isolation: isolate;
 }
 
+/* =========================================
+   DECORATIVE BACKGROUND
+========================================= */
+
+.backgroundGlow {
+  position: fixed;
+  z-index: -1;
+
+  top: 90px;
+  left: calc(250px + 50%);
+
+  width: 620px;
+  height: 620px;
+
+  border-radius: 50%;
+
+  background:
+    color-mix(in srgb,
+      var(--primary) 7%,
+      transparent);
+
+  filter: blur(100px);
+
+  pointer-events: none;
+
+  transform: translateX(-50%);
+}
+
+/* =========================================
+   MAIN PROFILE CONTAINER
+========================================= */
+
 .container {
-  max-width: 1000px;
+  position: relative;
+
+  display: flex;
+
+  width: min(100%, 1040px);
+
+  flex-direction: column;
+  gap: 22px;
+
   margin: 0 auto;
-  padding: 30px 20px;
+
+  padding:
+    34px 24px 80px;
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 1100px) {
+  .container {
+    width: min(100%, 900px);
+
+    padding:
+      28px 20px 72px;
+  }
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 768px) {
+  .profilePage {
+    margin-left: 0;
+
+    padding-top:
+      calc(62px + env(safe-area-inset-top,
+          0px));
+
+    padding-bottom:
+      calc(82px + env(safe-area-inset-bottom,
+          0px));
+  }
+
+  .backgroundGlow {
+    top: 90px;
+    left: 50%;
+
+    width: 420px;
+    height: 420px;
+
+    filter: blur(80px);
+  }
+
+  .container {
+    width: 100%;
+
+    gap: 16px;
+
+    padding:
+      16px 12px 28px;
+  }
+}
+
+/* =========================================
+   SMALL MOBILE
+========================================= */
+
+@media (max-width: 420px) {
+  .container {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+}
+
+/* =========================================
+   DARK THEME POLISH
+========================================= */
+
+:global(:root[data-theme="dark"]) .profilePage {
+  background:
+    radial-gradient(circle at 16% 2%,
+      color-mix(in srgb,
+        var(--primary) 12%,
+        transparent),
+      transparent 36%),
+    radial-gradient(circle at 88% 12%,
+      color-mix(in srgb,
+        var(--accent) 10%,
+        transparent),
+      transparent 32%),
+    var(--background);
+}
+
+/* =========================================
+   REDUCED MOTION
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .backgroundGlow {
+    filter: blur(100px);
+  }
 }

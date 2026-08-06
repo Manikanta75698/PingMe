@@ -9,6 +9,7 @@ import {
 import {
   AlertCircle,
   CheckCircle2,
+  MessageCircle,
   MoreHorizontal,
   Send,
   Trash2,
@@ -962,9 +963,9 @@ const CommentModal = ({
       {toast && (
         <div
           className={`${styles.toast} ${toast.type ===
-              "error"
-              ? styles.toastError
-              : styles.toastSuccess
+            "error"
+            ? styles.toastError
+            : styles.toastSuccess
             }`}
           role={
             toast.type ===
@@ -1004,17 +1005,16 @@ const CommentModal = ({
   );
 };
 
-const MessageCircleIcon =
-  () => (
-    <div
-      aria-hidden="true"
-      style={{
-        fontSize: "36px",
-        lineHeight: 1,
-      }}
-    >
-      💬
-    </div>
-  );
+const MessageCircleIcon = () => (
+  <span
+    className={styles.emptyIcon}
+    aria-hidden="true"
+  >
+    <MessageCircle
+      size={30}
+      strokeWidth={1.8}
+    />
+  </span>
+);
 
 export default CommentModal;

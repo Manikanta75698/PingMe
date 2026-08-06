@@ -1,149 +1,465 @@
+/* =========================================
+   FEED LAYOUT
+========================================= */
+
 .feed {
-  width: 100%;
-
-  max-width: 650px;
-
-  margin: 30px auto;
-
   display: flex;
-
+  width: 100%;
+  max-width: 100%;
   flex-direction: column;
+  gap: 18px;
 
-  gap: 24px;
+  margin: 0;
+  padding: 0;
 }
 
-@media (max-width: 768px) {
-  .feed {
-    max-width: 100%;
-
-    padding: 0 15px;
-  }
-}
+/* =========================================
+   LOADING / ERROR / EMPTY STATES
+========================================= */
 
 .state {
+  display: flex;
   width: 100%;
+  min-height: 210px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
 
-  padding: 48px 20px;
+  padding: 34px 24px;
 
-  color: #94a3b8;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 
-  font-size: 14px;
-  line-height: 1.5;
+  background:
+    color-mix(in srgb,
+      var(--surface) 92%,
+      transparent);
+
+  color: var(--text-secondary);
 
   text-align: center;
+  font-size: 0.86rem;
+  line-height: 1.6;
+
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  box-shadow: var(--shadow-sm);
+}
+
+.state::before {
+  content: "";
+
+  display: block;
+  width: 42px;
+  height: 42px;
+
+  border: 3px solid var(--primary-soft);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+
+  animation:
+    feedStateSpin 0.8s linear infinite;
 }
 
 .state p {
-  margin: 0 0 14px;
+  max-width: 360px;
+  margin: 0;
 }
 
 .state button {
-  padding: 9px 16px;
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
 
-  border: 0;
-  border-radius: 8px;
+  padding: 0 17px;
 
-  background: #2563eb;
-  color: #ffffff;
+  border: none;
+  border-radius: 13px;
+
+  background:
+    linear-gradient(135deg,
+      var(--primary),
+      var(--accent));
+
+  color: var(--on-primary);
 
   font: inherit;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 750;
 
   cursor: pointer;
+
+  box-shadow:
+    0 10px 25px color-mix(in srgb,
+      var(--primary) 25%,
+      transparent);
+
+  transition:
+    transform 160ms ease,
+    filter 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.state button:hover:not(:disabled) {
+  filter: brightness(1.04);
+
+  box-shadow:
+    0 14px 32px color-mix(in srgb,
+      var(--primary) 30%,
+      transparent);
+}
+
+.state button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .state button:disabled {
-  opacity: 0.55;
-
+  opacity: 0.58;
   cursor: not-allowed;
 }
 
-/* =========================
-   TARGET POST NAVIGATION
-========================= */
+/*
+  Feed component same .state class ni
+  loading, empty and error states ki use chesthundi.
+  Button unna state lo spinner hide chestham.
+*/
+
+.state:has(button)::before {
+  display: none;
+}
+
+/* =========================================
+   POST WRAPPER
+========================================= */
 
 .postAnchor {
   position: relative;
 
   width: 100%;
+  min-width: 0;
 
-  scroll-margin-top: 92px;
+  scroll-margin-top: 94px;
 
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
 
   transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    filter 220ms ease;
 }
 
+.postAnchor::after {
+  content: "";
+
+  position: absolute;
+  z-index: -1;
+  inset: 10px 18px -8px;
+
+  border-radius: inherit;
+
+  background:
+    color-mix(in srgb,
+      var(--primary) 8%,
+      transparent);
+
+  opacity: 0;
+  filter: blur(20px);
+
+  transition:
+    opacity 220ms ease;
+}
+
+.postAnchor:hover::after {
+  opacity: 0.45;
+}
+
+/* =========================================
+   TARGET POST HIGHLIGHT
+========================================= */
+
 .postHighlighted {
-  z-index: 1;
+  z-index: 2;
 
   animation:
-    targetPostHighlight 2.2s ease-out;
+    targetPostHighlight 2.3s cubic-bezier(0.22,
+      1,
+      0.36,
+      1);
 }
 
 @keyframes targetPostHighlight {
   0% {
-    transform: scale(0.985);
+    transform:
+      scale(0.985);
 
     box-shadow:
       0 0 0 0 color-mix(in srgb,
-        var(--primary, #2563eb) 0%,
+        var(--primary) 0%,
         transparent);
   }
 
-  20% {
-    transform: scale(1.008);
+  18% {
+    transform:
+      scale(1.008);
 
     box-shadow:
       0 0 0 4px color-mix(in srgb,
-        var(--primary, #2563eb) 34%,
+        var(--primary) 34%,
         transparent),
-      0 14px 36px rgba(0, 0, 0, 0.12);
-  }
-
-  70% {
-    transform: scale(1);
-
-    box-shadow:
-      0 0 0 2px color-mix(in srgb,
-        var(--primary, #2563eb) 18%,
+      0 20px 50px color-mix(in srgb,
+        var(--primary) 17%,
         transparent);
   }
 
+  58% {
+    transform:
+      scale(1);
+
+    box-shadow:
+      0 0 0 2px color-mix(in srgb,
+        var(--primary) 20%,
+        transparent),
+      0 14px 38px rgb(15 23 42 / 10%);
+  }
+
   100% {
-    transform: scale(1);
+    transform:
+      scale(1);
 
     box-shadow:
       0 0 0 0 transparent;
   }
 }
 
-@media (max-width: 768px) {
-  .postAnchor {
-    scroll-margin-top: 78px;
+/* =========================================
+   LOADING SKELETON SUPPORT
+========================================= */
 
-    border-radius: 14px;
+.skeletonList {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.skeletonCard {
+  overflow: hidden;
+  min-height: 430px;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+
+  background:
+    var(--surface);
+
+  box-shadow:
+    var(--shadow-sm);
+}
+
+.skeletonHeader {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  padding: 14px;
+}
+
+.skeletonAvatar {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background:
+    var(--surface-light);
+}
+
+.skeletonText {
+  width: 130px;
+  height: 12px;
+
+  border-radius: 999px;
+
+  background:
+    var(--surface-light);
+}
+
+.skeletonMedia {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+
+  background:
+    var(--surface-light);
+}
+
+.skeletonAvatar,
+.skeletonText,
+.skeletonMedia {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeletonAvatar::after,
+.skeletonText::after,
+.skeletonMedia::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  transform:
+    translateX(-100%);
+
+  background:
+    linear-gradient(90deg,
+      transparent,
+      color-mix(in srgb,
+        var(--surface-solid) 65%,
+        transparent),
+      transparent);
+
+  animation:
+    feedSkeletonShimmer 1.35s infinite;
+}
+
+/* =========================================
+   ANIMATIONS
+========================================= */
+
+@keyframes feedStateSpin {
+  to {
+    transform:
+      rotate(360deg);
   }
 }
+
+@keyframes feedSkeletonShimmer {
+  100% {
+    transform:
+      translateX(100%);
+  }
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .feed {
+    gap: 17px;
+  }
+
+  .postAnchor {
+    scroll-margin-top:
+      86px;
+  }
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 768px) {
+  .feed {
+    width: 100%;
+    max-width: none;
+
+    gap: 12px;
+
+    margin: 0;
+    padding: 0;
+  }
+
+  .postAnchor {
+    width: 100%;
+
+    scroll-margin-top:
+      calc(72px + env(safe-area-inset-top,
+          0px));
+
+    border-radius: 0;
+  }
+
+  .postAnchor::after {
+    display: none;
+  }
+
+  .state {
+    min-height: 190px;
+
+    margin: 0 12px;
+    width: calc(100% - 24px);
+
+    padding: 28px 18px;
+
+    border-radius: 18px;
+  }
+
+  .skeletonList {
+    gap: 12px;
+  }
+
+  .skeletonCard {
+    border-right: none;
+    border-left: none;
+
+    border-radius: 0;
+  }
+}
+
+/* =========================================
+   SMALL MOBILE
+========================================= */
 
 @media (max-width: 480px) {
   .feed {
-    padding: 0 10px;
-
-    gap: 18px;
+    gap: 10px;
   }
 
   .postAnchor {
-    scroll-margin-top: 70px;
+    scroll-margin-top:
+      calc(68px + env(safe-area-inset-top,
+          0px));
+  }
 
-    border-radius: 12px;
+  .state {
+    min-height: 170px;
+    margin-right: 10px;
+    margin-left: 10px;
+    width: calc(100% - 20px);
+
+    font-size: 0.8rem;
   }
 }
 
+/* =========================================
+   DARK THEME
+========================================= */
+
+:global( :root[data-theme="dark"]) .state {
+  box-shadow:
+    0 18px 48px rgb(0 0 0 / 25%);
+}
+
+:global( :root[data-theme="dark"]) .postHighlighted {
+  filter:
+    brightness(1.03);
+}
+
+/* =========================================
+   REDUCED MOTION
+========================================= */
+
 @media (prefers-reduced-motion: reduce) {
   .postAnchor {
+    transition: none;
+  }
+
+  .postAnchor::after {
     transition: none;
   }
 
@@ -152,9 +468,16 @@
 
     outline:
       3px solid color-mix(in srgb,
-        var(--primary, #2563eb) 45%,
+        var(--primary) 45%,
         transparent);
 
     outline-offset: 3px;
+  }
+
+  .state::before,
+  .skeletonAvatar::after,
+  .skeletonText::after,
+  .skeletonMedia::after {
+    animation: none;
   }
 }

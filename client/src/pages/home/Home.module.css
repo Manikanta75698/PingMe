@@ -1,84 +1,327 @@
+/* =========================================
+   HOME PAGE
+========================================= */
+
 .home {
   position: fixed;
   inset: 0;
 
   margin-left: 250px;
 
-  overflow-y: auto;
   overflow-x: hidden;
+  overflow-y: auto;
 
-  background: var(--background);
-}
+  overscroll-behavior-y:
+    contain;
 
-.home::-webkit-scrollbar {
-  width: 6px;
-}
+  background:
+    var(--background);
 
-.home::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 20px;
-}
+  color:
+    var(--text-primary);
 
-.container {
-  max-width: 600px;
-  width: 100%;
-
-  margin: 0 auto;
-
-  padding: 24px 16px 40px;
-
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-
-  box-sizing: border-box;
+  scrollbar-gutter:
+    stable;
 }
 
 /* =========================================
-   📱 MOBILE RESPONSIVE
+   PAGE BACKGROUND
+========================================= */
+
+.page {
+  position: relative;
+
+  width: 100%;
+  min-height: 100%;
+
+  overflow: hidden;
+
+  padding:
+    26px 20px 90px;
+}
+
+.decorativeGlowLeft,
+.decorativeGlowRight {
+  position: fixed;
+  z-index: 0;
+
+  width: 340px;
+  height: 340px;
+
+  border-radius: 50%;
+
+  pointer-events: none;
+
+  filter: blur(85px);
+
+  opacity: 0.16;
+}
+
+.decorativeGlowLeft {
+  top: -120px;
+  left: 220px;
+
+  background:
+    var(--primary);
+}
+
+.decorativeGlowRight {
+  top: 180px;
+  right: -160px;
+
+  background:
+    var(--accent);
+}
+
+/* =========================================
+   MAIN CONTENT
+========================================= */
+
+.container {
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  width: min(100%, 620px);
+  flex-direction: column;
+  gap: 20px;
+
+  margin: 0 auto;
+}
+
+.storiesSection,
+.feedSection {
+  width: 100%;
+  min-width: 0;
+}
+
+.storiesSection {
+  overflow: hidden;
+
+  border:
+    1px solid var(--border);
+
+  border-radius:
+    var(--radius-lg);
+
+  background:
+    color-mix(in srgb,
+      var(--surface) 92%,
+      transparent);
+
+  backdrop-filter:
+    blur(18px) saturate(130%);
+
+  -webkit-backdrop-filter:
+    blur(18px) saturate(130%);
+
+  box-shadow:
+    var(--shadow-sm);
+}
+
+.feedSection {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* =========================================
+   SCROLLBAR
+========================================= */
+
+.home {
+  scrollbar-width: thin;
+
+  scrollbar-color:
+    var(--border) transparent;
+}
+
+.home::-webkit-scrollbar {
+  width: 7px;
+}
+
+.home::-webkit-scrollbar-track {
+  background:
+    transparent;
+}
+
+.home::-webkit-scrollbar-thumb {
+  border-radius:
+    999px;
+
+  background:
+    var(--border);
+}
+
+.home::-webkit-scrollbar-thumb:hover {
+  background:
+    var(--text-muted);
+}
+
+/* =========================================
+   LARGE DESKTOP
+========================================= */
+
+@media (min-width: 1400px) {
+  .container {
+    width:
+      min(100%,
+        660px);
+  }
+
+  .page {
+    padding-top:
+      30px;
+  }
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .page {
+    padding-right:
+      16px;
+
+    padding-left:
+      16px;
+  }
+
+  .container {
+    width:
+      min(100%,
+        600px);
+  }
+}
+
+/* =========================================
+   MOBILE
 ========================================= */
 
 @media (max-width: 768px) {
+  .home {
+    inset: 0;
 
-.home {
-  position: fixed;
-  inset: 0;
+    margin-left: 0;
 
-  margin-left: 0;
+    scrollbar-gutter:
+      auto;
 
-  padding-top: 66px;
-  padding-bottom: 60px;
+    -webkit-overflow-scrolling:
+      touch;
+  }
 
-  overflow-y: auto;
-}
+  .page {
+    min-height: 100%;
+
+    padding:
+      calc(62px + env(safe-area-inset-top,
+          0px)) 0 calc(90px + env(safe-area-inset-bottom,
+          0px));
+  }
+
+  .container {
+    width: 100%;
+    max-width: none;
+
+    gap: 12px;
+
+    margin: 0;
+  }
+
+  .storiesSection {
+    border-top: none;
+    border-right: none;
+    border-left: none;
+
+    border-radius: 0;
+
+    background:
+      color-mix(in srgb,
+        var(--surface-solid) 86%,
+        transparent);
+
+    box-shadow:
+      0 8px 26px rgb(15 23 42 / 5%);
+  }
+
+  .feedSection {
+    gap: 12px;
+  }
+
+  .decorativeGlowLeft {
+    top: -130px;
+    left: -160px;
+
+    width: 280px;
+    height: 280px;
+
+    opacity: 0.12;
+  }
+
+  .decorativeGlowRight {
+    top: 290px;
+    right: -180px;
+
+    width: 300px;
+    height: 300px;
+
+    opacity: 0.11;
+  }
 
   .home::-webkit-scrollbar {
     display: none;
   }
 
-  .container {
-    width: 100%;
-    max-width: 100%;
-
-    padding: 0;
-
-    display: flex;
-    flex-direction: column;
-
-    gap: 16px;
-
-    box-sizing: border-box;
+  .home {
+    scrollbar-width: none;
   }
 }
 
 /* =========================================
-   💻 LARGE DESKTOP
+   SMALL MOBILE
 ========================================= */
 
-@media (min-width: 1400px) {
-
-  .container {
-    max-width: 650px;
+@media (max-width: 380px) {
+  .page {
+    padding-bottom:
+      calc(82px + env(safe-area-inset-bottom,
+          0px));
   }
 
+  .container {
+    gap: 10px;
+  }
+
+  .feedSection {
+    gap: 10px;
+  }
+}
+
+/* =========================================
+   DARK THEME
+========================================= */
+
+:global( :root[data-theme="dark"]) .storiesSection {
+  box-shadow:
+    0 16px 42px rgb(0 0 0 / 22%);
+}
+
+@media (max-width: 768px) {
+  :global( :root[data-theme="dark"]) .storiesSection {
+    box-shadow:
+      0 10px 30px rgb(0 0 0 / 20%);
+  }
+}
+
+/* =========================================
+   REDUCED MOTION
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .home {
+    scroll-behavior:
+      auto;
+  }
 }

@@ -24,22 +24,45 @@ import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
 import Avatar from "../ui/avatar/Avatar";
 
+const NAV_ITEMS = [
+  {
+    label: "Home",
+    path: "/home",
+    icon: Home,
+  },
+  {
+    label: "Search",
+    path: "/search",
+    icon: Search,
+  },
+  {
+    label: "Explore",
+    path: "/explore",
+    icon: Compass,
+  },
+  {
+    label: "Nearby Help",
+    path: "/help",
+    icon: HandHeart,
+  },
+  {
+    label: "Messages",
+    path: "/chat",
+    icon: MessageCircle,
+    badgeType: "messages",
+  },
+  {
+    label: "Notifications",
+    path: "/activity",
+    icon: Heart,
+    badgeType: "notifications",
+  },
+];
+
 const Header = ({
   scrollY = 0,
 }) => {
   const { user } = useAuth();
-
-  const navigate =
-    useNavigate();
-
-  const location =
-    useLocation();
-
-  const isActive = (path) =>
-    location.pathname === path ||
-    location.pathname.startsWith(
-      `${path}/`
-    );
 
   const {
     notificationUnreadCount,
@@ -47,6 +70,20 @@ const Header = ({
     loadChatSummaries,
     loadNotifications,
   } = useChat();
+
+  const navigate =
+    useNavigate();
+
+  const location =
+    useLocation();
+
+  const [
+    showTopHeader,
+    setShowTopHeader,
+  ] = useState(true);
+
+  const lastScrollY =
+    useRef(0);
 
   const totalUnreadMessages =
     Array.isArray(chatSummaries)
@@ -60,23 +97,47 @@ const Header = ({
       )
       : 0;
 
-  const [
-    showTopHeader,
-    setShowTopHeader,
-  ] = useState(true);
+  const profileImage =
+    user?.profilePic ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      user?.name ||
+      user?.username ||
+      "User"
+    )}&background=2563eb&color=ffffff`;
 
-  const lastScrollY =
-    useRef(0);
+  const isActive = (path) => {
+    if (path === "/home") {
+      return (
+        location.pathname ===
+        "/home"
+      );
+    }
+
+    return (
+      location.pathname ===
+      path ||
+      location.pathname.startsWith(
+        `${path}/`
+      )
+    );
+  };
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       loadChatSummaries(),
       loadNotifications(),
-    ]).catch((error) => {
-      console.error(
-        "HEADER DATA LOAD ERROR:",
-        error
-      );
+    ]).then((results) => {
+      results.forEach((result) => {
+        if (
+          result.status ===
+          "rejected"
+        ) {
+          console.error(
+            "HEADER DATA LOAD ERROR:",
+            result.reason
+          );
+        }
+      });
     });
   }, [
     loadChatSummaries,
@@ -84,37 +145,60 @@ const Header = ({
   ]);
 
   useEffect(() => {
+    const previousScroll =
+      lastScrollY.current;
+
     if (
       Math.abs(
         scrollY -
-        lastScrollY.current
+        previousScroll
       ) < 8
     ) {
       return;
     }
 
-    if (
+    const shouldHide =
       scrollY >
-      lastScrollY.current &&
-      scrollY > 60
-    ) {
-      setShowTopHeader(false);
-    } else {
-      setShowTopHeader(true);
-    }
+      previousScroll &&
+      scrollY > 72;
+
+    setShowTopHeader(
+      !shouldHide
+    );
 
     lastScrollY.current =
       scrollY;
   }, [scrollY]);
 
-  const openChat = () => {
-    navigate("/chat");
+  const getBadgeValue = (
+    badgeType
+  ) => {
+    if (
+      badgeType ===
+      "messages"
+    ) {
+      return totalUnreadMessages;
+    }
+
+    if (
+      badgeType ===
+      "notifications"
+    ) {
+      return Number(
+        notificationUnreadCount
+      ) || 0;
+    }
+
+    return 0;
+  };
+
+  const openProfile = () => {
+    navigate("/profile");
   };
 
   return (
     <>
-      {/* MOBILE TOP HEADER */}
-      <div
+      <header
         className={`${styles.mobileTopHeader} ${!showTopHeader
             ? styles.hideTopHeader
             : ""
@@ -123,7 +207,7 @@ const Header = ({
         <button
           type="button"
           className={
-            styles.topHeaderBtn
+            styles.topHeaderAction
           }
           onClick={() =>
             navigate("/create")
@@ -131,8 +215,8 @@ const Header = ({
           aria-label="Create post"
         >
           <SquarePlus
-            size={26}
-            color="var(--text-primary)"
+            size={23}
+            strokeWidth={2.1}
           />
         </button>
 
@@ -152,31 +236,33 @@ const Header = ({
         <button
           type="button"
           className={
-            styles.topHeaderBtn
+            styles.topHeaderAvatarButton
           }
-          onClick={() =>
-            navigate("/profile")
+          onClick={
+            openProfile
           }
           aria-label="Open profile"
         >
           <Avatar
             src={
-              user?.profilePic ||
-              "https://ui-avatars.com/api/?name=User"
+              profileImage
             }
-            alt="Profile"
+            alt={
+              user?.name ||
+              "Profile"
+            }
             className={
               styles.topHeaderProfileIcon
             }
           />
         </button>
-      </div>
+      </header>
 
-      {/* DESKTOP SIDEBAR / MOBILE BOTTOM NAV */}
       <nav
         className={
           styles.sidebar
         }
+        aria-label="Primary navigation"
       >
         <button
           type="button"
@@ -188,7 +274,21 @@ const Header = ({
           }
           aria-label="Open home"
         >
-          PingMe
+          <span
+            className={
+              styles.logoMark
+            }
+          >
+            P
+          </span>
+
+          <span
+            className={
+              styles.logoText
+            }
+          >
+            PingMe
+          </span>
         </button>
 
         <div
@@ -196,197 +296,90 @@ const Header = ({
             styles.navLinks
           }
         >
-          <button
-            type="button"
-            className={`${styles.navItem} ${isActive("/home")
-                ? styles.active
-                : ""
-              }`}
-            onClick={() =>
-              navigate("/home")
-            }
-          >
-            <Home
-              className={
-                styles.icon
-              }
-            />
+          {NAV_ITEMS.map(
+            ({
+              label,
+              path,
+              icon: Icon,
+              badgeType,
+            }) => {
+              const badgeValue =
+                getBadgeValue(
+                  badgeType
+                );
 
-            <span
-              className={
-                styles.text
-              }
-            >
-              Home
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.navItem} ${isActive("/search")
-                ? styles.active
-                : ""
-              }`}
-            onClick={() =>
-              navigate("/search")
-            }
-          >
-            <Search
-              className={
-                styles.icon
-              }
-            />
-
-            <span
-              className={
-                styles.text
-              }
-            >
-              Search
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.navItem} ${isActive("/explore")
-                ? styles.active
-                : ""
-              }`}
-            onClick={() =>
-              navigate("/explore")
-            }
-          >
-            <Compass
-              className={
-                styles.icon
-              }
-            />
-
-            <span
-              className={
-                styles.text
-              }
-            >
-              Explore
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.navItem} ${isActive("/help")
-                ? styles.active
-                : ""
-              }`}
-            onClick={() =>
-              navigate("/help")
-            }
-          >
-            <HandHeart
-              className={
-                styles.icon
-              }
-            />
-
-            <span
-              className={
-                styles.text
-              }
-            >
-              Nearby Help
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.navItem} ${isActive("/chat")
-                ? styles.active
-                : ""
-              }`}
-            onClick={openChat}
-          >
-            <div
-              className={
-                styles.iconWrapper
-              }
-            >
-              <MessageCircle
-                className={
-                  styles.icon
-                }
-              />
-
-              {totalUnreadMessages >
-                0 && (
+              return (
+                <button
+                  key={path}
+                  type="button"
+                  className={`${styles.navItem} ${isActive(
+                    path
+                  )
+                      ? styles.active
+                      : ""
+                    }`}
+                  onClick={() =>
+                    navigate(
+                      path
+                    )
+                  }
+                  aria-current={
+                    isActive(
+                      path
+                    )
+                      ? "page"
+                      : undefined
+                  }
+                  aria-label={
+                    label
+                  }
+                >
                   <span
                     className={
-                      styles.badge
+                      styles.iconShell
                     }
                   >
-                    {totalUnreadMessages >
-                      99
-                      ? "99+"
-                      : totalUnreadMessages}
+                    <Icon
+                      className={
+                        styles.icon
+                      }
+                      strokeWidth={
+                        2
+                      }
+                    />
+
+                    {badgeValue >
+                      0 && (
+                        <span
+                          className={
+                            styles.badge
+                          }
+                        >
+                          {badgeValue >
+                            99
+                            ? "99+"
+                            : badgeValue}
+                        </span>
+                      )}
                   </span>
-                )}
-            </div>
 
-            <span
-              className={
-                styles.text
-              }
-            >
-              Messages
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.navItem} ${isActive("/activity")
-                ? styles.active
-                : ""
-              }`}
-            onClick={() =>
-              navigate("/activity")
-            }
-          >
-            <div
-              className={
-                styles.iconWrapper
-              }
-            >
-              <Heart
-                className={
-                  styles.icon
-                }
-              />
-
-              {notificationUnreadCount >
-                0 && (
                   <span
                     className={
-                      styles.badge
+                      styles.text
                     }
                   >
-                    {notificationUnreadCount >
-                      99
-                      ? "99+"
-                      : notificationUnreadCount}
+                    {label}
                   </span>
-                )}
-            </div>
-
-            <span
-              className={
-                styles.text
-              }
-            >
-              Notifications
-            </span>
-          </button>
+                </button>
+              );
+            }
+          )}
 
           <button
             type="button"
-            className={`${styles.navItem} ${styles.desktopOnly} ${isActive("/create")
+            className={`${styles.navItem} ${styles.desktopOnly} ${isActive(
+              "/create"
+            )
                 ? styles.active
                 : ""
               }`}
@@ -394,11 +387,17 @@ const Header = ({
               navigate("/create")
             }
           >
-            <SquarePlus
+            <span
               className={
-                styles.icon
+                styles.iconShell
               }
-            />
+            >
+              <SquarePlus
+                className={
+                  styles.icon
+                }
+              />
+            </span>
 
             <span
               className={
@@ -408,37 +407,54 @@ const Header = ({
               Create
             </span>
           </button>
+        </div>
 
-          <button
-            type="button"
-            className={`${styles.navItem} ${styles.desktopOnly} ${isActive("/profile")
-                ? styles.active
-                : ""
-              }`}
-            onClick={() =>
-              navigate("/profile")
+        <button
+          type="button"
+          className={`${styles.profileNavItem} ${styles.desktopOnly} ${isActive(
+            "/profile"
+          )
+              ? styles.profileNavActive
+              : ""
+            }`}
+          onClick={
+            openProfile
+          }
+        >
+          <Avatar
+            src={
+              profileImage
+            }
+            alt={
+              user?.name ||
+              "Profile"
+            }
+            className={
+              styles.profileIcon
+            }
+          />
+
+          <span
+            className={
+              styles.profileText
             }
           >
-            <Avatar
-              src={
-                user?.profilePic ||
-                "https://ui-avatars.com/api/?name=User"
-              }
-              alt="Profile"
-              className={
-                styles.profileIcon
-              }
-            />
+            <strong>
+              {user?.name ||
+                user?.username ||
+                "Profile"}
+            </strong>
 
-            <span
-              className={
-                styles.text
-              }
-            >
-              Profile
-            </span>
-          </button>
-        </div>
+            <small>
+              {user?.username
+                ? `@${user.username.replace(
+                  /^@/,
+                  ""
+                )}`
+                : "View profile"}
+            </small>
+          </span>
+        </button>
       </nav>
     </>
   );

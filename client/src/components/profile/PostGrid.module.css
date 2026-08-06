@@ -1,15 +1,21 @@
+/* =========================================
+   POST GRID
+========================================= */
+
 .grid {
   display: grid;
+
+  width: 100%;
 
   grid-template-columns:
     repeat(3, minmax(0, 1fr));
 
-  gap: 4px;
-
-  width: 100%;
-
-  margin-top: 28px;
+  gap: 10px;
 }
+
+/* =========================================
+   POST TILE
+========================================= */
 
 .postButton {
   position: relative;
@@ -17,20 +23,66 @@
   display: block;
 
   width: 100%;
+  min-width: 0;
 
   aspect-ratio: 1 / 1;
 
-  padding: 0;
-
   overflow: hidden;
 
-  border: 0;
-  border-radius: 4px;
+  padding: 0;
 
-  background: var(--surface);
+  border:
+    1px solid var(--border);
+
+  border-radius: 16px;
+
+  background:
+    var(--surface-light);
 
   cursor: pointer;
+
+  isolation: isolate;
+
+  box-shadow:
+    0 7px 20px rgb(15 23 42 / 6%);
+
+  -webkit-tap-highlight-color:
+    transparent;
+
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
+
+.postButton:hover {
+  transform:
+    translateY(-4px);
+
+  border-color:
+    color-mix(in srgb,
+      var(--primary) 28%,
+      var(--border));
+
+  box-shadow:
+    0 18px 42px rgb(15 23 42 / 16%);
+}
+
+.postButton:active {
+  transform:
+    scale(0.985);
+}
+
+.postButton:focus-visible {
+  outline:
+    3px solid var(--primary-soft);
+
+  outline-offset: 3px;
+}
+
+/* =========================================
+   POST IMAGE
+========================================= */
 
 .image {
   display: block;
@@ -38,64 +90,474 @@
   width: 100%;
   height: 100%;
 
+  background:
+    var(--surface-light);
+
   object-fit: cover;
 
   transition:
-    transform 0.25s ease,
-    filter 0.25s ease;
+    transform 320ms cubic-bezier(0.22,
+      1,
+      0.36,
+      1),
+    filter 180ms ease;
 }
 
-.postButton::after {
-  content: "";
+.postButton:hover .image {
+  transform:
+    scale(1.055);
+}
 
-  position: absolute;
-  inset: 0;
+.imageFailed {
+  display: none;
+}
+
+/* =========================================
+   IMAGE FALLBACK
+========================================= */
+
+.imagePlaceholder {
+  display: grid;
+
+  width: 100%;
+  height: 100%;
+
+  place-items: center;
 
   background:
-    rgba(0, 0, 0, 0);
+    linear-gradient(135deg,
+      var(--primary-soft),
+      var(--accent-soft));
+
+  color:
+    var(--text-secondary);
+}
+
+/* =========================================
+   HOVER OVERLAY
+========================================= */
+
+.overlay {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+
+  padding: 16px;
+
+  background:
+    linear-gradient(to top,
+      rgb(2 6 23 / 72%),
+      rgb(2 6 23 / 22%));
+
+  color: #ffffff;
+
+  opacity: 0;
 
   pointer-events: none;
 
   transition:
-    background 0.2s ease;
+    opacity 180ms ease;
 }
 
-.postButton:hover::after {
+.postButton:hover .overlay,
+.postButton:focus-visible .overlay {
+  opacity: 1;
+}
+
+.metric {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  gap: 4px;
+}
+
+.metric strong {
+  font-size: 1rem;
+  font-weight: 820;
+  line-height: 1;
+}
+
+.metric small {
+  color:
+    rgb(255 255 255 / 82%);
+
+  font-size: 0.61rem;
+  font-weight: 650;
+}
+
+/* =========================================
+   SAVED BADGE
+========================================= */
+
+.savedBadge {
+  position: absolute;
+  z-index: 3;
+
+  top: 10px;
+  right: 10px;
+
+  display: grid;
+
+  width: 31px;
+  height: 31px;
+
+  place-items: center;
+
+  border:
+    1px solid rgb(255 255 255 / 30%);
+
+  border-radius: 10px;
+
   background:
-    rgba(0, 0, 0, 0.18);
+    rgb(2 6 23 / 55%);
+
+  color: #ffffff;
+
+  backdrop-filter:
+    blur(10px);
+
+  -webkit-backdrop-filter:
+    blur(10px);
+
+  pointer-events: none;
 }
 
-.postButton:hover .image {
-  transform: scale(1.025);
-}
+/* =========================================
+   EMPTY / ERROR STATE
+========================================= */
 
-.postButton:focus-visible {
-  outline:
-    2px solid var(--primary);
+.stateCard {
+  display: flex;
 
-  outline-offset: 3px;
-}
+  width: 100%;
+  min-height: 270px;
 
-.status {
-  grid-column: 1 / -1;
+  flex-direction: column;
 
-  padding: 48px 20px;
+  align-items: center;
+  justify-content: center;
 
-  color: var(--text-secondary);
+  padding:
+    42px 22px;
 
-  font-size: 14px;
+  border:
+    1px dashed color-mix(in srgb,
+      var(--border) 90%,
+      transparent);
+
+  border-radius: 22px;
+
+  background:
+    color-mix(in srgb,
+      var(--surface) 86%,
+      transparent);
 
   text-align: center;
+
+  box-shadow:
+    var(--shadow-sm,
+      0 10px 28px rgb(15 23 42 / 5%));
+
+  backdrop-filter:
+    blur(16px);
+
+  -webkit-backdrop-filter:
+    blur(16px);
 }
 
-@media (max-width: 700px) {
-  .grid {
-    gap: 2px;
+.stateIcon {
+  display: grid;
 
-    margin-top: 20px;
+  width: 56px;
+  height: 56px;
+
+  place-items: center;
+
+  border:
+    1px solid color-mix(in srgb,
+      var(--primary) 20%,
+      var(--border));
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(135deg,
+      var(--primary-soft),
+      var(--accent-soft));
+
+  color:
+    var(--primary);
+}
+
+.stateCard h3 {
+  margin:
+    17px 0 0;
+
+  color:
+    var(--text-primary);
+
+  font-size: 1.08rem;
+  font-weight: 810;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.stateCard p {
+  max-width: 360px;
+
+  margin:
+    8px 0 0;
+
+  color:
+    var(--text-secondary);
+
+  font-size: 0.76rem;
+  line-height: 1.6;
+}
+
+/* =========================================
+   RETRY BUTTON
+========================================= */
+
+.retryButton {
+  display: inline-flex;
+
+  min-height: 42px;
+
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  margin-top: 17px;
+
+  padding:
+    0 16px;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 12px;
+
+  background:
+    var(--surface-light);
+
+  color:
+    var(--text-primary);
+
+  font: inherit;
+  font-size: 0.71rem;
+  font-weight: 730;
+
+  cursor: pointer;
+
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.retryButton:hover {
+  border-color:
+    color-mix(in srgb,
+      var(--primary) 34%,
+      var(--border));
+
+  background:
+    var(--primary-soft);
+
+  color:
+    var(--primary);
+}
+
+.retryButton:active {
+  transform:
+    scale(0.97);
+}
+
+.retryButton:focus-visible {
+  outline:
+    3px solid var(--primary-soft);
+
+  outline-offset: 2px;
+}
+
+/* =========================================
+   SKELETON GRID
+========================================= */
+
+.skeletonGrid {
+  display: grid;
+
+  width: 100%;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 10px;
+}
+
+.skeletonTile {
+  aspect-ratio: 1 / 1;
+
+  overflow: hidden;
+
+  border:
+    1px solid var(--border);
+
+  border-radius: 16px;
+
+  background:
+    linear-gradient(90deg,
+      var(--surface-light) 25%,
+      color-mix(in srgb,
+        var(--surface-solid, var(--surface)) 76%,
+        transparent) 50%,
+      var(--surface-light) 75%);
+
+  background-size:
+    220% 100%;
+
+  animation:
+    shimmer 1.25s linear infinite;
+}
+
+/* =========================================
+   ANIMATIONS
+========================================= */
+
+@keyframes shimmer {
+  from {
+    background-position:
+      200% 0;
+  }
+
+  to {
+    background-position:
+      -20% 0;
+  }
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 768px) {
+
+  .grid,
+  .skeletonGrid {
+    gap: 4px;
+  }
+
+  .postButton,
+  .skeletonTile {
+    border-radius: 9px;
   }
 
   .postButton {
-    border-radius: 2px;
+    box-shadow: none;
+  }
+
+  .postButton:hover {
+    transform: none;
+
+    border-color:
+      var(--border);
+
+    box-shadow: none;
+  }
+
+  .postButton:hover .image {
+    transform: none;
+  }
+
+  .overlay {
+    display: none;
+  }
+
+  .savedBadge {
+    top: 6px;
+    right: 6px;
+
+    width: 27px;
+    height: 27px;
+
+    border-radius: 8px;
+  }
+
+  .savedBadge svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .stateCard {
+    min-height: 245px;
+
+    padding:
+      34px 18px;
+
+    border-radius: 18px;
+  }
+}
+
+/* =========================================
+   SMALL MOBILE
+========================================= */
+
+@media (max-width: 390px) {
+
+  .grid,
+  .skeletonGrid {
+    gap: 3px;
+  }
+
+  .postButton,
+  .skeletonTile {
+    border-radius: 7px;
+  }
+}
+
+/* =========================================
+   DARK THEME
+========================================= */
+
+:global(:root[data-theme="dark"]) .postButton {
+  box-shadow:
+    0 10px 28px rgb(0 0 0 / 25%);
+}
+
+:global(:root[data-theme="dark"]) .postButton:hover {
+  box-shadow:
+    0 22px 48px rgb(0 0 0 / 38%);
+}
+
+:global(:root[data-theme="dark"]) .stateCard {
+  box-shadow:
+    0 16px 42px rgb(0 0 0 / 24%);
+}
+
+/* =========================================
+   REDUCED MOTION
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .postButton,
+  .image,
+  .overlay,
+  .retryButton {
+    transition: none;
+  }
+
+  .skeletonTile {
+    animation: none;
   }
 }

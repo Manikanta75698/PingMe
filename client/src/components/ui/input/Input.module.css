@@ -1,99 +1,384 @@
+/* =========================================================
+   PINGME — SHARED INPUT
+========================================================= */
+
 .inputGroup {
   display: flex;
+
+  width: 100%;
+  min-width: 0;
+
   flex-direction: column;
   gap: 8px;
-  width: 100%;
 }
 
+/* =========================================
+   LABEL
+========================================= */
+
 .label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
+  display: inline-flex;
+
+  width: fit-content;
+
+  align-items: center;
+  gap: 3px;
+
+  color:
+    var(--text-primary,
+      #0f172a);
+
+  font-size: 0.72rem;
+  font-weight: 720;
+  line-height: 1.35;
 }
+
+.requiredMark {
+  color:
+    var(--danger,
+      #dc2626);
+
+  font-weight: 800;
+}
+
+/* =========================================
+   WRAPPER
+========================================= */
 
 .inputWrapper {
   position: relative;
+
   width: 100%;
+  min-width: 0;
+
+  border-radius: 15px;
 }
 
+.inputWrapper::after {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  border-radius: inherit;
+
+  box-shadow:
+    0 0 0 0 transparent;
+
+  pointer-events: none;
+
+  transition:
+    box-shadow 160ms ease;
+}
+
+.inputWrapper:focus-within::after {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb,
+      var(--primary) 15%,
+      transparent);
+}
+
+.wrapperError:focus-within::after {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb,
+      var(--danger) 13%,
+      transparent);
+}
+
+.wrapperDisabled {
+  cursor: not-allowed;
+}
+
+/* =========================================
+   INPUT
+========================================= */
+
 .input {
+  display: block;
+
   width: 100%;
-  height: 54px;
+  min-width: 0;
+  height: 52px;
 
-  padding: 0 18px;
-  padding-right: 52px;
+  padding:
+    0 16px;
 
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  border:
+    1px solid var(--border,
+      #dbe2ea);
 
-  background: var(--surface);
-  color: var(--text-primary);
+  border-radius: 15px;
 
   outline: none;
 
-  transition: all .25s ease;
+  background:
+    color-mix(in srgb,
+      var(--surface) 96%,
+      transparent);
+
+  color:
+    var(--text-primary,
+      #0f172a);
+
+  caret-color:
+    var(--primary,
+      #4f46e5);
+
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 540;
+  line-height: 1;
+
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 5%);
+
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
+}
+
+.inputWithToggle {
+  padding-right: 50px;
 }
 
 .input::placeholder {
-  color: var(--text-muted);
+  color:
+    var(--text-muted,
+      #94a3b8);
+
+  opacity: 0.85;
+}
+
+.input:hover:not( :disabled):not( :focus) {
+  border-color:
+    color-mix(in srgb,
+      var(--primary) 28%,
+      var(--border));
 }
 
 .input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(79,70,229,.15);
+  border-color:
+    var(--primary,
+      #4f46e5);
+
+  background:
+    var(--surface-solid,
+      var(--surface));
 }
+
+.input:disabled {
+  border-color:
+    color-mix(in srgb,
+      var(--border) 82%,
+      transparent);
+
+  background:
+    color-mix(in srgb,
+      var(--surface-light) 72%,
+      transparent);
+
+  color:
+    var(--text-muted,
+      #94a3b8);
+
+  opacity: 0.68;
+
+  cursor: not-allowed;
+}
+
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color:
+    var(--text-primary,
+      #0f172a);
+
+  caret-color:
+    var(--text-primary,
+      #0f172a);
+
+  box-shadow:
+    0 0 0 1000px var(--surface-solid,
+      var(--surface)) inset;
+
+  transition:
+    background-color 9999s ease-out;
+}
+
+/* =========================================
+   ERROR STATE
+========================================= */
+
+.errorInput,
+.errorInput:hover:not( :disabled) {
+  border-color:
+    var(--danger,
+      #dc2626);
+}
+
+.errorInput:focus {
+  border-color:
+    var(--danger,
+      #dc2626);
+}
+
+.error,
+.helperText {
+  margin:
+    -1px 2px 0;
+
+  font-size: 0.63rem;
+  line-height: 1.45;
+}
+
+.error {
+  color:
+    var(--danger,
+      #dc2626);
+
+  font-weight: 620;
+}
+
+.helperText {
+  color:
+    var(--text-muted,
+      var(--text-secondary));
+}
+
+/* =========================================
+   PASSWORD VISIBILITY BUTTON
+========================================= */
 
 .eyeButton {
   position: absolute;
+  z-index: 2;
 
   top: 50%;
-  right: 16px;
+  right: 9px;
 
-  transform: translateY(-50%);
+  display: grid;
 
   width: 34px;
   height: 34px;
 
-  border: none;
+  place-items: center;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 10px;
+
+  outline: none;
+
   background: transparent;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color:
+    var(--text-secondary,
+      #64748b);
 
   cursor: pointer;
 
-  color: var(--text-secondary);
+  transform:
+    translateY(-50%);
 
-  transition: .25s;
+  transition:
+    color 150ms ease,
+    background 150ms ease,
+    transform 150ms ease,
+    opacity 150ms ease;
 }
 
-.eyeButton:hover {
-  color: var(--primary);
+.eyeButton:hover:not( :disabled) {
+  background:
+    var(--primary-soft,
+      color-mix(in srgb,
+        var(--primary) 10%,
+        transparent));
+
+  color:
+    var(--primary,
+      #4f46e5);
 }
 
-.errorInput {
-  border-color: var(--danger);
+.eyeButton:active:not( :disabled) {
+  transform:
+    translateY(-50%) scale(0.9);
 }
 
-.error {
-  margin-top: 6px;
+.eyeButton:focus-visible {
+  outline:
+    3px solid color-mix(in srgb,
+      var(--primary) 20%,
+      transparent);
 
-  color: var(--danger);
-
-  font-size: 13px;
+  outline-offset: 1px;
 }
 
-.input:disabled {
-  opacity: .6;
+.eyeButton:disabled {
+  opacity: 0.42;
+
   cursor: not-allowed;
 }
 
-@media (max-width:768px) {
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 520px) {
+  .inputGroup {
+    gap: 7px;
+  }
+
+  .label {
+    font-size: 0.7rem;
+  }
 
   .input {
     height: 50px;
-    font-size: 15px;
+
+    padding-right: 15px;
+    padding-left: 15px;
+
+    border-radius: 14px;
+
+    font-size: 16px;
   }
 
+  .inputWithToggle {
+    padding-right: 49px;
+  }
+
+  .eyeButton {
+    right: 8px;
+  }
+
+  .error,
+  .helperText {
+    font-size: 0.61rem;
+  }
+}
+
+/* =========================================
+   DARK MODE
+========================================= */
+
+:global( :root[data-theme="dark"]) .input {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 4%);
+}
+
+/* =========================================
+   REDUCED MOTION
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .input,
+  .inputWrapper::after,
+  .eyeButton {
+    transition: none;
+  }
 }
