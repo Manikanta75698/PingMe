@@ -363,57 +363,134 @@ const CreateHelpRequest = () => {
     navigate("/help");
   };
 
-  const handleUseLocation =
-    () => {
-      if (
-        !navigator.geolocation
-      ) {
-        setSubmitError(
-          "Location access is not supported on this device"
-        );
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      setSubmitError(
+        "Location access is not supported on this device"
+      );
+      return;
+    }
 
-        return;
-      }
+    setLocating(true);
+    setSubmitError("");
 
-      setLocating(true);
-      setSubmitError("");
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const latitude =
+            position.coords.latitude;
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
+          const longitude =
+            position.coords.longitude;
+
           updateField(
             "latitude",
-            position.coords
-              .latitude
+            latitude
           );
 
           updateField(
             "longitude",
-            position.coords
-              .longitude
+            longitude
           );
 
-          setLocating(false);
-        },
-        (error) => {
+          const response =
+            await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&addressdetails=1&zoom=18`
+            );
+
+          if (!response.ok) {
+            throw new Error(
+              "Unable to fetch address"
+            );
+          }
+
+          const data =
+            await response.json();
+
+          const address =
+            data.address || {};
+
+          const city =
+            address.city ||
+            address.town ||
+            address.village ||
+            address.municipality ||
+            address.county ||
+            "";
+
+          const area =
+            address.suburb ||
+            address.neighbourhood ||
+            address.residential ||
+            address.quarter ||
+            address.road ||
+            "";
+
+          updateField(
+            "city",
+            city
+          );
+
+          updateField(
+            "area",
+            area
+          );
+
+          updateField(
+            "locationName",
+            data.display_name || ""
+          );
+
+          setSubmitError("");
+        } catch (error) {
           console.error(
-            "Location error:",
+            "Reverse geocoding error:",
             error
           );
 
           setSubmitError(
-            "Unable to access your location. You can enter city and area manually."
+            "Coordinates detected, but address could not be loaded. Please enter city and area manually."
           );
-
+        } finally {
           setLocating(false);
-        },
-        {
-          enableHighAccuracy:
-            true,
-          timeout: 10000,
-          maximumAge: 300000,
         }
-      );
-    };
+      },
+
+      (error) => {
+        console.error(
+          "Location error:",
+          error
+        );
+
+        let message =
+          "Unable to access your location.";
+
+        if (error.code === 1) {
+          message =
+            "Location permission was denied. Please allow location access.";
+        }
+
+        if (error.code === 2) {
+          message =
+            "Your current location could not be detected.";
+        }
+
+        if (error.code === 3) {
+          message =
+            "Location request timed out. Please try again.";
+        }
+
+        setSubmitError(message);
+        setLocating(false);
+      },
+
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0,
+      }
+    );
+  };
 
   const handleSubmit = async (
     event
