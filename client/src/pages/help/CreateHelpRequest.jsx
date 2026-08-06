@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -250,6 +251,32 @@ const validateForm = (
 const CreateHelpRequest = () => {
   const navigate =
     useNavigate();
+
+  useEffect(() => {
+    const html =
+      document.documentElement;
+
+    const body =
+      document.body;
+
+    html.classList.add(
+      "helpCreatePageOpen"
+    );
+
+    body.classList.add(
+      "helpCreatePageOpen"
+    );
+
+    return () => {
+      html.classList.remove(
+        "helpCreatePageOpen"
+      );
+
+      body.classList.remove(
+        "helpCreatePageOpen"
+      );
+    };
+  }, []);
 
   const [
     formData,
