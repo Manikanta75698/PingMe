@@ -20,11 +20,22 @@ import {
 } from "lucide-react";
 
 import styles from "./Header.module.css";
-import { useAuth } from "../../context/AuthContext";
-import { useChat } from "../../context/ChatContext";
+
+import {
+  useAuth,
+} from "../../context/AuthContext";
+
+import {
+  useChat,
+} from "../../context/ChatContext";
+
 import Avatar from "../ui/avatar/Avatar";
 
-const NAV_ITEMS = [
+/* =====================================
+   DESKTOP NAVIGATION
+===================================== */
+
+const DESKTOP_NAV_ITEMS = [
   {
     label: "Home",
     path: "/home",
@@ -59,10 +70,45 @@ const NAV_ITEMS = [
   },
 ];
 
+/* =====================================
+   MOBILE BOTTOM NAVIGATION
+===================================== */
+
+const MOBILE_NAV_ITEMS = [
+  {
+    label: "Home",
+    path: "/home",
+    icon: Home,
+  },
+  {
+    label: "Search",
+    path: "/search",
+    icon: Search,
+  },
+  {
+    label: "Explore",
+    path: "/explore",
+    icon: Compass,
+  },
+  {
+    label: "Nearby Help",
+    path: "/help",
+    icon: HandHeart,
+  },
+  {
+    label: "Notifications",
+    path: "/activity",
+    icon: Heart,
+    badgeType: "notifications",
+  },
+];
+
 const Header = ({
   scrollY = 0,
 }) => {
-  const { user } = useAuth();
+  const {
+    user,
+  } = useAuth();
 
   const {
     notificationUnreadCount,
@@ -99,6 +145,8 @@ const Header = ({
 
   const profileImage =
     user?.profilePic ||
+    user?.avatar ||
+    user?.photoURL ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(
       user?.name ||
       user?.username ||
@@ -122,22 +170,48 @@ const Header = ({
     );
   };
 
+  const getBadgeValue = (
+    badgeType
+  ) => {
+    if (
+      badgeType ===
+      "messages"
+    ) {
+      return totalUnreadMessages;
+    }
+
+    if (
+      badgeType ===
+      "notifications"
+    ) {
+      return (
+        Number(
+          notificationUnreadCount
+        ) || 0
+      );
+    }
+
+    return 0;
+  };
+
   useEffect(() => {
     Promise.allSettled([
       loadChatSummaries(),
       loadNotifications(),
     ]).then((results) => {
-      results.forEach((result) => {
-        if (
-          result.status ===
-          "rejected"
-        ) {
-          console.error(
-            "HEADER DATA LOAD ERROR:",
-            result.reason
-          );
+      results.forEach(
+        (result) => {
+          if (
+            result.status ===
+            "rejected"
+          ) {
+            console.error(
+              "HEADER DATA LOAD ERROR:",
+              result.reason
+            );
+          }
         }
-      });
+      );
     });
   }, [
     loadChatSummaries,
@@ -170,34 +244,148 @@ const Header = ({
       scrollY;
   }, [scrollY]);
 
-  const getBadgeValue = (
-    badgeType
-  ) => {
-    if (
-      badgeType ===
-      "messages"
-    ) {
-      return totalUnreadMessages;
-    }
-
-    if (
-      badgeType ===
-      "notifications"
-    ) {
-      return Number(
-        notificationUnreadCount
-      ) || 0;
-    }
-
-    return 0;
-  };
-
   const openProfile = () => {
     navigate("/profile");
   };
 
+  const renderDesktopNavItem =
+    ({
+      label,
+      path,
+      icon: Icon,
+      badgeType,
+    }) => {
+      const badgeValue =
+        getBadgeValue(
+          badgeType
+        );
+
+      const active =
+        isActive(path);
+
+      return (
+        <button
+          key={path}
+          type="button"
+          className={`${styles.navItem} ${active
+              ? styles.active
+              : ""
+            }`}
+          onClick={() =>
+            navigate(path)
+          }
+          aria-current={
+            active
+              ? "page"
+              : undefined
+          }
+          aria-label={label}
+        >
+          <span
+            className={
+              styles.iconShell
+            }
+          >
+            <Icon
+              className={
+                styles.icon
+              }
+              strokeWidth={2}
+              aria-hidden="true"
+            />
+
+            {badgeValue >
+              0 && (
+                <span
+                  className={
+                    styles.badge
+                  }
+                >
+                  {badgeValue > 99
+                    ? "99+"
+                    : badgeValue}
+                </span>
+              )}
+          </span>
+
+          <span
+            className={
+              styles.text
+            }
+          >
+            {label}
+          </span>
+        </button>
+      );
+    };
+
+  const renderMobileNavItem =
+    ({
+      label,
+      path,
+      icon: Icon,
+      badgeType,
+    }) => {
+      const badgeValue =
+        getBadgeValue(
+          badgeType
+        );
+
+      const active =
+        isActive(path);
+
+      return (
+        <button
+          key={path}
+          type="button"
+          className={`${styles.mobileNavItem} ${active
+              ? styles.mobileNavActive
+              : ""
+            }`}
+          onClick={() =>
+            navigate(path)
+          }
+          aria-current={
+            active
+              ? "page"
+              : undefined
+          }
+          aria-label={label}
+        >
+          <span
+            className={
+              styles.mobileIconShell
+            }
+          >
+            <Icon
+              className={
+                styles.mobileIcon
+              }
+              strokeWidth={2}
+              aria-hidden="true"
+            />
+
+            {badgeValue >
+              0 && (
+                <span
+                  className={
+                    styles.mobileBadge
+                  }
+                >
+                  {badgeValue > 99
+                    ? "99+"
+                    : badgeValue}
+                </span>
+              )}
+          </span>
+        </button>
+      );
+    };
+
   return (
     <>
+      {/* MOBILE TOP HEADER */}
+
       <header
         className={`${styles.mobileTopHeader} ${!showTopHeader
             ? styles.hideTopHeader
@@ -215,8 +403,9 @@ const Header = ({
           aria-label="Create post"
         >
           <SquarePlus
-            size={23}
+            size={22}
             strokeWidth={2.1}
+            aria-hidden="true"
           />
         </button>
 
@@ -235,28 +424,43 @@ const Header = ({
 
         <button
           type="button"
-          className={
-            styles.topHeaderAvatarButton
+          className={`${styles.topHeaderChatButton} ${isActive("/chat")
+              ? styles.topHeaderChatActive
+              : ""
+            }`}
+          onClick={() =>
+            navigate("/chat")
           }
-          onClick={
-            openProfile
+          aria-label={
+            totalUnreadMessages >
+              0
+              ? `Open messages, ${totalUnreadMessages} unread`
+              : "Open messages"
           }
-          aria-label="Open profile"
         >
-          <Avatar
-            src={
-              profileImage
-            }
-            alt={
-              user?.name ||
-              "Profile"
-            }
-            className={
-              styles.topHeaderProfileIcon
-            }
+          <MessageCircle
+            size={22}
+            strokeWidth={2.1}
+            aria-hidden="true"
           />
+
+          {totalUnreadMessages >
+            0 && (
+              <span
+                className={
+                  styles.topHeaderBadge
+                }
+              >
+                {totalUnreadMessages >
+                  99
+                  ? "99+"
+                  : totalUnreadMessages}
+              </span>
+            )}
         </button>
       </header>
+
+      {/* DESKTOP SIDEBAR */}
 
       <nav
         className={
@@ -296,95 +500,23 @@ const Header = ({
             styles.navLinks
           }
         >
-          {NAV_ITEMS.map(
-            ({
-              label,
-              path,
-              icon: Icon,
-              badgeType,
-            }) => {
-              const badgeValue =
-                getBadgeValue(
-                  badgeType
-                );
-
-              return (
-                <button
-                  key={path}
-                  type="button"
-                  className={`${styles.navItem} ${isActive(
-                    path
-                  )
-                      ? styles.active
-                      : ""
-                    }`}
-                  onClick={() =>
-                    navigate(
-                      path
-                    )
-                  }
-                  aria-current={
-                    isActive(
-                      path
-                    )
-                      ? "page"
-                      : undefined
-                  }
-                  aria-label={
-                    label
-                  }
-                >
-                  <span
-                    className={
-                      styles.iconShell
-                    }
-                  >
-                    <Icon
-                      className={
-                        styles.icon
-                      }
-                      strokeWidth={
-                        2
-                      }
-                    />
-
-                    {badgeValue >
-                      0 && (
-                        <span
-                          className={
-                            styles.badge
-                          }
-                        >
-                          {badgeValue >
-                            99
-                            ? "99+"
-                            : badgeValue}
-                        </span>
-                      )}
-                  </span>
-
-                  <span
-                    className={
-                      styles.text
-                    }
-                  >
-                    {label}
-                  </span>
-                </button>
-              );
-            }
+          {DESKTOP_NAV_ITEMS.map(
+            renderDesktopNavItem
           )}
 
           <button
             type="button"
-            className={`${styles.navItem} ${styles.desktopOnly} ${isActive(
-              "/create"
-            )
+            className={`${styles.navItem} ${isActive("/create")
                 ? styles.active
                 : ""
               }`}
             onClick={() =>
               navigate("/create")
+            }
+            aria-current={
+              isActive("/create")
+                ? "page"
+                : undefined
             }
           >
             <span
@@ -396,6 +528,8 @@ const Header = ({
                 className={
                   styles.icon
                 }
+                strokeWidth={2}
+                aria-hidden="true"
               />
             </span>
 
@@ -411,9 +545,7 @@ const Header = ({
 
         <button
           type="button"
-          className={`${styles.profileNavItem} ${styles.desktopOnly} ${isActive(
-            "/profile"
-          )
+          className={`${styles.profileNavItem} ${isActive("/profile")
               ? styles.profileNavActive
               : ""
             }`}
@@ -422,9 +554,7 @@ const Header = ({
           }
         >
           <Avatar
-            src={
-              profileImage
-            }
+            src={profileImage}
             alt={
               user?.name ||
               "Profile"
@@ -455,6 +585,59 @@ const Header = ({
             </small>
           </span>
         </button>
+      </nav>
+
+      {/* MOBILE BOTTOM NAVIGATION */}
+
+      <nav
+        className={
+          styles.mobileBottomNav
+        }
+        aria-label="Mobile navigation"
+      >
+        <div
+          className={
+            styles.mobileNavLinks
+          }
+        >
+          {MOBILE_NAV_ITEMS.map(
+            renderMobileNavItem
+          )}
+
+          <button
+            type="button"
+            className={`${styles.mobileNavItem} ${isActive("/profile")
+                ? styles.mobileNavActive
+                : ""
+              }`}
+            onClick={
+              openProfile
+            }
+            aria-current={
+              isActive("/profile")
+                ? "page"
+                : undefined
+            }
+            aria-label="Profile"
+          >
+            <span
+              className={
+                styles.mobileProfileShell
+              }
+            >
+              <Avatar
+                src={profileImage}
+                alt={
+                  user?.name ||
+                  "Profile"
+                }
+                className={
+                  styles.mobileProfileIcon
+                }
+              />
+            </span>
+          </button>
+        </div>
       </nav>
     </>
   );

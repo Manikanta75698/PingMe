@@ -13,6 +13,8 @@ import {
 
 import styles from "./Chat.module.css";
 
+import Header from "../../components/home/Header";
+
 import ChatSidebar from "../../components/chat/ChatSidebar";
 import ChatHeader from "../../components/chat/ChatHeader";
 import PinnedMessageBanner from "../../components/chat/PinnedMessageBanner";
@@ -1316,165 +1318,170 @@ const Chat = () => {
     messages.length > 0;
 
   return (
-    <main
-      className={
-        styles.chatPage
-      }
-      style={{
-        "--chat-visual-height":
-          viewportMetrics.height
-            ? `${viewportMetrics.height}px`
-            : "100dvh",
+    <>
+      {!selectedChat && <Header />}
 
-        "--chat-visual-offset-top":
-          `${viewportMetrics.offsetTop}px`,
-      }}
-    >
-      <section
-        className={`
+      <main
+        className={`${styles.chatPage} ${selectedChat
+          ? styles.conversationPage
+          : styles.chatListPage
+          }`}
+        style={{
+          "--chat-visual-height":
+            viewportMetrics.height
+              ? `${viewportMetrics.height}px`
+              : "100dvh",
+
+          "--chat-visual-offset-top":
+            `${viewportMetrics.offsetTop}px`,
+        }}
+      >
+        <section
+          className={`
           ${styles.sidebar}
           ${selectedChat
-            ? styles.hideSidebar
-            : ""
-          }
+              ? styles.hideSidebar
+              : ""
+            }
         `}
-      >
-        <ChatSidebar />
-      </section>
+        >
+          <ChatSidebar />
+        </section>
 
-      <section
-        className={`
+        <section
+          className={`
           ${styles.chatArea}
           ${!selectedChat
-            ? styles.hideChat
-            : ""
-          }
+              ? styles.hideChat
+              : ""
+            }
         `}
-      >
-        {selectedChat && (
-          <>
-            <ChatHeader />
-
-            <PinnedMessageBanner />
-          </>
-        )}
-
-        <div
-          className={
-            styles.messages
-          }
         >
-          {selectedChat &&
-            messagesLoading &&
-            !hasMessages && (
-              <div
-                className={
-                  styles.messageState
-                }
-                role="status"
-              >
+          {selectedChat && (
+            <>
+              <ChatHeader />
+
+              <PinnedMessageBanner />
+            </>
+          )}
+
+          <div
+            className={
+              styles.messages
+            }
+          >
+            {selectedChat &&
+              messagesLoading &&
+              !hasMessages && (
                 <div
                   className={
-                    styles.messageSkeleton
+                    styles.messageState
                   }
-                  aria-hidden="true"
+                  role="status"
                 >
-                  <span />
-                  <span />
-                  <span />
-                  <span />
+                  <div
+                    className={
+                      styles.messageSkeleton
+                    }
+                    aria-hidden="true"
+                  >
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+
+                  {showSlowServerMessage && (
+                    <p>
+                      Connecting to chat
+                      server…
+                    </p>
+                  )}
                 </div>
+              )}
 
-                {showSlowServerMessage && (
+            {selectedChat &&
+              messagesError &&
+              !hasMessages &&
+              !messagesLoading && (
+                <div
+                  className={
+                    styles.messageError
+                  }
+                  role="alert"
+                >
                   <p>
-                    Connecting to chat
-                    server…
+                    {messagesError}
                   </p>
-                )}
-              </div>
-            )}
 
-          {selectedChat &&
-            messagesError &&
-            !hasMessages &&
-            !messagesLoading && (
-              <div
-                className={
-                  styles.messageError
-                }
-                role="alert"
-              >
-                <p>
-                  {messagesError}
-                </p>
+                  <button
+                    type="button"
+                    className={
+                      styles.retryButton
+                    }
+                    onClick={() => {
+                      void loadMessages();
+                    }}
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
 
+            {selectedChat &&
+              (hasMessages ||
+                (!messagesLoading &&
+                  !messagesError)) && (
+                <MessageList
+                  hasMoreMessages={
+                    hasMoreMessages
+                  }
+                  olderMessagesLoading={
+                    olderMessagesLoading
+                  }
+                  loadOlderMessages={
+                    loadOlderMessages
+                  }
+                />
+              )}
+
+            {selectedChat &&
+              messagesRefreshing &&
+              hasMessages && (
+                <div
+                  className={
+                    styles.syncBadge
+                  }
+                  role="status"
+                >
+                  Syncing…
+                </div>
+              )}
+
+            {selectedChat &&
+              messagesError &&
+              hasMessages && (
                 <button
                   type="button"
                   className={
-                    styles.retryButton
+                    styles.refreshWarning
                   }
                   onClick={() => {
                     void loadMessages();
                   }}
                 >
-                  Try again
+                  Couldn’t refresh.
+                  Tap to retry.
                 </button>
-              </div>
-            )}
+              )}
+          </div>
 
-          {selectedChat &&
-            (hasMessages ||
-              (!messagesLoading &&
-                !messagesError)) && (
-              <MessageList
-                hasMoreMessages={
-                  hasMoreMessages
-                }
-                olderMessagesLoading={
-                  olderMessagesLoading
-                }
-                loadOlderMessages={
-                  loadOlderMessages
-                }
-              />
-            )}
-
-          {selectedChat &&
-            messagesRefreshing &&
-            hasMessages && (
-              <div
-                className={
-                  styles.syncBadge
-                }
-                role="status"
-              >
-                Syncing…
-              </div>
-            )}
-
-          {selectedChat &&
-            messagesError &&
-            hasMessages && (
-              <button
-                type="button"
-                className={
-                  styles.refreshWarning
-                }
-                onClick={() => {
-                  void loadMessages();
-                }}
-              >
-                Couldn’t refresh.
-                Tap to retry.
-              </button>
-            )}
-        </div>
-
-        {selectedChat && (
-          <MessageInput />
-        )}
-      </section>
-    </main>
+          {selectedChat && (
+            <MessageInput />
+          )}
+        </section>
+      </main>
+    </>
   );
 };
 

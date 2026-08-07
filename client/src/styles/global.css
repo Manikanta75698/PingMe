@@ -940,3 +940,14 @@ select:-webkit-autofill {
       none !important;
   }
 }
+
+
+@media (max-width: 768px) {
+
+  .appPage,
+  main {
+    padding-bottom:
+      calc(92px + env(safe-area-inset-bottom,
+          0px));
+  }
+}

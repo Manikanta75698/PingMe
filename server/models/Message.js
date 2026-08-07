@@ -236,10 +236,6 @@ const messageSchema =
         default: null,
       },
 
-      expiresAt: {
-        type: Date,
-        default: null,
-      },
     },
     {
       timestamps: true,
@@ -336,20 +332,6 @@ messageSchema.index({
   createdAt: -1,
 });
 
-messageSchema.index(
-  {
-    expiresAt: 1,
-  },
-  {
-    expireAfterSeconds: 0,
-
-    partialFilterExpression: {
-      expiresAt: {
-        $type: "date",
-      },
-    },
-  }
-);
 
 messageSchema.index(
   {

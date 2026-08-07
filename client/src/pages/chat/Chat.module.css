@@ -7,14 +7,17 @@
 
   display: flex;
 
-  width: 100%;
+  width: calc(100% - 250px);
   height: 100vh;
   height: 100dvh;
   min-height: 0;
 
+  margin-left: 250px;
+
   overflow: hidden;
 
-  color: var(--text-primary,
+  color:
+    var(--text-primary,
       CanvasText);
 
   background:
@@ -491,8 +494,9 @@
     position: fixed;
 
     top:
-      var(--chat-visual-offset-top,
-        0px);
+      calc(var(--chat-visual-offset-top,
+          0px) + 62px + env(safe-area-inset-top,
+          0px));
 
     right: 0;
     bottom: auto;
@@ -502,19 +506,26 @@
 
     width: 100%;
     height:
-      var(--chat-visual-height,
-        100dvh);
+      calc(var(--chat-visual-height,
+          100dvh) - 62px - env(safe-area-inset-top,
+          0px) - 84px - env(safe-area-inset-bottom,
+          0px));
 
     min-height: 0;
     max-height:
-      var(--chat-visual-height,
-        100dvh);
+      calc(var(--chat-visual-height,
+          100dvh) - 62px - env(safe-area-inset-top,
+          0px) - 84px - env(safe-area-inset-bottom,
+          0px));
+
+    margin-left: 0;
 
     overflow: hidden;
 
     overscroll-behavior: none;
 
-    transform: translateZ(0);
+    transform:
+      translateZ(0);
   }
 
   .sidebar {
@@ -532,11 +543,11 @@
 
     overflow: hidden;
 
+    border-right: 0;
+
     background:
       var(--surface,
         Canvas);
-
-    border-right: none;
   }
 
   .chatArea {
@@ -588,7 +599,7 @@
     min-height: 180px;
 
     padding:
-      18px 14px calc(24px + env(safe-area-inset-bottom));
+      18px 14px 24px;
   }
 
   .messageSkeleton {
@@ -669,5 +680,32 @@
   .loadOlderButton,
   .refreshWarning {
     border-width: 2px;
+  }
+}
+
+@media (max-width: 768px) {
+  .chatListPage {
+    top:
+      calc(var(--chat-visual-offset-top, 0px) + 62px + env(safe-area-inset-top, 0px));
+
+    height:
+      calc(var(--chat-visual-height, 100dvh) - 62px - env(safe-area-inset-top, 0px) - 84px - env(safe-area-inset-bottom, 0px));
+
+    max-height:
+      calc(var(--chat-visual-height, 100dvh) - 62px - env(safe-area-inset-top, 0px) - 84px - env(safe-area-inset-bottom, 0px));
+  }
+
+  .conversationPage {
+    top:
+      var(--chat-visual-offset-top,
+        0px);
+
+    height:
+      var(--chat-visual-height,
+        100dvh);
+
+    max-height:
+      var(--chat-visual-height,
+        100dvh);
   }
 }
