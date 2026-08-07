@@ -244,12 +244,6 @@ export const ChatProvider = ({
      SELECTED CHAT RESET
   ========================= */
 
-  /*
-   * Reset reply/edit/search state only when the actual
-   * conversation user changes. Presence or profile updates
-   * may replace the selectedChat object while its ID remains
-   * the same, and must not cancel an active edit.
-   */
   useEffect(() => {
     readReceiptIdsRef.current.clear();
 

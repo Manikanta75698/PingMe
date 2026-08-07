@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 
 import {
   Home,
-  Search,
   Heart,
   MessageCircle,
   SquarePlus,
@@ -75,18 +74,6 @@ const Sidebar = () => {
 
             <span className={styles.text}>
               Home
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className={styles.navItem}
-            onClick={() => navigate("/search")}
-          >
-            <Search className={styles.icon} />
-
-            <span className={styles.text}>
-              Search
             </span>
           </button>
 

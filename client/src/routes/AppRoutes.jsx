@@ -18,7 +18,6 @@ import ResetPassword from "../pages/auth/reset-password";
 import Home from "../pages/home/Home";
 import Settings from "../pages/settings/Settings";
 import Chat from "../pages/chat/Chat";
-import Search from "../components/search/Search";
 import Activity from "../pages/activity/Activity";
 import Profile from "../pages/profile/Profile";
 import UserProfile from "../pages/profile/UserProfile";
@@ -161,10 +160,6 @@ const AppRoutes = () => {
           element={<Home />}
         />
 
-        <Route
-          path="/search"
-          element={<Search />}
-        />
 
         <Route
           path="/explore"

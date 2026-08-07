@@ -1,6 +1,6 @@
-/* =========================
-   SIDEBAR ROOT
-========================= */
+/* =========================================
+   CHAT SIDEBAR
+========================================= */
 
 .sidebar {
   display: flex;
@@ -8,6 +8,7 @@
 
   width: 100%;
   height: 100%;
+
   min-width: 0;
   min-height: 0;
 
@@ -22,13 +23,13 @@
   box-sizing: border-box;
 }
 
-/* =========================
+/* =========================================
    HEADER
-========================= */
+========================================= */
 
 .header {
   position: relative;
-  z-index: 10;
+  z-index: 2;
 
   display: flex;
   flex: 0 0 auto;
@@ -36,8 +37,10 @@
 
   width: 100%;
 
-  gap: 14px;
-  padding: 18px 16px 16px;
+  gap: 12px;
+
+  padding:
+    20px 18px 16px;
 
   background: var(--surface);
 
@@ -52,22 +55,25 @@
 
   color: var(--text-primary);
 
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 25px;
+  font-weight: 800;
   line-height: 1.2;
+
+  letter-spacing: -0.025em;
 }
 
-/* =========================
+/* =========================================
    SEARCH
-========================= */
+========================================= */
 
 .searchInput {
   display: block;
 
   width: 100%;
-  height: 44px;
+  height: 46px;
 
-  padding: 0 15px;
+  padding:
+    0 15px;
 
   color: var(--text-primary);
   background: var(--background);
@@ -75,7 +81,7 @@
   border:
     1px solid var(--border);
 
-  border-radius: 12px;
+  border-radius: 13px;
 
   outline: none;
 
@@ -85,9 +91,9 @@
   font-size: 15px;
 
   transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease,
-    box-shadow 0.2s ease;
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
 .searchInput::placeholder {
@@ -96,41 +102,49 @@
 
 .searchInput:hover {
   border-color:
-    var(--text-secondary);
+    color-mix(in srgb,
+      var(--text-secondary) 50%,
+      var(--border));
 }
 
 .searchInput:focus {
   background: var(--surface);
 
-  border-color:
-    var(--primary);
+  border-color: var(--primary);
 
   box-shadow:
     0 0 0 3px color-mix(in srgb,
-      var(--primary) 18%,
+      var(--primary) 13%,
       transparent);
 }
 
-/* =========================
+/* =========================================
    USER LIST
-========================= */
+========================================= */
 
 .userList {
   position: relative;
 
   display: flex;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   flex-direction: column;
 
   width: 100%;
+  height: 100%;
+
   min-width: 0;
   min-height: 0;
 
-  gap: 6px;
-  padding: 8px;
+  gap: 0;
+
+  padding:
+    6px 0 20px;
 
   overflow-x: hidden;
   overflow-y: auto;
+
+  visibility: visible;
+  opacity: 1;
 
   background: var(--surface);
 
@@ -138,13 +152,16 @@
 
   overscroll-behavior: contain;
 
+  -webkit-overflow-scrolling:
+    touch;
+
   scrollbar-width: thin;
   scrollbar-color:
     var(--border) transparent;
 }
 
 .userList::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .userList::-webkit-scrollbar-track {
@@ -157,29 +174,35 @@
   border-radius: 999px;
 }
 
-/* =========================
+/* =========================================
    USER ITEM
-========================= */
+========================================= */
 
 .userItem {
+  position: relative;
+
   display: flex;
   flex: 0 0 auto;
   align-items: center;
 
   width: 100%;
+
   min-width: 0;
-  min-height: 74px;
+  min-height: 70px;
 
   gap: 12px;
-  padding: 10px 12px;
+
+  padding:
+    10px 18px;
+
+  visibility: visible;
+  opacity: 1;
 
   color: var(--text-primary);
   background: transparent;
 
-  border:
-    1px solid transparent;
-
-  border-radius: 14px;
+  border: 0;
+  border-radius: 0;
 
   box-sizing: border-box;
 
@@ -191,80 +214,112 @@
   appearance: none;
   -webkit-appearance: none;
 
+  -webkit-tap-highlight-color:
+    transparent;
+
   transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.2s ease;
+    background-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.12s ease;
 }
 
 .userItem:hover {
-  background: var(--background);
+  background:
+    color-mix(in srgb,
+      var(--primary) 5%,
+      var(--surface));
+}
 
-  border-color:
-    var(--border);
-
-  transform:
-    translateY(-1px);
+.userItem:active {
+  transform: scale(0.995);
 }
 
 .userItem:focus-visible {
-  outline: none;
-
-  border-color:
-    var(--primary);
-
-  box-shadow:
-    0 0 0 3px color-mix(in srgb,
-      var(--primary) 18%,
+  outline:
+    2px solid color-mix(in srgb,
+      var(--primary) 42%,
       transparent);
+
+  outline-offset: -2px;
+
+  border-color: transparent;
+
+  box-shadow: none;
 }
 
-/* =========================
-   ACTIVE USER
-========================= */
+/* =========================================
+   ACTIVE CHAT
+========================================= */
 
 .active {
-  color:
-    var(--on-primary, #ffffff);
+  color: var(--text-primary);
 
   background:
-    var(--primary);
+    color-mix(in srgb,
+      var(--primary) 8%,
+      var(--surface));
 
-  border-color:
-    var(--primary);
+  border: 0;
+
+  box-shadow: none;
+}
+
+.active::before {
+  content: "";
+
+  position: absolute;
+
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+
+  width: 3px;
+
+  background: var(--primary);
+
+  border-radius:
+    0 999px 999px 0;
 }
 
 .active:hover {
   background:
-    var(--primary);
+    color-mix(in srgb,
+      var(--primary) 10%,
+      var(--surface));
 
-  border-color:
-    var(--primary);
+  border-color: transparent;
+
+  box-shadow: none;
 }
 
-.active .name,
-.active .preview,
-.active .time {
-  color:
-    var(--on-primary, #ffffff);
+.active:focus-visible {
+  border-color: transparent;
+
+  box-shadow: none;
+}
+
+.active .name {
+  color: var(--text-primary);
 }
 
 .active .preview,
 .active .time {
-  opacity: 0.82;
+  color: var(--text-secondary);
+
+  opacity: 1;
 }
 
 .active .unreadBadge {
-  color: var(--primary);
+  color:
+    var(--on-primary,
+      #ffffff);
 
-  background:
-    var(--on-primary, #ffffff);
+  background: var(--primary);
 }
 
-/* =========================
+/* =========================================
    AVATAR
-========================= */
+========================================= */
 
 .avatarWrapper {
   position: relative;
@@ -272,15 +327,15 @@
   display: block;
   flex: 0 0 auto;
 
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
 }
 
 .avatar {
   display: block;
 
-  width: 52px;
-  height: 52px;
+  width: 100%;
+  height: 100%;
 
   object-fit: cover;
 
@@ -290,17 +345,22 @@
     1px solid var(--border);
 
   border-radius: 50%;
+
+  box-sizing: border-box;
 }
 
 .onlineDot {
   position: absolute;
+
   right: 1px;
   bottom: 1px;
 
   width: 12px;
   height: 12px;
 
-  background: var(--success);
+  background:
+    var(--success,
+      #22c55e);
 
   border:
     2px solid var(--surface);
@@ -312,12 +372,14 @@
 
 .active .onlineDot {
   border-color:
-    var(--primary);
+    color-mix(in srgb,
+      var(--primary) 8%,
+      var(--surface));
 }
 
-/* =========================
+/* =========================================
    USER DETAILS
-========================= */
+========================================= */
 
 .userInfo {
   display: flex;
@@ -335,6 +397,7 @@
   align-items: center;
 
   width: 100%;
+
   min-width: 0;
 
   gap: 8px;
@@ -344,6 +407,7 @@
   flex: 1 1 auto;
 
   min-width: 0;
+
   margin: 0;
 
   overflow: hidden;
@@ -351,8 +415,8 @@
   color: var(--text-primary);
 
   font-size: 15px;
-  font-weight: 700;
-  line-height: 1.25;
+  font-weight: 750;
+  line-height: 1.2;
 
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -363,7 +427,7 @@
 
   color: var(--text-secondary);
 
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
   line-height: 1;
 
@@ -374,13 +438,14 @@
   flex: 1 1 auto;
 
   min-width: 0;
+
   margin: 0;
 
   overflow: hidden;
 
   color: var(--text-secondary);
 
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.25;
 
   text-overflow: ellipsis;
@@ -393,37 +458,40 @@
   align-items: center;
   justify-content: center;
 
-  min-width: 20px;
-  height: 20px;
+  min-width: 19px;
+  height: 19px;
 
-  padding: 0 6px;
+  padding:
+    0 5px;
 
   color:
-    var(--on-primary, #ffffff);
+    var(--on-primary,
+      #ffffff);
 
-  background:
-    var(--primary);
+  background: var(--primary);
 
   border-radius: 999px;
 
   box-sizing: border-box;
 
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 750;
   line-height: 1;
 }
 
-/* =========================
-   EMPTY / LOADING STATE
-========================= */
+/* =========================================
+   EMPTY / LOADING
+========================================= */
 
 .emptyText {
   display: block;
 
   width: 100%;
+
   margin: 0;
 
-  padding: 28px 16px;
+  padding:
+    30px 18px;
 
   color: var(--text-secondary);
 
@@ -434,20 +502,21 @@
   text-align: center;
 }
 
-/* =========================
+/* =========================================
    MOBILE
-========================= */
+========================================= */
 
 @media (max-width: 768px) {
   .sidebar {
-    position: absolute;
-    inset: 0;
+    position: relative;
 
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
 
     width: 100%;
     height: 100%;
+
     min-width: 0;
     min-height: 0;
 
@@ -458,13 +527,22 @@
 
   .header {
     position: relative;
+    z-index: 2;
 
+    display: flex;
     flex: 0 0 auto;
+    flex-direction: column;
+
+    width: 100%;
 
     gap: 12px;
-    padding: 14px;
+
+    padding:
+      14px 14px 15px;
 
     background: var(--surface);
+
+    box-sizing: border-box;
   }
 
   .title {
@@ -475,51 +553,99 @@
     height: 48px;
 
     font-size: 16px;
+
+    border-radius: 12px;
   }
 
   .userList {
     position: relative;
+    z-index: 1;
 
     display: flex;
-    flex: 1 1 0;
+    flex: 1 1 auto;
     flex-direction: column;
 
     width: 100%;
-    height: auto;
+    height: 100%;
+
     min-width: 0;
     min-height: 0;
 
-    gap: 5px;
-    padding: 7px;
+    gap: 3px;
+
+    padding:
+      6px 7px max(7px,
+        env(safe-area-inset-bottom,
+          0px));
 
     overflow-x: hidden;
     overflow-y: auto;
 
     visibility: visible;
     opacity: 1;
+
+    background: var(--surface);
+
+    box-sizing: border-box;
+
+    -webkit-overflow-scrolling:
+      touch;
   }
 
   .userItem {
     display: flex;
     flex: 0 0 auto;
+    align-items: center;
 
     width: 100%;
-    min-height: 70px;
 
-    padding: 10px;
+    min-width: 0;
+    min-height: 68px;
+
+    gap: 11px;
+
+    padding:
+      9px 10px;
 
     visibility: visible;
     opacity: 1;
 
+    border: 0;
     border-radius: 12px;
   }
 
-  .avatarWrapper {
-    width: 48px;
-    height: 48px;
+  .userItem:hover {
+    background: transparent;
   }
 
-  .avatar {
+  .userItem:active {
+    background:
+      color-mix(in srgb,
+        var(--primary) 7%,
+        var(--surface));
+
+    transform: scale(0.99);
+  }
+
+  .active {
+    background:
+      color-mix(in srgb,
+        var(--primary) 9%,
+        var(--surface));
+
+    border: 0;
+
+    box-shadow: none;
+  }
+
+  .active::before {
+    top: 10px;
+    bottom: 10px;
+
+    width: 3px;
+  }
+
+  .avatarWrapper {
     width: 48px;
     height: 48px;
   }
@@ -540,13 +666,41 @@
     min-width: 19px;
     height: 19px;
 
-    padding: 0 5px;
+    padding:
+      0 5px;
   }
 }
 
-/* =========================
+/* =========================================
+   SMALL MOBILE
+========================================= */
+
+@media (max-width: 380px) {
+  .header {
+    padding:
+      12px 10px 13px;
+  }
+
+  .userList {
+    padding-inline: 5px;
+  }
+
+  .userItem {
+    min-height: 66px;
+
+    padding:
+      8px;
+  }
+
+  .avatarWrapper {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+/* =========================================
    ACCESSIBILITY
-========================= */
+========================================= */
 
 @media (prefers-reduced-motion: reduce) {
 

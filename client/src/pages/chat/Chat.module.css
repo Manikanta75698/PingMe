@@ -1,11 +1,13 @@
-/* =========================
+/* =========================================
    CHAT PAGE
-========================= */
+========================================= */
 
 .chatPage {
   position: relative;
 
-  display: flex;
+  display: grid;
+  grid-template-columns:
+    minmax(320px, 360px) minmax(0, 1fr);
 
   width: calc(100% - 250px);
   height: 100vh;
@@ -24,25 +26,34 @@
     var(--background,
       Canvas);
 
+  box-sizing: border-box;
+
   color-scheme: light dark;
   overscroll-behavior: none;
-
-  box-sizing: border-box;
 }
 
-/* =========================
-   SIDEBAR PANEL
-========================= */
+/* =========================================
+   APP HEADER WRAPPER
+========================================= */
+
+.headerDefault,
+.headerDuringConversation {
+  display: block;
+}
+
+/* =========================================
+   CHAT SIDEBAR COLUMN
+========================================= */
 
 .sidebar {
+  position: relative;
+
   display: flex;
 
-  flex: 0 0 340px;
-
-  width: 340px;
-  min-width: 340px;
-
+  width: 100%;
   height: 100%;
+
+  min-width: 0;
   min-height: 0;
 
   overflow: hidden;
@@ -60,21 +71,20 @@
   box-sizing: border-box;
 }
 
-/* =========================
-   CHAT AREA
-========================= */
+/* =========================================
+   CONVERSATION COLUMN
+========================================= */
 
 .chatArea {
   position: relative;
 
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
 
   width: 100%;
-  min-width: 0;
-
   height: 100%;
+
+  min-width: 0;
   min-height: 0;
 
   overflow: hidden;
@@ -87,9 +97,9 @@
   isolation: isolate;
 }
 
-/* =========================
+/* =========================================
    MESSAGES AREA
-========================= */
+========================================= */
 
 .messages {
   position: relative;
@@ -99,6 +109,7 @@
   flex-direction: column;
 
   width: 100%;
+
   min-width: 0;
   min-height: 0;
 
@@ -117,9 +128,9 @@
   flex-direction: column;
 
   width: 100%;
-  min-width: 0;
-
   height: 100%;
+
+  min-width: 0;
   min-height: 0;
 
   overflow: hidden;
@@ -127,9 +138,21 @@
   box-sizing: border-box;
 }
 
-/* =========================
+/* =========================================
+   DESKTOP EMPTY CONVERSATION PANE
+========================================= */
+
+/*
+ * Desktop lo selected chat lekapoyina
+ * right conversation pane visible ga untundi.
+ */
+.chatArea.hideChat {
+  display: flex;
+}
+
+/* =========================================
    MESSAGE LOADING STATE
-========================= */
+========================================= */
 
 .messageState {
   display: flex;
@@ -145,7 +168,7 @@
   gap: 18px;
 
   padding:
-    24px 18px 32px;
+    24px 22px 32px;
 
   color:
     var(--text-secondary,
@@ -168,9 +191,9 @@
   line-height: 1.4;
 }
 
-/* =========================
+/* =========================================
    MESSAGE SKELETON
-========================= */
+========================================= */
 
 .messageSkeleton {
   display: flex;
@@ -178,14 +201,17 @@
 
   width: 100%;
 
-  gap: 12px;
+  gap: 10px;
 }
 
 .messageSkeleton span {
   display: block;
 
-  width: min(58%, 280px);
-  height: 38px;
+  width:
+    min(46%,
+      270px);
+
+  height: 36px;
 
   background:
     linear-gradient(90deg,
@@ -196,10 +222,11 @@
       var(--surface-light,
         #e8edf4) 75%);
 
-  background-size: 200% 100%;
+  background-size:
+    200% 100%;
 
   border-radius:
-    18px 18px 18px 5px;
+    16px 16px 16px 5px;
 
   animation:
     messageSkeletonPulse 1.3s linear infinite;
@@ -208,19 +235,23 @@
 .messageSkeleton span:nth-child(even) {
   align-self: flex-end;
 
-  width: min(68%, 330px);
+  width:
+    min(52%,
+      310px);
 
   border-radius:
-    18px 18px 5px 18px;
+    16px 16px 5px 16px;
 }
 
 .messageSkeleton span:nth-child(3) {
-  width: min(42%, 210px);
+  width:
+    min(34%,
+      200px);
 }
 
-/* =========================
+/* =========================================
    ERROR STATE
-========================= */
+========================================= */
 
 .messageError {
   display: flex;
@@ -230,6 +261,7 @@
   align-items: center;
   justify-content: center;
 
+  min-width: 0;
   min-height: 220px;
 
   gap: 14px;
@@ -252,6 +284,10 @@
 }
 
 .retryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
   min-height: 38px;
 
   padding:
@@ -273,6 +309,7 @@
   cursor: pointer;
 
   touch-action: manipulation;
+
   -webkit-tap-highlight-color:
     transparent;
 
@@ -289,9 +326,9 @@
   transform: scale(0.97);
 }
 
-/* =========================
-   BACKGROUND BADGES
-========================= */
+/* =========================================
+   SYNC / REFRESH BADGES
+========================================= */
 
 .syncBadge,
 .refreshWarning {
@@ -317,7 +354,7 @@
   background:
     color-mix(in srgb,
       var(--surface,
-        Canvas) 92%,
+        Canvas) 94%,
       transparent);
 
   border:
@@ -339,7 +376,9 @@
   pointer-events: none;
 
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+
+  -webkit-backdrop-filter:
+    blur(8px);
 }
 
 .refreshWarning {
@@ -379,6 +418,7 @@
   cursor: pointer;
 
   touch-action: manipulation;
+
   -webkit-tap-highlight-color:
     transparent;
 }
@@ -388,9 +428,9 @@
     translateX(-50%) scale(0.97);
 }
 
-/* =========================
-   LOAD OLDER
-========================= */
+/* =========================================
+   LOAD OLDER MESSAGES
+========================================= */
 
 .loadOlderWrapper {
   display: flex;
@@ -437,66 +477,57 @@
   cursor: pointer;
 
   touch-action: manipulation;
+
   -webkit-tap-highlight-color:
     transparent;
 }
 
 .loadOlderButton:disabled {
-  opacity: 0.6;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
-/* =========================
-   VISIBILITY HELPERS
-========================= */
+/* =========================================
+   DESKTOP LAYOUT
+========================================= */
 
-.hideSidebar {
-  display: none;
-}
+@media (min-width: 769px) {
 
-.hideChat {
-  display: none;
-}
-
-/* =========================
-   ANIMATION
-========================= */
-
-@keyframes messageSkeletonPulse {
-  from {
-    background-position: 200% 0;
+  /*
+   * Desktop lo sidebar/chat area
+   * rendu always visible.
+   */
+  .hideSidebar {
+    display: flex;
   }
 
-  to {
-    background-position: -200% 0;
+  .hideChat {
+    display: flex;
   }
 }
 
-/* =========================
-   TABLET
-========================= */
+/* =========================================
+   TABLET DESKTOP
+========================================= */
 
-@media (max-width: 1024px) and (min-width: 769px) {
-  .sidebar {
-    flex-basis: 310px;
-
-    width: 310px;
-    min-width: 310px;
+@media (max-width: 1100px) and (min-width: 769px) {
+  .chatPage {
+    grid-template-columns:
+      310px minmax(0, 1fr);
   }
 }
 
-/* =========================
+/* =========================================
    MOBILE
-========================= */
+========================================= */
 
 @media (max-width: 768px) {
+  .headerDuringConversation {
+    display: none;
+  }
+
   .chatPage {
     position: fixed;
-
-    top:
-      calc(var(--chat-visual-offset-top,
-          0px) + 62px + env(safe-area-inset-top,
-          0px));
 
     right: 0;
     bottom: auto;
@@ -505,22 +536,17 @@
     display: flex;
 
     width: 100%;
-    height:
-      calc(var(--chat-visual-height,
-          100dvh) - 62px - env(safe-area-inset-top,
-          0px) - 84px - env(safe-area-inset-bottom,
-          0px));
 
+    min-width: 0;
     min-height: 0;
-    max-height:
-      calc(var(--chat-visual-height,
-          100dvh) - 62px - env(safe-area-inset-top,
-          0px) - 84px - env(safe-area-inset-bottom,
-          0px));
 
     margin-left: 0;
 
     overflow: hidden;
+
+    background:
+      var(--background,
+        Canvas);
 
     overscroll-behavior: none;
 
@@ -528,26 +554,67 @@
       translateZ(0);
   }
 
+  /*
+   * /chat list route:
+   * global top header and bottom nav
+   * kosam space reserve chesthundi.
+   */
+  .chatListPage {
+    top:
+      calc(var(--chat-visual-offset-top,
+          0px) + 62px + env(safe-area-inset-top,
+          0px));
+
+    height:
+      calc(var(--chat-visual-height,
+          100dvh) - 62px - env(safe-area-inset-top,
+          0px) - 84px - env(safe-area-inset-bottom,
+          0px));
+
+    max-height:
+      calc(var(--chat-visual-height,
+          100dvh) - 62px - env(safe-area-inset-top,
+          0px) - 84px - env(safe-area-inset-bottom,
+          0px));
+  }
+
+  /*
+   * Active conversation:
+   * full visual viewport use chesthundi.
+   */
+  .conversationPage {
+    top:
+      var(--chat-visual-offset-top,
+        0px);
+
+    height:
+      var(--chat-visual-height,
+        100dvh);
+
+    max-height:
+      var(--chat-visual-height,
+        100dvh);
+  }
+
   .sidebar {
     position: relative;
 
     display: flex;
-
     flex: 1 1 auto;
 
     width: 100%;
-    min-width: 0;
-
     height: 100%;
+
+    min-width: 0;
     min-height: 0;
 
     overflow: hidden;
 
-    border-right: 0;
-
     background:
       var(--surface,
         Canvas);
+
+    border-right: 0;
   }
 
   .chatArea {
@@ -558,9 +625,9 @@
     flex-direction: column;
 
     width: 100%;
-    min-width: 0;
-
     height: 100%;
+
+    min-width: 0;
     min-height: 0;
 
     overflow: hidden;
@@ -572,27 +639,36 @@
     overscroll-behavior: none;
   }
 
-  .hideSidebar {
+  /*
+   * Mobile list page:
+   * conversation pane hide.
+   */
+  .hideChat {
     display: none;
   }
 
-  .hideChat {
+  /*
+   * Mobile conversation:
+   * chat list hide.
+   */
+  .hideSidebar {
     display: none;
   }
 
   .messages {
     display: flex;
-
     flex: 1 1 auto;
     flex-direction: column;
 
     width: 100%;
+
     min-width: 0;
     min-height: 0;
 
     overflow: hidden;
 
-    overscroll-behavior: contain;
+    overscroll-behavior:
+      contain;
   }
 
   .messageState {
@@ -603,11 +679,11 @@
   }
 
   .messageSkeleton {
-    gap: 10px;
+    gap: 9px;
   }
 
   .messageSkeleton span {
-    height: 36px;
+    height: 34px;
   }
 
   .syncBadge,
@@ -617,7 +693,9 @@
 
   .syncBadge {
     backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+
+    -webkit-backdrop-filter:
+      none;
   }
 
   .refreshWarning {
@@ -626,9 +704,9 @@
   }
 }
 
-/* =========================
+/* =========================================
    SMALL MOBILE
-========================= */
+========================================= */
 
 @media (max-width: 420px) {
   .messageState {
@@ -640,9 +718,9 @@
   }
 }
 
-/* =========================
+/* =========================================
    MOBILE LANDSCAPE
-========================= */
+========================================= */
 
 @media (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
   .messageState {
@@ -659,9 +737,25 @@
   }
 }
 
-/* =========================
+/* =========================================
+   ANIMATION
+========================================= */
+
+@keyframes messageSkeletonPulse {
+  from {
+    background-position:
+      200% 0;
+  }
+
+  to {
+    background-position:
+      -200% 0;
+  }
+}
+
+/* =========================================
    ACCESSIBILITY
-========================= */
+========================================= */
 
 @media (prefers-reduced-motion: reduce) {
   .messageSkeleton span {
@@ -683,29 +777,80 @@
   }
 }
 
+/* =========================================
+   DESKTOP EMPTY CHAT STATE
+========================================= */
+
+.desktopEmptyState {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+
+  padding: 32px;
+
+  color: var(--text-primary);
+
+  text-align: center;
+
+  box-sizing: border-box;
+}
+
+.desktopEmptyIcon {
+  display: grid;
+  place-items: center;
+
+  width: 68px;
+  height: 68px;
+
+  margin-bottom: 18px;
+
+  background:
+    color-mix(in srgb,
+      var(--primary) 10%,
+      var(--surface));
+
+  border:
+    1px solid color-mix(in srgb,
+      var(--primary) 20%,
+      var(--border));
+
+  border-radius: 22px;
+
+  font-size: 30px;
+
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, 0.07);
+}
+
+.desktopEmptyState h2 {
+  margin: 0;
+
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.desktopEmptyState p {
+  max-width: 320px;
+
+  margin:
+    8px 0 0;
+
+  color: var(--text-secondary);
+
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 @media (max-width: 768px) {
-  .chatListPage {
-    top:
-      calc(var(--chat-visual-offset-top, 0px) + 62px + env(safe-area-inset-top, 0px));
-
-    height:
-      calc(var(--chat-visual-height, 100dvh) - 62px - env(safe-area-inset-top, 0px) - 84px - env(safe-area-inset-bottom, 0px));
-
-    max-height:
-      calc(var(--chat-visual-height, 100dvh) - 62px - env(safe-area-inset-top, 0px) - 84px - env(safe-area-inset-bottom, 0px));
-  }
-
-  .conversationPage {
-    top:
-      var(--chat-visual-offset-top,
-        0px);
-
-    height:
-      var(--chat-visual-height,
-        100dvh);
-
-    max-height:
-      var(--chat-visual-height,
-        100dvh);
+  .desktopEmptyState {
+    display: none;
   }
 }

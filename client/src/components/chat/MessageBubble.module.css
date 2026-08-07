@@ -2218,3 +2218,443 @@
     transition: none;
   }
 }
+
+/* =========================================
+   FINAL COMPACT SMART MESSAGE BUBBLE UI
+========================================= */
+
+.ownWrapper,
+.otherWrapper {
+  padding: 1px 12px;
+}
+
+.messageGroup {
+  width: fit-content;
+  max-width: min(68%, 560px);
+
+  margin: 1px 0;
+
+  animation-duration: 0.14s;
+}
+
+/* =========================
+   BASE BUBBLE
+========================= */
+
+.bubble {
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+
+  padding: 7px 9px 5px;
+
+  overflow: visible;
+
+  border-width: 1px;
+  border-style: solid;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.ownBubble {
+  color: var(--bubble-primary-text);
+  background: var(--bubble-primary);
+
+  border-color: transparent;
+
+  border-radius:
+    15px 15px 4px 15px;
+}
+
+.otherBubble {
+  color: var(--bubble-text);
+  background: var(--bubble-surface);
+
+  border-color: var(--bubble-border);
+
+  border-radius:
+    15px 15px 15px 4px;
+}
+
+/* No unnecessary hover movement */
+.bubble:hover {
+  transform: none;
+
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* =========================
+   TEXT
+========================= */
+
+.textOnlyBubble {
+  min-width: 0;
+}
+
+.textOnlyBubble .text,
+.text {
+  max-width: 50ch;
+  margin: 0;
+
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.38;
+
+  letter-spacing: 0;
+
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* =========================
+   META ROW
+========================= */
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  min-height: 13px;
+
+  gap: 3px;
+
+  margin:
+    2px -2px 0 12px;
+
+  line-height: 1;
+}
+
+.time,
+.edited {
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1;
+
+  opacity: 0.66;
+
+  white-space: nowrap;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 12px;
+  height: 12px;
+
+  line-height: 1;
+}
+
+.status svg {
+  display: block;
+
+  width: 12px;
+  height: 12px;
+}
+
+.seen {
+  font-size: 9px;
+  font-weight: 650;
+}
+
+/* =========================
+   THREE DOTS
+========================= */
+
+.moreButton {
+  width: 18px;
+  height: 18px;
+
+  margin:
+    -2px -4px -2px 0;
+
+  opacity: 0;
+  pointer-events: none;
+
+  border-radius: 50%;
+}
+
+.moreButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+  .messageGroup:hover .moreButton,
+  .messageGroup:focus-within .moreButton,
+  .moreButton[data-open="true"] {
+    opacity: 0.68;
+    pointer-events: auto;
+  }
+
+  .moreButton:hover,
+  .moreButton[data-open="true"] {
+    opacity: 1;
+
+    background:
+      color-mix(in srgb,
+        currentColor 10%,
+        transparent);
+  }
+}
+
+/* =========================
+   REPLY PREVIEW
+========================= */
+
+.replyPreview {
+  gap: 2px;
+
+  margin-bottom: 5px;
+  padding: 6px 8px;
+
+  border-left-width: 2px;
+  border-radius: 7px;
+}
+
+.replySender {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.replyText {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+/* =========================
+   FORWARDED
+========================= */
+
+.forwardedLabel {
+  gap: 3px;
+
+  margin-bottom: 3px;
+
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* =========================
+   IMAGE
+========================= */
+
+.image {
+  max-width: 320px;
+  max-height: 390px;
+
+  margin-bottom: 5px;
+
+  border-radius: 10px;
+}
+
+/* =========================
+   REACTIONS
+========================= */
+
+.reactionSummary {
+  gap: 3px;
+
+  margin-top: -1px;
+}
+
+.ownReactions {
+  margin-right: 3px;
+}
+
+.otherReactions {
+  margin-left: 3px;
+}
+
+.reactionChip {
+  min-width: 29px;
+  height: 22px;
+  min-height: 22px;
+
+  gap: 3px;
+  padding: 1px 6px;
+
+  border-radius: 999px;
+
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.reactionEmoji {
+  font-size: 13px;
+}
+
+.reactionCount {
+  font-size: 9.5px;
+}
+
+/* =========================
+   DELETED MESSAGE
+========================= */
+
+.deletedBubble {
+  min-width: 0;
+
+  padding: 7px 9px 5px;
+
+  box-shadow: none;
+}
+
+.deletedMessage {
+  gap: 5px;
+
+  font-size: 11.5px;
+  line-height: 1.25;
+
+  white-space: nowrap;
+}
+
+.deletedBubble .meta {
+  margin-top: 3px;
+}
+
+/* =========================
+   FAILED MESSAGE
+========================= */
+
+.failedBubble {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb,
+      var(--bubble-danger) 12%,
+      transparent);
+}
+
+.failedDelivery {
+  gap: 5px;
+
+  margin-top: 3px;
+
+  font-size: 10.5px;
+}
+
+.retryMessageButton {
+  min-height: 27px;
+
+  padding: 4px 8px;
+
+  font-size: 10.5px;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 768px) {
+
+  .ownWrapper,
+  .otherWrapper {
+    padding: 1px 7px;
+  }
+
+  .messageGroup {
+    max-width: 82%;
+
+    margin: 1px 0;
+  }
+
+  .bubble {
+    padding: 7px 8px 4px;
+  }
+
+  .ownBubble {
+    border-radius:
+      14px 14px 4px 14px;
+  }
+
+  .otherBubble {
+    border-radius:
+      14px 14px 14px 4px;
+  }
+
+  .textOnlyBubble {
+    min-width: 0;
+  }
+
+  .textOnlyBubble .text,
+  .text {
+    max-width: 40ch;
+
+    font-size: 13.5px;
+    line-height: 1.36;
+  }
+
+  .meta {
+    min-height: 12px;
+
+    margin:
+      2px -2px 0 10px;
+  }
+
+  .time,
+  .edited {
+    font-size: 9px;
+  }
+
+  /*
+   * Mobile lo long-press primary action.
+   * Three dots still visible but subtle.
+   */
+  .moreButton {
+    width: 18px;
+    height: 18px;
+
+    opacity: 0.56;
+    pointer-events: auto;
+  }
+
+  .moreButton svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .replyPreview {
+    margin-bottom: 4px;
+    padding: 5px 7px;
+  }
+
+  .image {
+    max-width: 280px;
+    max-height: 350px;
+
+    border-radius: 9px;
+  }
+
+  .reactionChip {
+    min-width: 28px;
+    height: 22px;
+
+    padding-inline: 5px;
+  }
+}
+
+@media (max-width: 420px) {
+  .messageGroup {
+    max-width: 86%;
+  }
+
+  .bubble {
+    padding:
+      6px 8px 4px;
+  }
+
+  .textOnlyBubble .text,
+  .text {
+    font-size: 13.25px;
+  }
+
+  .image {
+    max-width: 250px;
+    max-height: 320px;
+  }
+}

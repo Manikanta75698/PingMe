@@ -15,7 +15,6 @@ import {
   Heart,
   Home,
   MessageCircle,
-  Search,
   SquarePlus,
 } from "lucide-react";
 
@@ -40,11 +39,6 @@ const DESKTOP_NAV_ITEMS = [
     label: "Home",
     path: "/home",
     icon: Home,
-  },
-  {
-    label: "Search",
-    path: "/search",
-    icon: Search,
   },
   {
     label: "Explore",
@@ -80,11 +74,7 @@ const MOBILE_NAV_ITEMS = [
     path: "/home",
     icon: Home,
   },
-  {
-    label: "Search",
-    path: "/search",
-    icon: Search,
-  },
+
   {
     label: "Explore",
     path: "/explore",
@@ -268,8 +258,8 @@ const Header = ({
           key={path}
           type="button"
           className={`${styles.navItem} ${active
-              ? styles.active
-              : ""
+            ? styles.active
+            : ""
             }`}
           onClick={() =>
             navigate(path)
@@ -339,8 +329,8 @@ const Header = ({
           key={path}
           type="button"
           className={`${styles.mobileNavItem} ${active
-              ? styles.mobileNavActive
-              : ""
+            ? styles.mobileNavActive
+            : ""
             }`}
           onClick={() =>
             navigate(path)
@@ -388,8 +378,8 @@ const Header = ({
 
       <header
         className={`${styles.mobileTopHeader} ${!showTopHeader
-            ? styles.hideTopHeader
-            : ""
+          ? styles.hideTopHeader
+          : ""
           }`}
       >
         <button
@@ -425,8 +415,8 @@ const Header = ({
         <button
           type="button"
           className={`${styles.topHeaderChatButton} ${isActive("/chat")
-              ? styles.topHeaderChatActive
-              : ""
+            ? styles.topHeaderChatActive
+            : ""
             }`}
           onClick={() =>
             navigate("/chat")
@@ -507,8 +497,8 @@ const Header = ({
           <button
             type="button"
             className={`${styles.navItem} ${isActive("/create")
-                ? styles.active
-                : ""
+              ? styles.active
+              : ""
               }`}
             onClick={() =>
               navigate("/create")
@@ -546,8 +536,8 @@ const Header = ({
         <button
           type="button"
           className={`${styles.profileNavItem} ${isActive("/profile")
-              ? styles.profileNavActive
-              : ""
+            ? styles.profileNavActive
+            : ""
             }`}
           onClick={
             openProfile
@@ -607,8 +597,8 @@ const Header = ({
           <button
             type="button"
             className={`${styles.mobileNavItem} ${isActive("/profile")
-                ? styles.mobileNavActive
-                : ""
+              ? styles.mobileNavActive
+              : ""
               }`}
             onClick={
               openProfile

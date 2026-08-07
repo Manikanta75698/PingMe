@@ -1319,7 +1319,15 @@ const Chat = () => {
 
   return (
     <>
-      {!selectedChat && <Header />}
+      <div
+        className={
+          selectedChat
+            ? styles.headerDuringConversation
+            : styles.headerDefault
+        }
+      >
+        <Header />
+      </div>
 
       <main
         className={`${styles.chatPage} ${selectedChat
@@ -1357,6 +1365,21 @@ const Chat = () => {
             }
         `}
         >
+
+          {!selectedChat && (
+            <div className={styles.desktopEmptyState}>
+              <div className={styles.desktopEmptyIcon}>
+                💬
+              </div>
+
+              <h2>Select a conversation</h2>
+
+              <p>
+                Choose a chat from the list to start messaging.
+              </p>
+            </div>
+          )}
+
           {selectedChat && (
             <>
               <ChatHeader />

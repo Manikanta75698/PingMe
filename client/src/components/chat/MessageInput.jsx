@@ -233,12 +233,15 @@ const MessageInput = () => {
 
   const resetTextareaHeight =
     useCallback(() => {
-      if (!textareaRef.current) {
+      const textarea =
+        textareaRef.current;
+
+      if (!textarea) {
         return;
       }
 
-      textareaRef.current.style.height =
-        "44px";
+     
+      textarea.style.height = "";
     }, []);
 
   const resizeTextarea =
@@ -250,13 +253,18 @@ const MessageInput = () => {
         return;
       }
 
-      textarea.style.height =
-        "44px";
+    
+      textarea.style.height = "auto";
+
+      const maximumHeight =
+        window.innerWidth <= 768
+          ? 120
+          : 140;
 
       textarea.style.height =
         `${Math.min(
           textarea.scrollHeight,
-          140
+          maximumHeight
         )}px`;
     }, []);
 

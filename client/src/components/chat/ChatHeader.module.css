@@ -264,10 +264,14 @@
 
 @media (max-width: 768px) {
   .header {
-    height: 64px;
-    min-height: 64px;
+    height: calc(60px + env(safe-area-inset-top, 0px));
 
-    padding: 0 10px;
+    min-height: calc(60px + env(safe-area-inset-top, 0px));
+
+    padding:
+      env(safe-area-inset-top, 0px) 10px 0;
+
+    background: var(--header-surface);
   }
 
   .left {
@@ -314,7 +318,8 @@
 
 @media (max-width: 420px) {
   .header {
-    padding: 0 8px;
+    padding:
+      env(safe-area-inset-top, 0px) 8px 0;
   }
 
   .left {
