@@ -555,7 +555,6 @@ const Chat = () => {
     useRef(null);
 
 
-
   const [
     messagesLoading,
     setMessagesLoading,
@@ -1212,7 +1211,9 @@ const Chat = () => {
             : styles.headerDefault
         }
       >
-        <Header />
+        <div className={styles.headerDuringConversation}>
+          <Header />
+        </div>
       </div>
 
       <main

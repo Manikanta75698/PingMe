@@ -556,16 +556,16 @@
 
   .chatListPage {
     top:
-      calc(62px + env(safe-area-inset-top,
-          0px));
+      env(safe-area-inset-top,
+        0px);
 
     height:
-      calc(100dvh - 62px - env(safe-area-inset-top,
+      calc(100dvh - env(safe-area-inset-top,
           0px) - 84px - env(safe-area-inset-bottom,
           0px));
 
     max-height:
-      calc(100dvh - 62px - env(safe-area-inset-top,
+      calc(100dvh - env(safe-area-inset-top,
           0px) - 84px - env(safe-area-inset-bottom,
           0px));
   }
