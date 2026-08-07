@@ -1,6 +1,6 @@
-/* =========================
-   COMPACT ACTION MENU
-========================= */
+/* =========================================
+   MESSAGE ACTIONS MENU
+========================================= */
 
 .backdrop {
   --menu-surface:
@@ -38,22 +38,19 @@
 
   z-index: 1000;
 
-  color:
-    var(--menu-text);
+  color: var(--menu-text);
 
-  overscroll-behavior:
-    contain;
+  overscroll-behavior: contain;
 
   -webkit-tap-highlight-color:
     transparent;
 
-  color-scheme:
-    light dark;
+  color-scheme: light dark;
 }
 
-/* =========================
+/* =========================================
    BACKDROP
-========================= */
+========================================= */
 
 .desktopBackdrop {
   background: transparent;
@@ -65,50 +62,49 @@
   justify-content: center;
 
   padding:
-    8px 8px calc(8px + env(safe-area-inset-bottom));
+    8px 8px calc(8px + env(safe-area-inset-bottom,
+        0px));
 
   background:
     rgba(0, 0, 0, 0.32);
 
   animation:
-    backdropFadeIn 0.14s ease-out both;
+    backdropFadeIn 140ms ease-out both;
 }
 
-/* =========================
-   MENU BASE
-========================= */
+/* =========================================
+   MENU
+========================================= */
 
 .menu {
   overflow: hidden;
 
-  color:
-    var(--menu-text);
+  color: var(--menu-text);
 
-  background:
-    var(--menu-surface);
+  background: var(--menu-surface);
 
   border:
     1px solid var(--menu-border);
 
+  box-sizing: border-box;
+
   box-shadow:
     0 12px 34px rgba(0, 0, 0, 0.18);
 
-  box-sizing: border-box;
-
-  touch-action:
-    manipulation;
+  touch-action: manipulation;
 }
 
-/* =========================
-   DESKTOP POPUP
-========================= */
+/* =========================================
+   DESKTOP MENU
+========================================= */
 
 .desktopMenu {
   position: fixed;
 
   width: 220px;
+
   max-width:
-    calc(100vw - 16px);
+    calc(100vw - 20px);
 
   border-radius: 14px;
 
@@ -116,7 +112,7 @@
     top right;
 
   animation:
-    desktopMenuIn 0.14s ease-out both;
+    desktopMenuIn 140ms ease-out both;
 }
 
 .desktopMenu.above {
@@ -129,25 +125,25 @@
     top right;
 }
 
-/* =========================
+/* =========================================
    MOBILE BOTTOM SHEET
-========================= */
+========================================= */
 
 .mobileMenu {
   position: relative;
 
   width:
-    min(100%,
-      420px);
+    min(100%, 420px);
 
   max-height:
-    calc(100dvh - 24px - env(safe-area-inset-bottom));
+    calc(100dvh - 24px - env(safe-area-inset-bottom,
+        0px));
 
   overflow-x: hidden;
   overflow-y: auto;
 
   border-radius:
-    20px;
+    20px 20px 16px 16px;
 
   box-shadow:
     0 -8px 30px rgba(0, 0, 0, 0.22);
@@ -159,7 +155,7 @@
     translate3d(0, 0, 0);
 
   animation:
-    mobileMenuIn 0.18s cubic-bezier(0.22,
+    mobileMenuIn 180ms cubic-bezier(0.22,
       1,
       0.36,
       1) both;
@@ -177,28 +173,23 @@
   background:
     var(--menu-border);
 
-  border-radius:
-    999px;
+  border-radius: 999px;
 
   content: "";
 }
 
-/* =========================
-   REMOVE WASTE CONTENT
-========================= */
+/* =========================================
+   UNUSED CONTENT
+========================================= */
 
-/*
- * Message preview and labels hide.
- * Instagram/WhatsApp style compact menu.
- */
 .preview,
 .reactionLabel {
   display: none;
 }
 
-/* =========================
+/* =========================================
    REACTIONS
-========================= */
+========================================= */
 
 .reactionSection {
   padding:
@@ -228,17 +219,13 @@
 
   padding: 0;
 
-  color:
-    var(--menu-text);
-
-  background:
-    transparent;
+  color: var(--menu-text);
+  background: transparent;
 
   border:
     1px solid transparent;
 
-  border-radius:
-    10px;
+  border-radius: 10px;
 
   font-family:
     system-ui,
@@ -253,16 +240,15 @@
 
   cursor: pointer;
 
-  touch-action:
-    manipulation;
+  touch-action: manipulation;
 
   user-select: none;
   -webkit-user-select: none;
 
   transition:
-    transform 0.12s ease,
-    background-color 0.12s ease,
-    border-color 0.12s ease;
+    transform 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -284,8 +270,7 @@
   outline:
     2px solid var(--menu-primary);
 
-  outline-offset:
-    1px;
+  outline-offset: 1px;
 }
 
 .selectedReaction {
@@ -300,9 +285,9 @@
       transparent);
 }
 
-/* =========================
+/* =========================================
    DIVIDER
-========================= */
+========================================= */
 
 .divider {
   width: 100%;
@@ -314,9 +299,9 @@
     var(--menu-border);
 }
 
-/* =========================
+/* =========================================
    ACTIONS
-========================= */
+========================================= */
 
 .actions {
   display: flex;
@@ -339,11 +324,8 @@
   padding:
     9px 11px;
 
-  color:
-    var(--menu-text);
-
-  background:
-    transparent;
+  color: var(--menu-text);
+  background: transparent;
 
   border: none;
   border-radius: 9px;
@@ -357,16 +339,15 @@
 
   cursor: pointer;
 
-  touch-action:
-    manipulation;
+  touch-action: manipulation;
 
   user-select: none;
   -webkit-user-select: none;
 
   transition:
-    background-color 0.12s ease,
-    color 0.12s ease,
-    transform 0.12s ease;
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
 }
 
 .actionButton svg {
@@ -407,8 +388,7 @@
   outline:
     2px solid var(--menu-primary);
 
-  outline-offset:
-    -2px;
+  outline-offset: -2px;
 }
 
 .deleteButton {
@@ -423,9 +403,9 @@
       transparent);
 }
 
-/* =========================
+/* =========================================
    MOBILE
-========================= */
+========================================= */
 
 @media (max-width: 768px) {
   .reactionSection {
@@ -446,8 +426,7 @@
   }
 
   .actions {
-    padding:
-      5px;
+    padding: 5px;
   }
 
   .actionButton {
@@ -462,19 +441,17 @@
   }
 }
 
-/* =========================
+/* =========================================
    SMALL MOBILE
-========================= */
+========================================= */
 
 @media (max-width: 390px) {
   .mobileBackdrop {
-    padding-inline:
-      6px;
+    padding-inline: 6px;
   }
 
   .reactionSection {
-    padding-inline:
-      7px;
+    padding-inline: 7px;
   }
 
   .reactionButton {
@@ -488,9 +465,9 @@
   }
 }
 
-/* =========================
+/* =========================================
    ANIMATIONS
-========================= */
+========================================= */
 
 @keyframes backdropFadeIn {
   from {
@@ -538,9 +515,9 @@
   }
 }
 
-/* =========================
-   ACCESSIBILITY
-========================= */
+/* =========================================
+   REDUCED MOTION
+========================================= */
 
 @media (prefers-reduced-motion: reduce) {
 
@@ -553,6 +530,10 @@
     transition: none;
   }
 }
+
+/* =========================================
+   HIGH CONTRAST
+========================================= */
 
 @media (prefers-contrast: more) {
 

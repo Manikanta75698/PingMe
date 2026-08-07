@@ -9,7 +9,6 @@ import {
 
 import {
   AlertTriangle,
-  Trash2,
   UserRoundX,
   UsersRound,
   X,
@@ -26,11 +25,20 @@ const DeleteMessageModal = ({
   onDeleteForMe,
   onDeleteForEveryone,
 }) => {
-  const modalRef =
-    useRef(null);
+  const modalRef = useRef(null);
+  const actionLockedRef = useRef(false);
 
-  const isLoading =
-    Boolean(loadingMode);
+  const isBusy = Boolean(loadingMode);
+
+  /* =========================
+     RESET ACTION LOCK
+  ========================= */
+
+  useEffect(() => {
+    if (open) {
+      actionLockedRef.current = false;
+    }
+  }, [open]);
 
   /* =========================
      MODAL EFFECTS
@@ -59,7 +67,7 @@ const DeleteMessageModal = ({
     ) => {
       if (
         event.key === "Escape" &&
-        !isLoading
+        !isBusy
       ) {
         onClose?.();
       }
@@ -85,20 +93,19 @@ const DeleteMessageModal = ({
     };
   }, [
     open,
-    isLoading,
+    isBusy,
     onClose,
   ]);
 
   if (
     !open ||
-    typeof document ===
-    "undefined"
+    typeof document === "undefined"
   ) {
     return null;
   }
 
   /* =========================
-     BACKDROP CLOSE
+     BACKDROP
   ========================= */
 
   const handleBackdropClick = (
@@ -107,11 +114,71 @@ const DeleteMessageModal = ({
     if (
       event.target ===
       event.currentTarget &&
-      !isLoading
+      !isBusy
     ) {
       onClose?.();
     }
   };
+
+  /* =========================
+     SAFE ACTION RUNNER
+  ========================= */
+
+  const runDeleteAction = (
+    callback
+  ) => {
+    if (
+      typeof callback !==
+      "function" ||
+      actionLockedRef.current ||
+      isBusy
+    ) {
+      return;
+    }
+
+    actionLockedRef.current = true;
+
+    try {
+      const result = callback();
+
+      if (
+        result &&
+        typeof result.finally ===
+        "function"
+      ) {
+        result.finally(() => {
+          actionLockedRef.current =
+            false;
+        });
+      } else {
+        window.setTimeout(() => {
+          actionLockedRef.current =
+            false;
+        }, 350);
+      }
+    } catch (actionError) {
+      actionLockedRef.current = false;
+
+      throw actionError;
+    }
+  };
+
+  const handleDeleteForMe = () => {
+    runDeleteAction(
+      onDeleteForMe
+    );
+  };
+
+  const handleDeleteForEveryone =
+    () => {
+      if (!isOwn) {
+        return;
+      }
+
+      runDeleteAction(
+        onDeleteForEveryone
+      );
+    };
 
   /* =========================
      MODAL
@@ -131,6 +198,7 @@ const DeleteMessageModal = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-message-title"
+        aria-describedby="delete-message-description"
         tabIndex={-1}
         onMouseDown={(event) => {
           event.stopPropagation();
@@ -144,8 +212,8 @@ const DeleteMessageModal = ({
             styles.closeButton
           }
           onClick={onClose}
-          disabled={isLoading}
-          aria-label="Close delete message"
+          disabled={isBusy}
+          aria-label="Close delete message dialog"
         >
           <X
             size={19}
@@ -159,10 +227,10 @@ const DeleteMessageModal = ({
           className={
             styles.iconWrapper
           }
+          aria-hidden="true"
         >
           <AlertTriangle
             size={27}
-            aria-hidden="true"
           />
         </div>
 
@@ -173,12 +241,13 @@ const DeleteMessageModal = ({
         </h2>
 
         <p
+          id="delete-message-description"
           className={
             styles.description
           }
         >
           {isOwn
-            ? "Choose how you want to delete this message."
+            ? "Choose who this message should be deleted for."
             : "This message will be removed only from your chat."}
         </p>
 
@@ -193,7 +262,7 @@ const DeleteMessageModal = ({
           </div>
         )}
 
-        {/* DELETE OPTIONS */}
+        {/* OPTIONS */}
 
         <div
           className={
@@ -206,29 +275,19 @@ const DeleteMessageModal = ({
               styles.optionButton
             }
             onClick={
-              onDeleteForMe
+              handleDeleteForMe
             }
-            disabled={isLoading}
+            disabled={isBusy}
           >
             <span
               className={
                 styles.optionIcon
               }
             >
-              {loadingMode ===
-                "forMe" ? (
-                <span
-                  className={
-                    styles.spinner
-                  }
-                  aria-hidden="true"
-                />
-              ) : (
-                <UserRoundX
-                  size={20}
-                  aria-hidden="true"
-                />
-              )}
+              <UserRoundX
+                size={20}
+                aria-hidden="true"
+              />
             </span>
 
             <span
@@ -241,7 +300,8 @@ const DeleteMessageModal = ({
               </strong>
 
               <small>
-                Remove only from your chat
+                Remove this message only
+                from your chat
               </small>
             </span>
           </button>
@@ -251,27 +311,17 @@ const DeleteMessageModal = ({
               type="button"
               className={`${styles.optionButton} ${styles.dangerOption}`}
               onClick={
-                onDeleteForEveryone
+                handleDeleteForEveryone
               }
-              disabled={isLoading}
+              disabled={isBusy}
             >
               <span
                 className={`${styles.optionIcon} ${styles.dangerIcon}`}
               >
-                {loadingMode ===
-                  "forEveryone" ? (
-                  <span
-                    className={
-                      styles.spinner
-                    }
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <UsersRound
-                    size={20}
-                    aria-hidden="true"
-                  />
-                )}
+                <UsersRound
+                  size={20}
+                  aria-hidden="true"
+                />
               </span>
 
               <span
@@ -284,7 +334,8 @@ const DeleteMessageModal = ({
                 </strong>
 
                 <small>
-                  Remove for everyone in this chat
+                  Remove this message
+                  for everyone in this chat
                 </small>
               </span>
             </button>
@@ -304,45 +355,10 @@ const DeleteMessageModal = ({
               styles.cancelButton
             }
             onClick={onClose}
-            disabled={isLoading}
+            disabled={isBusy}
           >
             Cancel
           </button>
-
-          {!isOwn && (
-            <button
-              type="button"
-              className={
-                styles.deleteButton
-              }
-              onClick={
-                onDeleteForMe
-              }
-              disabled={isLoading}
-            >
-              {loadingMode ===
-                "forMe" ? (
-                <span
-                  className={
-                    styles.spinner
-                  }
-                  aria-hidden="true"
-                />
-              ) : (
-                <Trash2
-                  size={17}
-                  aria-hidden="true"
-                />
-              )}
-
-              <span>
-                {loadingMode ===
-                  "forMe"
-                  ? "Deleting..."
-                  : "Delete"}
-              </span>
-            </button>
-          )}
         </div>
       </section>
     </div>,

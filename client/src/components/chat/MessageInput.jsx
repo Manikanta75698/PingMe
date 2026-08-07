@@ -164,14 +164,24 @@ const MessageInput = () => {
     editingMessage,
   ]);
 
-  /*
-   * Actual conversation change ayithe old
-   * edit target next chat ki carry kakudadhu.
-   */
+
   useEffect(() => {
-    editingMessageRef.current =
-      null;
-  }, [selectedChatId]);
+    editingMessageRef.current = null;
+
+    setReplyingTo(null);
+    setEditingMessage(null);
+
+    setText("");
+
+    resetImage();
+    resetTextareaHeight();
+  }, [
+    selectedChatId,
+    setReplyingTo,
+    setEditingMessage,
+    resetImage,
+    resetTextareaHeight,
+  ]);
 
   const blockedByMe =
     Boolean(
@@ -240,7 +250,7 @@ const MessageInput = () => {
         return;
       }
 
-     
+
       textarea.style.height = "";
     }, []);
 
@@ -253,7 +263,7 @@ const MessageInput = () => {
         return;
       }
 
-    
+
       textarea.style.height = "auto";
 
       const maximumHeight =
@@ -897,19 +907,25 @@ const MessageInput = () => {
         replyTo:
           replyToSend
             ? {
-              _id:
-                replyToSend._id,
+              _id: replyToSend._id,
 
               text:
-                replyToSend.text ||
-                "",
+                replyToSend.text || "",
 
               image:
-                replyToSend.image ||
-                "",
+                replyToSend.image || "",
+
+              sharedPost:
+                replyToSend.sharedPost || null,
 
               sender:
-                replyToSend.sender,
+                replyToSend.sender || null,
+
+              deletedForEveryone:
+                Boolean(
+                  replyToSend
+                    .deletedForEveryone
+                ),
             }
             : null,
 
@@ -1440,12 +1456,16 @@ const MessageInput = () => {
                   styles.replyMessage
                 }
               >
-                {replyingTo
-                  .text?.trim()
-                  ? replyingTo.text
-                  : replyingTo.image
-                    ? "Photo"
-                    : "Message"}
+                {replyingTo.deletedForEveryone
+                  ? "Original message was deleted"
+                  : replyingTo.text?.trim()
+                    ? replyingTo.text
+                    : replyingTo.image
+                      ? "Photo"
+                      : replyingTo
+                        .sharedPost?.postId
+                        ? "Shared post"
+                        : "Message"}
               </p>
             </div>
 

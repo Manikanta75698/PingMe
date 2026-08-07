@@ -1478,27 +1478,53 @@ const MessageBubble = ({
       ...message,
     };
 
+    let previousPinnedMessage = null;
+
+    /*
+     * Current pinned message snapshot
+     * rollback kosam capture chestham.
+     */
+    setPinnedMessage((previous) => {
+      previousPinnedMessage = previous;
+
+      return previous;
+    });
+
+    /*
+     * Chat summary rollback snapshot.
+     */
+    let previousSummaries = [];
+
+    setChatSummaries((previous) => {
+      previousSummaries =
+        Array.isArray(previous)
+          ? previous
+          : [];
+
+      return previousSummaries;
+    });
+
     setShowDeleteModal(false);
     setShowActions(false);
     setDeleteError("");
     setDeleteLoadingMode(mode);
 
-    /*
-     * Cache-first optimistic UI.
-     */
+    /* =========================
+       OPTIMISTIC MESSAGE UI
+    ========================= */
+
     if (mode === "forMe") {
       setIsDeleted(true);
 
-      setMessages(
-        (previous) =>
-          Array.isArray(previous)
-            ? previous.filter(
-              (item) =>
-                normalizeId(
-                  item?._id
-                ) !== messageId
-            )
-            : []
+      setMessages((previous) =>
+        Array.isArray(previous)
+          ? previous.filter(
+            (item) =>
+              normalizeId(
+                item?._id
+              ) !== messageId
+          )
+          : []
       );
 
       setPinnedMessage(
@@ -1508,6 +1534,47 @@ const MessageBubble = ({
           ) === messageId
             ? null
             : previous
+      );
+
+      /*
+       * Sidebar latest preview.
+       * Deleted message latestMessage
+       * ayithe stale text remove chestham.
+       */
+      setChatSummaries((previous) =>
+        Array.isArray(previous)
+          ? previous.map(
+            (summary) => {
+              const lastMessageId =
+                normalizeId(
+                  summary
+                    ?.lastMessage
+                    ?._id
+                );
+
+              if (
+                lastMessageId !==
+                messageId
+              ) {
+                return summary;
+              }
+
+              return {
+                ...summary,
+
+                lastMessage: {
+                  ...summary.lastMessage,
+
+                  text: "",
+                  image: "",
+                  sharedPost: null,
+
+                  deletedForMe: true,
+                },
+              };
+            }
+          )
+          : []
       );
     } else {
       const optimisticDeletedMessage = {
@@ -1524,25 +1591,25 @@ const MessageBubble = ({
         pinnedBy: null,
 
         deletedForEveryone: true,
+
         deletedAt:
           new Date().toISOString(),
       };
 
-      setMessages(
-        (previous) =>
-          Array.isArray(previous)
-            ? previous.map(
-              (item) =>
-                normalizeId(
-                  item?._id
-                ) === messageId
-                  ? {
-                    ...item,
-                    ...optimisticDeletedMessage,
-                  }
-                  : item
-            )
-            : []
+      setMessages((previous) =>
+        Array.isArray(previous)
+          ? previous.map(
+            (item) =>
+              normalizeId(
+                item?._id
+              ) === messageId
+                ? {
+                  ...item,
+                  ...optimisticDeletedMessage,
+                }
+                : item
+          )
+          : []
       );
 
       setPinnedMessage(
@@ -1553,7 +1620,60 @@ const MessageBubble = ({
             ? null
             : previous
       );
+
+      /*
+       * Sidebar preview kuda immediate ga
+       * deleted state ki update.
+       */
+      setChatSummaries((previous) =>
+        Array.isArray(previous)
+          ? previous.map(
+            (summary) => {
+              const lastMessageId =
+                normalizeId(
+                  summary
+                    ?.lastMessage
+                    ?._id
+                );
+
+              if (
+                lastMessageId !==
+                messageId
+              ) {
+                return summary;
+              }
+
+              return {
+                ...summary,
+
+                lastMessage: {
+                  ...summary.lastMessage,
+
+                  text:
+                    "This message was deleted",
+
+                  image: "",
+                  sharedPost: null,
+                  replyTo: null,
+                  reactions: [],
+
+                  deletedForEveryone:
+                    true,
+
+                  deletedAt:
+                    optimisticDeletedMessage
+                      .deletedAt,
+                },
+              };
+            }
+          )
+          : []
+      );
     }
+
+    /* =========================
+       SERVER DELETE
+    ========================= */
 
     try {
       await deleteMessage(
@@ -1567,61 +1687,72 @@ const MessageBubble = ({
         error.message
       );
 
-      /*
-       * Request fail ayithe
-       * optimistic state rollback.
-       */
+      /* =========================
+         ROLLBACK MESSAGE
+      ========================= */
+
       if (mode === "forMe") {
         setIsDeleted(false);
 
-        setMessages(
-          (previous) => {
-            const safeMessages =
-              Array.isArray(previous)
-                ? previous
-                : [];
-
-            const alreadyExists =
-              safeMessages.some(
-                (item) =>
-                  normalizeId(
-                    item?._id
-                  ) === messageId
-              );
-
-            if (alreadyExists) {
-              return safeMessages;
-            }
-
-            return [
-              ...safeMessages,
-              previousMessage,
-            ].sort(
-              (first, second) =>
-                new Date(
-                  first?.createdAt || 0
-                ).getTime() -
-                new Date(
-                  second?.createdAt || 0
-                ).getTime()
-            );
-          }
-        );
-      } else {
-        setMessages(
-          (previous) =>
+        setMessages((previous) => {
+          const safeMessages =
             Array.isArray(previous)
-              ? previous.map(
-                (item) =>
-                  normalizeId(
-                    item?._id
-                  ) === messageId
-                    ? previousMessage
-                    : item
-              )
-              : []
+              ? previous
+              : [];
+
+          const alreadyExists =
+            safeMessages.some(
+              (item) =>
+                normalizeId(
+                  item?._id
+                ) === messageId
+            );
+
+          if (alreadyExists) {
+            return safeMessages;
+          }
+
+          return [
+            ...safeMessages,
+            previousMessage,
+          ].sort(
+            (first, second) =>
+              new Date(
+                first?.createdAt || 0
+              ).getTime() -
+              new Date(
+                second?.createdAt || 0
+              ).getTime()
+          );
+        });
+      } else {
+        setMessages((previous) =>
+          Array.isArray(previous)
+            ? previous.map(
+              (item) =>
+                normalizeId(
+                  item?._id
+                ) === messageId
+                  ? previousMessage
+                  : item
+            )
+            : []
         );
       }
+
+      /*
+       * Pinned state restore.
+       */
+      setPinnedMessage(
+        previousPinnedMessage
+      );
+
+      /*
+       * Sidebar summary restore.
+       */
+      setChatSummaries(
+        previousSummaries
+      );
 
       setDeleteError(
         error.response?.data
