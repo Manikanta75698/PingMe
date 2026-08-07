@@ -1183,79 +1183,100 @@
     margin-left: 0;
 
     padding-top:
-      calc(62px + env(safe-area-inset-top,
-          0px));
+      env(safe-area-inset-top,
+        0px);
 
     padding-bottom:
-      calc(82px + env(safe-area-inset-bottom,
+      calc(72px + env(safe-area-inset-bottom,
           0px));
   }
 
   .main {
     width: 100%;
 
-    padding: 18px 14px 30px;
+    padding:
+      14px 14px 24px;
   }
 
   .hero {
-    margin-bottom: 20px;
+    gap: 12px;
+    margin-bottom: 16px;
   }
 
   .heroIcon {
-    width: 49px;
-    height: 49px;
-    flex-basis: 49px;
+    width: 46px;
+    height: 46px;
+    flex-basis: 46px;
 
-    border-radius: 15px;
+    border-radius: 14px;
   }
 
   .hero h1 {
-    font-size: 1.72rem;
+    font-size: 1.6rem;
+    line-height: 1.08;
   }
 
   .hero p {
-    font-size: 0.76rem;
+    margin-top: 4px;
+
+    font-size: 0.74rem;
+    line-height: 1.4;
   }
 
   .intentSection {
-    margin-bottom: 18px;
-    padding: 18px 14px;
+    margin-bottom: 16px;
+    padding: 16px 14px;
 
-    border-radius: 20px;
+    border-radius: 19px;
   }
 
   .intentHeader {
-    margin-bottom: 16px;
-    gap: 12px;
+    margin-bottom: 14px;
+    gap: 10px;
+  }
+
+  .intentEyebrow {
+    margin-bottom: 5px;
   }
 
   .intentHeader h2 {
-    font-size: 1.28rem;
+    font-size: 1.23rem;
   }
 
   .intentHeader p {
-    max-width: 280px;
-    font-size: 0.7rem;
+    max-width: 290px;
+
+    margin-top: 6px;
+
+    font-size: 0.69rem;
+    line-height: 1.5;
   }
 
   .clearIntentButton {
     min-width: auto;
-    min-height: 36px;
+    min-height: 34px;
 
-    padding: 7px 11px;
+    padding: 6px 10px;
   }
 
   .intentList {
     display: flex;
 
-    gap: 10px;
+    gap: 9px;
+
+    margin-inline: -2px;
+    padding: 2px;
 
     overflow-x: auto;
+    overflow-y: hidden;
 
     overscroll-behavior-inline: contain;
+
     scrollbar-width: none;
 
-    scroll-snap-type: inline mandatory;
+    scroll-snap-type: inline proximity;
+
+    -webkit-overflow-scrolling: touch;
   }
 
   .intentList::-webkit-scrollbar {
@@ -1263,58 +1284,86 @@
   }
 
   .intentCard {
-    min-width: 86px;
-    min-height: 84px;
-    flex: 0 0 86px;
+    min-width: 84px;
+    min-height: 82px;
+    flex: 0 0 84px;
+
+    gap: 8px;
+
+    padding: 11px 8px;
+
+    border-radius: 16px;
 
     scroll-snap-align: start;
   }
 
   .intentEmoji {
-    font-size: 1.56rem;
+    font-size: 1.5rem;
+  }
+
+  .intentLabel {
+    font-size: 0.69rem;
   }
 
   .activeIntentBanner {
     align-items: flex-start;
 
-    padding: 12px 13px;
+    margin-top: 13px;
+
+    padding: 11px 12px;
   }
 
   .searchWrapper {
-    margin-bottom: 22px;
+    margin-bottom: 18px;
   }
 
   .searchWrapper input {
-    min-height: 51px;
+    min-height: 50px;
+
+    padding: 11px 45px;
 
     border-radius: 15px;
+
+    font-size: 0.8rem;
+  }
+
+  .searchIcon {
+    left: 15px;
+  }
+
+  .resultsHeader {
+    margin: 0 2px 13px;
   }
 
   .resultsHeader h2 {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
+  }
+
+  .resultsHeader p {
+    margin-top: 4px;
   }
 
   .grid {
-    gap: 13px;
+    gap: 12px;
   }
 
   .userCard {
-    padding: 16px;
+    padding: 15px;
 
-    border-radius: 19px;
+    border-radius: 18px;
   }
 
   .avatarWrapper {
-    width: 58px;
-    height: 58px;
-    flex-basis: 58px;
+    width: 56px;
+    height: 56px;
+    flex-basis: 56px;
   }
 
   .toast {
     right: 12px;
 
     bottom:
-      calc(82px + env(safe-area-inset-bottom,
+      calc(72px + env(safe-area-inset-bottom,
           0px));
 
     left: 12px;
