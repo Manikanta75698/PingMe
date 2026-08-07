@@ -149,6 +149,11 @@ const UserProfile = () => {
     setSelectedPost,
   ] = useState(null);
 
+  const [
+    failedImageIds,
+    setFailedImageIds,
+  ] = useState(() => new Set());
+
   const currentUserId = normalizeId(
     currentUser?.id ||
     currentUser?._id
@@ -189,7 +194,9 @@ const UserProfile = () => {
   ========================= */
 
   const fetchUser = useCallback(
-    async () => {
+    async ({
+      showLoading = true,
+    } = {}) => {
       if (!username) {
         setError(
           "Invalid username"
@@ -200,16 +207,13 @@ const UserProfile = () => {
       }
 
       try {
-        setLoading(true);
-        setError("");
-        setUser(null);
-        setPosts([]);
+        if (showLoading) {
+          setLoading(true);
+          setUser(null);
+          setPosts([]);
+          setError("");
+        }
 
-        /*
-         * Profile first fetch chestham.
-         * Private content permission profile
-         * response nundi determine chestham.
-         */
         const profileResponse =
           await getUserProfile(username);
 
@@ -226,10 +230,6 @@ const UserProfile = () => {
 
         setUser(userData);
 
-        /*
-         * Private account ni follow
-         * cheyakapothe posts fetch cheyyamu.
-         */
         if (
           userData.canViewPrivateContent ===
           false
@@ -265,14 +265,18 @@ const UserProfile = () => {
           fetchError?.message
         );
 
-        setError(
-          fetchError?.response?.data
-            ?.message ||
-          fetchError?.message ||
-          "Unable to load profile"
-        );
+        if (showLoading) {
+          setError(
+            fetchError?.response?.data
+              ?.message ||
+            fetchError?.message ||
+            "Unable to load profile"
+          );
+        }
       } finally {
-        setLoading(false);
+        if (showLoading) {
+          setLoading(false);
+        }
       }
     },
     [username]
@@ -410,7 +414,9 @@ const UserProfile = () => {
 
     const handleSocketReconnect =
       () => {
-        void fetchUser();
+        void fetchUser({
+          showLoading: false,
+        });
       };
 
     window.addEventListener(
@@ -523,17 +529,12 @@ const UserProfile = () => {
 
         followersCount,
 
-        /*
-         * Public follow or accepted
-         * follow request tarvatha private
-         * content accessible avuthundi.
-         */
         canViewPrivateContent:
-          nextStatus ===
-            "following"
+          nextStatus === "following"
             ? true
-            : previous
-              .canViewPrivateContent,
+            : previous.privateAccount
+              ? false
+              : true,
       };
     });
   };
@@ -648,6 +649,21 @@ const UserProfile = () => {
   /* =========================
      MESSAGE USER
   ========================= */
+
+  const handleImageError = (
+    postId
+  ) => {
+    setFailedImageIds(
+      (previous) => {
+        const next =
+          new Set(previous);
+
+        next.add(postId);
+
+        return next;
+      }
+    );
+  };
 
   const handleMessage = () => {
     if (
@@ -979,33 +995,59 @@ const UserProfile = () => {
             }
           >
             {posts.length > 0 ? (
-              posts.map((post) => (
-                <button
-                  key={post._id}
-                  type="button"
-                  className={
-                    styles.postButton
-                  }
-                  onClick={() =>
-                    setSelectedPost(
-                      post
-                    )
-                  }
-                  aria-label="Open post"
-                >
-                  <img
-                    src={post.image}
-                    alt={
-                      post.caption ||
-                      "Post"
-                    }
+              posts.map((post) => {
+                const postId =
+                  String(post?._id || "");
+
+                const imageFailed =
+                  failedImageIds.has(
+                    postId
+                  );
+
+                return (
+                  <button
+                    key={post._id}
+                    type="button"
                     className={
-                      styles.postImage
+                      styles.postButton
                     }
-                    loading="lazy"
-                  />
-                </button>
-              ))
+                    onClick={() =>
+                      setSelectedPost(post)
+                    }
+                    aria-label="Open post"
+                  >
+                    {post.image &&
+                      !imageFailed ? (
+                      <img
+                        src={post.image}
+                        alt={
+                          post.caption ||
+                          "Post"
+                        }
+                        className={
+                          styles.postImage
+                        }
+                        loading="lazy"
+                        decoding="async"
+                        onError={() =>
+                          handleImageError(
+                            postId
+                          )
+                        }
+                      />
+                    ) : (
+                      <span
+                        className={
+                          styles.postPlaceholder
+                        }
+                        aria-hidden="true"
+                      >
+                        <ImageOff size={28} />
+                      </span>
+                    )}
+                  </button>
+                );
+              })
             ) : (
               <div
                 className={
