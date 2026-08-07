@@ -93,9 +93,7 @@ const MOBILE_NAV_ITEMS = [
   },
 ];
 
-const Header = ({
-  scrollY = 0,
-}) => {
+const Header = () => {
   const {
     user,
   } = useAuth();
@@ -209,30 +207,122 @@ const Header = ({
   ]);
 
   useEffect(() => {
-    const previousScroll =
-      lastScrollY.current;
+    const headerElement =
+      document.querySelector(
+        `.${styles.mobileTopHeader}`
+      );
 
-    if (
-      Math.abs(
-        scrollY -
-        previousScroll
-      ) < 8
-    ) {
-      return;
-    }
+    const getScrollableParent = (
+      element
+    ) => {
+      let parent =
+        element?.parentElement;
 
-    const shouldHide =
-      scrollY >
-      previousScroll &&
-      scrollY > 72;
+      while (
+        parent &&
+        parent !== document.body
+      ) {
+        const style =
+          window.getComputedStyle(
+            parent
+          );
 
-    setShowTopHeader(
-      !shouldHide
-    );
+        const overflowY =
+          style.overflowY;
+
+        if (
+          (
+            overflowY === "auto" ||
+            overflowY === "scroll"
+          ) &&
+          parent.scrollHeight >
+          parent.clientHeight
+        ) {
+          return parent;
+        }
+
+        parent =
+          parent.parentElement;
+      }
+
+      return window;
+    };
+
+    const scrollTarget =
+      getScrollableParent(
+        headerElement
+      );
+
+    const getScrollY = () =>
+      scrollTarget === window
+        ? window.scrollY ||
+        document.documentElement
+          .scrollTop ||
+        0
+        : scrollTarget.scrollTop;
 
     lastScrollY.current =
-      scrollY;
-  }, [scrollY]);
+      getScrollY();
+
+    const handleScroll = () => {
+      const currentScrollY =
+        getScrollY();
+
+      const previousScrollY =
+        lastScrollY.current;
+
+      if (
+        currentScrollY <= 12
+      ) {
+        setShowTopHeader(true);
+
+        lastScrollY.current =
+          currentScrollY;
+
+        return;
+      }
+
+      if (
+        Math.abs(
+          currentScrollY -
+          previousScrollY
+        ) < 5
+      ) {
+        return;
+      }
+
+      const scrollingDown =
+        currentScrollY >
+        previousScrollY;
+
+      if (
+        scrollingDown &&
+        currentScrollY > 72
+      ) {
+        setShowTopHeader(false);
+      } else if (!scrollingDown) {
+        setShowTopHeader(true);
+      }
+
+      lastScrollY.current =
+        currentScrollY;
+    };
+
+    scrollTarget.addEventListener(
+      "scroll",
+      handleScroll,
+      {
+        passive: true,
+      }
+    );
+
+    return () => {
+      scrollTarget.removeEventListener(
+        "scroll",
+        handleScroll
+      );
+    };
+  }, []);
 
   const openProfile = () => {
     navigate("/profile");

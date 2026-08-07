@@ -251,8 +251,8 @@
         position: sticky;
 
         top:
-            calc(70px + env(safe-area-inset-top,
-                    0px));
+            env(safe-area-inset-top,
+                0px);
 
         z-index: 30;
 
@@ -260,8 +260,13 @@
 
         border-radius: 16px;
 
+        background: var(--surface);
+
         box-shadow:
-            0 12px 32px rgb(15 23 42 / 9%);
+            0 8px 24px rgb(15 23 42 / 8%);
+
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
     }
 
     .tabButton {
@@ -300,21 +305,6 @@
     }
 }
 
-/* =========================================
-   DARK THEME
-========================================= */
-
-:global(:root[data-theme="dark"]) .tabsShell {
-    box-shadow:
-        0 14px 38px rgb(0 0 0 / 26%);
-}
-
-:global(:root[data-theme="dark"]) .activeIndicator {
-    box-shadow:
-        0 12px 30px color-mix(in srgb,
-            var(--primary) 32%,
-            transparent);
-}
 
 /* =========================================
    REDUCED MOTION

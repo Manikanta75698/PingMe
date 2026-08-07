@@ -121,6 +121,17 @@ const ProfileHeader = () => {
   const fileInputRef =
     useRef(null);
 
+  const mountedRef =
+    useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const persistUser =
     useCallback(
       (nextUser) => {
@@ -162,6 +173,10 @@ const ProfileHeader = () => {
           const response =
             await getProfile();
 
+          if (!mountedRef.current) {
+            return;
+          }
+
           const freshUser =
             getProfileUser(
               response
@@ -177,6 +192,10 @@ const ProfileHeader = () => {
             freshUser
           );
         } catch (fetchError) {
+
+          if (!mountedRef.current) {
+            return;
+          }
           console.error(
             "GET PROFILE ERROR:",
             fetchError
@@ -199,81 +218,19 @@ const ProfileHeader = () => {
             }
           );
         } finally {
-          setLoading(false);
+          if (mountedRef.current) {
+            setLoading(false);
+          }
         }
       },
       [persistUser]
     );
 
   useEffect(() => {
-    let cancelled = false;
-
-    const loadProfile =
-      async () => {
-        try {
-          setLoading(true);
-          setError("");
-
-          const response =
-            await getProfile();
-
-          if (cancelled) {
-            return;
-          }
-
-          const freshUser =
-            getProfileUser(
-              response
-            );
-
-          if (!freshUser) {
-            throw new Error(
-              "Invalid profile response"
-            );
-          }
-
-          persistUser(
-            freshUser
-          );
-        } catch (fetchError) {
-          if (cancelled) {
-            return;
-          }
-
-          console.error(
-            "GET PROFILE ERROR:",
-            fetchError
-              ?.response?.data ||
-            fetchError?.message
-          );
-
-          setUser(
-            (currentUser) => {
-              if (!currentUser) {
-                setError(
-                  fetchError
-                    ?.response?.data
-                    ?.message ||
-                  "Unable to load profile"
-                );
-              }
-
-              return currentUser;
-            }
-          );
-        } finally {
-          if (!cancelled) {
-            setLoading(false);
-          }
-        }
-      };
-
-    void loadProfile();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [persistUser]);
+    void fetchProfile({
+      showLoading: !getStoredUser(),
+    });
+  }, [fetchProfile]);
 
   const handleProfileUpdated =
     useCallback(

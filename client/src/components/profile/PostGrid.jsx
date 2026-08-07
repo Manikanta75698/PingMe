@@ -116,6 +116,12 @@ const PostGrid = ({
     setSelectedPost,
   ] = useState(null);
 
+
+  const [
+    failedImageIds,
+    setFailedImageIds,
+  ] = useState(() => new Set());
+
   const isSavedTab =
     type === "saved";
 
@@ -304,15 +310,18 @@ const PostGrid = ({
   ]);
 
   const handleImageError = (
-    event
+    postId
   ) => {
-    event.currentTarget
-      .classList.add(
-        styles.imageFailed
-      );
+    setFailedImageIds(
+      (previous) => {
+        const next =
+          new Set(previous);
 
-    event.currentTarget
-      .removeAttribute("src");
+        next.add(postId);
+
+        return next;
+      }
+    );
   };
 
   if (loading) {
@@ -441,6 +450,11 @@ const PostGrid = ({
           const image =
             getPostImage(post);
 
+          const imageFailed =
+            failedImageIds.has(
+              postId
+            );
+
           const likesCount =
             Number(
               post?.likesCount ??
@@ -471,7 +485,7 @@ const PostGrid = ({
                   : "Open post"
               }
             >
-              {image ? (
+              {image && !imageFailed ? (
                 <img
                   src={image}
                   alt={
@@ -483,8 +497,10 @@ const PostGrid = ({
                   }
                   loading="lazy"
                   decoding="async"
-                  onError={
-                    handleImageError
+                  onError={() =>
+                    handleImageError(
+                      postId
+                    )
                   }
                 />
               ) : (

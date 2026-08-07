@@ -108,9 +108,6 @@
     scale(1.055);
 }
 
-.imageFailed {
-  display: none;
-}
 
 /* =========================================
    IMAGE FALLBACK
@@ -525,24 +522,6 @@
   }
 }
 
-/* =========================================
-   DARK THEME
-========================================= */
-
-:global(:root[data-theme="dark"]) .postButton {
-  box-shadow:
-    0 10px 28px rgb(0 0 0 / 25%);
-}
-
-:global(:root[data-theme="dark"]) .postButton:hover {
-  box-shadow:
-    0 22px 48px rgb(0 0 0 / 38%);
-}
-
-:global(:root[data-theme="dark"]) .stateCard {
-  box-shadow:
-    0 16px 42px rgb(0 0 0 / 24%);
-}
 
 /* =========================================
    REDUCED MOTION

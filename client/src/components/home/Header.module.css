@@ -375,7 +375,10 @@
 
     .hideTopHeader {
         transform:
-            translateY(-105%);
+            translateY(calc(-100% - env(safe-area-inset-top,
+                        0px)));
+
+        pointer-events: none;
     }
 
     .topHeaderAction,

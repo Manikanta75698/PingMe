@@ -791,13 +791,16 @@
 ========================================= */
 
 @media (max-width: 768px) {
-    .profileCard {
-        padding:
-            25px 16px 22px;
+  .profileCard {
+    padding:
+      25px 16px 22px;
 
-        border-radius:
-            22px;
-    }
+    border-radius:
+      22px;
+
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 
     .profileCard:hover {
         transform: none;
