@@ -1,46 +1,82 @@
 .page {
-  min-height: 100vh;
-  padding: 40px 24px;
+  width: calc(100% - 250px);
+  min-height: 100dvh;
+  margin-left: 250px;
+
+  padding: 32px 24px 88px;
+
   background: var(--background);
+  color: var(--text-primary);
+
+  box-sizing: border-box;
 }
 
 .container {
   width: 100%;
-  max-width: 900px;
+  max-width: 940px;
   margin: 0 auto;
 }
 
 .header {
-  margin-bottom: 26px;
+  margin-bottom: 24px;
 }
 
 .header h1 {
   margin: 0 0 6px;
+
+  color: var(--text-primary);
+
   font-size: 34px;
   font-weight: 750;
-  color: var(--text-primary);
+  line-height: 1.15;
 }
 
 .header p {
   margin: 0;
-  font-size: 15px;
+
   color: var(--text-secondary);
+
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 @media (max-width: 768px) {
   .page {
-    padding: 20px 14px 90px;
+    width: 100%;
+    min-height: 100dvh;
+    margin-left: 0;
+
+    padding:
+      calc(env(safe-area-inset-top,
+          0px) + 14px) 14px calc(82px + env(safe-area-inset-bottom,
+          0px));
+
+    background: var(--background);
+  }
+
+  .container {
+    max-width: none;
   }
 
   .header {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   }
 
   .header h1 {
-    font-size: 28px;
+    font-size: 27px;
   }
 
   .header p {
     font-size: 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .page {
+    padding-inline: 12px;
+  }
+
+  .header h1 {
+    font-size: 25px;
   }
 }

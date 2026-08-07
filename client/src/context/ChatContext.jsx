@@ -228,6 +228,21 @@ export const ChatProvider = ({
   const summariesLoadedAtRef =
     useRef(0);
 
+  const pinnedRequestRef =
+    useRef(new Map());
+
+  const pinnedCacheRef =
+    useRef(new Map());
+
+  const blockStatusRequestRef =
+    useRef(new Map());
+
+  const blockStatusCacheRef =
+    useRef(new Map());
+
+  const CHAT_META_CACHE_MS =
+    15000;
+
   const selectedChatId =
     normalizeId(selectedChat);
 
@@ -282,54 +297,87 @@ export const ChatProvider = ({
 
     let isActive = true;
 
+    const cached =
+      pinnedCacheRef.current.get(
+        selectedChatId
+      );
+
+    if (
+      cached &&
+      Date.now() - cached.savedAt <
+      CHAT_META_CACHE_MS
+    ) {
+      setPinnedMessage(
+        cached.data
+      );
+
+      return () => {
+        isActive = false;
+      };
+    }
+
     setPinnedMessage(null);
 
     const loadPinnedMessage =
       async () => {
         try {
-          const response =
-            await fetchPinnedMessage(
+          let request =
+            pinnedRequestRef.current.get(
               selectedChatId
             );
+
+          if (!request) {
+            request =
+              fetchPinnedMessage(
+                selectedChatId
+              );
+
+            pinnedRequestRef.current.set(
+              selectedChatId,
+              request
+            );
+          }
+
+          const response =
+            await request;
 
           if (!isActive) {
             return;
           }
 
-          setPinnedMessage(
+          const nextPinnedMessage =
             response?.data?.data ||
-            null
+            null;
+
+          pinnedCacheRef.current.set(
+            selectedChatId,
+            {
+              data: nextPinnedMessage,
+              savedAt: Date.now(),
+            }
+          );
+
+          setPinnedMessage(
+            nextPinnedMessage
           );
         } catch (error) {
           console.error(
             "GET PINNED MESSAGE EXACT ERROR:",
-            {
-              status:
-                error?.response?.status,
-
-              message:
-                error?.response?.data
-                  ?.message,
-
-              code:
-                error?.response?.data
-                  ?.code,
-
-              data:
-                error?.response?.data,
-
-              url:
-                error?.config?.url,
-            }
+            error.response?.data ||
+            error.message
           );
 
           if (isActive) {
             setPinnedMessage(null);
           }
+        } finally {
+          pinnedRequestRef.current.delete(
+            selectedChatId
+          );
         }
       };
 
-    loadPinnedMessage();
+    void loadPinnedMessage();
 
     return () => {
       isActive = false;
@@ -338,8 +386,8 @@ export const ChatProvider = ({
 
 
   /* =========================
-   LOAD BLOCK STATUS
-========================= */
+     LOAD BLOCK STATUS
+  ========================= */
 
   useEffect(() => {
     if (!selectedChatId) {
@@ -358,12 +406,27 @@ export const ChatProvider = ({
 
     let isActive = true;
 
-    setBlockStatus({
-      userId: selectedChatId,
-      blockedByMe: false,
-      blockedMe: false,
-      isBlocked: false,
-    });
+    const cached =
+      blockStatusCacheRef.current.get(
+        selectedChatId
+      );
+
+    if (
+      cached &&
+      Date.now() - cached.savedAt <
+      CHAT_META_CACHE_MS
+    ) {
+      setBlockStatus(
+        cached.data
+      );
+
+      setBlockStatusLoading(false);
+      setBlockStatusError("");
+
+      return () => {
+        isActive = false;
+      };
+    }
 
     setBlockStatusLoading(true);
     setBlockStatusError("");
@@ -371,10 +434,25 @@ export const ChatProvider = ({
     const loadBlockStatus =
       async () => {
         try {
-          const response =
-            await fetchBlockStatus(
+          let request =
+            blockStatusRequestRef.current.get(
               selectedChatId
             );
+
+          if (!request) {
+            request =
+              fetchBlockStatus(
+                selectedChatId
+              );
+
+            blockStatusRequestRef.current.set(
+              selectedChatId,
+              request
+            );
+          }
+
+          const response =
+            await request;
 
           if (!isActive) {
             return;
@@ -384,11 +462,12 @@ export const ChatProvider = ({
             response?.data?.data ||
             {};
 
-          setBlockStatus({
+          const nextStatus = {
             userId:
               normalizeId(
                 data?.userId
-              ) || selectedChatId,
+              ) ||
+              selectedChatId,
 
             blockedByMe:
               Boolean(
@@ -404,7 +483,19 @@ export const ChatProvider = ({
               Boolean(
                 data?.isBlocked
               ),
-          });
+          };
+
+          blockStatusCacheRef.current.set(
+            selectedChatId,
+            {
+              data: nextStatus,
+              savedAt: Date.now(),
+            }
+          );
+
+          setBlockStatus(
+            nextStatus
+          );
         } catch (error) {
           console.error(
             "LOAD BLOCK STATUS ERROR:",
@@ -421,14 +512,11 @@ export const ChatProvider = ({
               ?.message ||
             "Unable to load block status"
           );
-
-          setBlockStatus({
-            userId: selectedChatId,
-            blockedByMe: false,
-            blockedMe: false,
-            isBlocked: false,
-          });
         } finally {
+          blockStatusRequestRef.current.delete(
+            selectedChatId
+          );
+
           if (isActive) {
             setBlockStatusLoading(
               false
@@ -437,7 +525,7 @@ export const ChatProvider = ({
         }
       };
 
-    loadBlockStatus();
+    void loadBlockStatus();
 
     return () => {
       isActive = false;

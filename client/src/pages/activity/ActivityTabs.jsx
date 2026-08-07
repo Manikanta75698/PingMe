@@ -33,7 +33,6 @@ import {
 import {
   getNotifications,
   markNotificationAsRead,
-  markAllNotificationsAsRead,
   markLikesAsRead,
 } from "../../services/notificationService";
 
@@ -295,6 +294,12 @@ const ActivityTabs = () => {
   const notificationIdsRef =
     useRef(new Set());
 
+  const requestsLoadRef =
+    useRef(null);
+
+  const notificationsLoadRef =
+    useRef(null);
+
   /* =========================
      LOAD FOLLOW REQUESTS
   ========================= */
@@ -308,8 +313,19 @@ const ActivityTabs = () => {
 
         setRequestError("");
 
+        let request =
+          requestsLoadRef.current;
+
+        if (!request) {
+          request =
+            getReceivedFollowRequests();
+
+          requestsLoadRef.current =
+            request;
+        }
+
         const response =
-          await getReceivedFollowRequests();
+          await request;
 
         const requests =
           getRequestsFromResponse(
@@ -339,6 +355,9 @@ const ActivityTabs = () => {
         setRequestsLoading(
           false
         );
+
+        requestsLoadRef.current = null;
+
       }
     }, []);
 
@@ -357,8 +376,19 @@ const ActivityTabs = () => {
           ""
         );
 
+        let request =
+          notificationsLoadRef.current;
+
+        if (!request) {
+          request =
+            getNotifications();
+
+          notificationsLoadRef.current =
+            request;
+        }
+
         const response =
-          await getNotifications();
+          await request;
 
         const loadedNotifications =
           getNotificationsFromResponse(
@@ -408,6 +438,9 @@ const ActivityTabs = () => {
         setNotificationsLoading(
           false
         );
+
+        notificationsLoadRef.current =
+          null;
       }
     }, [
       setNotificationUnreadCount,
@@ -566,11 +599,12 @@ const ActivityTabs = () => {
             normalizedRequestId,
         });
 
-        await syncNotificationBadge();
+        void syncNotificationBadge();
 
         toast.success(
           "Follow request accepted"
         );
+
       } catch (error) {
         console.error(
           "ACCEPT FOLLOW REQUEST ERROR:",
@@ -628,7 +662,7 @@ const ActivityTabs = () => {
             normalizedRequestId,
         });
 
-        await syncNotificationBadge();
+        void syncNotificationBadge();
 
         toast.success(
           "Follow request declined"
@@ -824,7 +858,7 @@ const ActivityTabs = () => {
 ========================= */
 
   const handleNotificationsTabClick =
-    async () => {
+    () => {
       setActiveTab(
         "notifications"
       );
@@ -835,54 +869,6 @@ const ActivityTabs = () => {
           replace: true,
         }
       );
-
-      const hasUnreadNotifications =
-        notifications.some(
-          (notification) =>
-            !notification?.isRead
-        );
-
-
-      if (!hasUnreadNotifications) {
-        return;
-      }
-
-      setNotifications(
-        (previous) =>
-          previous.map(
-            (notification) => ({
-              ...notification,
-              isRead: true,
-            })
-          )
-      );
-
-      setNotificationUnreadCount(
-        0
-      );
-
-      try {
-        const response =
-          await markAllNotificationsAsRead();
-
-        setNotificationUnreadCount(
-          Math.max(
-            0,
-            Number(
-              response?.data?.unreadCount
-            ) || 0
-          )
-        );
-      } catch (error) {
-        console.error(
-          "MARK ALL NOTIFICATIONS READ ERROR:",
-          error?.response?.data ||
-          error?.message
-        );
-
-
-        await loadActivityNotifications();
-      }
     };
 
   useEffect(() => {
@@ -908,8 +894,8 @@ const ActivityTabs = () => {
   ========================= */
 
   const handleNotificationClick =
-    async (notification) => {
-      await markOneAsRead(
+    (notification) => {
+      void markOneAsRead(
         notification
       );
 
@@ -1409,16 +1395,16 @@ const ActivityTabs = () => {
                       styles.requestUser
                     }
                     onClick={() => {
-                      const senderId =
-                        normalizeId(
-                          sender
-                        );
+                      const senderUsername =
+                        String(
+                          sender?.username || ""
+                        ).trim();
 
-                      if (
-                        senderId
-                      ) {
+                      if (senderUsername) {
                         navigate(
-                          `/profile/${senderId}`
+                          `/user/${encodeURIComponent(
+                            senderUsername
+                          )}`
                         );
                       }
                     }}

@@ -33,15 +33,6 @@
 }
 
 /* =========================================
-   APP HEADER WRAPPER
-========================================= */
-
-.headerDefault,
-.headerDuringConversation {
-  display: block;
-}
-
-/* =========================================
    CHAT SIDEBAR COLUMN
 ========================================= */
 
@@ -522,9 +513,7 @@
 ========================================= */
 
 @media (max-width: 768px) {
-  .headerDuringConversation {
-    display: none;
-  }
+
 
   .chatPage {
     position: fixed;
