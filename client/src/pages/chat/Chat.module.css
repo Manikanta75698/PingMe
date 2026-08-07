@@ -530,7 +530,6 @@
     position: fixed;
 
     right: 0;
-    bottom: auto;
     left: 0;
 
     display: flex;
@@ -550,50 +549,34 @@
 
     overscroll-behavior: none;
 
-    transform:
-      translateZ(0);
+    box-sizing: border-box;
+
+    transform: none;
   }
 
-  /*
-   * /chat list route:
-   * global top header and bottom nav
-   * kosam space reserve chesthundi.
-   */
   .chatListPage {
     top:
-      calc(var(--chat-visual-offset-top,
-          0px) + 62px + env(safe-area-inset-top,
+      calc(62px + env(safe-area-inset-top,
           0px));
 
     height:
-      calc(var(--chat-visual-height,
-          100dvh) - 62px - env(safe-area-inset-top,
+      calc(100dvh - 62px - env(safe-area-inset-top,
           0px) - 84px - env(safe-area-inset-bottom,
           0px));
 
     max-height:
-      calc(var(--chat-visual-height,
-          100dvh) - 62px - env(safe-area-inset-top,
+      calc(100dvh - 62px - env(safe-area-inset-top,
           0px) - 84px - env(safe-area-inset-bottom,
           0px));
   }
 
-  /*
-   * Active conversation:
-   * full visual viewport use chesthundi.
-   */
   .conversationPage {
-    top:
-      var(--chat-visual-offset-top,
-        0px);
+    top: 0;
 
-    height:
-      var(--chat-visual-height,
-        100dvh);
+    bottom: auto;
 
-    max-height:
-      var(--chat-visual-height,
-        100dvh);
+    height: 100dvh;
+    max-height: 100dvh;
   }
 
   .sidebar {
@@ -639,18 +622,10 @@
     overscroll-behavior: none;
   }
 
-  /*
-   * Mobile list page:
-   * conversation pane hide.
-   */
   .hideChat {
     display: none;
   }
 
-  /*
-   * Mobile conversation:
-   * chat list hide.
-   */
   .hideSidebar {
     display: none;
   }

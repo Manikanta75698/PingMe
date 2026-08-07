@@ -416,10 +416,6 @@
     composerPanelIn 0.18s ease;
 }
 
-/*
- * Reply bar and image preview rendu
- * unnappudu preview reply bar paina untundi.
- */
 .container:has(.replyBar) .preview {
   bottom: calc(100% + 76px);
 }
