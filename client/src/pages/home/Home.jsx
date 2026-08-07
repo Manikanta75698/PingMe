@@ -1,8 +1,6 @@
 import {
-  useCallback,
   useEffect,
   useRef,
-  useState,
 } from "react";
 
 import {
@@ -16,27 +14,14 @@ import Stories from "../../components/home/Stories";
 import Feed from "../../components/home/Feed";
 
 const Home = () => {
-  const feedRef =
-    useRef(null);
-
-  const scrollFrameRef =
-    useRef(null);
-
-  const pendingScrollPositionRef =
-    useRef(0);
+  const feedRef = useRef(null);
 
   const [searchParams] =
     useSearchParams();
 
-  const [
-    scrollPosition,
-    setScrollPosition,
-  ] = useState(0);
-
   const targetPostId =
     String(
-      searchParams.get("post") ||
-      ""
+      searchParams.get("post") || ""
     ).trim();
 
   /* =========================
@@ -44,11 +29,10 @@ const Home = () => {
   ========================= */
 
   useEffect(() => {
-    const handlePostCreated =
-      () => {
-        feedRef.current
-          ?.refreshFeed?.();
-      };
+    const handlePostCreated = () => {
+      feedRef.current
+        ?.refreshFeed?.();
+    };
 
     window.addEventListener(
       "postCreated",
@@ -81,92 +65,27 @@ const Home = () => {
       }, 120);
 
     return () => {
-      window.clearTimeout(
-        timer
-      );
+      window.clearTimeout(timer);
     };
   }, [targetPostId]);
 
-  /* =========================
-     OPTIMIZED SCROLL HANDLER
-  ========================= */
-
-  const handleScroll =
-    useCallback((event) => {
-      pendingScrollPositionRef.current =
-        event.currentTarget.scrollTop;
-
-      if (
-        scrollFrameRef.current !==
-        null
-      ) {
-        return;
-      }
-
-      scrollFrameRef.current =
-        window.requestAnimationFrame(
-          () => {
-            const nextPosition =
-              Math.round(
-                pendingScrollPositionRef.current
-              );
-
-            setScrollPosition(
-              (
-                previousPosition
-              ) =>
-                previousPosition ===
-                  nextPosition
-                  ? previousPosition
-                  : nextPosition
-            );
-
-            scrollFrameRef.current =
-              null;
-          }
-        );
-    }, []);
-
-  /* =========================
-     CLEANUP
-  ========================= */
-
-  useEffect(() => {
-    return () => {
-      if (
-        scrollFrameRef.current !==
-        null
-      ) {
-        window.cancelAnimationFrame(
-          scrollFrameRef.current
-        );
-      }
-    };
-  }, []);
-
   return (
-    <div
-      id="main-container"
-      className={styles.home}
-      onScroll={handleScroll}
-    >
-      <Header
-        scrollY={scrollPosition}
-      />
+    <div className={styles.home}>
+      <Header />
 
       <main
         className={styles.page}
       >
         <div
           className={
-            styles.decorativeGlowLeft
+            styles.backgroundGlowOne
           }
           aria-hidden="true"
         />
 
         <div
           className={
-            styles.decorativeGlowRight
+            styles.backgroundGlowTwo
           }
           aria-hidden="true"
         />

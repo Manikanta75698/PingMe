@@ -5,7 +5,8 @@
 .page {
   position: fixed;
   inset: 0;
-  z-index: 1500;
+
+  z-index: 12000;
 
   min-width: 0;
   min-height: 0;
@@ -28,6 +29,7 @@
       #050505 100%);
 
   overflow: hidden;
+
   isolation: isolate;
 }
 
@@ -1059,7 +1061,7 @@
 .processingOverlay {
   position: fixed;
   inset: 0;
-  z-index: 1750;
+  z-index: 12020;
 
   display: flex;
   align-items: center;
@@ -1164,7 +1166,7 @@
 .confirmBackdrop {
   position: fixed;
   inset: 0;
-  z-index: 1800;
+  z-index: 12030;
 
   display: flex;
   align-items: center;

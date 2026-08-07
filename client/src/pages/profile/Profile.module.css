@@ -12,37 +12,72 @@
 
   overflow-x: hidden;
 
+  color:
+    var(--text-primary);
+
   background:
-    radial-gradient(circle at 16% 2%,
+    radial-gradient(circle at 18% 0%,
       color-mix(in srgb,
-        var(--primary) 9%,
+        var(--primary) 8%,
         transparent),
       transparent 34%),
-    radial-gradient(circle at 88% 12%,
+    radial-gradient(circle at 90% 14%,
       color-mix(in srgb,
-        var(--accent) 7%,
+        var(--accent) 6%,
         transparent),
-      transparent 31%),
+      transparent 30%),
     var(--background);
 
-  color: var(--text-primary);
-
   isolation: isolate;
+
+  box-sizing: border-box;
 }
 
 /* =========================================
-   DECORATIVE BACKGROUND
+   HEADER WRAPPER
+
+   Desktop:
+   Header sidebar visible.
+
+   Mobile:
+   top Header hidden.
+========================================= */
+
+.headerShell {
+  display: block;
+}
+
+/* =========================================
+   MAIN
+========================================= */
+
+.main {
+  position: relative;
+
+  z-index: 1;
+
+  width: 100%;
+  min-width: 0;
+
+  box-sizing: border-box;
+}
+
+/* =========================================
+   BACKGROUND GLOW
 ========================================= */
 
 .backgroundGlow {
   position: fixed;
-  z-index: -1;
 
-  top: 90px;
-  left: calc(250px + 50%);
+  z-index: 0;
 
-  width: 620px;
-  height: 620px;
+  top: 60px;
+
+  left:
+    calc(250px + (100vw - 250px) / 2);
+
+  width: 560px;
+  height: 560px;
 
   border-radius: 50%;
 
@@ -51,43 +86,77 @@
       var(--primary) 7%,
       transparent);
 
-  filter: blur(100px);
+  filter:
+    blur(110px);
+
+  opacity: 0.68;
 
   pointer-events: none;
 
-  transform: translateX(-50%);
+  transform:
+    translateX(-50%);
 }
 
 /* =========================================
-   MAIN PROFILE CONTAINER
+   PROFILE CONTENT
 ========================================= */
 
 .container {
   position: relative;
 
   display: flex;
-
-  width: min(100%, 1040px);
-
   flex-direction: column;
-  gap: 22px;
 
-  margin: 0 auto;
+  width:
+    min(calc(100% - 40px),
+      920px);
+
+  min-width: 0;
+
+  gap: 18px;
+
+  margin-inline: auto;
 
   padding:
-    34px 24px 80px;
+    28px 0 80px;
+
+  box-sizing: border-box;
+}
+
+/* =========================================
+   LARGE DESKTOP
+========================================= */
+
+@media (min-width: 1400px) {
+  .container {
+    width:
+      min(calc(100% - 48px),
+        960px);
+
+    padding-top: 30px;
+  }
 }
 
 /* =========================================
    TABLET
 ========================================= */
 
-@media (max-width: 1100px) {
+@media (min-width: 769px) and (max-width: 1100px) {
   .container {
-    width: min(100%, 900px);
+    width:
+      min(calc(100% - 32px),
+        820px);
 
     padding:
-      28px 20px 72px;
+      24px 0 68px;
+  }
+
+  .backgroundGlow {
+    width: 480px;
+    height: 480px;
+
+    filter:
+      blur(95px);
   }
 }
 
@@ -97,34 +166,74 @@
 
 @media (max-width: 768px) {
   .profilePage {
+    min-height: 100dvh;
+
     margin-left: 0;
 
-    padding-top:
-      calc(62px + env(safe-area-inset-top,
-          0px));
+    /*
+     * NO TOP HEADER SPACE
+     */
+    padding-top: 0;
 
+    /*
+     * Bottom navigation safe space.
+     */
     padding-bottom:
-      calc(82px + env(safe-area-inset-bottom,
+      calc(64px + env(safe-area-inset-bottom,
           0px));
   }
 
+  /*
+   * Hide ONLY the mobile top Header
+   * for Profile page.
+   */
+  .headerShell {
+    display: none;
+  }
+
+  .main {
+    width: 100%;
+
+    margin: 0;
+    padding: 0;
+  }
+
   .backgroundGlow {
-    top: 90px;
+    top: -90px;
     left: 50%;
 
-    width: 420px;
-    height: 420px;
+    width: 330px;
+    height: 330px;
 
-    filter: blur(80px);
+    background:
+      color-mix(in srgb,
+        var(--primary) 8%,
+        transparent);
+
+    filter:
+      blur(80px);
+
+    opacity: 0.48;
+
+    transform:
+      translateX(-50%);
   }
 
   .container {
     width: 100%;
 
-    gap: 16px;
+    gap: 12px;
 
+    margin: 0;
+
+    /*
+     * Almost zero top gap.
+     * 8px gives only small breathing space.
+     */
     padding:
-      16px 12px 28px;
+      8px 10px 22px;
+
+    box-sizing: border-box;
   }
 }
 
@@ -132,29 +241,41 @@
    SMALL MOBILE
 ========================================= */
 
-@media (max-width: 420px) {
+@media (max-width: 390px) {
   .container {
-    padding-right: 10px;
-    padding-left: 10px;
+    gap: 10px;
+
+    padding:
+      6px 8px 20px;
   }
 }
 
 /* =========================================
-   DARK THEME POLISH
+   VERY SMALL MOBILE
+========================================= */
+
+@media (max-width: 350px) {
+  .container {
+    padding-inline: 6px;
+  }
+}
+
+/* =========================================
+   DARK THEME
 ========================================= */
 
 :global(:root[data-theme="dark"]) .profilePage {
   background:
-    radial-gradient(circle at 16% 2%,
+    radial-gradient(circle at 18% 0%,
       color-mix(in srgb,
-        var(--primary) 12%,
+        var(--primary) 11%,
         transparent),
-      transparent 36%),
-    radial-gradient(circle at 88% 12%,
+      transparent 35%),
+    radial-gradient(circle at 90% 14%,
       color-mix(in srgb,
-        var(--accent) 10%,
+        var(--accent) 8%,
         transparent),
-      transparent 32%),
+      transparent 31%),
     var(--background);
 }
 
@@ -164,6 +285,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .backgroundGlow {
-    filter: blur(100px);
+    filter:
+      blur(110px);
   }
 }

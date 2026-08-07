@@ -95,18 +95,11 @@ const MessageInput = () => {
   const textareaRef =
     useRef(null);
 
-  /*
-   * Edit session ni React render state nunchi
-   * independent ga preserve chesthundi.
-   */
+
   const editingMessageRef =
     useRef(null);
 
-  /*
-   * Edit submit ayyaka stale context/socket
-   * update input ni malli populate cheyyakunda
-   * current edit session track chesthundi.
-   */
+
   const editSubmittingIdRef =
     useRef("");
 
@@ -165,23 +158,6 @@ const MessageInput = () => {
   ]);
 
 
-  useEffect(() => {
-    editingMessageRef.current = null;
-
-    setReplyingTo(null);
-    setEditingMessage(null);
-
-    setText("");
-
-    resetImage();
-    resetTextareaHeight();
-  }, [
-    selectedChatId,
-    setReplyingTo,
-    setEditingMessage,
-    resetImage,
-    resetTextareaHeight,
-  ]);
 
   const blockedByMe =
     Boolean(
@@ -253,6 +229,28 @@ const MessageInput = () => {
 
       textarea.style.height = "";
     }, []);
+
+  /* =========================
+ RESET ON CHAT CHANGE
+========================= */
+
+  useEffect(() => {
+    editingMessageRef.current = null;
+
+    setReplyingTo(null);
+    setEditingMessage(null);
+
+    setText("");
+
+    resetImage();
+    resetTextareaHeight();
+  }, [
+    selectedChatId,
+    setReplyingTo,
+    setEditingMessage,
+    resetImage,
+    resetTextareaHeight,
+  ]);
 
   const resizeTextarea =
     useCallback(() => {

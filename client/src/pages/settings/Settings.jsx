@@ -1,7 +1,12 @@
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
+
+import {
+  createPortal,
+} from "react-dom";
 
 import {
   ArrowLeft,
@@ -65,6 +70,9 @@ const MESSAGE_PERMISSION_OPTIONS = [
 
 const Settings = () => {
   const navigate = useNavigate();
+
+  const permissionDropdownRef =
+    useRef(null);
 
   const [user, setUser] = useState(() => {
     try {
@@ -157,6 +165,109 @@ const Settings = () => {
       isMounted = false;
     };
   }, []);
+
+
+  /* =========================
+   DROPDOWN UX
+========================= */
+
+  useEffect(() => {
+    if (!showMessagePermissionMenu) {
+      return undefined;
+    }
+
+    const handlePointerDown = (
+      event
+    ) => {
+      if (
+        permissionDropdownRef
+          .current &&
+        !permissionDropdownRef
+          .current.contains(
+            event.target
+          )
+      ) {
+        setShowMessagePermissionMenu(
+          false
+        );
+      }
+    };
+
+    const handleKeyDown = (
+      event
+    ) => {
+      if (event.key === "Escape") {
+        setShowMessagePermissionMenu(
+          false
+        );
+      }
+    };
+
+    document.addEventListener(
+      "pointerdown",
+      handlePointerDown
+    );
+
+    document.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
+
+    return () => {
+      document.removeEventListener(
+        "pointerdown",
+        handlePointerDown
+      );
+
+      document.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+    };
+  }, [
+    showMessagePermissionMenu,
+  ]);
+
+  /* =========================
+   LOGOUT MODAL UX
+========================= */
+
+  useEffect(() => {
+    if (!showLogoutModal) {
+      return undefined;
+    }
+
+    const previousOverflow =
+      document.body.style.overflow;
+
+    document.body.style.overflow =
+      "hidden";
+
+    const handleKeyDown = (
+      event
+    ) => {
+      if (event.key === "Escape") {
+        setShowLogoutModal(false);
+      }
+    };
+
+    document.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
+
+    return () => {
+      document.body.style.overflow =
+        previousOverflow;
+
+      document.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+    };
+  }, [
+    showLogoutModal,
+  ]);
 
   const handleThemeChange = (
     nextTheme
@@ -322,8 +433,8 @@ const Settings = () => {
           aria-checked={isActive}
           aria-label={ariaLabel}
           className={`${styles.switch} ${isActive
-              ? styles.switchActive
-              : ""
+            ? styles.switchActive
+            : ""
             }`}
           onClick={() =>
             handlePrivacyToggle(field)
@@ -353,8 +464,8 @@ const Settings = () => {
       <button
         type="button"
         className={`${styles.themeOption} ${isSelected
-            ? styles.themeOptionActive
-            : ""
+          ? styles.themeOptionActive
+          : ""
           }`}
         onClick={() =>
           handleThemeChange(value)
@@ -371,8 +482,8 @@ const Settings = () => {
 
         <span
           className={`${styles.radio} ${isSelected
-              ? styles.radioSelected
-              : ""
+            ? styles.radioSelected
+            : ""
             }`}
           aria-hidden="true"
         />
@@ -394,6 +505,66 @@ const Settings = () => {
           </button>
 
           <h1>Settings</h1>
+        </div>
+
+        {/* ACCOUNT SUMMARY */}
+
+        <div
+          className={
+            styles.accountSummary
+          }
+        >
+          <div
+            className={
+              styles.accountAvatar
+            }
+          >
+            {user?.profilePic ? (
+              <img
+                src={user.profilePic}
+                alt=""
+              />
+            ) : (
+              <span aria-hidden="true">
+                {String(
+                  user?.name ||
+                  user?.username ||
+                  "U"
+                )
+                  .charAt(0)
+                  .toUpperCase()}
+              </span>
+            )}
+          </div>
+
+          <div
+            className={
+              styles.accountIdentity
+            }
+          >
+            <strong>
+              {user?.name ||
+                "Your account"}
+            </strong>
+
+            <span>
+              {user?.username
+                ? `@${user.username}`
+                : "PingMe account"}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className={
+              styles.profileShortcut
+            }
+            onClick={() =>
+              navigate("/profile")
+            }
+          >
+            View profile
+          </button>
         </div>
 
         {/* ACCOUNT */}
@@ -444,9 +615,11 @@ const Settings = () => {
         </div>
 
         {/* PRIVACY */}
-        <div className={styles.section}>
+        <div
+          className={`${styles.section} ${styles.privacySection}`}
+        >
           <h2>Privacy</h2>
-
+          
           <button
             type="button"
             className={styles.item}
@@ -547,6 +720,7 @@ const Settings = () => {
                   })}
 
                   <div
+                    ref={permissionDropdownRef}
                     className={
                       styles.permissionOption
                     }
@@ -561,8 +735,7 @@ const Settings = () => {
                       </strong>
 
                       <span>
-                        Control who can
-                        start a
+                        Control who can start a
                         conversation
                       </span>
                     </div>
@@ -630,8 +803,8 @@ const Settings = () => {
                                     isSelected
                                   }
                                   className={`${styles.permissionMenuItem} ${isSelected
-                                      ? styles.permissionMenuItemActive
-                                      : ""
+                                    ? styles.permissionMenuItemActive
+                                    : ""
                                     }`}
                                   onClick={() =>
                                     handleMessagePermissionChange(
@@ -852,68 +1025,72 @@ const Settings = () => {
       )}
 
       {/* LOGOUT CONFIRMATION */}
-      {showLogoutModal && (
-        <div
-          className={
-            styles.modalOverlay
-          }
-          role="presentation"
-          onMouseDown={() =>
-            setShowLogoutModal(false)
-          }
-        >
+      {showLogoutModal &&
+        typeof document !==
+        "undefined" &&
+        createPortal(
           <div
             className={
-              styles.logoutModal
+              styles.modalOverlay
             }
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="logout-title"
-            onMouseDown={(event) =>
-              event.stopPropagation()
+            role="presentation"
+            onMouseDown={() =>
+              setShowLogoutModal(false)
             }
           >
-            <h2 id="logout-title">
-              Logout?
-            </h2>
-
-            <p>
-              Are you sure you want to
-              logout from your account?
-            </p>
-
             <div
               className={
-                styles.modalButtons
+                styles.logoutModal
+              }
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="logout-title"
+              onMouseDown={(event) =>
+                event.stopPropagation()
               }
             >
-              <button
-                type="button"
-                className={
-                  styles.cancelBtn
-                }
-                onClick={() =>
-                  setShowLogoutModal(
-                    false
-                  )
-                }
-              >
-                Cancel
-              </button>
+              <h2 id="logout-title">
+                Logout?
+              </h2>
 
-              <button
-                type="button"
+              <p>
+                Are you sure you want to
+                logout from your account?
+              </p>
+
+              <div
                 className={
-                  styles.confirmLogoutBtn
+                  styles.modalButtons
                 }
-                onClick={handleLogout}
               >
-                Logout
-              </button>
+                <button
+                  type="button"
+                  className={
+                    styles.cancelBtn
+                  }
+                  onClick={() =>
+                    setShowLogoutModal(
+                      false
+                    )
+                  }
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  className={
+                    styles.confirmLogoutBtn
+                  }
+                  onClick={handleLogout}
+                >
+                  Logout
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

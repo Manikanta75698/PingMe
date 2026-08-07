@@ -6,6 +6,10 @@ import {
 } from "react";
 
 import {
+  createPortal,
+} from "react-dom";
+
+import {
   Check,
   LoaderCircle,
   X,
@@ -772,7 +776,13 @@ const EditProfileModal = ({
       true
     );
 
-  return (
+  if (
+    typeof document === "undefined"
+  ) {
+    return null;
+  }
+
+  return createPortal(
     <div
       className={
         styles.overlay
@@ -1096,7 +1106,8 @@ const EditProfileModal = ({
           </footer>
         </form>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 };
 

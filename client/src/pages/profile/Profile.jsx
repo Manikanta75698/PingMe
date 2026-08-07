@@ -5,20 +5,28 @@ import styles from "./Profile.module.css";
 
 const Profile = () => {
   return (
-    <main className={styles.profilePage}>
+    <div
+      className={styles.profilePage}
+    >
       <div
-        className={styles.backgroundGlow}
+        className={
+          styles.backgroundGlow
+        }
         aria-hidden="true"
       />
 
-      <section
-        className={styles.container}
-        aria-label="Your profile"
+      <main
+        className={styles.main}
       >
-        <ProfileHeader />
-        <ProfileTabs />
-      </section>
-    </main>
+        <section
+          className={styles.container}
+          aria-label="Your profile"
+        >
+          <ProfileHeader />
+          <ProfileTabs />
+        </section>
+      </main>
+    </div>
   );
 };
 

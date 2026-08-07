@@ -1,21 +1,32 @@
 /* =========================
-   PAGE
+   PAGE SHELL
 ========================= */
 
 .helpPage {
   min-height: 100vh;
+
+  margin-left: 250px;
+
   background:
     var(--background, #f6f7fb);
+
   color:
     var(--text-primary, #111827);
+
+  box-sizing: border-box;
 }
 
 .pageContent {
-  width: min(calc(100% - 48px),
+  width:
+    min(calc(100% - 48px),
       1120px);
-  margin: 0 auto;
+
+  margin-inline: auto;
+
   padding:
     32px 0 100px;
+
+  box-sizing: border-box;
 }
 
 /* =========================
@@ -1408,6 +1419,7 @@
       1500ms;
   }
 }
+
 /* =========================
    HELP MOBILE SHELL
 ========================= */
@@ -1417,30 +1429,25 @@
 }
 
 @media (max-width: 768px) {
+  .helpPage {
+    margin-left: 0;
+  }
+
   .desktopHeader {
     display: none;
   }
 
   .pageContent {
     padding-top: 12px;
+
     padding-bottom:
-      calc(
-        28px +
-        env(
-          safe-area-inset-bottom,
-          0px
-        )
-      );
+      calc(28px + env(safe-area-inset-bottom,
+          0px));
   }
 
   .mobileCreateButton {
     bottom:
-      calc(
-        16px +
-        env(
-          safe-area-inset-bottom,
-          0px
-        )
-      );
+      calc(16px + env(safe-area-inset-bottom,
+          0px));
   }
 }

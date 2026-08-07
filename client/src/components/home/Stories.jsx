@@ -21,6 +21,10 @@ import {
 } from "react-router-dom";
 
 import {
+  createPortal,
+} from "react-dom";
+
+import {
   useAuth,
 } from "../../context/AuthContext";
 
@@ -332,6 +336,9 @@ const Stories = () => {
 
   const storyTimerRef =
     useRef(null);
+
+  const storyRemainingMsRef =
+    useRef(STORY_DURATION_MS);
 
   const initialSocketConnectionRef =
     useRef(false);
@@ -1213,14 +1220,21 @@ const Stories = () => {
   ]);
 
   /* =========================
-     RESET PROGRESS
+     RESET STORY PLAYBACK
   ========================= */
 
   useEffect(() => {
     if (!activeStoryId) {
+      storyRemainingMsRef.current =
+        STORY_DURATION_MS;
+
       setStoryPaused(false);
+
       return;
     }
+
+    storyRemainingMsRef.current =
+      STORY_DURATION_MS;
 
     setStoryPaused(false);
 
@@ -1237,29 +1251,59 @@ const Stories = () => {
   useEffect(() => {
     if (
       !activeStoryId ||
+      !storyImageReady ||
       storyPaused ||
       deleting
     ) {
       return undefined;
     }
 
-    storyTimerRef.current =
+    const duration =
+      Math.max(
+        0,
+        storyRemainingMsRef.current
+      );
+
+    const startedAt =
+      performance.now();
+
+    const timerId =
       window.setTimeout(() => {
+        storyTimerRef.current = null;
+
+        storyRemainingMsRef.current =
+          STORY_DURATION_MS;
+
         showNextStory();
-      }, STORY_DURATION_MS);
+      }, duration);
+
+    storyTimerRef.current =
+      timerId;
 
     return () => {
-      if (storyTimerRef.current) {
-        window.clearTimeout(
-          storyTimerRef.current
-        );
+      window.clearTimeout(timerId);
 
-        storyTimerRef.current =
-          null;
+      if (
+        storyTimerRef.current ===
+        timerId
+      ) {
+        storyTimerRef.current = null;
       }
+
+      const elapsed =
+        performance.now() -
+        startedAt;
+
+      storyRemainingMsRef.current =
+        Math.max(
+          0,
+          storyRemainingMsRef.current -
+          elapsed
+        );
     };
   }, [
     activeStoryId,
+    storyImageReady,
     storyPaused,
     deleting,
     showNextStory,
@@ -2092,494 +2136,547 @@ const Stories = () => {
         />
       )}
 
-      {activeStory && (
-        <div
-          className={
-            styles.viewerBackdrop
-          }
-          role="dialog"
-          aria-modal="true"
-          aria-label="Story viewer"
-          onClick={
-            closeViewer
-          }
-        >
+      {activeStory &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            className={styles.viewer}
-            onClick={(event) => {
-              event.stopPropagation();
-            }}
-            onPointerDown={(event) => {
-              if (
-                event.pointerType === "touch" ||
-                event.pointerType === "pen"
-              ) {
-                setStoryPaused(true);
-              }
-            }}
-            onPointerUp={() => {
-              setStoryPaused(false);
-            }}
-            onPointerCancel={() => {
-              setStoryPaused(false);
-            }}
+            className={
+              styles.viewerBackdrop
+            }
+            role="dialog"
+            aria-modal="true"
+            aria-label="Story viewer"
+            onClick={
+              closeViewer
+            }
           >
             <div
-              className={
-                styles.progressContainer
-              }
-              aria-hidden="true"
-            >
-              {activeGroup.stories.map(
-                (
-                  story,
-                  index
-                ) => {
-                  const storyId =
-                    normalizeId(
-                      story
+              className={styles.viewer}
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
+              onPointerDown={(event) => {
+                if (!event.isPrimary) {
+                  return;
+                }
+
+                if (
+                  event.pointerType === "mouse" &&
+                  event.button !== 0
+                ) {
+                  return;
+                }
+
+                const target =
+                  event.target;
+
+               
+                if (
+                  target instanceof Element &&
+                  target.closest(
+                    "button, a, input, textarea"
+                  )
+                ) {
+                  return;
+                }
+
+                setStoryPaused(true);
+
+                try {
+                  event.currentTarget
+                    .setPointerCapture(
+                      event.pointerId
                     );
+                } catch {
+                  // Browser may not support capture.
+                }
+              }}
+              onPointerUp={(event) => {
+                if (!event.isPrimary) {
+                  return;
+                }
 
-                  const isCompleted =
-                    index <
-                    activeStoryIndex;
+                setStoryPaused(false);
 
-                  const isActive =
-                    index ===
-                    activeStoryIndex;
+                try {
+                  if (
+                    event.currentTarget
+                      .hasPointerCapture?.(
+                        event.pointerId
+                      )
+                  ) {
+                    event.currentTarget
+                      .releasePointerCapture(
+                        event.pointerId
+                      );
+                  }
+                } catch {
+                  // Pointer already released.
+                }
+              }}
+              onPointerCancel={() => {
+                setStoryPaused(false);
+              }}
+            >
 
-                  return (
-                    <span
-                      key={
-                        storyId
-                      }
-                      className={
-                        styles.progressTrack
-                      }
-                    >
+              <div
+                className={
+                  styles.progressContainer
+                }
+                aria-hidden="true"
+              >
+                {activeGroup.stories.map(
+                  (
+                    story,
+                    index
+                  ) => {
+                    const storyId =
+                      normalizeId(
+                        story
+                      );
+
+                    const isCompleted =
+                      index <
+                      activeStoryIndex;
+
+                    const isActive =
+                      index ===
+                      activeStoryIndex;
+
+                    return (
                       <span
                         key={
-                          isActive
-                            ? `${storyId}-${progressKey}`
-                            : storyId
+                          storyId
                         }
-                        className={`${styles.progressFill} ${isCompleted
-                          ? styles.progressCompleted
-                          : ""
-                          } ${isActive
-                            ? styles.progressActive
-                            : ""
-                          } ${isActive &&
-                            storyPaused
-                            ? styles.progressPaused
-                            : ""
-                          }`}
-                      />
-                    </span>
-                  );
-                }
-              )}
-            </div>
-
-            <div
-              className={
-                styles.viewerHeader
-              }
-            >
-              <button
-                type="button"
-                className={
-                  styles.viewerUser
-                }
-                onClick={
-                  handleViewerProfileClick
-                }
-                aria-label={`Open ${activeGroup?.user
-                  ?.name ||
-                  activeGroup?.user
-                    ?.username ||
-                  "user"
-                  } profile`}
-              >
-                <img
-                  src={getUserAvatar(
-                    activeGroup?.user
-                  )}
-                  alt=""
-                  onError={(
-                    event
-                  ) => {
-                    event.currentTarget.onerror =
-                      null;
-
-                    event.currentTarget.src =
-                      DefaultAvatar;
-                  }}
-                />
-
-                <div>
-                  <strong>
-                    {activeGroup
-                      ?.user
-                      ?.name ||
-                      activeGroup
-                        ?.user
-                        ?.username ||
-                      "User"}
-                  </strong>
-
-                  <span>
-                    {formatStoryTime(
-                      activeStory.createdAt
-                    )}
-                  </span>
-                </div>
-              </button>
-
-              <div
-                className={
-                  styles.viewerActions
-                }
-              >
-                {activeStory.isOwner && (
-                  <button
-                    type="button"
-                    onClick={
-                      requestDeleteStory
-                    }
-                    disabled={
-                      deleting
-                    }
-                    aria-label="Delete story"
-                    title="Delete story"
-                  >
-                    <Trash2 />
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={
-                    closeViewer
-                  }
-                  aria-label="Close story"
-                  title="Close"
-                >
-                  <X />
-                </button>
-              </div>
-            </div>
-
-            <div
-              className={
-                styles.viewerImageContainer
-              }
-            >
-              {!storyImageReady && (
-                <div
-                  className={
-                    styles.viewerImageLoader
-                  }
-                  role="status"
-                  aria-label="Loading story"
-                >
-                  <span
-                    className={
-                      styles.viewerSpinner
-                    }
-                  />
-                </div>
-              )}
-
-              <img
-                key={activeStoryId}
-                className={`${styles.viewerImage} ${storyImageReady
-                  ? styles.viewerImageReady
-                  : ""
-                  }`}
-                src={activeStory.image}
-                alt="Story"
-                onLoad={() => {
-                  setLoadedStoryId(
-                    activeStoryId
-                  );
-                }}
-                onError={() => {
-                  setLoadedStoryId(
-                    activeStoryId
-                  );
-                }}
-              />
-            </div>
-
-            {activeStory.isOwner && (
-              <button
-                type="button"
-                className={
-                  styles.seenByButton
-                }
-                onClick={
-                  openStoryViewers
-                }
-                aria-label={`Seen by ${Number(
-                  activeStory.viewersCount
-                ) || 0
-                  }`}
-              >
-                <Eye />
-
-                <span>
-                  {Number(
-                    activeStory.viewersCount
-                  ) > 0
-                    ? `Seen by ${Number(
-                      activeStory.viewersCount
-                    )}`
-                    : "No views yet"}
-                </span>
-              </button>
-            )}
-
-            {(
-              activeStoryIndex >
-              0 ||
-              activeGroupIndex >
-              0
-            ) && (
-                <button
-                  type="button"
-                  className={`${styles.viewerNavigation} ${styles.previousButton}`}
-                  onClick={
-                    showPreviousStory
-                  }
-                  aria-label="Previous story"
-                >
-                  <ChevronLeft />
-                </button>
-              )}
-
-            {(
-              activeStoryIndex <
-              activeGroup
-                .stories
-                .length -
-              1 ||
-              activeGroupIndex <
-              storyGroups.length -
-              1
-            ) && (
-                <button
-                  type="button"
-                  className={`${styles.viewerNavigation} ${styles.nextButton}`}
-                  onClick={
-                    showNextStory
-                  }
-                  aria-label="Next story"
-                >
-                  <ChevronRight />
-                </button>
-              )}
-
-            {viewersOpen && (
-              <div
-                className={
-                  styles.viewersBackdrop
-                }
-                onClick={
-                  closeStoryViewers
-                }
-              >
-                <section
-                  className={
-                    styles.viewersSheet
-                  }
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="Story viewers"
-                  onClick={(event) =>
-                    event.stopPropagation()
-                  }
-                >
-                  <div
-                    className={
-                      styles.viewersSheetHeader
-                    }
-                  >
-                    <div>
-                      <strong>
-                        Viewers
-                      </strong>
-
-                      <span>
-                        {Number(
-                          activeStory.viewersCount
-                        ) || 0}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={
-                        closeStoryViewers
-                      }
-                      aria-label="Close viewers"
-                    >
-                      <X />
-                    </button>
-                  </div>
-
-                  <div
-                    className={
-                      styles.viewersSheetContent
-                    }
-                  >
-                    {viewersLoading && (
-                      <div
                         className={
-                          styles.viewersLoading
+                          styles.progressTrack
                         }
                       >
                         <span
-                          className={
-                            styles.viewerSpinner
+                          key={
+                            isActive
+                              ? `${storyId}-${progressKey}`
+                              : storyId
                           }
+                          className={`${styles.progressFill} ${isCompleted
+                            ? styles.progressCompleted
+                            : ""
+                            }${isActive &&
+                              storyImageReady
+                              ? styles.progressActive
+                              : ""}
+                              ${isActive &&
+                              storyPaused
+                              ? styles.progressPaused
+                              : ""
+                            }`}
                         />
+                      </span>
+                    );
+                  }
+                )}
+              </div>
+
+              <div
+                className={
+                  styles.viewerHeader
+                }
+              >
+                <button
+                  type="button"
+                  className={
+                    styles.viewerUser
+                  }
+                  onClick={
+                    handleViewerProfileClick
+                  }
+                  aria-label={`Open ${activeGroup?.user
+                    ?.name ||
+                    activeGroup?.user
+                      ?.username ||
+                    "user"
+                    } profile`}
+                >
+                  <img
+                    src={getUserAvatar(
+                      activeGroup?.user
+                    )}
+                    alt=""
+                    onError={(
+                      event
+                    ) => {
+                      event.currentTarget.onerror =
+                        null;
+
+                      event.currentTarget.src =
+                        DefaultAvatar;
+                    }}
+                  />
+
+                  <div>
+                    <strong>
+                      {activeGroup
+                        ?.user
+                        ?.name ||
+                        activeGroup
+                          ?.user
+                          ?.username ||
+                        "User"}
+                    </strong>
+
+                    <span>
+                      {formatStoryTime(
+                        activeStory.createdAt
+                      )}
+                    </span>
+                  </div>
+                </button>
+
+                <div
+                  className={
+                    styles.viewerActions
+                  }
+                >
+                  {activeStory.isOwner && (
+                    <button
+                      type="button"
+                      onClick={
+                        requestDeleteStory
+                      }
+                      disabled={
+                        deleting
+                      }
+                      aria-label="Delete story"
+                      title="Delete story"
+                    >
+                      <Trash2 />
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={
+                      closeViewer
+                    }
+                    aria-label="Close story"
+                    title="Close"
+                  >
+                    <X />
+                  </button>
+                </div>
+              </div>
+
+              <div
+                className={
+                  styles.viewerImageContainer
+                }
+              >
+                {!storyImageReady && (
+                  <div
+                    className={
+                      styles.viewerImageLoader
+                    }
+                    role="status"
+                    aria-label="Loading story"
+                  >
+                    <span
+                      className={
+                        styles.viewerSpinner
+                      }
+                    />
+                  </div>
+                )}
+
+                <img
+                  key={activeStoryId}
+                  className={`${styles.viewerImage} ${storyImageReady
+                    ? styles.viewerImageReady
+                    : ""
+                    }`}
+                  src={activeStory.image}
+                  alt="Story"
+                  onLoad={() => {
+                    setLoadedStoryId(
+                      activeStoryId
+                    );
+                  }}
+                  onError={() => {
+                    setLoadedStoryId(
+                      activeStoryId
+                    );
+                  }}
+                />
+              </div>
+
+              {activeStory.isOwner && (
+                <button
+                  type="button"
+                  className={
+                    styles.seenByButton
+                  }
+                  onClick={
+                    openStoryViewers
+                  }
+                  aria-label={`Seen by ${Number(
+                    activeStory.viewersCount
+                  ) || 0
+                    }`}
+                >
+                  <Eye />
+
+                  <span>
+                    {Number(
+                      activeStory.viewersCount
+                    ) > 0
+                      ? `Seen by ${Number(
+                        activeStory.viewersCount
+                      )}`
+                      : "No views yet"}
+                  </span>
+                </button>
+              )}
+
+              {(
+                activeStoryIndex >
+                0 ||
+                activeGroupIndex >
+                0
+              ) && (
+                  <button
+                    type="button"
+                    className={`${styles.viewerNavigation} ${styles.previousButton}`}
+                    onClick={
+                      showPreviousStory
+                    }
+                    aria-label="Previous story"
+                  >
+                    <ChevronLeft />
+                  </button>
+                )}
+
+              {(
+                activeStoryIndex <
+                activeGroup
+                  .stories
+                  .length -
+                1 ||
+                activeGroupIndex <
+                storyGroups.length -
+                1
+              ) && (
+                  <button
+                    type="button"
+                    className={`${styles.viewerNavigation} ${styles.nextButton}`}
+                    onClick={
+                      showNextStory
+                    }
+                    aria-label="Next story"
+                  >
+                    <ChevronRight />
+                  </button>
+                )}
+
+              {viewersOpen && (
+                <div
+                  className={
+                    styles.viewersBackdrop
+                  }
+                  onClick={
+                    closeStoryViewers
+                  }
+                >
+                  <section
+                    className={
+                      styles.viewersSheet
+                    }
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Story viewers"
+                    onClick={(event) =>
+                      event.stopPropagation()
+                    }
+                  >
+                    <div
+                      className={
+                        styles.viewersSheetHeader
+                      }
+                    >
+                      <div>
+                        <strong>
+                          Viewers
+                        </strong>
 
                         <span>
-                          Loading viewers...
+                          {Number(
+                            activeStory.viewersCount
+                          ) || 0}
                         </span>
                       </div>
-                    )}
 
-                    {!viewersLoading &&
-                      viewersError && (
+                      <button
+                        type="button"
+                        onClick={
+                          closeStoryViewers
+                        }
+                        aria-label="Close viewers"
+                      >
+                        <X />
+                      </button>
+                    </div>
+
+                    <div
+                      className={
+                        styles.viewersSheetContent
+                      }
+                    >
+                      {viewersLoading && (
                         <div
                           className={
-                            styles.viewersEmpty
+                            styles.viewersLoading
                           }
-                          role="alert"
                         >
-                          <span>
-                            {viewersError}
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void loadStoryViewers(
-                                activeStoryId
-                              )
+                          <span
+                            className={
+                              styles.viewerSpinner
                             }
-                          >
-                            Retry
-                          </button>
-                        </div>
-                      )}
-
-                    {!viewersLoading &&
-                      !viewersError &&
-                      storyViewers.length ===
-                      0 && (
-                        <div
-                          className={
-                            styles.viewersEmpty
-                          }
-                        >
-                          <Eye />
-
-                          <strong>
-                            No views yet
-                          </strong>
+                          />
 
                           <span>
-                            People who view this story will appear here.
+                            Loading viewers...
                           </span>
                         </div>
                       )}
 
-                    {!viewersLoading &&
-                      !viewersError &&
-                      storyViewers.map(
-                        (viewer) => {
-                          const viewerId =
-                            normalizeId(
-                              viewer
-                            );
+                      {!viewersLoading &&
+                        viewersError && (
+                          <div
+                            className={
+                              styles.viewersEmpty
+                            }
+                            role="alert"
+                          >
+                            <span>
+                              {viewersError}
+                            </span>
 
-                          const viewerName =
-                            viewer?.name ||
-                            viewer?.username ||
-                            "User";
-
-                          return (
                             <button
                               type="button"
-                              key={
-                                viewerId
-                              }
-                              className={
-                                styles.viewerRow
-                              }
                               onClick={() =>
-                                handleViewerRowClick(
-                                  viewer
+                                void loadStoryViewers(
+                                  activeStoryId
                                 )
                               }
                             >
-                              <img
-                                src={getUserAvatar(
-                                  viewer
-                                )}
-                                alt=""
-                                onError={(
-                                  event
-                                ) => {
-                                  event.currentTarget.onerror =
-                                    null;
+                              Retry
+                            </button>
+                          </div>
+                        )}
 
-                                  event.currentTarget.src =
-                                    DefaultAvatar;
-                                }}
-                              />
+                      {!viewersLoading &&
+                        !viewersError &&
+                        storyViewers.length ===
+                        0 && (
+                          <div
+                            className={
+                              styles.viewersEmpty
+                            }
+                          >
+                            <Eye />
 
-                              <div
+                            <strong>
+                              No views yet
+                            </strong>
+
+                            <span>
+                              People who view this story will appear here.
+                            </span>
+                          </div>
+                        )}
+
+                      {!viewersLoading &&
+                        !viewersError &&
+                        storyViewers.map(
+                          (viewer) => {
+                            const viewerId =
+                              normalizeId(
+                                viewer
+                              );
+
+                            const viewerName =
+                              viewer?.name ||
+                              viewer?.username ||
+                              "User";
+
+                            return (
+                              <button
+                                type="button"
+                                key={
+                                  viewerId
+                                }
                                 className={
-                                  styles.viewerRowText
+                                  styles.viewerRow
+                                }
+                                onClick={() =>
+                                  handleViewerRowClick(
+                                    viewer
+                                  )
                                 }
                               >
-                                <strong>
-                                  {viewerName}
-                                </strong>
+                                <img
+                                  src={getUserAvatar(
+                                    viewer
+                                  )}
+                                  alt=""
+                                  onError={(
+                                    event
+                                  ) => {
+                                    event.currentTarget.onerror =
+                                      null;
 
-                                <span>
-                                  {viewer?.username
-                                    ? `@${viewer.username}`
-                                    : "View profile"}
-                                </span>
-                              </div>
+                                    event.currentTarget.src =
+                                      DefaultAvatar;
+                                  }}
+                                />
 
-                              {viewer?.viewedAt && (
-                                <time
-                                  dateTime={
-                                    viewer.viewedAt
+                                <div
+                                  className={
+                                    styles.viewerRowText
                                   }
                                 >
-                                  {formatViewerTime(
-                                    viewer.viewedAt
-                                  )}
-                                </time>
-                              )}
-                            </button>
-                          );
-                        }
-                      )}
-                  </div>
-                </section>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+                                  <strong>
+                                    {viewerName}
+                                  </strong>
+
+                                  <span>
+                                    {viewer?.username
+                                      ? `@${viewer.username}`
+                                      : "View profile"}
+                                  </span>
+                                </div>
+
+                                {viewer?.viewedAt && (
+                                  <time
+                                    dateTime={
+                                      viewer.viewedAt
+                                    }
+                                  >
+                                    {formatViewerTime(
+                                      viewer.viewedAt
+                                    )}
+                                  </time>
+                                )}
+                              </button>
+                            );
+                          }
+                        )}
+                    </div>
+                  </section>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 };

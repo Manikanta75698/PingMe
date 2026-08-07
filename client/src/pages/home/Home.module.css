@@ -1,5 +1,5 @@
 /* =========================================
-   HOME PAGE
+   HOME SHELL
 ========================================= */
 
 .home {
@@ -11,21 +11,25 @@
   overflow-x: hidden;
   overflow-y: auto;
 
-  overscroll-behavior-y:
-    contain;
-
   background:
     var(--background);
 
   color:
     var(--text-primary);
 
-  scrollbar-gutter:
-    stable;
+  overscroll-behavior-y:
+    contain;
+
+  scrollbar-width: thin;
+  scrollbar-color:
+    var(--border) transparent;
+
+  -webkit-overflow-scrolling:
+    touch;
 }
 
 /* =========================================
-   PAGE BACKGROUND
+   PAGE
 ========================================= */
 
 .page {
@@ -34,110 +38,121 @@
   width: 100%;
   min-height: 100%;
 
+  padding:
+    28px 20px 96px;
+
   overflow: hidden;
 
-  padding:
-    26px 20px 90px;
+  box-sizing: border-box;
 }
 
-.decorativeGlowLeft,
-.decorativeGlowRight {
+/* =========================================
+   BACKGROUND
+========================================= */
+
+.backgroundGlowOne,
+.backgroundGlowTwo {
   position: fixed;
+
   z-index: 0;
 
-  width: 340px;
-  height: 340px;
+  width: 360px;
+  height: 360px;
 
-  border-radius: 50%;
+  border-radius: 999px;
 
   pointer-events: none;
 
-  filter: blur(85px);
+  filter: blur(100px);
 
-  opacity: 0.16;
+  opacity: 0.1;
 }
 
-.decorativeGlowLeft {
-  top: -120px;
-  left: 220px;
+.backgroundGlowOne {
+  top: -150px;
+  left: 260px;
 
   background:
     var(--primary);
 }
 
-.decorativeGlowRight {
-  top: 180px;
-  right: -160px;
+.backgroundGlowTwo {
+  top: 250px;
+  right: -180px;
 
   background:
     var(--accent);
 }
 
 /* =========================================
-   MAIN CONTENT
+   CONTENT
 ========================================= */
 
 .container {
   position: relative;
+
   z-index: 1;
 
   display: flex;
-  width: min(100%, 620px);
   flex-direction: column;
-  gap: 20px;
 
-  margin: 0 auto;
+  width: min(100%, 680px);
+
+  gap: 18px;
+
+  margin-inline: auto;
 }
 
-.storiesSection,
-.feedSection {
-  width: 100%;
-  min-width: 0;
-}
+/* =========================================
+   STORIES
+========================================= */
 
 .storiesSection {
+  width: 100%;
+  min-width: 0;
+
   overflow: hidden;
 
   border:
     1px solid var(--border);
 
-  border-radius:
-    var(--radius-lg);
+  border-radius: 22px;
 
   background:
     color-mix(in srgb,
-      var(--surface) 92%,
+      var(--surface) 96%,
       transparent);
 
+  box-shadow:
+    0 8px 28px rgb(15 23 42 / 5%);
+
   backdrop-filter:
-    blur(18px) saturate(130%);
+    blur(18px);
 
   -webkit-backdrop-filter:
-    blur(18px) saturate(130%);
-
-  box-shadow:
-    var(--shadow-sm);
+    blur(18px);
 }
+
+/* =========================================
+   FEED
+========================================= */
 
 .feedSection {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+
+  width: 100%;
+  min-width: 0;
+
+  gap: 16px;
 }
 
 /* =========================================
    SCROLLBAR
 ========================================= */
 
-.home {
-  scrollbar-width: thin;
-
-  scrollbar-color:
-    var(--border) transparent;
-}
-
 .home::-webkit-scrollbar {
-  width: 7px;
+  width: 6px;
 }
 
 .home::-webkit-scrollbar-track {
@@ -146,16 +161,16 @@
 }
 
 .home::-webkit-scrollbar-thumb {
-  border-radius:
-    999px;
-
   background:
     var(--border);
+
+  border-radius:
+    999px;
 }
 
 .home::-webkit-scrollbar-thumb:hover {
   background:
-    var(--text-muted);
+    var(--text-secondary);
 }
 
 /* =========================================
@@ -165,13 +180,11 @@
 @media (min-width: 1400px) {
   .container {
     width:
-      min(100%,
-        660px);
+      min(100%, 700px);
   }
 
   .page {
-    padding-top:
-      30px;
+    padding-top: 32px;
   }
 }
 
@@ -181,17 +194,13 @@
 
 @media (min-width: 769px) and (max-width: 1100px) {
   .page {
-    padding-right:
-      16px;
-
-    padding-left:
-      16px;
+    padding:
+      22px 18px 88px;
   }
 
   .container {
     width:
-      min(100%,
-        600px);
+      min(100%, 640px);
   }
 }
 
@@ -201,81 +210,80 @@
 
 @media (max-width: 768px) {
   .home {
-    inset: 0;
-
     margin-left: 0;
 
-    scrollbar-gutter:
-      auto;
-
-    -webkit-overflow-scrolling:
-      touch;
-  }
-
-  .page {
-    min-height: 100%;
-
-    padding:
-      calc(62px + env(safe-area-inset-top,
-          0px)) 0 calc(90px + env(safe-area-inset-bottom,
-          0px));
-  }
-
-  .container {
-    width: 100%;
-    max-width: none;
-
-    gap: 12px;
-
-    margin: 0;
-  }
-
-  .storiesSection {
-    border-top: none;
-    border-right: none;
-    border-left: none;
-
-    border-radius: 0;
-
-    background:
-      color-mix(in srgb,
-        var(--surface-solid) 86%,
-        transparent);
-
-    box-shadow:
-      0 8px 26px rgb(15 23 42 / 5%);
-  }
-
-  .feedSection {
-    gap: 12px;
-  }
-
-  .decorativeGlowLeft {
-    top: -130px;
-    left: -160px;
-
-    width: 280px;
-    height: 280px;
-
-    opacity: 0.12;
-  }
-
-  .decorativeGlowRight {
-    top: 290px;
-    right: -180px;
-
-    width: 300px;
-    height: 300px;
-
-    opacity: 0.11;
+    scrollbar-width: none;
   }
 
   .home::-webkit-scrollbar {
     display: none;
   }
 
-  .home {
-    scrollbar-width: none;
+  .page {
+    min-height: 100dvh;
+
+    /*
+     * Shared mobile header = 60px.
+     */
+    padding:
+      calc(60px + env(safe-area-inset-top,
+          0px)) 0 calc(88px + env(safe-area-inset-bottom,
+          0px));
+  }
+
+  .container {
+    width: 100%;
+
+    gap: 10px;
+
+    margin: 0;
+  }
+
+  /*
+   * Mobile stories should feel like
+   * part of the feed, not a huge card.
+   */
+  .storiesSection {
+    border-top: 0;
+    border-right: 0;
+    border-left: 0;
+
+    border-radius: 0;
+
+    background:
+      var(--surface);
+
+    box-shadow:
+      0 5px 18px rgb(15 23 42 / 4%);
+
+    backdrop-filter: none;
+
+    -webkit-backdrop-filter:
+      none;
+  }
+
+  .feedSection {
+    gap: 10px;
+  }
+
+  .backgroundGlowOne {
+    top: -170px;
+    left: -170px;
+
+    width: 300px;
+    height: 300px;
+
+    opacity: 0.08;
+  }
+
+  .backgroundGlowTwo {
+    top: 360px;
+    right: -190px;
+
+    width: 320px;
+    height: 320px;
+
+    opacity: 0.07;
   }
 }
 
@@ -283,19 +291,11 @@
    SMALL MOBILE
 ========================================= */
 
-@media (max-width: 380px) {
-  .page {
-    padding-bottom:
-      calc(82px + env(safe-area-inset-bottom,
-          0px));
-  }
+@media (max-width: 390px) {
 
-  .container {
-    gap: 10px;
-  }
-
+  .container,
   .feedSection {
-    gap: 10px;
+    gap: 8px;
   }
 }
 
@@ -303,15 +303,15 @@
    DARK THEME
 ========================================= */
 
-:global( :root[data-theme="dark"]) .storiesSection {
+:global(:root[data-theme="dark"]) .storiesSection {
   box-shadow:
-    0 16px 42px rgb(0 0 0 / 22%);
+    0 12px 34px rgb(0 0 0 / 22%);
 }
 
 @media (max-width: 768px) {
-  :global( :root[data-theme="dark"]) .storiesSection {
+  :global(:root[data-theme="dark"]) .storiesSection {
     box-shadow:
-      0 10px 30px rgb(0 0 0 / 20%);
+      0 6px 20px rgb(0 0 0 / 16%);
   }
 }
 
@@ -321,7 +321,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .home {
-    scroll-behavior:
-      auto;
+    scroll-behavior: auto;
   }
 }

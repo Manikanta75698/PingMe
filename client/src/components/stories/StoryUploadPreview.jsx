@@ -25,6 +25,10 @@ import {
   ZoomOut,
 } from "lucide-react";
 
+import {
+  createPortal,
+} from "react-dom";
+
 import styles from "./StoryUploadPreview.module.css";
 
 /* =========================
@@ -1191,7 +1195,13 @@ const StoryUploadPreview = ({
     }%) scale(${zoom}) rotate(${normalizedRotation
     }deg)`;
 
-  return (
+  if (
+    typeof document === "undefined"
+  ) {
+    return null;
+  }
+
+  return createPortal(
     <div
       className={
         styles.page
@@ -1372,9 +1382,9 @@ const StoryUploadPreview = ({
                     alt="Story preview"
                     draggable="false"
                     className={`${styles.previewImage} ${fitMode ===
-                        "fill"
-                        ? styles.previewFill
-                        : styles.previewFit
+                      "fill"
+                      ? styles.previewFill
+                      : styles.previewFit
                       }`}
                     style={{
                       transform:
@@ -1430,8 +1440,8 @@ const StoryUploadPreview = ({
 
         <aside
           className={`${styles.editorPanel} ${controlsOpen
-              ? styles.editorPanelOpen
-              : ""
+            ? styles.editorPanelOpen
+            : ""
             }`}
         >
           <div
@@ -1922,7 +1932,8 @@ const StoryUploadPreview = ({
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
 
