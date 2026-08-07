@@ -492,20 +492,13 @@
       8px max(8px, env(safe-area-inset-right, 0px)) max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
 
     background:
-      color-mix(in srgb,
-        var(--composer-surface) 96%,
-        transparent);
+      var(--composer-surface);
 
-    border-top:
-      1px solid var(--composer-border);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 
-    box-sizing: border-box;
-
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-
-    transform: translateZ(0);
-    backface-visibility: hidden;
+    transform: none;
+    backface-visibility: visible;
   }
 
   .icon {

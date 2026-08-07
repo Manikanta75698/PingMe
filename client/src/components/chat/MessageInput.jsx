@@ -176,6 +176,10 @@ const MessageInput = () => {
 
   const composerDisabled =
     !selectedChat ||
+    isBlocked;
+
+  const composerActionDisabled =
+    !selectedChat ||
     blockStatusLoading ||
     isBlocked;
 
@@ -588,13 +592,6 @@ const MessageInput = () => {
       setLoading(true);
       stopTyping();
 
-      /*
-       * Edit save tap chesina ventane composer
-       * normal empty mode ki return avuthundi.
-       * Socket messageEdited event/API response
-       * stale edited text ni input lo malli
-       * populate cheyyaledhu.
-       */
       editSubmittingIdRef.current =
         messageId;
 
@@ -1497,7 +1494,7 @@ const MessageInput = () => {
             type="button"
             aria-label="Choose emoji"
             disabled={
-              composerDisabled
+              composerActionDisabled
             }
           >
             <Smile
@@ -1514,7 +1511,7 @@ const MessageInput = () => {
             type="button"
             aria-label="Attach image"
             disabled={
-              composerDisabled
+              composerActionDisabled
             }
             onClick={() =>
               imageRef.current
@@ -1639,7 +1636,7 @@ const MessageInput = () => {
           }
           value={text}
           disabled={
-            composerDisabled
+            composerActionDisabled
           }
           onChange={
             handleChange
@@ -1688,7 +1685,7 @@ const MessageInput = () => {
             void handleSubmit();
           }}
           disabled={
-            composerDisabled ||
+            composerActionDisabled ||
             loading ||
             (
               isEditing &&
@@ -1723,7 +1720,7 @@ const MessageInput = () => {
           }
           aria-label="Record voice message"
           disabled={
-            composerDisabled
+            composerActionDisabled
           }
         >
           <Mic
