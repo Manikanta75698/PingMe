@@ -59,6 +59,8 @@ const DESKTOP_NAV_ITEMS = [
   {
     label: "Notifications",
     path: "/activity",
+    navigateTo:
+      "/activity?tab=notifications",
     icon: Heart,
     badgeType: "notifications",
   },
@@ -88,6 +90,8 @@ const MOBILE_NAV_ITEMS = [
   {
     label: "Notifications",
     path: "/activity",
+    navigateTo:
+      "/activity?tab=notifications",
     icon: Heart,
     badgeType: "notifications",
   },
@@ -332,6 +336,7 @@ const Header = () => {
     ({
       label,
       path,
+      navigateTo,
       icon: Icon,
       badgeType,
     }) => {
@@ -352,7 +357,9 @@ const Header = () => {
             : ""
             }`}
           onClick={() =>
-            navigate(path)
+            navigate(
+              navigateTo || path
+            )
           }
           aria-current={
             active
@@ -403,6 +410,7 @@ const Header = () => {
     ({
       label,
       path,
+      navigateTo,
       icon: Icon,
       badgeType,
     }) => {
@@ -423,7 +431,9 @@ const Header = () => {
             : ""
             }`}
           onClick={() =>
-            navigate(path)
+            navigate(
+              navigateTo || path
+            )
           }
           aria-current={
             active

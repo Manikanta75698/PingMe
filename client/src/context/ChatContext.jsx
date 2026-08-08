@@ -228,6 +228,12 @@ export const ChatProvider = ({
   const summariesLoadedAtRef =
     useRef(0);
 
+  const notificationsRequestRef =
+    useRef(null);
+
+  const notificationsLoadedAtRef =
+    useRef(0);
+
   const pinnedRequestRef =
     useRef(new Map());
 
@@ -663,76 +669,124 @@ export const ChatProvider = ({
 ========================= */
 
   const loadNotifications =
-    useCallback(async () => {
-      const token =
-        localStorage.getItem(
-          "token"
-        );
+    useCallback(
+      async ({
+        force = false,
+      } = {}) => {
+        const token =
+          localStorage
+            .getItem("token")
+            ?.trim();
 
-      if (!token) {
-        setNotificationUnreadCount(
-          0
-        );
+        if (!token) {
+          notificationsRequestRef.current =
+            null;
 
-        processedNotificationIdsRef
-          .current
-          .clear();
+          notificationsLoadedAtRef.current =
+            0;
 
-        return;
-      }
-
-      try {
-        const response =
-          await getNotifications();
-
-        const unreadCount =
-          Number(
-            response?.data
-              ?.unreadCount
-          ) || 0;
-
-        setNotificationUnreadCount(
-          Math.max(
-            0,
-            unreadCount
-          )
-        );
-
-
-        const notifications =
-          Array.isArray(
-            response?.data
-              ?.notifications
-          )
-            ? response.data
-              .notifications
-            : [];
-
-        const notificationIds =
-          notifications
-            .map(
-              (notification) =>
-                normalizeId(
-                  notification
-                    ?._id ||
-                  notification?.id
-                )
-            )
-            .filter(Boolean);
-
-        processedNotificationIdsRef
-          .current =
-          new Set(
-            notificationIds
+          setNotificationUnreadCount(
+            0
           );
-      } catch (error) {
-        console.error(
-          "LOAD NOTIFICATIONS ERROR:",
-          error.response?.data ||
-          error.message
-        );
-      }
-    }, []);
+
+          processedNotificationIdsRef
+            .current
+            .clear();
+
+          return null;
+        }
+
+        const now =
+          Date.now();
+
+        const cacheIsFresh =
+          now -
+          notificationsLoadedAtRef.current <
+          15000;
+
+        if (
+          !force &&
+          cacheIsFresh
+        ) {
+          return null;
+        }
+
+        if (
+          notificationsRequestRef.current
+        ) {
+          return notificationsRequestRef.current;
+        }
+
+        const request =
+          (async () => {
+            try {
+              const response =
+                await getNotifications();
+
+              const unreadCount =
+                Number(
+                  response?.data
+                    ?.unreadCount
+                ) || 0;
+
+              setNotificationUnreadCount(
+                Math.max(
+                  0,
+                  unreadCount
+                )
+              );
+
+              const notifications =
+                Array.isArray(
+                  response?.data
+                    ?.notifications
+                )
+                  ? response.data
+                    .notifications
+                  : [];
+
+              const notificationIds =
+                notifications
+                  .map(
+                    (notification) =>
+                      normalizeId(
+                        notification?._id ||
+                        notification?.id
+                      )
+                  )
+                  .filter(Boolean);
+
+              processedNotificationIdsRef
+                .current =
+                new Set(
+                  notificationIds
+                );
+
+              notificationsLoadedAtRef.current =
+                Date.now();
+
+              return response;
+            } catch (error) {
+              console.error(
+                "LOAD NOTIFICATIONS ERROR:",
+                error.response?.data ||
+                error.message
+              );
+
+              return null;
+            } finally {
+              notificationsRequestRef.current =
+                null;
+            }
+          })();
+
+        notificationsRequestRef.current =
+          request;
+
+        return request;
+      },
+      []
+    );
 
   /* =========================
     INITIAL DATA
@@ -770,43 +824,58 @@ export const ChatProvider = ({
   ========================= */
 
   useEffect(() => {
-    const resyncChatData =
+    const resyncChatData = ({
+      forceNotifications = false,
+    } = {}) => {
+      const token =
+        localStorage
+          .getItem("token")
+          ?.trim();
+
+      if (!token) {
+        return;
+      }
+
+      void loadChatSummaries({
+        silent: true,
+      });
+
+      void loadNotifications({
+        force:
+          forceNotifications,
+      });
+    };
+
+    const handleSocketConnected =
       () => {
-        const token =
-          localStorage
-            .getItem("token")
-            ?.trim();
+        resyncChatData();
+      };
 
-        if (!token) {
-          return;
-        }
-
-        /*
-         * Login or reconnect tarvatha
-         * latest chat list background lo
-         * immediate ga refresh avuthundi.
-         */
-        void loadChatSummaries({
-          force: true,
-          silent: true,
+    const handleSocketReconnected =
+      () => {
+        resyncChatData({
+          forceNotifications: true,
         });
+      };
 
-        void loadNotifications();
+    const handleOnline =
+      () => {
+        resyncChatData();
       };
 
     window.addEventListener(
       "socket:connected",
-      resyncChatData
+      handleSocketConnected
     );
 
     window.addEventListener(
       "socket:reconnected",
-      resyncChatData
+      handleSocketReconnected
     );
 
     window.addEventListener(
       "online",
-      resyncChatData
+      handleOnline
     );
 
     const handleVisibilityChange =
@@ -827,17 +896,17 @@ export const ChatProvider = ({
     return () => {
       window.removeEventListener(
         "socket:connected",
-        resyncChatData
+        handleSocketConnected
       );
 
       window.removeEventListener(
         "socket:reconnected",
-        resyncChatData
+        handleSocketReconnected
       );
 
       window.removeEventListener(
         "online",
-        resyncChatData
+        handleOnline
       );
 
       document.removeEventListener(
@@ -1079,7 +1148,9 @@ export const ChatProvider = ({
         }
 
 
-        loadNotifications();
+        void loadNotifications({
+          force: true,
+        });
       };
 
     /* =========================
@@ -1110,7 +1181,7 @@ export const ChatProvider = ({
 
     const handleNotificationSocketConnect =
       () => {
-        loadNotifications();
+        void loadNotifications();
       };
 
     socket.on(
@@ -1134,7 +1205,7 @@ export const ChatProvider = ({
     );
 
     if (socket.connected) {
-      loadNotifications();
+      void loadNotifications();
     }
 
     return () => {
@@ -1866,7 +1937,6 @@ export const ChatProvider = ({
            */
           if (existingIndex === -1) {
             void loadChatSummaries({
-              force: true,
               silent: true,
             });
 
