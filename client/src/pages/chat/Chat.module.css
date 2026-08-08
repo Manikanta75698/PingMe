@@ -560,12 +560,19 @@
   }
 
   .conversationPage {
-    top: 0;
+    top:
+      var(--chat-visible-top,
+        0px);
 
     bottom: auto;
 
-    height: 100dvh;
-    max-height: 100dvh;
+    height:
+      var(--chat-visible-height,
+        100dvh);
+
+    max-height:
+      var(--chat-visible-height,
+        100dvh);
   }
 
   .sidebar {

@@ -555,6 +555,9 @@ const Chat = () => {
   const conversationRequestRef =
     useRef(new Map());
 
+  const chatPageRef =
+    useRef(null);
+
 
   const [
     messagesLoading,
@@ -606,6 +609,95 @@ const Chat = () => {
       slowServerTimerRef.current =
         null;
     }, []);
+
+
+  useLayoutEffect(() => {
+    const element =
+      chatPageRef.current;
+
+    if (
+      !element ||
+      typeof window === "undefined"
+    ) {
+      return undefined;
+    }
+
+    const viewport =
+      window.visualViewport;
+
+    if (!viewport) {
+      return undefined;
+    }
+
+    let frameId = 0;
+
+    const syncViewport = () => {
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      frameId =
+        window.requestAnimationFrame(
+          () => {
+            const height =
+              Math.round(
+                viewport.height
+              );
+
+            const offsetTop =
+              Math.round(
+                viewport.offsetTop
+              );
+
+            element.style.setProperty(
+              "--chat-visible-height",
+              `${height}px`
+            );
+
+            element.style.setProperty(
+              "--chat-visible-top",
+              `${offsetTop}px`
+            );
+          }
+        );
+    };
+
+    syncViewport();
+
+    viewport.addEventListener(
+      "resize",
+      syncViewport
+    );
+
+    viewport.addEventListener(
+      "scroll",
+      syncViewport
+    );
+
+    return () => {
+      window.cancelAnimationFrame(
+        frameId
+      );
+
+      viewport.removeEventListener(
+        "resize",
+        syncViewport
+      );
+
+      viewport.removeEventListener(
+        "scroll",
+        syncViewport
+      );
+
+      element.style.removeProperty(
+        "--chat-visible-height"
+      );
+
+      element.style.removeProperty(
+        "--chat-visible-top"
+      );
+    };
+  }, []);
 
   /* =========================
      KEEP LATEST MESSAGES
@@ -972,7 +1064,7 @@ const Chat = () => {
         conversationRequestRef.current.delete(
           chatId
         );
-        
+
         if (
           requestId ===
           loadRequestIdRef.current &&
@@ -1224,9 +1316,10 @@ const Chat = () => {
 
   return (
     <main
+      ref={chatPageRef}
       className={`${styles.chatPage} ${selectedChat
-        ? styles.conversationPage
-        : styles.chatListPage
+          ? styles.conversationPage
+          : styles.chatListPage
         }`}
     >
       <section
