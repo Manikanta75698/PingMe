@@ -328,12 +328,12 @@ const ProfileHeader = () => {
             formData
           );
 
-        const responseUser =
-          getProfileUser(
-            response
-          );
+        const uploadedProfilePic =
+          String(
+            response?.profilePic || ""
+          ).trim();
 
-        if (!responseUser) {
+        if (!uploadedProfilePic) {
           throw new Error(
             "Invalid upload response"
           );
@@ -341,7 +341,16 @@ const ProfileHeader = () => {
 
         const updatedUser = {
           ...user,
-          ...responseUser,
+
+          profilePic:
+            uploadedProfilePic,
+
+          ...(response?.profilePicFileId
+            ? {
+              profilePicFileId:
+                response.profilePicFileId,
+            }
+            : {}),
         };
 
         persistUser(
