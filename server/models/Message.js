@@ -143,6 +143,12 @@ const messageSchema =
         trim: true,
       },
 
+      imageFileId: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
       sharedPost: {
         type: sharedPostSchema,
         default: null,

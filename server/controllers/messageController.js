@@ -1,5 +1,11 @@
 const mongoose = require("mongoose");
-const streamifier = require("streamifier");
+
+const {
+  uploadImageKitFile,
+  deleteImageKitFile,
+} = require(
+  "../utils/imagekitUpload"
+);
 
 const Message = require("../models/Message");
 const Post = require("../models/Post");
@@ -494,61 +500,31 @@ const getMessagePermissionError = (
   }
 };
 
-const uploadImageFromBuffer = (
-  fileBuffer
-) =>
-  new Promise((resolve, reject) => {
-    if (!fileBuffer) {
-      reject(
-        new Error(
-          "Image buffer is missing"
-        )
-      );
-
-      return;
-    }
-
-    const uploadStream =
-      cloudinary.uploader.upload_stream(
-        {
-          folder: "pingme/messages",
-          resource_type: "image",
-        },
-        (error, result) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-
-          if (!result?.secure_url) {
-            reject(
-              new Error(
-                "Cloudinary did not return an image URL"
-              )
-            );
-
-            return;
-          }
-
-          resolve(result);
-        }
-      );
-
-    streamifier
-      .createReadStream(fileBuffer)
-      .pipe(uploadStream);
-  });
+/* =========================
+   MESSAGE MEDIA HELPERS
+========================= */
 
 const getCloudinaryPublicId = (
   imageUrl
 ) => {
-  if (!imageUrl) {
+  const normalizedUrl =
+    String(imageUrl || "").trim();
+
+  if (!normalizedUrl) {
     return "";
   }
 
   try {
     const parsedUrl =
-      new URL(imageUrl);
+      new URL(normalizedUrl);
+
+    if (
+      !parsedUrl.hostname
+        .toLowerCase()
+        .includes("cloudinary.com")
+    ) {
+      return "";
+    }
 
     const uploadMarker =
       "/upload/";
@@ -568,19 +544,12 @@ const getCloudinaryPublicId = (
         uploadMarker.length
       );
 
-    /*
-     * Cloudinary version section remove:
-     * v1234567890/
-     */
     publicPath =
       publicPath.replace(
         /^v\d+\//,
         ""
       );
 
-    /*
-     * File extension remove.
-     */
     publicPath =
       publicPath.replace(
         /\.[^/.]+$/,
@@ -595,7 +564,7 @@ const getCloudinaryPublicId = (
   }
 };
 
-const deleteCloudinaryImage =
+const deleteLegacyCloudinaryMessageImage =
   async (imageUrl) => {
     const publicId =
       getCloudinaryPublicId(
@@ -614,48 +583,67 @@ const deleteCloudinaryImage =
         }
       );
     } catch (error) {
-      /*
-       * Media cleanup fail aina
-       * API request fail cheyyakudadhu.
-       */
       console.error(
-        "CLOUDINARY MESSAGE CLEANUP ERROR:",
+        "LEGACY MESSAGE CLOUDINARY CLEANUP ERROR:",
         error
       );
     }
   };
 
-const deleteCloudinaryImageIfUnused =
-  async (imageUrl) => {
-    if (!imageUrl) {
-      return;
-    }
+const cleanupMessageImageIfUnused =
+  async ({
+    imageUrl,
+    imageFileId,
+  }) => {
+    const normalizedUrl =
+      String(
+        imageUrl || ""
+      ).trim();
+
+    const normalizedFileId =
+      String(
+        imageFileId || ""
+      ).trim();
 
     try {
-      /*
-       * Forwarded messages same image URL
-       * use chestayi. Vere message image ni
-       * use chesthunte Cloudinary asset delete cheyyam.
-       */
-      const imageStillUsed =
-        await Message.exists({
-          image: imageUrl,
-        });
+      if (normalizedFileId) {
+        const imageStillUsed =
+          await Message.exists({
+            imageFileId:
+              normalizedFileId,
+          });
 
-      if (imageStillUsed) {
+        if (imageStillUsed) {
+          return;
+        }
+
+        await deleteImageKitFile(
+          normalizedFileId
+        );
+
         return;
       }
 
-      await deleteCloudinaryImage(
-        imageUrl
+      if (!normalizedUrl) {
+        return;
+      }
+
+      const legacyImageStillUsed =
+        await Message.exists({
+          image:
+            normalizedUrl,
+        });
+
+      if (legacyImageStillUsed) {
+        return;
+      }
+
+      await deleteLegacyCloudinaryMessageImage(
+        normalizedUrl
       );
     } catch (error) {
-      /*
-       * Background media cleanup failure
-       * API response ni affect cheyyakudadhu.
-       */
       console.error(
-        "SHARED MESSAGE IMAGE CLEANUP ERROR:",
+        "MESSAGE IMAGE CLEANUP ERROR:",
         error
       );
     }
@@ -780,6 +768,7 @@ const sendMessage = async (
   };
 
   let uploadedImageUrl = "";
+  let uploadedImageFileId = "";
   let persistedMessage = null;
 
   try {
@@ -1189,12 +1178,31 @@ const sendMessage = async (
 
     if (req.file) {
       const uploaded =
-        await uploadImageFromBuffer(
-          req.file.buffer
+        await uploadImageKitFile(
+          req.file.buffer,
+          req.file.originalname ||
+          "message.jpg",
+          "/pingme/messages"
         );
 
       uploadedImageUrl =
-        uploaded.secure_url;
+        String(
+          uploaded?.url || ""
+        ).trim();
+
+      uploadedImageFileId =
+        String(
+          uploaded?.fileId || ""
+        ).trim();
+
+      if (
+        !uploadedImageUrl ||
+        !uploadedImageFileId
+      ) {
+        throw new Error(
+          "Message image upload returned an invalid response"
+        );
+      }
     }
 
     /* =========================
@@ -1218,6 +1226,9 @@ const sendMessage = async (
 
         image:
           uploadedImageUrl,
+
+        imageFileId:
+          uploadedImageFileId,
 
         sharedPost:
           sharedPostData,
@@ -1301,15 +1312,19 @@ const sendMessage = async (
           req.body?.clientMessageId
         );
 
-      /*
-       * Duplicate request upload chesina
-       * extra Cloudinary image cleanup.
-       */
-      if (uploadedImageUrl) {
-        await deleteCloudinaryImage(
-          uploadedImageUrl
-        );
+      if (uploadedImageFileId) {
+        try {
+          await deleteImageKitFile(
+            uploadedImageFileId
+          );
+        } catch (cleanupError) {
+          console.error(
+            "DUPLICATE MESSAGE IMAGE CLEANUP ERROR:",
+            cleanupError
+          );
+        }
 
+        uploadedImageFileId = "";
         uploadedImageUrl = "";
       }
 
@@ -1340,16 +1355,19 @@ const sendMessage = async (
       }
     }
 
-    /*
-     * DB lo message save kakapothe
-     * uploaded image cleanup.
-     */
     if (
-      uploadedImageUrl &&
+      uploadedImageFileId &&
       !persistedMessage
     ) {
-      void deleteCloudinaryImage(
-        uploadedImageUrl
+      void deleteImageKitFile(
+        uploadedImageFileId
+      ).catch(
+        (cleanupError) => {
+          console.error(
+            "MESSAGE UPLOAD ROLLBACK ERROR:",
+            cleanupError
+          );
+        }
       );
     }
 
@@ -2333,6 +2351,12 @@ const forwardMessage = async (
         sourceMessage.image || ""
       ).trim();
 
+    const sourceImageFileId =
+      String(
+        sourceMessage.imageFileId ||
+        ""
+      ).trim();
+
     const sourceSharedPost =
       sourceMessage.sharedPost
         ? {
@@ -2464,6 +2488,9 @@ const forwardMessage = async (
 
         image:
           sourceImage,
+
+        imageFileId:
+          sourceImageFileId,
 
         sharedPost:
           sourceSharedPost,
@@ -3060,12 +3087,15 @@ const deleteMessage = async (
         message.image || ""
       ).trim();
 
-    /*
-     * Placeholder preserve cheyyadaniki
-     * document hard delete cheyyam.
-     */
+    const imageFileId =
+      String(
+        message.imageFileId ||
+        ""
+      ).trim();
+
     message.text = "";
     message.image = "";
+    message.imageFileId = "";
     message.sharedPost = null;
 
     message.replyTo = null;
@@ -3117,10 +3147,6 @@ const deleteMessage = async (
         messagePayload,
     };
 
-    /*
-     * Sender + receiver UI lo
-     * placeholder immediate update.
-     */
     emitToParticipants(
       senderId,
       receiverId,
@@ -3128,14 +3154,14 @@ const deleteMessage = async (
       payload
     );
 
-    /*
-     * DB save complete ayyaka
-     * media cleanup background lo.
-     */
-    if (imageUrl) {
-      void deleteCloudinaryImageIfUnused(
-        imageUrl
-      );
+    if (
+      imageUrl ||
+      imageFileId
+    ) {
+      void cleanupMessageImageIfUnused({
+        imageUrl,
+        imageFileId,
+      });
     }
 
     return res.status(200).json({
