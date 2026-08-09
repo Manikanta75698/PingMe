@@ -24,8 +24,17 @@ const userSchema = new mongoose.Schema(
       default: "local",
     },
 
-    profilePic: { type: String, default: "" },
-    coverPhoto: { type: String, default: "" },
+    profilePic: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    profilePicFileId: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     bio: { type: String, default: "" },
     website: { type: String, default: "" },
     location: { type: String, default: "" },

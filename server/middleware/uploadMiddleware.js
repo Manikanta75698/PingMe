@@ -42,10 +42,9 @@ const singleProfileUpload = (req, res, next) => {
   });
 };
 
-const singleCoverUpload = upload.single("coverPhoto");
+
 
 module.exports = {
   upload,
   singleProfileUpload,
-  singleCoverUpload,
 };

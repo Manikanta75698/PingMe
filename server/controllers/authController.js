@@ -13,7 +13,15 @@ const {
 } = require("../socket/socketInstance");
 const Notification = require("../models/Notification");
 const Post = require("../models/Post");
-const uploadImage = require("../utils/cloudinaryUpload");
+const {
+  uploadImageKitFile,
+  deleteImageKitFile,
+} = require(
+  "../utils/imagekitUpload"
+);
+
+const cloudinary =
+  require("../config/cloudinary");
 const generateToken = require("../utils/generateToken");
 const client = require("../config/googleAuth");
 const sendOtpEmail = require("../utils/sendOtpEmail");
@@ -114,6 +122,146 @@ const normalizeUserId = (
 
   return String(value).trim();
 };
+
+/* =========================
+   PROFILE IMAGE HELPERS
+========================= */
+
+const getCloudinaryPublicId = (
+  imageUrl
+) => {
+  const normalizedUrl =
+    String(
+      imageUrl || ""
+    ).trim();
+
+  if (!normalizedUrl) {
+    return "";
+  }
+
+  try {
+    const parsedUrl =
+      new URL(
+        normalizedUrl
+      );
+
+    /*
+     * Google avatars or ImageKit
+     * URLs should never reach
+     * Cloudinary destroy.
+     */
+    if (
+      !parsedUrl.hostname
+        .toLowerCase()
+        .includes(
+          "cloudinary.com"
+        )
+    ) {
+      return "";
+    }
+
+    const uploadMarker =
+      "/upload/";
+
+    const uploadIndex =
+      parsedUrl.pathname
+        .indexOf(
+          uploadMarker
+        );
+
+    if (
+      uploadIndex === -1
+    ) {
+      return "";
+    }
+
+    let publicPath =
+      parsedUrl.pathname.slice(
+        uploadIndex +
+        uploadMarker.length
+      );
+
+    publicPath =
+      publicPath.replace(
+        /^v\d+\//,
+        ""
+      );
+
+    publicPath =
+      publicPath.replace(
+        /\.[^/.]+$/,
+        ""
+      );
+
+    return decodeURIComponent(
+      publicPath
+    );
+  } catch {
+    return "";
+  }
+};
+
+const deleteLegacyProfilePicture =
+  async (imageUrl) => {
+    const publicId =
+      getCloudinaryPublicId(
+        imageUrl
+      );
+
+    if (!publicId) {
+      return;
+    }
+
+    try {
+      await cloudinary.uploader
+        .destroy(
+          publicId,
+          {
+            resource_type:
+              "image",
+          }
+        );
+    } catch (error) {
+      console.error(
+        "LEGACY PROFILE IMAGE CLEANUP ERROR:",
+        error
+      );
+    }
+  };
+
+const cleanupProfilePicture =
+  async ({
+    imageUrl,
+    imageFileId,
+  }) => {
+    const normalizedFileId =
+      String(
+        imageFileId || ""
+      ).trim();
+
+    /*
+     * New ImageKit profile image.
+     */
+    if (normalizedFileId) {
+      try {
+        await deleteImageKitFile(
+          normalizedFileId
+        );
+      } catch (error) {
+        console.error(
+          "PROFILE IMAGEKIT CLEANUP ERROR:",
+          error
+        );
+      }
+
+      return;
+    }
+
+
+    await deleteLegacyProfilePicture(
+      imageUrl
+    );
+  };
 
 
 const emitBlockStatusUpdate = (
@@ -2187,103 +2335,225 @@ const updateProfile = async (req, res) => {
   }
 };
 
-const uploadProfilePicture = async (req, res) => {
-  try {
+/* =========================
+   UPLOAD PROFILE PICTURE
+========================= */
 
+const uploadProfilePicture =
+  async (req, res) => {
+    let newImageFileId = "";
 
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not authenticated",
-      });
+    try {
+      /* =========================
+         AUTH
+      ========================= */
+
+      if (!req.user) {
+        return res
+          .status(401)
+          .json({
+            success: false,
+
+            message:
+              "User not authenticated",
+          });
+      }
+
+      /* =========================
+         FILE
+      ========================= */
+
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+
+            message:
+              "Please upload an image",
+          });
+      }
+
+      /* =========================
+         USER
+      ========================= */
+
+      const user =
+        await User.findById(
+          req.user._id
+        );
+
+      if (!user) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+
+            message:
+              "User not found",
+          });
+      }
+
+      /*
+       * Save old media details
+       * before replacing them.
+       */
+      const oldProfilePic =
+        String(
+          user.profilePic ||
+          ""
+        ).trim();
+
+      const oldProfilePicFileId =
+        String(
+          user.profilePicFileId ||
+          ""
+        ).trim();
+
+      /* =========================
+         IMAGEKIT UPLOAD
+      ========================= */
+
+      const uploadedImage =
+        await uploadImageKitFile(
+          req.file.buffer,
+
+          req.file.originalname ||
+          "profile.jpg",
+
+          "/pingme/profile"
+        );
+
+      const imageUrl =
+        String(
+          uploadedImage?.url ||
+          ""
+        ).trim();
+
+      const imageFileId =
+        String(
+          uploadedImage?.fileId ||
+          ""
+        ).trim();
+
+      if (
+        !imageUrl ||
+        !imageFileId
+      ) {
+        throw new Error(
+          "Profile image upload returned an invalid response"
+        );
+      }
+
+      newImageFileId =
+        imageFileId;
+
+      /* =========================
+         SAVE NEW PROFILE IMAGE
+      ========================= */
+
+      user.profilePic =
+        imageUrl;
+
+      user.profilePicFileId =
+        imageFileId;
+
+      await user.save();
+
+      /*
+       * Mongo save succeeded.
+       * Do not rollback new asset.
+       */
+      newImageFileId = "";
+
+      /* =========================
+         CLEAN PREVIOUS IMAGE
+      ========================= */
+
+      if (
+        oldProfilePic ||
+        oldProfilePicFileId
+      ) {
+        /*
+         * Cleanup runs after DB
+         * has safely switched to
+         * the new image.
+         *
+         * - ImageKit old image:
+         *   delete by fileId
+         *
+         * - Legacy Cloudinary:
+         *   delete by URL
+         *
+         * - Google avatar:
+         *   ignored safely
+         */
+        void cleanupProfilePicture({
+          imageUrl:
+            oldProfilePic,
+
+          imageFileId:
+            oldProfilePicFileId,
+        });
+      }
+
+      /* =========================
+         SUCCESS
+      ========================= */
+
+      return res
+        .status(200)
+        .json({
+          success: true,
+
+          message:
+            "Profile picture updated successfully",
+
+          profilePic:
+            user.profilePic,
+
+          profilePicFileId:
+            user.profilePicFileId,
+        });
+    } catch (error) {
+      /*
+       * If ImageKit upload worked
+       * but Mongo save failed,
+       * remove orphaned file.
+       */
+      if (newImageFileId) {
+        try {
+          await deleteImageKitFile(
+            newImageFileId
+          );
+        } catch (
+        cleanupError
+        ) {
+          console.error(
+            "PROFILE UPLOAD ROLLBACK ERROR:",
+            cleanupError
+          );
+        }
+      }
+
+      console.error(
+        "Upload Profile Picture Error:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          success: false,
+
+          message:
+            error.message ||
+            "Unable to update profile picture",
+        });
     }
+  };
 
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "Please upload an image",
-      });
-    }
 
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    user.profilePic = await uploadImage(
-      req.file.buffer,
-      "pingme/profile"
-    );
-
-    await user.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "Profile picture updated successfully",
-      profilePic: user.profilePic,
-    });
-
-  } catch (error) {
-    console.error("Upload Profile Picture Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-const uploadCoverPhoto = async (req, res) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not authenticated",
-      });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "Please upload an image",
-      });
-    }
-
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    user.coverPhoto = await uploadImage(
-      req.file.buffer,
-      "pingme/cover"
-    );
-
-    await user.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "Cover photo updated successfully",
-      coverPhoto: user.coverPhoto,
-    });
-
-  } catch (error) {
-    console.error("Upload Cover Photo Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
 
 
 /* =========================
@@ -6324,7 +6594,7 @@ module.exports = {
   updatePrivacySettings,
   updateProfile,
   uploadProfilePicture,
-  uploadCoverPhoto,
+
 
   followUser,
   unfollowUser,

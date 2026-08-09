@@ -1,7 +1,7 @@
 const Post = require("../models/Post");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
-const uploadImage = require("../utils/cloudinaryUpload");
+
 const mongoose = require("mongoose");
 const cloudinary = require(
   "../config/cloudinary"
@@ -83,43 +83,140 @@ const deletePostImageFromCloudinary =
     }
   };
 
-// Create Post
-const createPost = async (req, res) => {
-  try {
-    const { caption } = req.body;
+// =========================
+// CREATE POST
+// =========================
 
-    let imageUrl = "";
+const createPost =
+  async (req, res) => {
+    let uploadedImageFileId = "";
 
-    if (req.file) {
-      imageUrl = await uploadImage(
-        req.file.buffer,
-        "pingme/posts"
+    try {
+      const caption =
+        typeof req.body
+          ?.caption === "string"
+          ? req.body.caption.trim()
+          : "";
+
+      if (
+        caption.length >
+        2200
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+
+            message:
+              "Caption cannot exceed 2200 characters",
+          });
+      }
+
+      let imageUrl = "";
+      let imageFileId = "";
+
+      if (req.file) {
+        const uploadedImage =
+          await uploadImageKitFile(
+            req.file.buffer,
+
+            req.file
+              .originalname ||
+            "post.jpg",
+
+            "/pingme/posts"
+          );
+
+        imageUrl =
+          uploadedImage.url;
+
+        imageFileId =
+          uploadedImage.fileId;
+
+        /*
+         * Keep ID temporarily so
+         * uploaded asset can be
+         * removed if Mongo create
+         * later fails.
+         */
+        uploadedImageFileId =
+          imageFileId;
+      }
+
+      const post =
+        await Post.create({
+          user:
+            req.user._id,
+
+          caption,
+
+          image:
+            imageUrl,
+
+          imageFileId,
+        });
+
+      /*
+       * Mongo save succeeded,
+       * asset belongs to post now.
+       */
+      uploadedImageFileId =
+        "";
+
+      await post.populate(
+        "user",
+        "name username profilePic"
       );
+
+      return res
+        .status(201)
+        .json({
+          success: true,
+
+          message:
+            "Post created successfully",
+
+          post,
+        });
+    } catch (error) {
+      /*
+       * Prevent orphan ImageKit
+       * assets if upload succeeded
+       * but DB creation failed.
+       */
+      if (
+        uploadedImageFileId
+      ) {
+        try {
+          await deleteImageKitFile(
+            uploadedImageFileId
+          );
+        } catch (
+        cleanupError
+        ) {
+          console.error(
+            "FAILED POST UPLOAD CLEANUP:",
+            cleanupError
+          );
+        }
+      }
+
+      console.error(
+        "Create Post Error:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          success: false,
+
+          message:
+            error.message ||
+            "Unable to create post",
+        });
     }
-
-    const post = await Post.create({
-      user: req.user._id,
-      caption,
-      image: imageUrl,
-    });
-
-    await post.populate("user", "name username profilePic");
-
-    return res.status(201).json({
-      success: true,
-      message: "Post created successfully",
-      post,
-    });
-
-  } catch (error) {
-    console.error("Create Post Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  };
 
 const getPosts = async (req, res) => {
   try {
@@ -503,114 +600,175 @@ const updatePostCaption = async (
   }
 };
 
-const deletePost = async (req, res) => {
-  try {
-    const { id: postId } = req.params;
+// =========================
+// DELETE POST
+// =========================
 
-    // =========================
-    // VALIDATE POST ID
-    // =========================
-    if (
-      !mongoose.Types.ObjectId.isValid(
-        postId
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid post ID",
-      });
-    }
+const deletePost =
+  async (req, res) => {
+    try {
+      const {
+        id: postId,
+      } = req.params;
 
-    // =========================
-    // FIND POST
-    // =========================
-    const post = await Post.findById(
-      postId
-    );
+      /* =========================
+         VALIDATE POST ID
+      ========================= */
 
-    if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: "Post not found",
-      });
-    }
+      if (
+        !mongoose.Types.ObjectId
+          .isValid(postId)
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
 
-    // =========================
-    // OWNERSHIP CHECK
-    // =========================
-    if (
-      post.user.toString() !==
-      req.user._id.toString()
-    ) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "You can delete only your own posts",
-      });
-    }
-
-    // =========================
-    // DELETE POST FIRST
-    // =========================
-    const postImageUrl =
-      String(
-        post.image || ""
-      ).trim();
-
-    await post.deleteOne();
-
-    // =========================
-    // CLEAN SAVED REFERENCES
-    // Remove deleted post from
-    // every user's savedPosts
-    // =========================
-    await User.updateMany(
-      {
-        savedPosts: post._id,
-      },
-      {
-        $pull: {
-          savedPosts: post._id,
-        },
+            message:
+              "Invalid post ID",
+          });
       }
-    );
 
-    // =========================
-    // CLEAN NOTIFICATIONS
-    // =========================
-    await Notification.deleteMany({
-      post: post._id,
-    });
+      /* =========================
+         FIND POST
+      ========================= */
 
-    if (postImageUrl) {
-      void deletePostImageFromCloudinary(
-        postImageUrl
+      const post =
+        await Post.findById(
+          postId
+        );
+
+      if (!post) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+
+            message:
+              "Post not found",
+          });
+      }
+
+      /* =========================
+         OWNERSHIP
+      ========================= */
+
+      if (
+        post.user.toString() !==
+        req.user._id.toString()
+      ) {
+        return res
+          .status(403)
+          .json({
+            success: false,
+
+            message:
+              "You can delete only your own posts",
+          });
+      }
+
+      /*
+       * Save media information
+       * before Mongo document
+       * deletion.
+       */
+      const postImageUrl =
+        String(
+          post.image || ""
+        ).trim();
+
+      const postImageFileId =
+        String(
+          post.imageFileId ||
+          ""
+        ).trim();
+
+      /* =========================
+         DELETE POST
+      ========================= */
+
+      await post.deleteOne();
+
+      /* =========================
+         CLEAN SAVED REFERENCES
+      ========================= */
+
+      await User.updateMany(
+        {
+          savedPosts:
+            post._id,
+        },
+        {
+          $pull: {
+            savedPosts:
+              post._id,
+          },
+        }
       );
+
+      /* =========================
+         CLEAN NOTIFICATIONS
+      ========================= */
+
+      await Notification
+        .deleteMany({
+          post:
+            post._id,
+        });
+
+      /* =========================
+         CLEAN IMAGE STORAGE
+      ========================= */
+
+      if (
+        postImageUrl ||
+        postImageFileId
+      ) {
+        /*
+         * Do not block response
+         * unnecessarily on remote
+         * storage cleanup.
+         */
+        void cleanupPostImage({
+          imageUrl:
+            postImageUrl,
+
+          imageFileId:
+            postImageFileId,
+        });
+      }
+
+      /* =========================
+         SUCCESS
+      ========================= */
+
+      return res
+        .status(200)
+        .json({
+          success: true,
+
+          deletedPostId:
+            post._id,
+
+          message:
+            "Post deleted successfully",
+        });
+    } catch (error) {
+      console.error(
+        "Delete Post Error:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          success: false,
+
+          message:
+            "Unable to delete post",
+        });
     }
-    // =========================
-    // SUCCESS
-    // =========================
-    return res.status(200).json({
-      success: true,
-      deletedPostId: post._id,
-      message:
-        "Post deleted successfully",
-    });
-  } catch (error) {
-    console.error(
-      "Delete Post Error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      message:
-        "Unable to delete post",
-    });
-  }
-};
-
-
+  };
 
 const savePost = async (req, res) => {
 
