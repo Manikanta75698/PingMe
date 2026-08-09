@@ -37,8 +37,6 @@ import {
 
 const MAX_MESSAGE_LENGTH = 5000;
 
-const SOCKET_SEND_TIMEOUT_MS =
-  4500;
 
 const createClientMessageId = () => {
   if (
@@ -742,10 +740,7 @@ const MessageInput = () => {
           }
         );
 
-        /*
-         * Request fail ayithe original edit mode
-         * and typed value restore chestham.
-         */
+
         editSubmittingIdRef.current =
           "";
 
@@ -791,125 +786,6 @@ const MessageInput = () => {
   /* =========================
      SEND NEW MESSAGE
   ========================= */
-
-
-  const sendTextOverSocket =
-    useCallback(
-      (payload) =>
-        new Promise(
-          (
-            resolve,
-            reject
-          ) => {
-            if (
-              !socket?.connected
-            ) {
-              const error =
-                new Error(
-                  "Socket is not connected"
-                );
-
-              error.isTransportError =
-                true;
-
-              reject(error);
-              return;
-            }
-
-            let settled = false;
-
-            const finish = (
-              callback
-            ) => {
-              if (settled) {
-                return;
-              }
-
-              settled = true;
-
-              window.clearTimeout(
-                timeoutId
-              );
-
-              callback();
-            };
-
-            const timeoutId =
-              window.setTimeout(
-                () => {
-                  finish(() => {
-                    const error =
-                      new Error(
-                        "Message acknowledgement timed out"
-                      );
-
-                    error.isTransportError =
-                      true;
-
-                    reject(error);
-                  });
-                },
-                SOCKET_SEND_TIMEOUT_MS
-              );
-
-            socket.emit(
-              "message:send",
-              payload,
-              (ack = {}) => {
-                finish(() => {
-                  if (
-                    ack?.success &&
-                    ack?.data?._id
-                  ) {
-                    resolve({
-                      data: {
-                        success: true,
-
-                        duplicate:
-                          Boolean(
-                            ack
-                              ?.duplicate
-                          ),
-
-                        data:
-                          ack.data,
-                      },
-                    });
-
-                    return;
-                  }
-
-                  const error =
-                    new Error(
-                      ack?.message ||
-                      "Unable to send message"
-                    );
-
-                  /*
-                   * Server rejected message.
-                   * REST fallback cheyyakudadhu.
-                   */
-                  error.isTransportError =
-                    false;
-
-                  error.userMessage =
-                    ack?.message ||
-                    "Unable to send message";
-
-                  error.code =
-                    ack?.code;
-
-                  error.status =
-                    ack?.status;
-
-                  reject(error);
-                });
-              }
-            );
-          }
-        ),
-      [socket]
-    );
 
   const handleSendMessage =
     async () => {
@@ -1227,38 +1103,10 @@ const MessageInput = () => {
           };
         }
 
-        let response;
-
-        if (imageToSend) {
-          response =
-            await sendMessage(
-              requestData
-            );
-        } else {
-          try {
-            response =
-              await sendTextOverSocket(
-                requestData
-              );
-          } catch (socketError) {
-            if (
-              !socketError
-                ?.isTransportError
-            ) {
-              throw socketError;
-            }
-
-            console.warn(
-              "SOCKET SEND FALLBACK TO REST:",
-              socketError.message
-            );
-
-            response =
-              await sendMessage(
-                requestData
-              );
-          }
-        }
+        const response =
+          await sendMessage(
+            requestData
+          );
 
         const realMessage =
           response?.data?.data;
