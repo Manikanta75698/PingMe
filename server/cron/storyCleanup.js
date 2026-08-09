@@ -12,153 +12,24 @@ const {
   "../utils/imagekitUpload"
 );
 
-const cloudinary = require(
-  "../config/cloudinary"
-);
-
-/* =========================
-   LEGACY CLOUDINARY HELPERS
-========================= */
-
-const getCloudinaryPublicId = (
-  imageUrl
-) => {
-  const normalizedUrl =
-    String(
-      imageUrl || ""
-    ).trim();
-
-  if (!normalizedUrl) {
-    return "";
-  }
-
-  try {
-    const parsedUrl =
-      new URL(
-        normalizedUrl
-      );
-
-    if (
-      !parsedUrl.hostname
-        .toLowerCase()
-        .includes(
-          "cloudinary.com"
-        )
-    ) {
-      return "";
-    }
-
-    const uploadMarker =
-      "/upload/";
-
-    const uploadIndex =
-      parsedUrl.pathname.indexOf(
-        uploadMarker
-      );
-
-    if (uploadIndex === -1) {
-      return "";
-    }
-
-    let publicPath =
-      parsedUrl.pathname.slice(
-        uploadIndex +
-        uploadMarker.length
-      );
-
-    publicPath =
-      publicPath.replace(
-        /^v\d+\//,
-        ""
-      );
-
-    publicPath =
-      publicPath.replace(
-        /\.[^/.]+$/,
-        ""
-      );
-
-    return decodeURIComponent(
-      publicPath
-    );
-  } catch {
-    return "";
-  }
-};
-
-const deleteLegacyCloudinaryStoryImage =
-  async (
-    imageUrl
-  ) => {
-    const publicId =
-      getCloudinaryPublicId(
-        imageUrl
-      );
-
-    if (!publicId) {
-      return;
-    }
-
-    const result =
-      await cloudinary.uploader.destroy(
-        publicId,
-        {
-          resource_type:
-            "image",
-        }
-      );
-
-    if (
-      result?.result !== "ok" &&
-      result?.result !==
-      "not found"
-    ) {
-      throw new Error(
-        `Cloudinary cleanup failed: ${result?.result ||
-        "unknown result"
-        }`
-      );
-    }
-  };
-
 /* =========================
    STORY MEDIA CLEANUP
 ========================= */
 
 const deleteStoryImage =
-  async ({
-    imageUrl,
-    imageFileId,
-  }) => {
+  async (imageFileId) => {
     const normalizedFileId =
       String(
         imageFileId || ""
       ).trim();
 
-    const normalizedUrl =
-      String(
-        imageUrl || ""
-      ).trim();
-
-    /*
-     * New ImageKit stories.
-     */
-    if (normalizedFileId) {
-      await deleteImageKitFile(
-        normalizedFileId
-      );
-
+    if (!normalizedFileId) {
       return;
     }
 
-    /*
-     * Legacy Cloudinary stories.
-     */
-    if (normalizedUrl) {
-      await deleteLegacyCloudinaryStoryImage(
-        normalizedUrl
-      );
-    }
+    await deleteImageKitFile(
+      normalizedFileId
+    );
   };
 
 /* =========================
@@ -192,25 +63,16 @@ const cleanupExpiredStories =
       expiredStories
     ) {
       try {
-        const imageUrl =
-          String(
-            story.image || ""
-          ).trim();
-
         const imageFileId =
           String(
             story.imageFileId ||
             ""
           ).trim();
 
-        if (
-          imageUrl ||
-          imageFileId
-        ) {
-          await deleteStoryImage({
-            imageUrl,
-            imageFileId,
-          });
+        if (imageFileId) {
+          await deleteStoryImage(
+            imageFileId
+          );
         }
 
         await Story.deleteOne({

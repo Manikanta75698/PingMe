@@ -20,8 +20,6 @@ const {
   "../utils/imagekitUpload"
 );
 
-const cloudinary =
-  require("../config/cloudinary");
 const generateToken = require("../utils/generateToken");
 const client = require("../config/googleAuth");
 const sendOtpEmail = require("../utils/sendOtpEmail");
@@ -127,111 +125,8 @@ const normalizeUserId = (
    PROFILE IMAGE HELPERS
 ========================= */
 
-const getCloudinaryPublicId = (
-  imageUrl
-) => {
-  const normalizedUrl =
-    String(
-      imageUrl || ""
-    ).trim();
-
-  if (!normalizedUrl) {
-    return "";
-  }
-
-  try {
-    const parsedUrl =
-      new URL(
-        normalizedUrl
-      );
-
-    /*
-     * Google avatars or ImageKit
-     * URLs should never reach
-     * Cloudinary destroy.
-     */
-    if (
-      !parsedUrl.hostname
-        .toLowerCase()
-        .includes(
-          "cloudinary.com"
-        )
-    ) {
-      return "";
-    }
-
-    const uploadMarker =
-      "/upload/";
-
-    const uploadIndex =
-      parsedUrl.pathname
-        .indexOf(
-          uploadMarker
-        );
-
-    if (
-      uploadIndex === -1
-    ) {
-      return "";
-    }
-
-    let publicPath =
-      parsedUrl.pathname.slice(
-        uploadIndex +
-        uploadMarker.length
-      );
-
-    publicPath =
-      publicPath.replace(
-        /^v\d+\//,
-        ""
-      );
-
-    publicPath =
-      publicPath.replace(
-        /\.[^/.]+$/,
-        ""
-      );
-
-    return decodeURIComponent(
-      publicPath
-    );
-  } catch {
-    return "";
-  }
-};
-
-const deleteLegacyProfilePicture =
-  async (imageUrl) => {
-    const publicId =
-      getCloudinaryPublicId(
-        imageUrl
-      );
-
-    if (!publicId) {
-      return;
-    }
-
-    try {
-      await cloudinary.uploader
-        .destroy(
-          publicId,
-          {
-            resource_type:
-              "image",
-          }
-        );
-    } catch (error) {
-      console.error(
-        "LEGACY PROFILE IMAGE CLEANUP ERROR:",
-        error
-      );
-    }
-  };
-
 const cleanupProfilePicture =
   async ({
-    imageUrl,
     imageFileId,
   }) => {
     const normalizedFileId =
@@ -239,30 +134,21 @@ const cleanupProfilePicture =
         imageFileId || ""
       ).trim();
 
-    /*
-     * New ImageKit profile image.
-     */
-    if (normalizedFileId) {
-      try {
-        await deleteImageKitFile(
-          normalizedFileId
-        );
-      } catch (error) {
-        console.error(
-          "PROFILE IMAGEKIT CLEANUP ERROR:",
-          error
-        );
-      }
-
+    if (!normalizedFileId) {
       return;
     }
 
-
-    await deleteLegacyProfilePicture(
-      imageUrl
-    );
+    try {
+      await deleteImageKitFile(
+        normalizedFileId
+      );
+    } catch (error) {
+      console.error(
+        "PROFILE IMAGEKIT CLEANUP ERROR:",
+        error
+      );
+    }
   };
-
 
 const emitBlockStatusUpdate = (
   currentUserId,
@@ -2394,15 +2280,7 @@ const uploadProfilePicture =
           });
       }
 
-      /*
-       * Save old media details
-       * before replacing them.
-       */
-      const oldProfilePic =
-        String(
-          user.profilePic ||
-          ""
-        ).trim();
+
 
       const oldProfilePicFileId =
         String(
@@ -2471,27 +2349,9 @@ const uploadProfilePicture =
       ========================= */
 
       if (
-        oldProfilePic ||
         oldProfilePicFileId
       ) {
-        /*
-         * Cleanup runs after DB
-         * has safely switched to
-         * the new image.
-         *
-         * - ImageKit old image:
-         *   delete by fileId
-         *
-         * - Legacy Cloudinary:
-         *   delete by URL
-         *
-         * - Google avatar:
-         *   ignored safely
-         */
-        void cleanupProfilePicture({
-          imageUrl:
-            oldProfilePic,
-
+        await cleanupProfilePicture({
           imageFileId:
             oldProfilePicFileId,
         });

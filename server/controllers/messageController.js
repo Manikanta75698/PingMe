@@ -16,10 +16,6 @@ const User = require(
 
 
 
-const cloudinary = require(
-  "../config/cloudinary"
-);
-
 const {
   getIO,
 } = require("../socket/socketInstance");
@@ -504,142 +500,33 @@ const getMessagePermissionError = (
    MESSAGE MEDIA HELPERS
 ========================= */
 
-const getCloudinaryPublicId = (
-  imageUrl
-) => {
-  const normalizedUrl =
-    String(imageUrl || "").trim();
-
-  if (!normalizedUrl) {
-    return "";
-  }
-
-  try {
-    const parsedUrl =
-      new URL(normalizedUrl);
-
-    if (
-      !parsedUrl.hostname
-        .toLowerCase()
-        .includes("cloudinary.com")
-    ) {
-      return "";
-    }
-
-    const uploadMarker =
-      "/upload/";
-
-    const uploadIndex =
-      parsedUrl.pathname.indexOf(
-        uploadMarker
-      );
-
-    if (uploadIndex === -1) {
-      return "";
-    }
-
-    let publicPath =
-      parsedUrl.pathname.slice(
-        uploadIndex +
-        uploadMarker.length
-      );
-
-    publicPath =
-      publicPath.replace(
-        /^v\d+\//,
-        ""
-      );
-
-    publicPath =
-      publicPath.replace(
-        /\.[^/.]+$/,
-        ""
-      );
-
-    return decodeURIComponent(
-      publicPath
-    );
-  } catch {
-    return "";
-  }
-};
-
-const deleteLegacyCloudinaryMessageImage =
-  async (imageUrl) => {
-    const publicId =
-      getCloudinaryPublicId(
-        imageUrl
-      );
-
-    if (!publicId) {
-      return;
-    }
-
-    try {
-      await cloudinary.uploader.destroy(
-        publicId,
-        {
-          resource_type: "image",
-        }
-      );
-    } catch (error) {
-      console.error(
-        "LEGACY MESSAGE CLOUDINARY CLEANUP ERROR:",
-        error
-      );
-    }
-  };
 
 const cleanupMessageImageIfUnused =
   async ({
-    imageUrl,
     imageFileId,
   }) => {
-    const normalizedUrl =
-      String(
-        imageUrl || ""
-      ).trim();
-
     const normalizedFileId =
       String(
         imageFileId || ""
       ).trim();
 
+    if (!normalizedFileId) {
+      return;
+    }
+
     try {
-      if (normalizedFileId) {
-        const imageStillUsed =
-          await Message.exists({
-            imageFileId:
-              normalizedFileId,
-          });
-
-        if (imageStillUsed) {
-          return;
-        }
-
-        await deleteImageKitFile(
-          normalizedFileId
-        );
-
-        return;
-      }
-
-      if (!normalizedUrl) {
-        return;
-      }
-
-      const legacyImageStillUsed =
+      const imageStillUsed =
         await Message.exists({
-          image:
-            normalizedUrl,
+          imageFileId:
+            normalizedFileId,
         });
 
-      if (legacyImageStillUsed) {
+      if (imageStillUsed) {
         return;
       }
 
-      await deleteLegacyCloudinaryMessageImage(
-        normalizedUrl
+      await deleteImageKitFile(
+        normalizedFileId
       );
     } catch (error) {
       console.error(
@@ -3082,11 +2969,6 @@ const deleteMessage = async (
       });
     }
 
-    const imageUrl =
-      String(
-        message.image || ""
-      ).trim();
-
     const imageFileId =
       String(
         message.imageFileId ||
@@ -3154,12 +3036,8 @@ const deleteMessage = async (
       payload
     );
 
-    if (
-      imageUrl ||
-      imageFileId
-    ) {
-      void cleanupMessageImageIfUnused({
-        imageUrl,
+    if (imageFileId) {
+      await cleanupMessageImageIfUnused({
         imageFileId,
       });
     }

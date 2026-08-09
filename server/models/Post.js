@@ -30,13 +30,7 @@ const postSchema =
         trim: true,
       },
 
-      /*
-       * ImageKit file ID.
-       *
-       * New ImageKit posts store this.
-       * Old Cloudinary posts will simply
-       * keep this empty.
-       */
+
       imageFileId: {
         type: String,
 
