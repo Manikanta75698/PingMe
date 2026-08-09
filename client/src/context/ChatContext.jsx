@@ -61,6 +61,40 @@ const normalizeId = (value) => {
   return String(value);
 };
 
+const moveSummaryToTop = (
+  summaries,
+  userId,
+  updater
+) => {
+  const safeSummaries =
+    Array.isArray(summaries)
+      ? summaries
+      : [];
+
+  const index =
+    safeSummaries.findIndex(
+      (summary) =>
+        normalizeId(
+          summary?.user
+        ) === userId
+    );
+
+  if (index === -1) {
+    return safeSummaries;
+  }
+
+  const updatedSummary =
+    updater(
+      safeSummaries[index]
+    );
+
+  return [
+    updatedSummary,
+    ...safeSummaries.slice(0, index),
+    ...safeSummaries.slice(index + 1),
+  ];
+};
+
 const getMessageKey = (
   message
 ) => {
@@ -1857,56 +1891,16 @@ export const ChatProvider = ({
          * matrame update chestham.
          */
         setChatSummaries(
-          (previous) => {
-            const safeSummaries =
-              Array.isArray(previous)
-                ? previous
-                : [];
-
-            const updated =
-              safeSummaries.map(
-                (summary) => {
-                  const summaryUserId =
-                    normalizeId(
-                      summary?.user
-                    );
-
-                  if (
-                    summaryUserId !==
-                    senderId
-                  ) {
-                    return summary;
-                  }
-
-                  return {
-                    ...summary,
-                    lastMessage:
-                      message,
-                  };
-                }
-              );
-
-            return updated.sort(
-              (first, second) => {
-                const firstTime =
-                  new Date(
-                    first?.lastMessage
-                      ?.createdAt || 0
-                  ).getTime();
-
-                const secondTime =
-                  new Date(
-                    second?.lastMessage
-                      ?.createdAt || 0
-                  ).getTime();
-
-                return (
-                  secondTime -
-                  firstTime
-                );
-              }
-            );
-          }
+          (previous) =>
+            moveSummaryToTop(
+              previous,
+              senderId,
+              (summary) => ({
+                ...summary,
+                lastMessage: message,
+                unreadCount: 0,
+              })
+            )
         );
 
         return;
@@ -1969,53 +1963,23 @@ export const ChatProvider = ({
             return safeSummaries;
           }
 
-          const updatedSummaries =
-            safeSummaries.map(
-              (summary, index) => {
-                if (
-                  index !==
-                  existingIndex
-                ) {
-                  return summary;
-                }
+          return moveSummaryToTop(
+            safeSummaries,
+            senderId,
+            (summary) => ({
+              ...summary,
 
-                return {
-                  ...summary,
+              lastMessage:
+                message,
 
-                  lastMessage:
-                    message,
-
-                  unreadCount:
-                    Math.max(
-                      0,
-                      Number(
-                        summary
-                          ?.unreadCount
-                      ) || 0
-                    ) + 1,
-                };
-              }
-            );
-
-          return updatedSummaries.sort(
-            (first, second) => {
-              const firstTime =
-                new Date(
-                  first?.lastMessage
-                    ?.createdAt || 0
-                ).getTime();
-
-              const secondTime =
-                new Date(
-                  second?.lastMessage
-                    ?.createdAt || 0
-                ).getTime();
-
-              return (
-                secondTime -
-                firstTime
-              );
-            }
+              unreadCount:
+                Math.max(
+                  0,
+                  Number(
+                    summary?.unreadCount
+                  ) || 0
+                ) + 1,
+            })
           );
         }
       );

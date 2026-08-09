@@ -1,12 +1,11 @@
 import {
+  memo,
   useEffect,
   useRef,
   useState,
 } from "react";
 
-import {
-  useChat,
-} from "../../context/ChatContext";
+
 
 import {
   useNavigate,
@@ -178,31 +177,30 @@ const highlightMessageText = (
 const MessageBubble = ({
   message,
   isOwn,
+
   onReply,
   onEdit,
   onForward,
   onVisible,
+
   visibilityRoot,
+
   searchQuery = "",
   isSearchMatch = false,
   isActiveSearchMatch = false,
   isPinnedScrollTarget = false,
+
+  isBlocked = false,
+
+  setMessages,
+  setChatSummaries,
+  setPinnedMessage,
 }) => {
 
   const navigate =
     useNavigate();
 
-  const {
-    setMessages,
-    setChatSummaries,
-    setPinnedMessage,
-    blockStatus,
-  } = useChat();
 
-  const isBlocked =
-    Boolean(
-      blockStatus?.isBlocked
-    );
 
   const [
     showActions,
@@ -2897,4 +2895,4 @@ const MessageBubble = ({
   );
 };
 
-export default MessageBubble;
+export default memo(MessageBubble);

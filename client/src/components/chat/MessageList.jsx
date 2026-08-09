@@ -61,9 +61,14 @@ const MessageList = ({
   olderMessagesLoading = false,
   loadOlderMessages,
 }) => {
+
   const {
     messages,
     setMessages,
+
+    setChatSummaries,
+    setPinnedMessage,
+    blockStatus,
 
     pinnedMessage,
     messageScrollRequest,
@@ -173,7 +178,7 @@ const MessageList = ({
   const scrollToLatest =
     useCallback(
       (
-        behavior = "smooth",
+        behavior = "auto",
         {
           clearUnread = true,
         } = {}
@@ -185,15 +190,10 @@ const MessageList = ({
           return;
         }
 
-        container.scrollTop =
-          container.scrollHeight;
-
-        bottomRef.current
-          ?.scrollIntoView({
-            behavior,
-            block: "end",
-            inline: "nearest",
-          });
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior,
+        });
 
         isNearBottomRef.current =
           true;
@@ -300,6 +300,23 @@ const MessageList = ({
     messageSearchMatches[
     activeSearchMatchIndex
     ] || "";
+
+  const searchMatchIdSet =
+    useMemo(
+      () =>
+        new Set(
+          Array.isArray(
+            messageSearchMatches
+          )
+            ? messageSearchMatches
+              .map((item) =>
+                normalizeId(item)
+              )
+              .filter(Boolean)
+            : []
+        ),
+      [messageSearchMatches]
+    );
 
   /* =========================
      PINNED MESSAGE SCROLL
@@ -832,7 +849,7 @@ const MessageList = ({
         window.requestAnimationFrame(
           () => {
             scrollToLatest(
-              "smooth"
+              "auto"
             );
           }
         );
@@ -1372,7 +1389,7 @@ const MessageList = ({
 
               const isSearchMatch =
                 Boolean(messageId) &&
-                messageSearchMatches.includes(
+                searchMatchIdSet.has(
                   messageId
                 );
 
@@ -1419,6 +1436,7 @@ const MessageList = ({
                       senderId ===
                       currentUserId
                     }
+
                     onReply={
                       handleReplyMessage
                     }
@@ -1431,20 +1449,43 @@ const MessageList = ({
                     onVisible={
                       handleMessageVisible
                     }
+
                     visibilityRoot={
                       containerRef
                     }
+
                     searchQuery={
-                      messageSearchQuery
+                      isSearchMatch
+                        ? messageSearchQuery
+                        : ""
                     }
+
                     isSearchMatch={
                       isSearchMatch
                     }
+
                     isActiveSearchMatch={
                       isActiveSearchMatch
                     }
+
                     isPinnedScrollTarget={
                       isPinnedScrollTarget
+                    }
+
+                    isBlocked={
+                      isBlocked
+                    }
+
+                    setMessages={
+                      setMessages
+                    }
+
+                    setChatSummaries={
+                      setChatSummaries
+                    }
+
+                    setPinnedMessage={
+                      setPinnedMessage
                     }
                   />
                 </div>
