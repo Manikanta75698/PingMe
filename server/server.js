@@ -5,6 +5,8 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const http = require("http");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const { Server } = require("socket.io");
 
 const socketHandler = require("./socket/socket");
@@ -14,33 +16,19 @@ const connectDB = require("./config/db");
    ROUTE IMPORTS
 ========================= */
 
-const authRoutesModule =
-  require("./routes/authRoutes");
-
-const postRoutesModule =
-  require("./routes/postRoutes");
-
-const notificationRoutesModule =
-  require("./routes/notificationRoutes");
-
-const storyRoutesModule =
-  require("./routes/storyRoutes");
-
-const messageRoutesModule =
-  require("./routes/messageRoutes");
-
-const userRoutesModule =
-  require("./routes/userRoutes");
-
-const helpRequestRoutesModule =
-  require("./routes/helpRequestRoutes");
+const authRoutesModule = require("./routes/authRoutes");
+const postRoutesModule = require("./routes/postRoutes");
+const notificationRoutesModule = require("./routes/notificationRoutes");
+const storyRoutesModule = require("./routes/storyRoutes");
+const messageRoutesModule = require("./routes/messageRoutes");
+const userRoutesModule = require("./routes/userRoutes");
+const helpRequestRoutesModule = require("./routes/helpRequestRoutes");
 
 /* =========================
    CRON JOB IMPORTS
 ========================= */
 
-const startDeleteExpiredMessages =
-  require("./cron/deleteExpiredMessages");
+const startDeleteExpiredMessages = require("./cron/deleteExpiredMessages");
 
 const {
   startStoryCleanupJob,
@@ -50,10 +38,7 @@ const {
    ROUTER NORMALIZER
 ========================= */
 
-const resolveRouter = (
-  routeModule,
-  routeName
-) => {
+const resolveRouter = (routeModule, routeName) => {
   const router =
     routeModule?.router ||
     routeModule?.default ||
@@ -61,13 +46,10 @@ const resolveRouter = (
 
   if (typeof router !== "function") {
     console.error(
-      `❌ INVALID ROUTER EXPORT: ${routeName}`,
+      `❌ INVALID ROUTER EXPORT: ${routeName} `,
       {
-        receivedType:
-          typeof routeModule,
-
-        receivedValue:
-          routeModule,
+        receivedType: typeof routeModule,
+        receivedValue: routeModule,
       }
     );
 
@@ -79,47 +61,40 @@ const resolveRouter = (
   return router;
 };
 
-const authRoutes =
-  resolveRouter(
-    authRoutesModule,
-    "authRoutes"
-  );
+const authRoutes = resolveRouter(
+  authRoutesModule,
+  "authRoutes"
+);
 
-const postRoutes =
-  resolveRouter(
-    postRoutesModule,
-    "postRoutes"
-  );
+const postRoutes = resolveRouter(
+  postRoutesModule,
+  "postRoutes"
+);
 
-const notificationRoutes =
-  resolveRouter(
-    notificationRoutesModule,
-    "notificationRoutes"
-  );
+const notificationRoutes = resolveRouter(
+  notificationRoutesModule,
+  "notificationRoutes"
+);
 
-const storyRoutes =
-  resolveRouter(
-    storyRoutesModule,
-    "storyRoutes"
-  );
+const storyRoutes = resolveRouter(
+  storyRoutesModule,
+  "storyRoutes"
+);
 
-const messageRoutes =
-  resolveRouter(
-    messageRoutesModule,
-    "messageRoutes"
-  );
+const messageRoutes = resolveRouter(
+  messageRoutesModule,
+  "messageRoutes"
+);
 
-const userRoutes =
-  resolveRouter(
-    userRoutesModule,
-    "userRoutes"
-  );
+const userRoutes = resolveRouter(
+  userRoutesModule,
+  "userRoutes"
+);
 
-const helpRequestRoutes =
-  resolveRouter(
-    helpRequestRoutesModule,
-    "helpRequestRoutes"
-  );
+const helpRequestRoutes = resolveRouter(
+  helpRequestRoutesModule,
+  "helpRequestRoutes"
+);
 
 /* =========================
    EXPRESS APP
@@ -128,13 +103,34 @@ const helpRequestRoutes =
 const app = express();
 const server = http.createServer(app);
 
+/*
+  Render / reverse proxy support.
+
+  This is important for express-rate-limit so it can
+  correctly identify the real client IP address.
+*/
+app.set("trust proxy", 1);
+
+/* =========================
+   SECURITY HEADERS
+========================= */
+
+app.use(
+  helmet({
+    /*
+      Backend is an API server, so disabling this particular
+      policy avoids accidental issues if media/resources are
+      ever proxied through this server.
+    */
+    crossOriginResourcePolicy: false,
+  })
+);
+
 /* =========================
    CORS
 ========================= */
 
-const normalizeOrigin = (
-  value
-) => {
+const normalizeOrigin = (value) => {
   return value
     ? value.replace(/\/+$/, "")
     : "";
@@ -146,18 +142,16 @@ const allowedOrigins = [
   "capacitor://localhost",
 
   normalizeOrigin(
-    process.env
-      .CLIENT_PRODUCTION_URL
+    process.env.CLIENT_PRODUCTION_URL
   ),
 ].filter(Boolean);
 
-const isAllowedOrigin = (
-  origin
-) => {
-  if (
-    !origin ||
-    origin === "null"
-  ) {
+const isAllowedOrigin = (origin) => {
+  /*
+    Native apps, server-to-server requests,
+    Postman, curl etc. may not send Origin.
+  */
+  if (!origin || origin === "null") {
     return true;
   }
 
@@ -167,13 +161,8 @@ const isAllowedOrigin = (
 };
 
 const corsOptions = {
-  origin(
-    origin,
-    callback
-  ) {
-    if (
-      isAllowedOrigin(origin)
-    ) {
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
       return;
     }
@@ -208,29 +197,126 @@ const corsOptions = {
 };
 
 /* =========================
-   MIDDLEWARE
+   CORS MIDDLEWARE
 ========================= */
 
+app.use(cors(corsOptions));
+
+/* =========================
+   RATE LIMITING
+========================= */
+
+/*
+  General API protection.
+
+  High enough for normal social-app usage while still
+  providing basic protection against abusive traffic.
+*/
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+
+  max: 500,
+
+  standardHeaders: true,
+  legacyHeaders: false,
+
+  message: {
+    success: false,
+    message:
+      "Too many requests. Please try again later.",
+  },
+});
+
+/*
+  Sensitive authentication protection.
+
+  We intentionally apply this only to login/register/OTP/
+  password-reset endpoints — NOT the whole /api/auth router.
+*/
+const sensitiveAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+
+  max: 25,
+
+  standardHeaders: true,
+  legacyHeaders: false,
+
+  message: {
+    success: false,
+    message:
+      "Too many authentication attempts. Please wait and try again.",
+  },
+});
+
+/*
+  OTP resend should be more restrictive because it may
+  trigger email delivery and can otherwise be abused.
+*/
+const otpResendLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+
+  max: 5,
+
+  standardHeaders: true,
+  legacyHeaders: false,
+
+  message: {
+    success: false,
+    message:
+      "Too many OTP requests. Please wait before requesting another code.",
+  },
+});
+
+/*
+  General limiter applies to all REST API routes.
+*/
+app.use("/api", apiLimiter);
+
+/*
+  Strict protection only for sensitive auth routes.
+*/
 app.use(
-  cors(corsOptions)
+  [
+    "/api/auth/register",
+    "/api/auth/login",
+    "/api/auth/verify-otp",
+    "/api/auth/forgot-password",
+    "/api/auth/verify-reset-otp",
+    "/api/auth/reset-password",
+  ],
+  sensitiveAuthLimiter
 );
 
+/*
+  Separate tighter limiter for OTP resend.
+*/
+app.use(
+  "/api/auth/resend-otp",
+  otpResendLimiter
+);
+
+/* =========================
+   BODY / COOKIE MIDDLEWARE
+========================= */
+
+/*
+  Regular API requests generally don't need 10 MB JSON.
+  Image uploads should use multipart/form-data via Multer.
+*/
 app.use(
   express.json({
-    limit: "10mb",
+    limit: "1mb",
   })
 );
 
 app.use(
   express.urlencoded({
     extended: true,
-    limit: "10mb",
+    limit: "1mb",
   })
 );
 
-app.use(
-  cookieParser()
-);
+app.use(cookieParser());
 
 /* =========================
    HEALTH CHECK
@@ -249,11 +335,9 @@ app.get(
       .json({
         success: true,
         status: "ok",
-        message:
-          "Backend is awake",
+        message: "Backend is awake",
         timestamp:
-          new Date()
-            .toISOString(),
+          new Date().toISOString(),
       });
   }
 );
@@ -325,7 +409,7 @@ app.use(
       .json({
         success: false,
         message:
-          `Route not found: ${req.method} ${req.originalUrl}`,
+          `Route not found: ${req.method} ${req.originalUrl} `,
       });
   }
 );
@@ -344,21 +428,17 @@ app.use(
     console.error(
       "GLOBAL SERVER ERROR:",
       {
-        message:
-          error?.message,
+        message: error?.message,
 
         stack:
-          process.env
-            .NODE_ENV ===
+          process.env.NODE_ENV ===
             "development"
             ? error?.stack
             : undefined,
       }
     );
 
-    if (
-      res.headersSent
-    ) {
+    if (res.headersSent) {
       return next(error);
     }
 
@@ -390,9 +470,7 @@ const io = new Server(
         callback
       ) {
         if (
-          isAllowedOrigin(
-            origin
-          )
+          isAllowedOrigin(origin)
         ) {
           callback(
             null,
@@ -409,7 +487,7 @@ const io = new Server(
 
         callback(
           new Error(
-            `Socket origin not allowed: ${origin}`
+            `Socket origin not allowed: ${origin} `
           )
         );
       },
@@ -491,7 +569,15 @@ const startServer =
         "0.0.0.0",
         () => {
           console.log(
-            `✅ Production Secure Engine running on port: ${PORT}`
+            `✅ Production Secure Engine running on port: ${PORT} `
+          );
+
+          console.log(
+            "✅ Helmet security headers enabled"
+          );
+
+          console.log(
+            "✅ API rate limiting enabled"
           );
 
           console.log(
@@ -539,3 +625,4 @@ process.on(
     );
   }
 );
+
