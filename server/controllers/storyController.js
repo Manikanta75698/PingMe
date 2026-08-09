@@ -6,12 +6,11 @@ const Story = require(
   "../models/Story"
 );
 
-const uploadImage = require(
-  "../utils/cloudinaryUpload"
-);
-
-const cloudinary = require(
-  "../config/cloudinary"
+const {
+  uploadImageKitFile,
+  deleteImageKitFile,
+} = require(
+  "../utils/imagekitUpload"
 );
 
 const {
@@ -269,98 +268,32 @@ const formatStory = (
 };
 
 /* =========================
-   CLOUDINARY RESULT URL
+   SAFE IMAGEKIT CLEANUP
 ========================= */
 
-const getUploadedImageUrl = (
-  uploadResult
-) => {
-  if (
-    typeof uploadResult ===
-    "string"
-  ) {
-    return uploadResult.trim();
-  }
+const cleanupImageKitFile =
+  async (
+    fileId,
+    reason =
+      "STORY IMAGE CLEANUP"
+  ) => {
+    const normalizedFileId =
+      String(
+        fileId || ""
+      ).trim();
 
-  return String(
-    uploadResult?.secure_url ||
-    uploadResult?.url ||
-    uploadResult?.image ||
-    ""
-  ).trim();
-};
-
-
-const getCloudinaryPublicId = (
-  imageUrl
-) => {
-  if (!imageUrl) {
-    return "";
-  }
-
-  try {
-    const parsedUrl =
-      new URL(imageUrl);
-
-    const uploadMarker =
-      "/upload/";
-
-    const uploadIndex =
-      parsedUrl.pathname.indexOf(
-        uploadMarker
-      );
-
-    if (uploadIndex === -1) {
-      return "";
-    }
-
-    let publicPath =
-      parsedUrl.pathname.slice(
-        uploadIndex +
-        uploadMarker.length
-      );
-
-    publicPath =
-      publicPath.replace(
-        /^v\d+\//,
-        ""
-      );
-
-    publicPath =
-      publicPath.replace(
-        /\.[^/.]+$/,
-        ""
-      );
-
-    return decodeURIComponent(
-      publicPath
-    );
-  } catch {
-    return "";
-  }
-};
-
-const deleteStoryImageFromCloudinary =
-  async (imageUrl) => {
-    const publicId =
-      getCloudinaryPublicId(
-        imageUrl
-      );
-
-    if (!publicId) {
+    if (!normalizedFileId) {
       return;
     }
 
     try {
-      await cloudinary.uploader.destroy(
-        publicId,
-        {
-          resource_type: "image",
-        }
+      await deleteImageKitFile(
+        normalizedFileId
       );
     } catch (error) {
       console.error(
-        "STORY IMAGE CLEANUP ERROR:",
+        `${reason} ERROR:`,
+        error?.message ||
         error
       );
     }
@@ -374,6 +307,8 @@ const createStory = async (
   req,
   res
 ) => {
+  let uploadedFileId = "";
+
   try {
     const currentUserId =
       getCurrentUserId(req);
@@ -404,18 +339,57 @@ const createStory = async (
         });
     }
 
+    if (
+      !Buffer.isBuffer(
+        req.file.buffer
+      ) ||
+      req.file.buffer.length ===
+      0
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+
+          message:
+            "Invalid story image",
+        });
+    }
+
     const uploadResult =
-      await uploadImage(
+      await uploadImageKitFile(
         req.file.buffer,
-        "pingme/stories"
+        req.file.originalname ||
+        "story.jpg",
+        "/pingme/stories"
       );
 
     const image =
-      getUploadedImageUrl(
-        uploadResult
-      );
+      String(
+        uploadResult?.url ||
+        ""
+      ).trim();
 
-    if (!image) {
+    const imageFileId =
+      String(
+        uploadResult?.fileId ||
+        ""
+      ).trim();
+
+    uploadedFileId =
+      imageFileId;
+
+    if (
+      !image ||
+      !imageFileId
+    ) {
+      if (uploadedFileId) {
+        await cleanupImageKitFile(
+          uploadedFileId,
+          "INVALID IMAGEKIT UPLOAD CLEANUP"
+        );
+      }
+
       return res
         .status(500)
         .json({
@@ -439,12 +413,21 @@ const createStory = async (
 
         image,
 
+        imageFileId,
+
         viewers: [],
 
         views: [],
 
         expiresAt,
       });
+
+    /*
+     * Database save successful.
+     * From this point upload should
+     * no longer be automatically cleaned.
+     */
+    uploadedFileId = "";
 
     await story.populate(
       "user",
@@ -494,6 +477,18 @@ const createStory = async (
           ownerStory,
       });
   } catch (error) {
+    /*
+     * If ImageKit upload succeeded
+     * but MongoDB creation failed,
+     * avoid leaving orphaned media.
+     */
+    if (uploadedFileId) {
+      await cleanupImageKitFile(
+        uploadedFileId,
+        "FAILED STORY CREATE CLEANUP"
+      );
+    }
+
     console.error(
       "CREATE STORY ERROR:",
       error
@@ -505,7 +500,7 @@ const createStory = async (
         success: false,
 
         message:
-          error.message ||
+          error?.message ||
           "Unable to upload story",
       });
   }
@@ -565,11 +560,12 @@ const getStories = async (
             story?.user &&
             story?.image
         )
-        .map((story) =>
-          formatStory(
-            story,
-            currentUserId
-          )
+        .map(
+          (story) =>
+            formatStory(
+              story,
+              currentUserId
+            )
         );
 
     return res
@@ -595,7 +591,7 @@ const getStories = async (
         success: false,
 
         message:
-          error.message ||
+          error?.message ||
           "Unable to load stories",
       });
   }
@@ -678,8 +674,8 @@ const viewStory = async (
       );
 
     /*
-     * Story owner own story open chesthe
-     * viewer record create cheyyamu.
+     * Owner viewing own story
+     * should not create a viewer record.
      */
     if (
       ownerId ===
@@ -720,13 +716,6 @@ const viewStory = async (
       const viewedAt =
         new Date();
 
-      /*
-       * Legacy field and new field
-       * rendu update chestham.
-       *
-       * $addToSet valla duplicate
-       * viewer ID create avvadu.
-       */
       story =
         await Story.findOneAndUpdate(
           {
@@ -761,15 +750,15 @@ const viewStory = async (
           },
 
           {
-            returnDocument: "after",
+            new: true,
             runValidators:
               true,
           }
         );
 
       /*
-       * Race condition lo query match
-       * kakapothe latest story fetch.
+       * Another request may have
+       * updated the story first.
        */
       if (!story) {
         story =
@@ -778,6 +767,17 @@ const viewStory = async (
           ).select(
             "_id user viewers views expiresAt"
           );
+      }
+
+      if (!story) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+
+            message:
+              "Story not found",
+          });
       }
 
       const viewersCount =
@@ -838,7 +838,7 @@ const viewStory = async (
         success: false,
 
         message:
-          error.message ||
+          error?.message ||
           "Unable to view story",
       });
   }
@@ -849,7 +849,10 @@ const viewStory = async (
 ========================= */
 
 const getStoryViewers =
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const currentUserId =
         getCurrentUserId(req);
@@ -940,7 +943,7 @@ const getStoryViewers =
         new Map();
 
       /*
-       * New timestamp-based views.
+       * Timestamp-based views.
        */
       if (
         Array.isArray(
@@ -992,8 +995,8 @@ const getStoryViewers =
       }
 
       /*
-       * Legacy viewer records.
-       * Timestamp unavailable kabatti null.
+       * Legacy viewers that
+       * do not have viewedAt.
        */
       if (
         Array.isArray(
@@ -1099,7 +1102,7 @@ const getStoryViewers =
           success: false,
 
           message:
-            error.message ||
+            error?.message ||
             "Unable to load story viewers",
         });
     }
@@ -1156,7 +1159,7 @@ const deleteStory = async (
       await Story.findById(
         storyId
       ).select(
-        "_id user image"
+        "_id user image imageFileId"
       );
 
     if (!story) {
@@ -1189,16 +1192,23 @@ const deleteStory = async (
         });
     }
 
-    const storyImageUrl =
+    const imageFileId =
       String(
-        story.image || ""
+        story.imageFileId ||
+        ""
       ).trim();
 
     await story.deleteOne();
 
-    if (storyImageUrl) {
-      void deleteStoryImageFromCloudinary(
-        storyImageUrl
+    /*
+     * Database deletion should not
+     * fail just because remote media
+     * cleanup fails.
+     */
+    if (imageFileId) {
+      void cleanupImageKitFile(
+        imageFileId,
+        "IMAGEKIT STORY DELETE"
       );
     }
 
@@ -1236,7 +1246,7 @@ const deleteStory = async (
         success: false,
 
         message:
-          error.message ||
+          error?.message ||
           "Unable to delete story",
       });
   }

@@ -53,6 +53,10 @@ const storySchema =
         required: true,
       },
 
+      /* =========================
+         IMAGEKIT IMAGE URL
+      ========================= */
+
       image: {
         type: String,
 
@@ -64,6 +68,21 @@ const storySchema =
         trim: true,
       },
 
+      /* =========================
+         IMAGEKIT FILE ID
+      ========================= */
+
+      imageFileId: {
+        type: String,
+
+        default: "",
+
+        trim: true,
+      },
+
+      /* =========================
+         LEGACY VIEWERS
+      ========================= */
 
       viewers: {
         type: [
@@ -79,6 +98,9 @@ const storySchema =
         default: [],
       },
 
+      /* =========================
+         TIMESTAMPED VIEWS
+      ========================= */
 
       views: {
         type: [
@@ -87,6 +109,10 @@ const storySchema =
 
         default: [],
       },
+
+      /* =========================
+         STORY EXPIRY
+      ========================= */
 
       expiresAt: {
         type: Date,
@@ -119,90 +145,98 @@ const storySchema =
    STORY ACTIVE STATUS
 ========================= */
 
-storySchema.virtual(
-  "isExpired"
-).get(function getIsExpired() {
-  if (!this.expiresAt) {
-    return false;
-  }
+storySchema
+  .virtual(
+    "isExpired"
+  )
+  .get(
+    function getIsExpired() {
+      if (!this.expiresAt) {
+        return false;
+      }
 
-  const expiryTime =
-    new Date(
-      this.expiresAt
-    ).getTime();
+      const expiryTime =
+        new Date(
+          this.expiresAt
+        ).getTime();
 
-  if (
-    Number.isNaN(
-      expiryTime
-    )
-  ) {
-    return false;
-  }
+      if (
+        Number.isNaN(
+          expiryTime
+        )
+      ) {
+        return false;
+      }
 
-  return (
-    expiryTime <=
-    Date.now()
+      return (
+        expiryTime <=
+        Date.now()
+      );
+    }
   );
-});
 
 /* =========================
    VIEWERS COUNT
 ========================= */
 
-storySchema.virtual(
-  "viewersCount"
-).get(function getViewersCount() {
-  const viewerIds =
-    new Set();
+storySchema
+  .virtual(
+    "viewersCount"
+  )
+  .get(
+    function getViewersCount() {
+      const viewerIds =
+        new Set();
 
-  if (
-    Array.isArray(
-      this.viewers
-    )
-  ) {
-    this.viewers.forEach(
-      (viewer) => {
-        const viewerId =
-          String(
-            viewer?._id ||
-            viewer ||
-            ""
-          ).trim();
+      if (
+        Array.isArray(
+          this.viewers
+        )
+      ) {
+        this.viewers.forEach(
+          (viewer) => {
+            const viewerId =
+              String(
+                viewer?._id ||
+                viewer ||
+                ""
+              ).trim();
 
-        if (viewerId) {
-          viewerIds.add(
-            viewerId
-          );
-        }
+            if (viewerId) {
+              viewerIds.add(
+                viewerId
+              );
+            }
+          }
+        );
       }
-    );
-  }
 
-  if (
-    Array.isArray(
-      this.views
-    )
-  ) {
-    this.views.forEach(
-      (view) => {
-        const viewerId =
-          String(
-            view?.user?._id ||
-            view?.user ||
-            ""
-          ).trim();
+      if (
+        Array.isArray(
+          this.views
+        )
+      ) {
+        this.views.forEach(
+          (view) => {
+            const viewerId =
+              String(
+                view?.user?._id ||
+                view?.user ||
+                ""
+              ).trim();
 
-        if (viewerId) {
-          viewerIds.add(
-            viewerId
-          );
-        }
+            if (viewerId) {
+              viewerIds.add(
+                viewerId
+              );
+            }
+          }
+        );
       }
-    );
-  }
 
-  return viewerIds.size;
-});
+      return viewerIds.size;
+    }
+  );
 
 /* =========================
    TTL INDEX
