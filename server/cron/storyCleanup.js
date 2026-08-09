@@ -6,20 +6,47 @@ const Story = require(
   "../models/Story"
 );
 
+const {
+  deleteImageKitFile,
+} = require(
+  "../utils/imagekitUpload"
+);
+
 const cloudinary = require(
   "../config/cloudinary"
 );
 
+/* =========================
+   LEGACY CLOUDINARY HELPERS
+========================= */
+
 const getCloudinaryPublicId = (
   imageUrl
 ) => {
-  if (!imageUrl) {
+  const normalizedUrl =
+    String(
+      imageUrl || ""
+    ).trim();
+
+  if (!normalizedUrl) {
     return "";
   }
 
   try {
     const parsedUrl =
-      new URL(imageUrl);
+      new URL(
+        normalizedUrl
+      );
+
+    if (
+      !parsedUrl.hostname
+        .toLowerCase()
+        .includes(
+          "cloudinary.com"
+        )
+    ) {
+      return "";
+    }
 
     const uploadMarker =
       "/upload/";
@@ -59,37 +86,84 @@ const getCloudinaryPublicId = (
   }
 };
 
-const deleteStoryImage = async (
-  imageUrl
-) => {
-  const publicId =
-    getCloudinaryPublicId(
-      imageUrl
-    );
+const deleteLegacyCloudinaryStoryImage =
+  async (
+    imageUrl
+  ) => {
+    const publicId =
+      getCloudinaryPublicId(
+        imageUrl
+      );
 
-  if (!publicId) {
-    return;
-  }
+    if (!publicId) {
+      return;
+    }
 
-  const result =
-    await cloudinary.uploader.destroy(
-      publicId,
-      {
-        resource_type: "image",
-      }
-    );
+    const result =
+      await cloudinary.uploader.destroy(
+        publicId,
+        {
+          resource_type:
+            "image",
+        }
+      );
 
-  if (
-    result?.result !== "ok" &&
-    result?.result !== "not found"
-  ) {
-    throw new Error(
-      `Cloudinary cleanup failed: ${result?.result ||
-      "unknown result"
-      }`
-    );
-  }
-};
+    if (
+      result?.result !== "ok" &&
+      result?.result !==
+      "not found"
+    ) {
+      throw new Error(
+        `Cloudinary cleanup failed: ${result?.result ||
+        "unknown result"
+        }`
+      );
+    }
+  };
+
+/* =========================
+   STORY MEDIA CLEANUP
+========================= */
+
+const deleteStoryImage =
+  async ({
+    imageUrl,
+    imageFileId,
+  }) => {
+    const normalizedFileId =
+      String(
+        imageFileId || ""
+      ).trim();
+
+    const normalizedUrl =
+      String(
+        imageUrl || ""
+      ).trim();
+
+    /*
+     * New ImageKit stories.
+     */
+    if (normalizedFileId) {
+      await deleteImageKitFile(
+        normalizedFileId
+      );
+
+      return;
+    }
+
+    /*
+     * Legacy Cloudinary stories.
+     */
+    if (normalizedUrl) {
+      await deleteLegacyCloudinaryStoryImage(
+        normalizedUrl
+      );
+    }
+  };
+
+/* =========================
+   EXPIRED STORY CLEANUP
+========================= */
 
 const cleanupExpiredStories =
   async () => {
@@ -103,7 +177,7 @@ const cleanupExpiredStories =
         },
       })
         .select(
-          "_id image expiresAt"
+          "_id image imageFileId expiresAt"
         )
         .limit(100);
 
@@ -123,10 +197,20 @@ const cleanupExpiredStories =
             story.image || ""
           ).trim();
 
-        if (imageUrl) {
-          await deleteStoryImage(
-            imageUrl
-          );
+        const imageFileId =
+          String(
+            story.imageFileId ||
+            ""
+          ).trim();
+
+        if (
+          imageUrl ||
+          imageFileId
+        ) {
+          await deleteStoryImage({
+            imageUrl,
+            imageFileId,
+          });
         }
 
         await Story.deleteOne({
@@ -137,15 +221,22 @@ const cleanupExpiredStories =
           "EXPIRED STORY CLEANUP ERROR:",
           {
             storyId:
-              String(story._id),
+              String(
+                story._id
+              ),
 
             message:
-              error.message,
+              error?.message ||
+              String(error),
           }
         );
       }
     }
   };
+
+/* =========================
+   START CRON JOB
+========================= */
 
 const startStoryCleanupJob =
   () => {
@@ -156,23 +247,30 @@ const startStoryCleanupJob =
       "*/10 * * * *",
       () => {
         cleanupExpiredStories()
-          .catch((error) => {
-            console.error(
-              "STORY CLEANUP JOB ERROR:",
-              error
-            );
-          });
+          .catch(
+            (error) => {
+              console.error(
+                "STORY CLEANUP JOB ERROR:",
+                error
+              );
+            }
+          );
       }
     );
 
-    
+    /*
+     * Run once immediately
+     * when server starts.
+     */
     cleanupExpiredStories()
-      .catch((error) => {
-        console.error(
-          "INITIAL STORY CLEANUP ERROR:",
-          error
-        );
-      });
+      .catch(
+        (error) => {
+          console.error(
+            "INITIAL STORY CLEANUP ERROR:",
+            error
+          );
+        }
+      );
   };
 
 module.exports = {
