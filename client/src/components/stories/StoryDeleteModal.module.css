@@ -1,7 +1,12 @@
+/* =========================
+   BACKDROP
+========================= */
+
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1800;
+
+  z-index: 13000;
 
   display: flex;
   align-items: center;
@@ -10,14 +15,27 @@
   padding: 20px;
 
   background:
-    rgba(0, 0, 0, 0.7);
+    rgba(0,
+      0,
+      0,
+      0.72);
 
   backdrop-filter:
-    blur(8px);
+    blur(10px);
+
+  -webkit-backdrop-filter:
+    blur(10px);
+
+  overscroll-behavior:
+    contain;
 
   animation:
-    deleteBackdropIn 0.18s ease-out;
+    deleteBackdropIn 0.18s ease-out both;
 }
+
+/* =========================
+   MODAL
+========================= */
 
 .modal {
   position: relative;
@@ -38,8 +56,10 @@
       CanvasText);
 
   background:
-    var(--surface,
-      Canvas);
+    color-mix(in srgb,
+      var(--surface,
+        Canvas) 97%,
+      transparent);
 
   border:
     1px solid var(--border,
@@ -48,16 +68,28 @@
         127,
         0.22));
 
-  border-radius: 20px;
+  border-radius: 22px;
 
   box-shadow:
-    0 30px 90px rgba(0, 0, 0, 0.46);
+    0 30px 90px rgba(0,
+      0,
+      0,
+      0.52);
 
   text-align: center;
 
+  isolation: isolate;
+
   animation:
-    deleteModalIn 0.2s ease-out;
+    deleteModalIn 0.22s cubic-bezier(0.22,
+      1,
+      0.36,
+      1) both;
 }
+
+/* =========================
+   CLOSE BUTTON
+========================= */
 
 .closeButton {
   position: absolute;
@@ -88,11 +120,31 @@
   border-radius: 50%;
 
   cursor: pointer;
+
+  -webkit-tap-highlight-color:
+    transparent;
+
+  transition:
+    background 0.16s ease,
+    transform 0.16s ease,
+    opacity 0.16s ease;
 }
 
-.closeButton svg {
-  width: 18px;
-  height: 18px;
+.closeButton:hover:not(:disabled) {
+  background:
+    color-mix(in srgb,
+      var(--surface-light,
+        rgba(127,
+          127,
+          127,
+          0.1)) 82%,
+      var(--text-primary,
+        CanvasText) 8%);
+}
+
+.closeButton:active:not(:disabled) {
+  transform:
+    scale(0.92);
 }
 
 .closeButton:disabled {
@@ -100,15 +152,32 @@
   opacity: 0.45;
 }
 
+.closeButton:focus-visible {
+  outline:
+    2px solid var(--primary,
+      #2563eb);
+
+  outline-offset: 2px;
+}
+
+.closeButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* =========================
+   DELETE ICON
+========================= */
+
 .iconWrapper {
-  width: 58px;
-  height: 58px;
+  width: 60px;
+  height: 60px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  margin-bottom: 17px;
+  margin-bottom: 18px;
 
   color: #dc2626;
 
@@ -122,26 +191,42 @@
     1px solid rgba(239,
       68,
       68,
-      0.18);
+      0.2);
 
   border-radius: 50%;
 }
 
 .iconWrapper svg {
-  width: 26px;
-  height: 26px;
+  width: 27px;
+  height: 27px;
 }
 
-.modal h2 {
+/* =========================
+   CONTENT
+========================= */
+
+.content {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.content h2 {
   margin: 0;
+
+  color:
+    var(--text-primary,
+      CanvasText);
 
   font-size: 20px;
   font-weight: 760;
   line-height: 1.25;
 }
 
-.modal p {
-  max-width: 300px;
+.content p {
+  max-width: 310px;
 
   margin:
     10px 0 24px;
@@ -154,27 +239,34 @@
   line-height: 1.55;
 }
 
+/* =========================
+   ACTIONS
+========================= */
+
 .actions {
   width: 100%;
 
   display: grid;
+
   grid-template-columns:
     1fr 1fr;
+
   gap: 10px;
 }
 
 .actions button {
-  min-height: 45px;
+  min-height: 46px;
 
   display: flex;
   align-items: center;
   justify-content: center;
+
   gap: 8px;
 
   padding:
     10px 14px;
 
-  border-radius: 11px;
+  border-radius: 12px;
 
   cursor: pointer;
 
@@ -182,13 +274,17 @@
   font-size: 13px;
   font-weight: 720;
 
+  -webkit-tap-highlight-color:
+    transparent;
+
   transition:
     transform 0.16s ease,
     opacity 0.16s ease,
-    background 0.16s ease;
+    background 0.16s ease,
+    border-color 0.16s ease;
 }
 
-.actions button:active {
+.actions button:active:not(:disabled) {
   transform:
     scale(0.98);
 }
@@ -197,6 +293,18 @@
   cursor: not-allowed;
   opacity: 0.58;
 }
+
+.actions button:focus-visible {
+  outline:
+    2px solid var(--primary,
+      #2563eb);
+
+  outline-offset: 2px;
+}
+
+/* =========================
+   CANCEL
+========================= */
 
 .cancelButton {
   color:
@@ -218,27 +326,58 @@
         0.2));
 }
 
+.cancelButton:hover:not(:disabled) {
+  background:
+    color-mix(in srgb,
+      var(--surface-light,
+        rgba(127,
+          127,
+          127,
+          0.1)) 82%,
+      var(--text-primary,
+        CanvasText) 7%);
+}
+
+/* =========================
+   DELETE BUTTON
+========================= */
+
 .deleteButton {
-  color: #fff;
+  color: #ffffff;
+
   background: #dc2626;
 
   border:
     1px solid transparent;
 }
 
-.deleteButton:hover:not( :disabled) {
+.deleteButton:hover:not(:disabled) {
   background: #b91c1c;
+}
+
+.deleteButton:active:not(:disabled) {
+  background: #991b1b;
 }
 
 .deleteButton svg {
   width: 17px;
   height: 17px;
+
+  flex-shrink: 0;
 }
+
+/* =========================
+   LOADING
+========================= */
 
 .spinner {
   animation:
     deleteSpinner 0.7s linear infinite;
 }
+
+/* =========================
+   ANIMATIONS
+========================= */
 
 @keyframes deleteSpinner {
   to {
@@ -262,7 +401,7 @@
     opacity: 0;
 
     transform:
-      translateY(12px) scale(0.97);
+      translateY(14px) scale(0.96);
   }
 
   to {
@@ -273,12 +412,17 @@
   }
 }
 
+/* =========================
+   MOBILE
+========================= */
+
 @media (max-width: 480px) {
   .backdrop {
     align-items: flex-end;
 
     padding:
-      12px 12px calc(12px + env(safe-area-inset-bottom));
+      12px 12px calc(12px + env(safe-area-inset-bottom,
+          0px));
   }
 
   .modal {
@@ -287,9 +431,62 @@
     padding:
       28px 20px 20px;
 
-    border-radius: 20px;
+    border-radius:
+      22px 22px 18px 18px;
+  }
+
+  .iconWrapper {
+    width: 56px;
+    height: 56px;
+
+    margin-bottom: 16px;
+  }
+
+  .iconWrapper svg {
+    width: 25px;
+    height: 25px;
+  }
+
+  .content h2 {
+    font-size: 19px;
+  }
+
+  .content p {
+    margin-bottom: 21px;
+
+    font-size: 12.5px;
+  }
+
+  .actions button {
+    min-height: 47px;
   }
 }
+
+/* =========================
+   VERY SMALL MOBILE
+========================= */
+
+@media (max-width: 360px) {
+  .modal {
+    padding:
+      26px 16px 16px;
+  }
+
+  .actions {
+    grid-template-columns:
+      1fr;
+
+    gap: 8px;
+  }
+
+  .deleteButton {
+    order: -1;
+  }
+}
+
+/* =========================
+   REDUCED MOTION
+========================= */
 
 @media (prefers-reduced-motion: reduce) {
 
@@ -299,6 +496,7 @@
     animation: none;
   }
 
+  .closeButton,
   .actions button {
     transition: none;
   }

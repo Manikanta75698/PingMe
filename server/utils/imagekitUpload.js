@@ -1,12 +1,4 @@
-const path = require("path");
-
-let imageKitClient = null;
-
-const getImageKitClient = async () => {
-  if (imageKitClient) {
-    return imageKitClient;
-  }
-
+const getPrivateKey = () => {
   const privateKey = String(
     process.env.IMAGEKIT_PRIVATE_KEY || ""
   ).trim();
@@ -17,19 +9,40 @@ const getImageKitClient = async () => {
     );
   }
 
-  const {
-    default: ImageKit,
-  } = await import(
-    "@imagekit/nodejs"
-  );
-
-  imageKitClient =
-    new ImageKit({
-      privateKey,
-    });
-
-  return imageKitClient;
+  return privateKey;
 };
+
+const getAuthorizationHeader = () => {
+  const privateKey =
+    getPrivateKey();
+
+  return `Basic ${Buffer.from(
+    `${privateKey}:`
+  ).toString("base64")}`;
+};
+
+const sanitizeFileName = (
+  value
+) => {
+  const safeName =
+    String(
+      value || "image.jpg"
+    )
+      .trim()
+      .replace(
+        /[^a-zA-Z0-9.-]/g,
+        "_"
+      );
+
+  return (
+    safeName ||
+    "image.jpg"
+  );
+};
+
+/* =========================
+   UPLOAD
+========================= */
 
 const uploadImageKitFile =
   async (
@@ -38,53 +51,119 @@ const uploadImageKitFile =
     folder = "/pingme"
   ) => {
     if (
-      !Buffer.isBuffer(buffer)
+      !Buffer.isBuffer(buffer) ||
+      buffer.length === 0
     ) {
       throw new Error(
         "Valid image buffer is required"
       );
     }
 
-    const {
-      toFile,
-    } = await import(
-      "@imagekit/nodejs"
-    );
-
-    const client =
-      await getImageKitClient();
-
-    const extension =
-      path.extname(
-        originalName
-      ) || ".jpg";
-
-    const safeExtension =
-      extension
-        .toLowerCase()
-        .replace(
-          /[^a-z0-9.]/g,
-          ""
-        );
-
     const fileName =
-      `story-${Date.now()}-${Math.random()
+      `${Date.now()}-${Math.random()
         .toString(36)
-        .slice(2, 10)}${safeExtension}`;
+        .slice(2, 10)}-${sanitizeFileName(
+          originalName
+        )}`;
 
-    const file =
-      await toFile(
-        buffer,
-        fileName
+    const formData =
+      new FormData();
+
+    const blob =
+      new Blob(
+        [buffer],
+        {
+          type:
+            "application/octet-stream",
+        }
       );
 
-    const result =
-      await client.files.upload({
-        file,
-        fileName,
-        folder,
-        useUniqueFileName: true,
-      });
+    formData.append(
+      "file",
+      blob,
+      fileName
+    );
+
+    formData.append(
+      "fileName",
+      fileName
+    );
+
+    if (folder) {
+      formData.append(
+        "folder",
+        folder
+      );
+    }
+
+    formData.append(
+      "useUniqueFileName",
+      "true"
+    );
+
+    const response =
+      await fetch(
+        "https://upload.imagekit.io/api/v1/files/upload",
+        {
+          method: "POST",
+
+          headers: {
+            Authorization:
+              getAuthorizationHeader(),
+          },
+
+          body:
+            formData,
+        }
+      );
+
+    const responseText =
+      await response.text();
+
+    let result = null;
+
+    try {
+      result =
+        responseText
+          ? JSON.parse(
+            responseText
+          )
+          : {};
+    } catch {
+      result = {
+        message:
+          responseText,
+      };
+    }
+
+    if (!response.ok) {
+      console.error(
+        "IMAGEKIT UPLOAD HTTP ERROR:",
+        {
+          status:
+            response.status,
+
+          statusText:
+            response.statusText,
+
+          requestId:
+            response.headers.get(
+              "x-request-id"
+            ) ||
+            response.headers.get(
+              "x-ik-requestid"
+            ),
+
+          response:
+            result,
+        }
+      );
+
+      throw new Error(
+        result?.message ||
+        `ImageKit upload failed (${response.status})`
+      );
+    }
 
     const url =
       String(
@@ -101,7 +180,7 @@ const uploadImageKitFile =
       !fileId
     ) {
       throw new Error(
-        "ImageKit upload did not return a valid URL or file ID"
+        "ImageKit upload returned an invalid response"
       );
     }
 
@@ -111,8 +190,14 @@ const uploadImageKitFile =
     };
   };
 
+/* =========================
+   DELETE
+========================= */
+
 const deleteImageKitFile =
-  async (fileId) => {
+  async (
+    fileId
+  ) => {
     const normalizedFileId =
       String(
         fileId || ""
@@ -122,12 +207,50 @@ const deleteImageKitFile =
       return;
     }
 
-    const client =
-      await getImageKitClient();
+    const response =
+      await fetch(
+        `https://api.imagekit.io/v1/files/${encodeURIComponent(
+          normalizedFileId
+        )}`,
+        {
+          method:
+            "DELETE",
 
-    await client.files.delete(
-      normalizedFileId
-    );
+          headers: {
+            Accept:
+              "application/json",
+
+            Authorization:
+              getAuthorizationHeader(),
+          },
+        }
+      );
+
+    if (
+      response.status === 204
+    ) {
+      return;
+    }
+
+    if (!response.ok) {
+      const responseText =
+        await response.text();
+
+      console.error(
+        "IMAGEKIT DELETE HTTP ERROR:",
+        {
+          status:
+            response.status,
+
+          response:
+            responseText,
+        }
+      );
+
+      throw new Error(
+        `ImageKit delete failed (${response.status})`
+      );
+    }
   };
 
 module.exports = {

@@ -340,6 +340,18 @@ const Stories = () => {
   const storyRemainingMsRef =
     useRef(STORY_DURATION_MS);
 
+  const viewerGestureRef =
+    useRef({
+      pointerId: null,
+
+      startX: 0,
+      startY: 0,
+
+      startedAt: 0,
+
+      interactive: false,
+    });
+
   const initialSocketConnectionRef =
     useRef(false);
 
@@ -2167,16 +2179,29 @@ const Stories = () => {
                   return;
                 }
 
-                const target =
-                  event.target;
+                const target = event.target;
 
-               
-                if (
+                const interactive =
                   target instanceof Element &&
-                  target.closest(
-                    "button, a, input, textarea"
-                  )
-                ) {
+                  Boolean(
+                    target.closest(
+                      "button, a, input, textarea"
+                    )
+                  );
+
+                viewerGestureRef.current = {
+                  pointerId: event.pointerId,
+
+                  startX: event.clientX,
+                  startY: event.clientY,
+
+                  startedAt:
+                    performance.now(),
+
+                  interactive,
+                };
+
+                if (interactive) {
                   return;
                 }
 
@@ -2188,12 +2213,102 @@ const Stories = () => {
                       event.pointerId
                     );
                 } catch {
-                  // Browser may not support capture.
+                  // Pointer capture unsupported.
                 }
               }}
               onPointerUp={(event) => {
-                if (!event.isPrimary) {
+                if (
+                  !event.isPrimary ||
+                  viewerGestureRef.current
+                    .pointerId !==
+                  event.pointerId
+                ) {
                   return;
+                }
+
+                const gesture =
+                  viewerGestureRef.current;
+
+                viewerGestureRef.current = {
+                  pointerId: null,
+
+                  startX: 0,
+                  startY: 0,
+
+                  startedAt: 0,
+
+                  interactive: false,
+                };
+
+                if (!gesture.interactive) {
+                  const deltaX =
+                    event.clientX -
+                    gesture.startX;
+
+                  const deltaY =
+                    event.clientY -
+                    gesture.startY;
+
+                  const absX =
+                    Math.abs(deltaX);
+
+                  const absY =
+                    Math.abs(deltaY);
+
+                  const duration =
+                    performance.now() -
+                    gesture.startedAt;
+
+                  /* =========================
+                     SWIPE
+                  ========================= */
+
+                  const isSwipe =
+                    absX >= 55 &&
+                    absX > absY * 1.2;
+
+                  if (isSwipe) {
+                    if (deltaX < 0) {
+                      showNextStory();
+                    } else {
+                      showPreviousStory();
+                    }
+                  } else {
+                    /* =========================
+                       TAP NAVIGATION
+                    ========================= */
+
+                    const isTap =
+                      absX <= 14 &&
+                      absY <= 14 &&
+                      duration < 450;
+
+                    if (isTap) {
+                      const bounds =
+                        event.currentTarget
+                          .getBoundingClientRect();
+
+                      const relativeX =
+                        event.clientX -
+                        bounds.left;
+
+                      const ratio =
+                        bounds.width > 0
+                          ? relativeX /
+                          bounds.width
+                          : 0.5;
+
+                      /*
+                       * Left 35%  -> Previous
+                       * Right 65% -> Next
+                       */
+                      if (ratio <= 0.35) {
+                        showPreviousStory();
+                      } else {
+                        showNextStory();
+                      }
+                    }
+                  }
                 }
 
                 setStoryPaused(false);
@@ -2215,6 +2330,17 @@ const Stories = () => {
                 }
               }}
               onPointerCancel={() => {
+                viewerGestureRef.current = {
+                  pointerId: null,
+
+                  startX: 0,
+                  startY: 0,
+
+                  startedAt: 0,
+
+                  interactive: false,
+                };
+
                 setStoryPaused(false);
               }}
             >

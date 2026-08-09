@@ -10,6 +10,10 @@ import {
   X,
 } from "lucide-react";
 
+import {
+  createPortal,
+} from "react-dom";
+
 import styles from "./StoryDeleteModal.module.css";
 
 const StoryDeleteModal = ({
@@ -19,6 +23,9 @@ const StoryDeleteModal = ({
   onConfirm,
 }) => {
   const cancelButtonRef =
+    useRef(null);
+
+  const modalRef =
     useRef(null);
 
   useEffect(() => {
@@ -39,26 +46,83 @@ const StoryDeleteModal = ({
           cancelButtonRef.current
             ?.focus();
         },
-        50
+        60
       );
 
     const handleKeyDown =
       (event) => {
         if (
-          event.key ===
-          "Escape" &&
-          !deleting
-        ) {
-          onCancel();
-        }
-
-        if (
-          event.key ===
-          "Enter" &&
+          event.key === "Escape" &&
           !deleting
         ) {
           event.preventDefault();
+
+          onCancel();
+          return;
+        }
+
+        if (
+          event.key === "Enter" &&
+          !deleting
+        ) {
+          const target =
+            event.target;
+
+          if (
+            target instanceof HTMLElement &&
+            target.tagName === "BUTTON"
+          ) {
+            return;
+          }
+
+          event.preventDefault();
+
           void onConfirm();
+        }
+
+        if (
+          event.key === "Tab" &&
+          modalRef.current
+        ) {
+          const focusableElements =
+            modalRef.current
+              .querySelectorAll(
+                'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+              );
+
+          if (
+            focusableElements.length ===
+            0
+          ) {
+            return;
+          }
+
+          const firstElement =
+            focusableElements[0];
+
+          const lastElement =
+            focusableElements[
+            focusableElements.length -
+            1
+            ];
+
+          if (
+            event.shiftKey &&
+            document.activeElement ===
+            firstElement
+          ) {
+            event.preventDefault();
+
+            lastElement.focus();
+          } else if (
+            !event.shiftKey &&
+            document.activeElement ===
+            lastElement
+          ) {
+            event.preventDefault();
+
+            firstElement.focus();
+          }
         }
       };
 
@@ -88,19 +152,20 @@ const StoryDeleteModal = ({
     open,
   ]);
 
-  if (!open) {
+  if (
+    !open ||
+    typeof document === "undefined"
+  ) {
     return null;
   }
 
-  return (
+  return createPortal(
     <div
       className={
         styles.backdrop
       }
       role="presentation"
-      onMouseDown={(
-        event
-      ) => {
+      onPointerDown={(event) => {
         if (
           event.target ===
           event.currentTarget &&
@@ -111,6 +176,7 @@ const StoryDeleteModal = ({
       }}
     >
       <section
+        ref={modalRef}
         className={
           styles.modal
         }
@@ -118,6 +184,9 @@ const StoryDeleteModal = ({
         aria-modal="true"
         aria-labelledby="story-delete-title"
         aria-describedby="story-delete-description"
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
       >
         <button
           type="button"
@@ -139,24 +208,30 @@ const StoryDeleteModal = ({
           className={
             styles.iconWrapper
           }
+          aria-hidden="true"
         >
           <Trash2 />
         </div>
 
-        <h2
-          id="story-delete-title"
+        <div
+          className={
+            styles.content
+          }
         >
-          Delete this story?
-        </h2>
+          <h2
+            id="story-delete-title"
+          >
+            Delete this story?
+          </h2>
 
-        <p
-          id="story-delete-description"
-        >
-          This story will be
-          permanently removed.
-          This action cannot be
-          undone.
-        </p>
+          <p
+            id="story-delete-description"
+          >
+            This story will be permanently
+            removed. This action cannot be
+            undone.
+          </p>
+        </div>
 
         <div
           className={
@@ -186,9 +261,9 @@ const StoryDeleteModal = ({
             className={
               styles.deleteButton
             }
-            onClick={() =>
-              void onConfirm()
-            }
+            onClick={() => {
+              void onConfirm();
+            }}
             disabled={
               deleting
             }
@@ -201,19 +276,24 @@ const StoryDeleteModal = ({
                   }
                 />
 
-                Deleting...
+                <span>
+                  Deleting...
+                </span>
               </>
             ) : (
               <>
                 <Trash2 />
 
-                Delete story
+                <span>
+                  Delete story
+                </span>
               </>
             )}
           </button>
         </div>
       </section>
-    </div>
+    </div>,
+    document.body
   );
 };
 

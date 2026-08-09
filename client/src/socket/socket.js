@@ -7,21 +7,31 @@ import {
 ========================= */
 
 const isDevelopment =
-  import.meta.env.MODE ===
-  "development";
+  import.meta.env.DEV;
 
-const FALLBACK_SOCKET_URL =
+const LOCAL_SOCKET_URL =
+  "http://localhost:5000";
+
+const PRODUCTION_SOCKET_FALLBACK =
+  "https://pingme-m8y1.onrender.com";
+
+const normalizeSocketUrl = (
+  value
+) =>
+  String(
+    value || ""
+  )
+    .trim()
+    .replace(/\/+$/, "");
+
+const SOCKET_URL =
   isDevelopment
-    ? "http://localhost:5000"
-    : "https://pingme-m8y1.onrender.com";
-
-const SOCKET_URL = String(
-  import.meta.env
-    .VITE_SOCKET_URL ||
-  FALLBACK_SOCKET_URL
-)
-  .trim()
-  .replace(/\/+$/, "");
+    ? LOCAL_SOCKET_URL
+    : normalizeSocketUrl(
+      import.meta.env
+        .VITE_SOCKET_URL ||
+      PRODUCTION_SOCKET_FALLBACK
+    );
 
 /* =========================
    TOKEN HELPER
