@@ -496,6 +496,236 @@ const getMessagePermissionError = (
   }
 };
 
+
+/* =========================
+   FAST SEND ACCESS
+========================= */
+
+const getFastSendAccessContext =
+  async (
+    senderIdValue,
+    receiverIdValue
+  ) => {
+    const senderId =
+      normalizeId(senderIdValue);
+
+    const receiverId =
+      normalizeId(receiverIdValue);
+
+    if (!senderId || !receiverId) {
+      return {
+        sender: null,
+        receiver: null,
+
+        blockedBySender: false,
+        blockedByReceiver: false,
+        isBlocked: false,
+
+        allowed: false,
+        permission: "no-one",
+
+        existingConversation: false,
+      };
+    }
+
+    /*
+     * One User query only.
+     *
+     * Previously:
+     * 1. getUserBlockState()
+     * 2. canSendMessageToUser()
+     *
+     * both queried User separately.
+     */
+    const [
+      users,
+      existingConversation,
+    ] = await Promise.all([
+      User.find({
+        _id: {
+          $in: [
+            senderId,
+            receiverId,
+          ],
+        },
+      })
+        .select(
+          [
+            "_id",
+            "name",
+            "username",
+            "profilePic",
+            "blockedUsers",
+            "followers",
+            "following",
+            "privacySettings.messagePermission",
+          ].join(" ")
+        )
+        .lean(),
+
+      Message.exists({
+        $or: [
+          {
+            sender: senderId,
+            receiver: receiverId,
+          },
+          {
+            sender: receiverId,
+            receiver: senderId,
+          },
+        ],
+      }),
+    ]);
+
+    const userMap =
+      new Map(
+        users.map((user) => [
+          normalizeId(user?._id),
+          user,
+        ])
+      );
+
+    const sender =
+      userMap.get(senderId) ||
+      null;
+
+    const receiver =
+      userMap.get(receiverId) ||
+      null;
+
+    if (!receiver) {
+      return {
+        sender,
+        receiver: null,
+
+        blockedBySender: false,
+        blockedByReceiver: false,
+        isBlocked: false,
+
+        allowed: false,
+        permission: "no-one",
+
+        existingConversation:
+          Boolean(
+            existingConversation
+          ),
+      };
+    }
+
+    const blockedBySender =
+      Array.isArray(
+        sender?.blockedUsers
+      ) &&
+      sender.blockedUsers.some(
+        (userId) =>
+          normalizeId(userId) ===
+          receiverId
+      );
+
+    const blockedByReceiver =
+      Array.isArray(
+        receiver?.blockedUsers
+      ) &&
+      receiver.blockedUsers.some(
+        (userId) =>
+          normalizeId(userId) ===
+          senderId
+      );
+
+    const isBlocked =
+      blockedBySender ||
+      blockedByReceiver;
+
+    const rawPermission =
+      receiver
+        ?.privacySettings
+        ?.messagePermission;
+
+    const permission =
+      [
+        "everyone",
+        "followers",
+        "following",
+        "no-one",
+      ].includes(rawPermission)
+        ? rawPermission
+        : "everyone";
+
+    let allowed = false;
+
+    if (permission === "everyone") {
+      allowed = true;
+    } else if (
+      permission === "followers"
+    ) {
+      allowed =
+        Array.isArray(
+          receiver.followers
+        ) &&
+        receiver.followers.some(
+          (userId) =>
+            normalizeId(userId) ===
+            senderId
+        );
+    } else if (
+      permission === "following"
+    ) {
+      allowed =
+        Array.isArray(
+          receiver.following
+        ) &&
+        receiver.following.some(
+          (userId) =>
+            normalizeId(userId) ===
+            senderId
+        );
+    }
+
+    return {
+      sender,
+      receiver,
+
+      blockedBySender,
+      blockedByReceiver,
+      isBlocked,
+
+      allowed,
+      permission,
+
+      existingConversation:
+        Boolean(
+          existingConversation
+        ),
+    };
+  };
+
+const toMessageUserPayload = (
+  user
+) => {
+  if (!user) {
+    return null;
+  }
+
+  return {
+    _id: user._id,
+
+    name:
+      String(
+        user.name || ""
+      ).trim(),
+
+    username:
+      String(
+        user.username || ""
+      ).trim(),
+
+    profilePic:
+      String(
+        user.profilePic || ""
+      ).trim(),
+  };
+};
+
 /* =========================
    MESSAGE MEDIA HELPERS
 ========================= */
@@ -641,19 +871,6 @@ const sendMessage = async (
   req,
   res
 ) => {
-  const requestStartedAt =
-    Date.now();
-
-  const logSendTiming = (
-    stage
-  ) => {
-    console.log(
-      `[MESSAGE SEND] ${stage}:`,
-      `${Date.now() -
-      requestStartedAt}ms`
-    );
-  };
-
   let uploadedImageUrl = "";
   let uploadedImageFileId = "";
   let persistedMessage = null;
@@ -737,16 +954,21 @@ const sendMessage = async (
     ) {
       return res.status(400).json({
         success: false,
+
         message:
           "Invalid client message ID",
+
         code:
           "INVALID_CLIENT_MESSAGE_ID",
       });
     }
 
     /*
-     * Retry request ayithe already saved
-     * message ni return chestham.
+     * Retry/idempotency path.
+     *
+     * Rare path, so population here is
+     * acceptable. Normal send path below
+     * no longer populates after save.
      */
     if (clientMessageId) {
       const existingMessage =
@@ -761,21 +983,21 @@ const sendMessage = async (
             existingMessage.receiver
           );
 
-        /*
-         * Same key ni different receiver
-         * kosam reuse cheyyakudadhu.
-         */
         if (
           existingReceiverId !==
           receiverId
         ) {
-          return res.status(409).json({
-            success: false,
-            message:
-              "Client message ID is already in use",
-            code:
-              "CLIENT_MESSAGE_ID_CONFLICT",
-          });
+          return res
+            .status(409)
+            .json({
+              success: false,
+
+              message:
+                "Client message ID is already in use",
+
+              code:
+                "CLIENT_MESSAGE_ID_CONFLICT",
+            });
         }
 
         await populateSentMessage(
@@ -785,8 +1007,10 @@ const sendMessage = async (
         return res.status(200).json({
           success: true,
           duplicate: true,
+
           message:
             "Message already sent",
+
           data:
             existingMessage.toObject(),
         });
@@ -803,6 +1027,7 @@ const sendMessage = async (
     ) {
       return res.status(400).json({
         success: false,
+
         message:
           `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`,
       });
@@ -815,6 +1040,7 @@ const sendMessage = async (
     ) {
       return res.status(400).json({
         success: false,
+
         message:
           "Message must contain text, an image, or a shared post",
       });
@@ -845,81 +1071,73 @@ const sendMessage = async (
     }
 
     /* =========================
-       ACCESS CHECKS
+       FAST ACCESS CHECK
     ========================= */
 
-    const [
-      blockState,
-      messagePermissionResult,
-      existingConversation,
-    ] = await Promise.all([
-      getUserBlockState(
+    const access =
+      await getFastSendAccessContext(
         senderId,
         receiverId
-      ),
+      );
 
-      canSendMessageToUser(
-        senderId,
-        receiverId
-      ),
-
-      Message.exists({
-        $or: [
-          {
-            sender: senderId,
-            receiver: receiverId,
-          },
-          {
-            sender: receiverId,
-            receiver: senderId,
-          },
-        ],
-      }),
-    ]);
-
-    if (blockState.isBlocked) {
-      return res.status(403).json({
+    if (!access.sender) {
+      return res.status(401).json({
         success: false,
-
         message:
-          blockState.blockedByFirst
-            ? "Unblock this user to send messages"
-            : "You cannot send messages to this user",
-
-        code:
-          blockState.blockedByFirst
-            ? "USER_BLOCKED_BY_YOU"
-            : "USER_BLOCKED_YOU",
+          "Sender not found",
       });
     }
 
-    if (
-      !messagePermissionResult
-        .receiverExists
-    ) {
+    if (!access.receiver) {
       return res.status(404).json({
         success: false,
+
         message:
           "Receiver not found",
+
         code:
           "RECEIVER_NOT_FOUND",
       });
     }
 
+    if (access.isBlocked) {
+      return res.status(403).json({
+        success: false,
+
+        message:
+          access.blockedBySender
+            ? "Unblock this user to send messages"
+            : "You cannot send messages to this user",
+
+        code:
+          access.blockedBySender
+            ? "USER_BLOCKED_BY_YOU"
+            : "USER_BLOCKED_YOU",
+      });
+    }
+
+    /*
+     * Existing conversation users can
+     * continue the conversation.
+     *
+     * New conversations respect receiver
+     * message privacy permission.
+     */
     if (
-      !existingConversation &&
-      !messagePermissionResult.allowed
+      !access.existingConversation &&
+      !access.allowed
     ) {
       const permissionError =
         getMessagePermissionError(
-          messagePermissionResult
-            .permission
+          access.permission
         );
 
       return res.status(403).json({
         success: false,
+
         message:
           permissionError.message,
+
         code:
           permissionError.code,
 
@@ -928,41 +1146,110 @@ const sendMessage = async (
             receiverId,
 
           messagePermission:
-            messagePermissionResult
-              .permission,
+            access.permission,
         },
       });
     }
 
-    logSendTiming(
-      "access checks complete"
-    );
-
     /* =========================
-       SHARED POST
+       OPTIONAL DATA
     ========================= */
 
     let sharedPostData = null;
+    let replyPayload = null;
 
-    if (sharedPostId) {
-      const sharedPost =
-        await Post.findById(
+    /*
+     * Reply and shared-post lookups can
+     * run together when both exist.
+     */
+    const [
+      repliedMessage,
+      sharedPost,
+    ] = await Promise.all([
+      replyToId
+        ? Message.findOne({
+          _id: replyToId,
+
+          deletedForEveryone:
+            false,
+
+          deletedFor: {
+            $nin: [
+              senderId,
+            ],
+          },
+
+          $or: [
+            {
+              sender:
+                senderId,
+              receiver:
+                receiverId,
+            },
+            {
+              sender:
+                receiverId,
+              receiver:
+                senderId,
+            },
+          ],
+        })
+          .populate(
+            "sender",
+            "name username profilePic"
+          )
+          .lean()
+        : Promise.resolve(null),
+
+      sharedPostId
+        ? Post.findById(
           sharedPostId
         )
           .populate(
             "user",
             "name username profilePic"
           )
-          .lean();
+          .lean()
+        : Promise.resolve(null),
+    ]);
 
-      if (!sharedPost) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Shared post not found",
-        });
-      }
+    /* =========================
+       REPLY
+    ========================= */
 
+    if (
+      replyToId &&
+      !repliedMessage
+    ) {
+      return res.status(400).json({
+        success: false,
+
+        message:
+          "Reply message was not found in this conversation",
+      });
+    }
+
+    if (repliedMessage) {
+      replyPayload =
+        repliedMessage;
+    }
+
+    /* =========================
+       SHARED POST
+    ========================= */
+
+    if (
+      sharedPostId &&
+      !sharedPost
+    ) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Shared post not found",
+      });
+    }
+
+    if (sharedPost) {
       const sharedPostOwner =
         sharedPost.user || {};
 
@@ -974,6 +1261,7 @@ const sendMessage = async (
       if (!ownerId) {
         return res.status(400).json({
           success: false,
+
           message:
             "Shared post owner is unavailable",
         });
@@ -1004,59 +1292,16 @@ const sendMessage = async (
 
         ownerUsername:
           String(
-            sharedPostOwner.username ||
-            ""
+            sharedPostOwner
+              .username || ""
           ).trim(),
 
         ownerProfilePic:
           String(
-            sharedPostOwner.profilePic ||
-            ""
+            sharedPostOwner
+              .profilePic || ""
           ).trim(),
       };
-    }
-
-    /* =========================
-       REPLY VALIDATION
-    ========================= */
-
-    if (replyToId) {
-      const repliedMessageExists =
-        await Message.exists({
-          _id: replyToId,
-
-          deletedForEveryone:
-            false,
-
-          deletedFor: {
-            $nin: [
-              senderId,
-            ],
-          },
-
-          $or: [
-            {
-              sender:
-                senderId,
-              receiver:
-                receiverId,
-            },
-            {
-              sender:
-                receiverId,
-              receiver:
-                senderId,
-            },
-          ],
-        });
-
-      if (!repliedMessageExists) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Reply message was not found in this conversation",
-        });
-      }
     }
 
     /* =========================
@@ -1067,8 +1312,10 @@ const sendMessage = async (
       const uploaded =
         await uploadImageKitFile(
           req.file.buffer,
+
           req.file.originalname ||
           "message.jpg",
+
           "/pingme/messages"
         );
 
@@ -1131,20 +1378,41 @@ const sendMessage = async (
           [],
       });
 
-    logSendTiming(
-      "message saved"
-    );
-
-    await populateSentMessage(
-      persistedMessage
-    );
-
-    logSendTiming(
-      "message populated"
-    );
-
-    const messagePayload =
+    /*
+     * CRITICAL PERFORMANCE CHANGE:
+     *
+     * No populateSentMessage() here.
+     *
+     * Sender + receiver already came from
+     * the access query.
+     *
+     * Reply payload was already loaded only
+     * when the message is actually a reply.
+     */
+    const rawMessage =
       persistedMessage.toObject();
+
+    const messagePayload = {
+      ...rawMessage,
+
+      sender:
+        toMessageUserPayload(
+          access.sender
+        ),
+
+      receiver:
+        toMessageUserPayload(
+          access.receiver
+        ),
+
+      replyTo:
+        replyPayload ||
+        null,
+    };
+
+    /* =========================
+       REALTIME DELIVERY
+    ========================= */
 
     const io =
       getSafeIO();
@@ -1156,23 +1424,23 @@ const sendMessage = async (
       );
     }
 
-    logSendTiming(
-      "response ready"
-    );
-
+    /*
+     * HTTP response and socket receiver
+     * payload use the exact same object.
+     */
     return res.status(201).json({
       success: true,
       duplicate: false,
+
       message:
         "Message sent successfully",
+
       data:
         messagePayload,
     });
   } catch (error) {
     /*
-     * Two same requests simultaneous ga
-     * vachina Mongo unique index one record
-     * matrame allow chesthundi.
+     * Unique clientMessageId race.
      */
     const duplicateClientMessageId =
       error?.code === 11000 &&
@@ -1199,6 +1467,11 @@ const sendMessage = async (
           req.body?.clientMessageId
         );
 
+      /*
+       * A duplicate image request may
+       * already have uploaded another file.
+       * Remove that unused upload.
+       */
       if (uploadedImageFileId) {
         try {
           await deleteImageKitFile(
@@ -1234,14 +1507,20 @@ const sendMessage = async (
         return res.status(200).json({
           success: true,
           duplicate: true,
+
           message:
             "Message already sent",
+
           data:
             existingMessage.toObject(),
         });
       }
     }
 
+    /*
+     * Upload succeeded but DB create did
+     * not. Cleanup ImageKit orphan.
+     */
     if (
       uploadedImageFileId &&
       !persistedMessage

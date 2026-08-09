@@ -9,11 +9,7 @@ const {
   authenticateSocket,
 } = require("../middleware/authMiddleware");
 
-const {
-  createSocketTextMessage,
-} = require(
-  "../utils/messageSocketHelper"
-);
+
 const Message = require("../models/Message");
 
 const User = require("../models/User");
