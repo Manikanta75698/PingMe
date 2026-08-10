@@ -223,6 +223,11 @@ const MessageList = ({
       storedUser?.id
     );
 
+  const isBlocked =
+    Boolean(
+      blockStatus?.isBlocked
+    );
+
   const safeMessages =
     Array.isArray(messages)
       ? messages
