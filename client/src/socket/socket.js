@@ -156,8 +156,11 @@ export const refreshSocketAuth =
 ========================= */
 
 export const connectSocket = () => {
+  const previousToken =
+    lastAuthToken;
+
   const token =
-    refreshSocketAuth();
+    getStoredToken();
 
   if (!token) {
     if (isDevelopment) {
@@ -169,21 +172,33 @@ export const connectSocket = () => {
     return false;
   }
 
+  const tokenChanged =
+    Boolean(previousToken) &&
+    previousToken !== token;
+
+  socket.auth = {
+    token,
+  };
+
+  lastAuthToken = token;
   manualDisconnect = false;
 
   /*
-   * Already connected ayithe
-   * reconnect unnecessary.
+   * Socket already connected but login token
+   * changed ante old authenticated room lo
+   * continue kakudadhu.
+   *
+   * Fresh handshake mandatory.
    */
   if (socket.connected) {
+    if (tokenChanged) {
+      socket.disconnect();
+      socket.connect();
+    }
+
     return true;
   }
 
-  /*
-   * Previous auth failure/reconnect manager
-   * stale state lo unna fresh connection
-   * start cheyyadaniki connect call.
-   */
   try {
     socket.connect();
 
