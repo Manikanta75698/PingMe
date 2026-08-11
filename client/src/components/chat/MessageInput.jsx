@@ -943,32 +943,6 @@ const MessageInput = () => {
         sendError: "",
       };
 
-      let previousSidebarMessage =
-        null;
-
-      setChatSummaries(
-        (previous) => {
-          const safeSummaries =
-            Array.isArray(previous)
-              ? previous
-              : [];
-
-          const matchingSummary =
-            safeSummaries.find(
-              (summary) =>
-                getUserId(
-                  summary?.user
-                ) === receiverId
-            );
-
-          previousSidebarMessage =
-            matchingSummary
-              ?.lastMessage ||
-            null;
-
-          return safeSummaries;
-        }
-      );
 
       setMessages(
         (previous) => [
@@ -980,58 +954,62 @@ const MessageInput = () => {
         ]
       );
 
-      setChatSummaries(
-        (previous) => {
-          const safeSummaries =
-            Array.isArray(previous)
-              ? previous
-              : [];
+      setChatSummaries((previous) => {
+        const safeSummaries =
+          Array.isArray(previous)
+            ? previous
+            : [];
 
-          const updatedSummaries =
-            safeSummaries.map(
-              (summary) => {
-                const summaryUserId =
-                  getUserId(
-                    summary?.user
-                  );
-
-                if (
-                  summaryUserId !==
-                  receiverId
-                ) {
-                  return summary;
-                }
-
-                return {
-                  ...summary,
-                  lastMessage:
-                    tempMessage,
-                };
-              }
-            );
-
-          return updatedSummaries.sort(
-            (first, second) => {
-              const firstTime =
-                new Date(
-                  first?.lastMessage
-                    ?.createdAt || 0
-                ).getTime();
-
-              const secondTime =
-                new Date(
-                  second?.lastMessage
-                    ?.createdAt || 0
-                ).getTime();
-
-              return (
-                secondTime -
-                firstTime
-              );
-            }
+        const existingIndex =
+          safeSummaries.findIndex(
+            (summary) =>
+              getUserId(
+                summary?.user
+              ) === receiverId
           );
+
+        /*
+         * Existing conversation:
+         * update it and move directly to top.
+         */
+        if (existingIndex !== -1) {
+          const currentSummary =
+            safeSummaries[
+            existingIndex
+            ];
+
+          const updatedSummary = {
+            ...currentSummary,
+            lastMessage:
+              tempMessage,
+          };
+
+          return [
+            updatedSummary,
+            ...safeSummaries.slice(
+              0,
+              existingIndex
+            ),
+            ...safeSummaries.slice(
+              existingIndex + 1
+            ),
+          ];
         }
-      );
+
+        /*
+         * Brand-new conversation:
+         * create sidebar entry immediately.
+         */
+        return [
+          {
+            user: selectedChat,
+            lastMessage:
+              tempMessage,
+            unreadCount: 0,
+          },
+          ...safeSummaries,
+        ];
+      });
 
       setText("");
       setReplyingTo(null);
