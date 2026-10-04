@@ -192,6 +192,7 @@ const corsOptions = {
   allowedHeaders: [
     "Content-Type",
     "Authorization",
+    "Cache-Control",
   ],
 };
 
@@ -612,4 +613,3 @@ process.on(
     );
   }
 );
-
