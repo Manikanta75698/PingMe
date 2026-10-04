@@ -2,13 +2,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-
 import {
   Bookmark,
   ImageOff,
-  LoaderCircle,
   RefreshCw,
 } from "lucide-react";
 
@@ -84,6 +83,12 @@ const getPostImage = (
   post?.media?.[0]?.url ||
   "";
 
+// Keep fetched grids alive when React Router unmounts a page.
+const postGridCache = new Map();
+
+const getPostGridCacheKey = (username, type) =>
+  `${username || "current-user"}:${type}`;
+
 const PostGrid = ({
   type = "posts",
 }) => {
@@ -96,8 +101,14 @@ const PostGrid = ({
   const username =
     currentUser?.username || "";
 
-  const [postsByType, setPostsByType] = useState({ posts: null, saved: null });
-  const [loadingByType, setLoadingByType] = useState({ posts: true, saved: false });
+  const [postsByType, setPostsByType] = useState(() => ({
+    posts: postGridCache.get(getPostGridCacheKey(username, "posts")) ?? null,
+    saved: postGridCache.get(getPostGridCacheKey(username, "saved")) ?? null,
+  }));
+  const [loadingByType, setLoadingByType] = useState(() => ({
+    posts: !postGridCache.has(getPostGridCacheKey(username, "posts")),
+    saved: !postGridCache.has(getPostGridCacheKey(username, "saved")),
+  }));
   const [errorByType, setErrorByType] = useState({ posts: "", saved: "" });
 
   const [
@@ -110,6 +121,7 @@ const PostGrid = ({
     failedImageIds,
     setFailedImageIds,
   ] = useState(() => new Set());
+  const requestedTypesRef = useRef(new Set());
 
   const isSavedTab =
     type === "saved";
@@ -121,11 +133,12 @@ const PostGrid = ({
   const loadPosts =
     useCallback(
       async (force = false) => {
-        if (!force && postsByType[activeType] !== null) {
-          return;
-        }
+        const cacheKey = getPostGridCacheKey(username, activeType);
+        if (!force && requestedTypesRef.current.has(cacheKey)) return;
+        requestedTypesRef.current.add(cacheKey);
+        const hasCachedPosts = postGridCache.has(cacheKey);
         try {
-          setLoadingByType((current) => ({ ...current, [activeType]: true }));
+          setLoadingByType((current) => ({ ...current, [activeType]: !hasCachedPosts }));
           setErrorByType((current) => ({ ...current, [activeType]: "" }));
 
           let response;
@@ -162,6 +175,7 @@ const PostGrid = ({
               ).values()
             );
 
+          postGridCache.set(cacheKey, uniquePosts);
           setPostsByType((current) => ({ ...current, [activeType]: uniquePosts }));
         } catch (loadError) {
           console.error(
@@ -171,13 +185,15 @@ const PostGrid = ({
             loadError?.message
           );
 
-          setErrorByType((current) => ({
-            ...current, [activeType]:
-              loadError
-                ?.response?.data
-                ?.message ||
-              "Unable to load posts"
-          }));
+          if (!hasCachedPosts) {
+            setErrorByType((current) => ({
+              ...current, [activeType]:
+                loadError
+                  ?.response?.data
+                  ?.message ||
+                "Unable to load posts"
+            }));
+          }
         } finally {
           setLoadingByType((current) => ({ ...current, [activeType]: false }));
         }
@@ -185,7 +201,6 @@ const PostGrid = ({
       [
         activeType,
         isSavedTab,
-        postsByType,
         username,
       ]
     );
@@ -225,7 +240,9 @@ const PostGrid = ({
               return current;
             }
 
-            return { ...current, posts: [newPost, ...currentPosts] };
+            const nextPosts = [newPost, ...currentPosts];
+            postGridCache.set(getPostGridCacheKey(username, "posts"), nextPosts);
+            return { ...current, posts: nextPosts };
           }
         );
       };
@@ -243,12 +260,20 @@ const PostGrid = ({
           return;
         }
 
-        setPostsByType((current) => Object.fromEntries(
-          Object.entries(current).map(([key, list]) => [
-            key,
-            Array.isArray(list) ? list.filter((post) => normalizeId(post) !== deletedPostId) : list,
-          ])
-        ));
+        setPostsByType((current) => {
+          const next = Object.fromEntries(
+            Object.entries(current).map(([key, list]) => [
+              key,
+              Array.isArray(list) ? list.filter((post) => normalizeId(post) !== deletedPostId) : list,
+            ])
+          );
+          for (const key of ["posts", "saved"]) {
+            if (Array.isArray(next[key])) {
+              postGridCache.set(getPostGridCacheKey(username, key), next[key]);
+            }
+          }
+          return next;
+        });
 
         setSelectedPost(
           (currentPost) =>
@@ -267,7 +292,7 @@ const PostGrid = ({
       };
 
     window.addEventListener(
-      "post:created",
+      "postCreated",
       handlePostCreated
     );
 
@@ -283,7 +308,7 @@ const PostGrid = ({
 
     return () => {
       window.removeEventListener(
-        "post:created",
+        "postCreated",
         handlePostCreated
       );
 
@@ -300,6 +325,7 @@ const PostGrid = ({
   }, [
     isSavedTab,
     loadPosts,
+    username,
   ]);
 
   const handleImageError = (
@@ -372,7 +398,8 @@ const PostGrid = ({
             styles.retryButton
           }
           onClick={() => {
-            void loadPosts();
+            requestedTypesRef.current.delete(getPostGridCacheKey(username, activeType));
+            void loadPosts(true);
           }}
         >
           <RefreshCw

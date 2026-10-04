@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   Home,
@@ -21,12 +21,14 @@ const Sidebar = () => {
   const { user } = useAuth();
 
   const {
-    receivedRequests,
     chatSummaries,
     loadChatSummaries,
+    notificationUnreadCount,
   } = useChat();
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const navClass = (active) => `${styles.navItem} ${active ? styles.navItemActive : ""}`;
 
   const [isCreateOpen, setIsCreateOpen] =
     useState(false);
@@ -34,6 +36,20 @@ const Sidebar = () => {
   useEffect(() => {
     loadChatSummaries();
   }, [loadChatSummaries]);
+
+  useEffect(() => {
+    if (!isCreateOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setIsCreateOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCreateOpen]);
 
   const totalUnreadMessages =
     Array.isArray(chatSummaries)
@@ -43,14 +59,6 @@ const Sidebar = () => {
           (Number(chat?.unreadCount) || 0),
         0
       )
-      : 0;
-
-  const pendingRequestsCount =
-    Array.isArray(receivedRequests)
-      ? receivedRequests.filter(
-        (request) =>
-          request?.status === "pending"
-      ).length
       : 0;
 
   return (
@@ -67,7 +75,9 @@ const Sidebar = () => {
         <div className={styles.navLinks}>
           <button
             type="button"
-            className={styles.navItem}
+            className={navClass(location.pathname === "/home")}
+            aria-label="Home"
+            aria-current={location.pathname === "/home" ? "page" : undefined}
             onClick={() => navigate("/home")}
           >
             <Home className={styles.icon} />
@@ -79,7 +89,9 @@ const Sidebar = () => {
 
           <button
             type="button"
-            className={styles.navItem}
+            className={navClass(location.pathname.startsWith("/chat"))}
+            aria-label="Messages"
+            aria-current={location.pathname.startsWith("/chat") ? "page" : undefined}
             onClick={() => navigate("/chat")}
           >
             <div className={styles.iconWrapper}>
@@ -103,7 +115,9 @@ const Sidebar = () => {
 
           <button
             type="button"
-            className={styles.navItem}
+            className={navClass(location.pathname === "/activity")}
+            aria-label="Notifications"
+            aria-current={location.pathname === "/activity" ? "page" : undefined}
             onClick={() =>
               navigate("/activity")
             }
@@ -111,11 +125,11 @@ const Sidebar = () => {
             <div className={styles.iconWrapper}>
               <Heart className={styles.icon} />
 
-              {pendingRequestsCount > 0 && (
+              {notificationUnreadCount > 0 && (
                 <span className={styles.navBadge}>
-                  {pendingRequestsCount > 99
+                  {notificationUnreadCount > 99
                     ? "99+"
-                    : pendingRequestsCount}
+                    : notificationUnreadCount}
                 </span>
               )}
             </div>
@@ -128,6 +142,7 @@ const Sidebar = () => {
           <button
             type="button"
             className={styles.navItem}
+            aria-label="Create post"
             onClick={() =>
               setIsCreateOpen(true)
             }
@@ -143,7 +158,9 @@ const Sidebar = () => {
 
           <button
             type="button"
-            className={styles.navItem}
+            className={navClass(location.pathname === "/profile" || location.pathname.startsWith("/user/"))}
+            aria-label="Profile"
+            aria-current={location.pathname === "/profile" || location.pathname.startsWith("/user/") ? "page" : undefined}
             onClick={() =>
               navigate("/profile")
             }
@@ -165,8 +182,14 @@ const Sidebar = () => {
       </nav>
 
       {isCreateOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
+        <div className={styles.modalOverlay} onMouseDown={() => setIsCreateOpen(false)}>
+          <div
+            className={styles.modalContent}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Create a post"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
             <button
               type="button"
               className={styles.closeModalBtn}
@@ -179,11 +202,13 @@ const Sidebar = () => {
             </button>
 
             <CreatePost
-              onPostCreated={() => {
+              onPostCreated={(createdPost) => {
                 setIsCreateOpen(false);
 
                 window.dispatchEvent(
-                  new Event("postCreated")
+                  new CustomEvent("postCreated", {
+                    detail: createdPost,
+                  })
                 );
               }}
             />

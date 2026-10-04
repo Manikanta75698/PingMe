@@ -3,10 +3,12 @@ import {
   Outlet,
   Route,
   Routes,
+  useParams,
 } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import { ChatProvider } from "../context/ChatContext";
+import Header from "../components/home/Header";
 
 import Login from "../pages/auth/login";
 import Register from "../pages/auth/register";
@@ -79,9 +81,15 @@ const ProtectedAppLayout = () => {
 
   return (
     <ChatProvider>
+      <Header />
       <Outlet />
     </ChatProvider>
   );
+};
+
+const UserProfileRoute = () => {
+  const { username } = useParams();
+  return <UserProfile key={username} />;
 };
 
 /* =========================
@@ -232,7 +240,7 @@ const AppRoutes = () => {
 
         <Route
           path="/user/:username"
-          element={<UserProfile />}
+          element={<UserProfileRoute />}
         />
       </Route>
 

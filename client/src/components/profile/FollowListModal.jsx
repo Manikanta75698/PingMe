@@ -28,7 +28,10 @@ const FollowListModal = ({
 }) => {
   const [activeType, setActiveType] = useState(initialType);
   const [users, setUsers] = useState([]);
-  const [usersByType, setUsersByType] = useState({ followers: null, following: null });
+  const usersByTypeRef = useRef({
+    followers: { users: null, page: 1, hasMore: false },
+    following: { users: null, page: 1, hasMore: false },
+  });
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
@@ -40,21 +43,29 @@ const FollowListModal = ({
     if (!isOpen) return undefined;
 
     const requestVersion = ++requestVersionRef.current;
+    const cachedList = usersByTypeRef.current[initialType];
+    // Opening the dialog is an external prop change; reset its local view to the requested tab.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveType(initialType);
-    setUsers(usersByType[initialType] || []);
-    setPage(1);
-    setHasMore(false);
+    setUsers(cachedList.users || []);
+    setPage(cachedList.page);
+    setHasMore(cachedList.hasMore);
     setError("");
-    setLoading(usersByType[initialType] === null);
+    setLoading(cachedList.users === null);
 
-    if (usersByType[initialType] !== null) return undefined;
+    if (cachedList.users !== null) return undefined;
 
     getUserFollowList(username, initialType, { page: 1, limit: PAGE_SIZE })
       .then((result) => {
         if (requestVersion !== requestVersionRef.current) return;
         setUsers(Array.isArray(result?.users) ? result.users : []);
-        setUsersByType((current) => ({ ...current, [initialType]: Array.isArray(result?.users) ? result.users : [] }));
-        setHasMore(Boolean(result?.pagination?.hasMore));
+        const nextUsers = Array.isArray(result?.users) ? result.users : [];
+        const nextHasMore = Boolean(result?.pagination?.hasMore);
+        usersByTypeRef.current = {
+          ...usersByTypeRef.current,
+          [initialType]: { users: nextUsers, page: 1, hasMore: nextHasMore },
+        };
+        setHasMore(nextHasMore);
       })
       .catch((requestError) => {
         if (requestVersion !== requestVersionRef.current) return;
@@ -72,22 +83,27 @@ const FollowListModal = ({
   const switchList = useCallback((type) => {
     if (type === activeType) return;
     setActiveType(type);
-    const cachedUsers = usersByType[type];
-    setUsers(cachedUsers || []);
-    setPage(1);
-    setHasMore(false);
+    const cachedList = usersByTypeRef.current[type];
+    setUsers(cachedList.users || []);
+    setPage(cachedList.page);
+    setHasMore(cachedList.hasMore);
     setError("");
-    setLoading(cachedUsers === null);
+    setLoading(cachedList.users === null);
 
-    if (cachedUsers !== null) return;
+    if (cachedList.users !== null) return;
 
     const requestVersion = ++requestVersionRef.current;
     getUserFollowList(username, type, { page: 1, limit: PAGE_SIZE })
       .then((result) => {
         if (requestVersion !== requestVersionRef.current) return;
         setUsers(Array.isArray(result?.users) ? result.users : []);
-        setUsersByType((current) => ({ ...current, [type]: Array.isArray(result?.users) ? result.users : [] }));
-        setHasMore(Boolean(result?.pagination?.hasMore));
+        const nextUsers = Array.isArray(result?.users) ? result.users : [];
+        const nextHasMore = Boolean(result?.pagination?.hasMore);
+        usersByTypeRef.current = {
+          ...usersByTypeRef.current,
+          [type]: { users: nextUsers, page: 1, hasMore: nextHasMore },
+        };
+        setHasMore(nextHasMore);
       })
       .catch((requestError) => {
         if (requestVersion !== requestVersionRef.current) return;
@@ -96,7 +112,7 @@ const FollowListModal = ({
       .finally(() => {
         if (requestVersion === requestVersionRef.current) setLoading(false);
       });
-  }, [activeType, username, usersByType]);
+  }, [activeType, username]);
 
   const retryList = () => {
     const requestVersion = ++requestVersionRef.current;
@@ -106,8 +122,13 @@ const FollowListModal = ({
       .then((result) => {
         if (requestVersion !== requestVersionRef.current) return;
         setUsers(Array.isArray(result?.users) ? result.users : []);
-        setUsersByType((current) => ({ ...current, [activeType]: Array.isArray(result?.users) ? result.users : [] }));
-        setHasMore(Boolean(result?.pagination?.hasMore));
+        const nextUsers = Array.isArray(result?.users) ? result.users : [];
+        const nextHasMore = Boolean(result?.pagination?.hasMore);
+        usersByTypeRef.current = {
+          ...usersByTypeRef.current,
+          [activeType]: { users: nextUsers, page: 1, hasMore: nextHasMore },
+        };
+        setHasMore(nextHasMore);
       })
       .catch((requestError) => {
         if (requestVersion === requestVersionRef.current) {
@@ -132,12 +153,16 @@ const FollowListModal = ({
       });
       if (requestVersion !== requestVersionRef.current) return;
       const nextUsers = Array.isArray(result?.users) ? result.users : [];
-      setUsers((current) => {
-        const ids = new Set(current.map((user) => String(user?._id || user?.id || "")));
-        return [...current, ...nextUsers.filter((user) => !ids.has(String(user?._id || user?.id || "")))];
-      });
+      const ids = new Set(users.map((user) => String(user?._id || user?.id || "")));
+      const mergedUsers = [...users, ...nextUsers.filter((user) => !ids.has(String(user?._id || user?.id || "")))];
+      const nextHasMore = Boolean(result?.pagination?.hasMore);
+      setUsers(mergedUsers);
       setPage(nextPage);
-      setHasMore(Boolean(result?.pagination?.hasMore));
+      setHasMore(nextHasMore);
+      usersByTypeRef.current = {
+        ...usersByTypeRef.current,
+        [activeType]: { users: mergedUsers, page: nextPage, hasMore: nextHasMore },
+      };
     } catch (requestError) {
       if (requestVersion === requestVersionRef.current) {
         setError(requestError?.response?.data?.message || "Could not load more people.");

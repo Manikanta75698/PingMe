@@ -32,6 +32,7 @@ import {
 
 import {
   getNotifications,
+  markAllNotificationsAsRead,
   markNotificationAsRead,
   markLikesAsRead,
 } from "../../services/notificationService";
@@ -210,7 +211,7 @@ const ActivityTabs = () => {
 
   const {
     socket,
-
+    notificationUnreadCount,
     setNotificationUnreadCount,
     loadNotifications:
     syncNotificationBadge,
@@ -299,6 +300,9 @@ const ActivityTabs = () => {
 
   const notificationsLoadRef =
     useRef(null);
+
+  const markingAllReadRef =
+    useRef(false);
 
   /* =========================
      LOAD FOLLOW REQUESTS
@@ -869,6 +873,39 @@ const ActivityTabs = () => {
           replace: true,
         }
       );
+
+      if (
+        notificationUnreadCount <= 0 ||
+        markingAllReadRef.current
+      ) {
+        return;
+      }
+
+      markingAllReadRef.current = true;
+      setNotifications((previous) =>
+        previous.map((notification) => ({
+          ...notification,
+          isRead: true,
+        }))
+      );
+      setNotificationUnreadCount(0);
+
+      markAllNotificationsAsRead()
+        .then((response) => {
+          setNotificationUnreadCount(
+            Math.max(0, Number(response?.data?.unreadCount) || 0)
+          );
+        })
+        .catch((error) => {
+          console.error(
+            "MARK ALL NOTIFICATIONS READ ERROR:",
+            error?.response?.data || error?.message
+          );
+          void loadActivityNotifications();
+        })
+        .finally(() => {
+          markingAllReadRef.current = false;
+        });
     };
 
   useEffect(() => {
@@ -1799,7 +1836,8 @@ const ActivityTabs = () => {
           />
 
           <span>
-            Follow Requests
+            <span className={styles.tabLabelDesktop}>Follow Requests</span>
+            <span className={styles.tabLabelMobile}>Requests</span>
           </span>
 
           {followRequests.length >
@@ -1871,7 +1909,8 @@ const ActivityTabs = () => {
           <Bell size={18} />
 
           <span>
-            Notifications
+            <span className={styles.tabLabelDesktop}>Notifications</span>
+            <span className={styles.tabLabelMobile}>Alerts</span>
           </span>
 
           {unreadGeneralCount >

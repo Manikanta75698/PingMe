@@ -109,6 +109,9 @@ const getPostsData = (response) => {
     : [];
 };
 
+// Retain profile data across route unmounts; refresh it silently on return.
+const userProfileCache = new Map();
+
 /* =========================
    USER PROFILE
 ========================= */
@@ -129,13 +132,13 @@ const UserProfile = () => {
     useState(getStoredUser);
 
   const [user, setUser] =
-    useState(null);
+    useState(() => userProfileCache.get(username)?.user || null);
 
   const [posts, setPosts] =
-    useState([]);
+    useState(() => userProfileCache.get(username)?.posts || []);
 
   const [loading, setLoading] =
-    useState(true);
+    useState(() => !userProfileCache.has(username));
 
   const [
     followLoading,
@@ -238,6 +241,7 @@ const UserProfile = () => {
           false
         ) {
           setPosts([]);
+          userProfileCache.set(username, { user: userData, posts: [] });
           return;
         }
 
@@ -247,11 +251,13 @@ const UserProfile = () => {
               username
             );
 
-          setPosts(
-            getPostsData(
-              postsResponse
-            )
-          );
+          const profilePosts = getPostsData(postsResponse);
+          setPosts(profilePosts);
+          userProfileCache.set(username, {
+            user: userData,
+            // Do not retain posts from private profiles across route visits.
+            posts: userData.privateAccount ? [] : profilePosts,
+          });
         } catch (postsError) {
           console.error(
             "User Posts Error:",
@@ -259,7 +265,12 @@ const UserProfile = () => {
             postsError?.message
           );
 
-          setPosts([]);
+          const cachedPosts = userProfileCache.get(username)?.posts || [];
+          setPosts(showLoading ? [] : cachedPosts);
+          userProfileCache.set(username, {
+            user: userData,
+            posts: showLoading ? [] : cachedPosts,
+          });
         }
       } catch (fetchError) {
         console.error(
@@ -286,8 +297,10 @@ const UserProfile = () => {
   );
 
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    // Start the route fetch after mount; cached profiles use a silent background refresh.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchUser({ showLoading: !userProfileCache.has(username) });
+  }, [fetchUser, username]);
 
   useEffect(() => {
     const handleRequestAccepted = async (

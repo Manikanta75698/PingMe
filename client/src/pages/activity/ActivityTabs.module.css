@@ -67,6 +67,10 @@
     transform 0.2s ease;
 }
 
+.tabLabelMobile {
+  display: none;
+}
+
 .tab:hover {
   background:
     color-mix(in srgb,
@@ -624,16 +628,13 @@ button.requestCard {
 
   .tabs {
     position: static;
-
-    display: flex;
-    gap: 5px;
-
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
     padding: 5px;
     margin-bottom: 16px;
-
-    overflow-x: auto;
+    overflow: hidden;
     scrollbar-width: none;
-
     border-radius: 15px;
   }
 
@@ -642,16 +643,38 @@ button.requestCard {
   }
 
   .tab {
-    flex: 0 0 auto;
-
-    min-width: max-content;
-    min-height: 43px;
-
-    padding: 9px 12px;
+    min-width: 0;
+    min-height: 48px;
+    padding: 8px 4px;
+    gap: 5px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 
-  .tab span {
-    font-size: 13px;
+  .tab>span:not(.badge) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tabLabelDesktop {
+    display: none;
+  }
+
+  .tabLabelMobile {
+    display: inline;
+  }
+
+  .tab .badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 16px;
+    height: 16px;
+    padding-inline: 4px;
+    border-width: 1px;
+    font-size: 9px;
+    line-height: 14px;
   }
 
   .requestCard {
