@@ -17,6 +17,7 @@ import {
 } from "react-router-dom";
 
 import EditProfileModal from "./EditProfileModal";
+import FollowListModal from "./FollowListModal";
 
 import DefaultAvatar from "../../assets/default-avatar.png";
 
@@ -102,6 +103,8 @@ const ProfileHeader = () => {
     showModal,
     setShowModal,
   ] = useState(false);
+
+  const [followListType, setFollowListType] = useState("");
 
   const [
     loading,
@@ -704,23 +707,27 @@ const ProfileHeader = () => {
             </div>
 
             <div>
-              <strong>
-                {followersCount}
-              </strong>
-
-              <span>
-                Followers
-              </span>
+              <button
+                type="button"
+                className={styles.statButton}
+                onClick={() => setFollowListType("followers")}
+                aria-label={`Show ${followersCount} followers`}
+              >
+                <strong>{followersCount}</strong>
+                <span>Followers</span>
+              </button>
             </div>
 
             <div>
-              <strong>
-                {followingCount}
-              </strong>
-
-              <span>
-                Following
-              </span>
+              <button
+                type="button"
+                className={styles.statButton}
+                onClick={() => setFollowListType("following")}
+                aria-label={`Show ${followingCount} following`}
+              >
+                <strong>{followingCount}</strong>
+                <span>Following</span>
+              </button>
             </div>
           </div>
 
@@ -750,6 +757,15 @@ const ProfileHeader = () => {
           </div>
         </div>
       </div>
+
+      <FollowListModal
+        isOpen={Boolean(followListType)}
+        username={user.username}
+        initialType={followListType || "followers"}
+        followersCount={followersCount}
+        followingCount={followingCount}
+        onClose={() => setFollowListType("")}
+      />
 
       {showModal && (
         <EditProfileModal

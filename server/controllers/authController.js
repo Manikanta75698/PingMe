@@ -5772,6 +5772,70 @@ const getUserProfile = async (
   }
 };
 
+const getUserFollowList = async (req, res) => {
+  try {
+    const username = String(req.params?.username || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^@/, "");
+    const listType = String(req.params?.listType || "").trim();
+    const page = Math.max(1, Number.parseInt(req.query?.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query?.limit, 10) || 30));
+
+    if (!username || !["followers", "following"].includes(listType)) {
+      return res.status(400).json({ success: false, message: "Invalid follow list request" });
+    }
+
+    const [profileUser, currentUser] = await Promise.all([
+      User.findOne({ username, isVerified: true })
+        .select("_id followers following blockedUsers")
+        .lean(),
+      User.findById(req.user._id).select("blockedUsers").lean(),
+    ]);
+
+    if (!profileUser || !currentUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const blockedIds = new Set([
+      ...(profileUser.blockedUsers || []).map(normalizeUserId),
+      ...(currentUser.blockedUsers || []).map(normalizeUserId),
+    ]);
+
+    const visibleIds = (Array.isArray(profileUser[listType]) ? profileUser[listType] : [])
+      .map(normalizeUserId)
+      .reverse()
+      .filter((id) => id && !blockedIds.has(id));
+
+    const skip = (page - 1) * limit;
+    const pageIds = visibleIds.slice(skip, skip + limit);
+    const users = pageIds.length
+      ? await User.find({ _id: { $in: pageIds }, isVerified: true })
+        .select("_id name username profilePic")
+        .lean()
+      : [];
+
+    const userMap = new Map(users.map((user) => [normalizeUserId(user._id), user]));
+    const orderedUsers = pageIds
+      .map((id) => userMap.get(id))
+      .filter(Boolean);
+
+    return res.status(200).json({
+      success: true,
+      users: orderedUsers,
+      pagination: {
+        page,
+        limit,
+        total: visibleIds.length,
+        hasMore: skip + pageIds.length < visibleIds.length,
+      },
+    });
+  } catch (error) {
+    console.error("GET USER FOLLOW LIST ERROR:", error);
+    return res.status(500).json({ success: false, message: "Unable to load this list" });
+  }
+};
+
 const searchUsers = async (req, res) => {
   try {
     const searchTerm = String(
@@ -6465,6 +6529,7 @@ module.exports = {
   cancelFollowRequest,
 
   getUserProfile,
+  getUserFollowList,
   searchUsers,
   checkUsernameAvailability,
   setPassword,

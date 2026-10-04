@@ -363,6 +363,34 @@ export const getUserProfile = async (
   return response.data;
 };
 
+
+
+export const getUserFollowList = async (
+  username,
+  listType,
+  { page = 1, limit = 30 } = {}
+) => {
+  const normalizedUsername = String(username || "")
+    .trim()
+    .replace(/^@/, "");
+
+  const normalizedType = String(listType || "").trim();
+
+  if (
+    !normalizedUsername ||
+    !["followers", "following"].includes(normalizedType)
+  ) {
+    throw new Error("A username and valid list type are required");
+  }
+
+  const response = await api.get(
+    `/auth/user/${encodeURIComponent(normalizedUsername)}/connections/${normalizedType}`,
+    { params: { page, limit } }
+  );
+
+  return response.data;
+};
+
 // =========================
 // FOLLOW USER
 // Public account  → Following

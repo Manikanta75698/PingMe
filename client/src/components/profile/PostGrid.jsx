@@ -96,20 +96,9 @@ const PostGrid = ({
   const username =
     currentUser?.username || "";
 
-  const [
-    posts,
-    setPosts,
-  ] = useState([]);
-
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
-
-  const [
-    error,
-    setError,
-  ] = useState("");
+  const [postsByType, setPostsByType] = useState({ posts: null, saved: null });
+  const [loadingByType, setLoadingByType] = useState({ posts: true, saved: false });
+  const [errorByType, setErrorByType] = useState({ posts: "", saved: "" });
 
   const [
     selectedPost,
@@ -124,13 +113,20 @@ const PostGrid = ({
 
   const isSavedTab =
     type === "saved";
+  const activeType = isSavedTab ? "saved" : "posts";
+  const posts = postsByType[activeType] || [];
+  const loading = loadingByType[activeType];
+  const error = errorByType[activeType];
 
   const loadPosts =
     useCallback(
-      async () => {
+      async (force = false) => {
+        if (!force && postsByType[activeType] !== null) {
+          return;
+        }
         try {
-          setLoading(true);
-          setError("");
+          setLoadingByType((current) => ({ ...current, [activeType]: true }));
+          setErrorByType((current) => ({ ...current, [activeType]: "" }));
 
           let response;
 
@@ -139,7 +135,7 @@ const PostGrid = ({
               await getSavedPosts();
           } else {
             if (!username) {
-              setPosts([]);
+              setPostsByType((current) => ({ ...current, posts: [] }));
               return;
             }
 
@@ -166,7 +162,7 @@ const PostGrid = ({
               ).values()
             );
 
-          setPosts(uniquePosts);
+          setPostsByType((current) => ({ ...current, [activeType]: uniquePosts }));
         } catch (loadError) {
           console.error(
             "POST GRID ERROR:",
@@ -175,20 +171,21 @@ const PostGrid = ({
             loadError?.message
           );
 
-          setPosts([]);
-
-          setError(
-            loadError
-              ?.response?.data
-              ?.message ||
-            "Unable to load posts"
-          );
+          setErrorByType((current) => ({
+            ...current, [activeType]:
+              loadError
+                ?.response?.data
+                ?.message ||
+              "Unable to load posts"
+          }));
         } finally {
-          setLoading(false);
+          setLoadingByType((current) => ({ ...current, [activeType]: false }));
         }
       },
       [
+        activeType,
         isSavedTab,
+        postsByType,
         username,
       ]
     );
@@ -211,8 +208,9 @@ const PostGrid = ({
           return;
         }
 
-        setPosts(
-          (currentPosts) => {
+        setPostsByType(
+          (current) => {
+            const currentPosts = current.posts || [];
             const newPostId =
               normalizeId(newPost);
 
@@ -224,13 +222,10 @@ const PostGrid = ({
               );
 
             if (alreadyExists) {
-              return currentPosts;
+              return current;
             }
 
-            return [
-              newPost,
-              ...currentPosts,
-            ];
+            return { ...current, posts: [newPost, ...currentPosts] };
           }
         );
       };
@@ -248,14 +243,12 @@ const PostGrid = ({
           return;
         }
 
-        setPosts(
-          (currentPosts) =>
-            currentPosts.filter(
-              (post) =>
-                normalizeId(post) !==
-                deletedPostId
-            )
-        );
+        setPostsByType((current) => Object.fromEntries(
+          Object.entries(current).map(([key, list]) => [
+            key,
+            Array.isArray(list) ? list.filter((post) => normalizeId(post) !== deletedPostId) : list,
+          ])
+        ));
 
         setSelectedPost(
           (currentPost) =>
@@ -269,7 +262,7 @@ const PostGrid = ({
     const handleSavedPostsUpdated =
       () => {
         if (isSavedTab) {
-          void loadPosts();
+          void loadPosts(true);
         }
       };
 

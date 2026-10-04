@@ -1,7 +1,3 @@
-/* =========================================================
-   PINGME — OWN PROFILE HEADER
-   Production-ready responsive profile card
-========================================================= */
 
 /* =========================================
    PROFILE CARD
@@ -550,6 +546,45 @@
     line-height: 1.2;
 }
 
+.statButton {
+    display: flex;
+    width: 100%;
+    min-height: 76px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    transition: background 150ms ease;
+}
+
+.statButton strong,
+.statButton span {
+    display: block;
+    width: 100%;
+    margin: 0;
+    text-align: center;
+}
+
+.statButton span {
+    margin-top: 7px;
+    white-space: nowrap;
+}
+
+.statButton:hover {
+    background: color-mix(in srgb, var(--primary) 7%, transparent);
+}
+
+.statButton:focus-visible {
+    position: relative;
+    z-index: 1;
+    outline: 3px solid var(--primary);
+    outline-offset: -3px;
+}
+
 /* =========================================
    ACTIONS
 ========================================= */
@@ -791,16 +826,16 @@
 ========================================= */
 
 @media (max-width: 768px) {
-  .profileCard {
-    padding:
-      25px 16px 22px;
+    .profileCard {
+        padding:
+            25px 16px 22px;
 
-    border-radius:
-      22px;
+        border-radius:
+            22px;
 
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
 
     .profileCard:hover {
         transform: none;
@@ -902,7 +937,7 @@
     }
 
     .stats span {
-        font-size: 0.59rem;
+        font-size: 0.66rem;
     }
 
     .actions {
@@ -948,7 +983,7 @@
     }
 
     .stats span {
-        font-size: 0.55rem;
+        font-size: 0.61rem;
     }
 }
 

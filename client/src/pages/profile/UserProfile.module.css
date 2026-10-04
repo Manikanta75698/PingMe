@@ -1,7 +1,3 @@
-/* =========================================================
-   PINGME — USER PROFILE
-   Production-level responsive profile UI
-========================================================= */
 
 /* =========================================
    PAGE CONTAINER
@@ -285,6 +281,39 @@
 
     padding:
         4px 20px;
+}
+
+.statButton {
+    width: 100%;
+    min-height: 72px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    transition: background 150ms ease;
+}
+
+.statButton span,
+.statButton small {
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+
+.statButton small {
+    margin-top: 8px;
+    white-space: nowrap;
+}
+
+.statButton:hover {
+    background: color-mix(in srgb, var(--primary) 7%, transparent);
+}
+
+.statButton:focus-visible {
+    z-index: 1;
+    outline: 3px solid var(--primary);
+    outline-offset: -3px;
 }
 
 .statItem:not(:last-child)::after {
@@ -986,7 +1015,7 @@
     .statItem small {
         margin-top: 7px;
 
-        font-size: 0.57rem;
+        font-size: 0.64rem;
     }
 
     .actions {
@@ -1079,6 +1108,7 @@
 
     .statItem small {
         letter-spacing: 0.07em;
+        font-size: 0.61rem;
     }
 
     .postsGrid {

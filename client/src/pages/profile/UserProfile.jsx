@@ -21,6 +21,7 @@ import {
 } from "../../context/ChatContext";
 
 import UserProfileSkeleton from "../../components/profile/UserProfileSkeleton";
+import FollowListModal from "../../components/profile/FollowListModal";
 import DefaultAvatar from "../../assets/default-avatar.png";
 
 import {
@@ -153,6 +154,8 @@ const UserProfile = () => {
     failedImageIds,
     setFailedImageIds,
   ] = useState(() => new Set());
+
+  const [followListType, setFollowListType] = useState("");
 
   const currentUserId = normalizeId(
     currentUser?.id ||
@@ -889,33 +892,25 @@ const UserProfile = () => {
               <small>Posts</small>
             </div>
 
-            <div
-              className={
-                styles.statItem
-              }
+            <button
+              type="button"
+              className={`${styles.statItem} ${styles.statButton}`}
+              onClick={() => setFollowListType("followers")}
+              aria-label={`Show ${followersCount} followers`}
             >
-              <span>
-                {followersCount}
-              </span>
+              <span>{followersCount}</span>
+              <small>Followers</small>
+            </button>
 
-              <small>
-                Followers
-              </small>
-            </div>
-
-            <div
-              className={
-                styles.statItem
-              }
+            <button
+              type="button"
+              className={`${styles.statItem} ${styles.statButton}`}
+              onClick={() => setFollowListType("following")}
+              aria-label={`Show ${followingCount} following`}
             >
-              <span>
-                {followingCount}
-              </span>
-
-              <small>
-                Following
-              </small>
-            </div>
+              <span>{followingCount}</span>
+              <small>Following</small>
+            </button>
           </div>
 
           {/* ACTION BUTTONS */}
@@ -1085,6 +1080,15 @@ const UserProfile = () => {
           }
         />
       )}
+
+      <FollowListModal
+        isOpen={Boolean(followListType)}
+        username={user.username}
+        initialType={followListType || "followers"}
+        followersCount={followersCount}
+        followingCount={followingCount}
+        onClose={() => setFollowListType("")}
+      />
     </>
   );
 };

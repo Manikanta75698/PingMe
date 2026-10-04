@@ -52,6 +52,7 @@ const {
   searchUsers,
   checkUsernameAvailability,
   getUserProfile,
+  getUserFollowList,
 
   blockUser,
   unblockUser,
@@ -307,6 +308,12 @@ router.delete(
 /* =========================
    PUBLIC USER PROFILE
 ========================= */
+
+router.get(
+  "/user/:username/connections/:listType",
+  protect,
+  getUserFollowList
+);
 
 router.get(
   "/user/:username",
