@@ -1,6 +1,4 @@
-const mongoose = require(
-  "mongoose"
-);
+const mongoose = require("mongoose");
 
 const ALLOWED_REACTIONS = [
   "❤️",
@@ -11,305 +9,257 @@ const ALLOWED_REACTIONS = [
   "🔥",
 ];
 
-const reactionSchema =
-  new mongoose.Schema(
-    {
-      user: {
-        type:
-          mongoose.Schema.Types
-            .ObjectId,
-        ref: "User",
-        required: true,
-      },
-
-      emoji: {
-        type: String,
-        enum: ALLOWED_REACTIONS,
-        required: true,
-      },
-
-      createdAt: {
-        type: Date,
-        default: Date.now,
-      },
+const reactionSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
-    {
-      _id: false,
-    }
-  );
-
-const sharedPostSchema =
-  new mongoose.Schema(
-    {
-      postId: {
-        type:
-          mongoose.Schema.Types
-            .ObjectId,
-        ref: "Post",
-        required: true,
-      },
-
-      image: {
-        type: String,
-        default: "",
-        trim: true,
-      },
-
-      caption: {
-        type: String,
-        default: "",
-        trim: true,
-        maxlength: [
-          2200,
-          "Shared post caption cannot exceed 2200 characters",
-        ],
-      },
-
-      owner: {
-        type:
-          mongoose.Schema.Types
-            .ObjectId,
-        ref: "User",
-        required: true,
-      },
-
-      ownerName: {
-        type: String,
-        default: "",
-        trim: true,
-      },
-
-      ownerUsername: {
-        type: String,
-        default: "",
-        trim: true,
-      },
-
-      ownerProfilePic: {
-        type: String,
-        default: "",
-        trim: true,
-      },
+    emoji: {
+      type: String,
+      enum: ALLOWED_REACTIONS,
+      required: true,
     },
-    {
-      _id: false,
-    }
-  );
-
-const messageSchema =
-  new mongoose.Schema(
-    {
-      sender: {
-        type:
-          mongoose.Schema.Types
-            .ObjectId,
-        ref: "User",
-        required: true,
-        index: true,
-      },
-
-      receiver: {
-        type:
-          mongoose.Schema.Types
-            .ObjectId,
-        ref: "User",
-        required: true,
-        index: true,
-      },
-
-      clientMessageId: {
-        type: String,
-        default: null,
-        trim: true,
-        maxlength: [
-          120,
-          "Client message ID cannot exceed 120 characters",
-        ],
-      },
-
-      text: {
-        type: String,
-        default: "",
-        trim: true,
-        maxlength: [
-          5000,
-          "Message cannot exceed 5000 characters",
-        ],
-      },
-
-      image: {
-        type: String,
-        default: "",
-        trim: true,
-      },
-
-      imageFileId: {
-        type: String,
-        default: "",
-        trim: true,
-      },
-
-      sharedPost: {
-        type: sharedPostSchema,
-        default: null,
-      },
-
-      status: {
-        type: String,
-        enum: [
-          "sent",
-          "delivered",
-          "read",
-        ],
-        default: "sent",
-        index: true,
-      },
-
-      replyTo: {
-        type:
-          mongoose.Schema.Types
-            .ObjectId,
-        ref: "Message",
-        default: null,
-      },
-
-      reactions: {
-        type: [reactionSchema],
-        default: [],
-      },
-
-      editedAt: {
-        type: Date,
-        default: null,
-      },
-
-      isForwarded: {
-        type: Boolean,
-        default: false,
-      },
-
-      forwardedFrom: {
-        type:
-          mongoose.Schema.Types
-            .ObjectId,
-        ref: "Message",
-        default: null,
-      },
-
-      pinnedAt: {
-        type: Date,
-        default: null,
-      },
-
-      pinnedBy: {
-        type:
-          mongoose.Schema.Types
-            .ObjectId,
-        ref: "User",
-        default: null,
-      },
-
-
-      deletedFor: {
-        type: [
-          {
-            type:
-              mongoose.Schema.Types
-                .ObjectId,
-            ref: "User",
-          },
-        ],
-        default: [],
-      },
-
-
-      deletedForEveryone: {
-        type: Boolean,
-        default: false,
-        index: true,
-      },
-
-      deletedAt: {
-        type: Date,
-        default: null,
-      },
-
-      deletedBy: {
-        type:
-          mongoose.Schema.Types
-            .ObjectId,
-        ref: "User",
-        default: null,
-      },
-
+    createdAt: {
+      type: Date,
+      default: Date.now,
     },
-    {
-      timestamps: true,
-      versionKey: false,
-    }
-  );
+  },
+  {
+    _id: false,
+  }
+);
+
+const sharedPostSchema = new mongoose.Schema(
+  {
+    postId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Post",
+      required: true,
+    },
+    image: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    caption: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: [
+        2200,
+        "Shared post caption cannot exceed 2200 characters",
+      ],
+    },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    ownerName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    ownerUsername: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    ownerProfilePic: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+  },
+  {
+    _id: false,
+  }
+);
+
+const messageSchema = new mongoose.Schema(
+  {
+    sender: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+
+    receiver: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+
+    clientMessageId: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: [
+        120,
+        "Client message ID cannot exceed 120 characters",
+      ],
+    },
+
+    text: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: [
+        5000,
+        "Message cannot exceed 5000 characters",
+      ],
+    },
+
+    image: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    imageFileId: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    sharedPost: {
+      type: sharedPostSchema,
+      default: null,
+    },
+
+    status: {
+      type: String,
+      enum: [
+        "sent",
+        "delivered",
+        "read",
+      ],
+      default: "sent",
+      index: true,
+    },
+
+    deliveredAt: {
+      type: Date,
+      default: null,
+    },
+
+    readAt: {
+      type: Date,
+      default: null,
+    },
+
+    replyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+      default: null,
+    },
+
+    reactions: {
+      type: [reactionSchema],
+      default: [],
+    },
+
+    editedAt: {
+      type: Date,
+      default: null,
+    },
+
+    isForwarded: {
+      type: Boolean,
+      default: false,
+    },
+
+    forwardedFrom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+      default: null,
+    },
+
+    pinnedAt: {
+      type: Date,
+      default: null,
+    },
+
+    pinnedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    deletedFor: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+      default: [],
+    },
+
+    deletedForEveryone: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+
+    deletedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+    versionKey: false,
+  }
+);
 
 /* =========================
    VALIDATION
 ========================= */
 
-messageSchema.pre(
-  "validate",
-  function validateMessage() {
-
-    if (this.deletedForEveryone) {
-      return;
-    }
-
-    const hasText =
-      typeof this.text === "string" &&
-      this.text.trim().length > 0;
-
-    const hasImage =
-      typeof this.image === "string" &&
-      this.image.trim().length > 0;
-
-    const hasSharedPost =
-      Boolean(
-        this.sharedPost &&
-        this.sharedPost.postId
-      );
-
-    if (
-      !hasText &&
-      !hasImage &&
-      !hasSharedPost
-    ) {
-      throw new Error(
-        "Message must contain text, an image, or a shared post"
-      );
-    }
+messageSchema.pre("validate", function validateMessage() {
+  if (this.deletedForEveryone) {
+    return;
   }
-);
 
-messageSchema.path(
-  "reactions"
-).validate({
-  validator(reactions) {
-    const safeReactions =
-      Array.isArray(reactions)
-        ? reactions
-        : [];
+  const hasText =
+    typeof this.text === "string" && this.text.trim().length > 0;
 
-    const userIds =
-      safeReactions.map(
-        (reaction) =>
-          String(reaction.user)
-      );
+  const hasImage =
+    typeof this.image === "string" && this.image.trim().length > 0;
 
-    return (
-      new Set(userIds).size ===
-      userIds.length
+  const hasSharedPost = Boolean(
+    this.sharedPost && this.sharedPost.postId
+  );
+
+  if (!hasText && !hasImage && !hasSharedPost) {
+    throw new Error(
+      "Message must contain text, an image, or a shared post"
     );
-  },
+  }
+});
 
-  message:
-    "A user can have only one reaction per message",
+messageSchema.path("reactions").validate({
+  validator(reactions) {
+    const safeReactions = Array.isArray(reactions) ? reactions : [];
+
+    const userIds = safeReactions.map((reaction) =>
+      String(reaction.user)
+    );
+
+    return new Set(userIds).size === userIds.length;
+  },
+  message: "A user can have only one reaction per message",
 });
 
 /* =========================
@@ -338,7 +288,6 @@ messageSchema.index({
   createdAt: -1,
 });
 
-
 messageSchema.index(
   {
     sender: 1,
@@ -346,7 +295,6 @@ messageSchema.index(
   },
   {
     unique: true,
-
     partialFilterExpression: {
       clientMessageId: {
         $type: "string",
@@ -359,16 +307,8 @@ messageSchema.index(
    MODEL HELPERS
 ========================= */
 
-messageSchema.statics
-  .getAllowedReactions =
-  function getAllowedReactions() {
-    return [
-      ...ALLOWED_REACTIONS,
-    ];
-  };
+messageSchema.statics.getAllowedReactions = function getAllowedReactions() {
+  return [...ALLOWED_REACTIONS];
+};
 
-module.exports =
-  mongoose.model(
-    "Message",
-    messageSchema
-  );
+module.exports = mongoose.model("Message", messageSchema);

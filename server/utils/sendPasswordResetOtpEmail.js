@@ -47,12 +47,12 @@ const sendPasswordResetOtpEmail =
         from: process.env.SMTP_FROM,
         to: cleanEmail,
         subject:
-          "Reset your Nexora password",
+          "Reset your PingMe password",
 
         text: [
           `Hi ${name?.trim() || "there"},`,
           "",
-          `Your Nexora password reset code is: ${cleanOtp}`,
+          `Your PingMe password reset code is: ${cleanOtp}`,
           "",
           "This code expires in 10 minutes.",
           "Do not share this code with anyone.",
@@ -110,7 +110,7 @@ const sendPasswordResetOtpEmail =
                         font-size:28px;
                       "
                     >
-                      Nexora
+                      PingMe
                     </h1>
                   </div>
 
@@ -139,7 +139,7 @@ const sendPasswordResetOtpEmail =
                       "
                     >
                       Hi ${safeName}, use the code below
-                      to reset your Nexora password.
+                      to reset your PingMe password.
                     </p>
 
                     <div

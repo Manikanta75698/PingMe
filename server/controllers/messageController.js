@@ -1,1560 +1,382 @@
 const mongoose = require("mongoose");
-
-const {
-  uploadImageKitFile,
-  deleteImageKitFile,
-} = require(
-  "../utils/imagekitUpload"
-);
-
+const { uploadImageKitFile, deleteImageKitFile } = require("../utils/imagekitUpload");
 const Message = require("../models/Message");
 const Post = require("../models/Post");
+const User = require("../models/User");
 
-const User = require(
-  "../models/User"
-);
+// 1. ADDED: isUserOnline import chesam to check real-time presence
+const { getIO, isUserOnline } = require("../socket/socketInstance");
 
-
-
-const {
-  getIO,
-} = require("../socket/socketInstance");
-
-console.log(
-  "MESSAGE CONTROLLER VERSION:",
-  "CHAT_REQUEST_REMOVED_V3"
-);
+console.log("MESSAGE CONTROLLER VERSION:", "CHAT_REQUEST_REMOVED_V4_READ_RECEIPTS");
 
 const MAX_MESSAGE_LENGTH = 5000;
 const DEFAULT_PAGE_SIZE = 30;
 const MAX_PAGE_SIZE = 50;
 
-const DEFAULT_REACTIONS = [
-  "❤️",
-  "😂",
-  "😮",
-  "😢",
-  "👍",
-  "🔥",
-];
+const DEFAULT_REACTIONS = ["❤️", "😂", "😮", "😢", "👍", "🔥"];
 
 /* =========================
    HELPERS
 ========================= */
 
 const normalizeId = (value) => {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "";
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  if (value instanceof mongoose.Types.ObjectId) return value.toHexString();
+  if (typeof value?.toHexString === "function") {
+    try { return String(value.toHexString()).trim(); } catch { return ""; }
   }
-
-  if (
-    typeof value === "string" ||
-    typeof value === "number"
-  ) {
-    return String(value).trim();
-  }
-
-  if (
-    value instanceof
-    mongoose.Types.ObjectId
-  ) {
-    return value.toHexString();
-  }
-
-  if (
-    typeof value?.toHexString ===
-    "function"
-  ) {
-    try {
-      return String(
-        value.toHexString()
-      ).trim();
-    } catch {
-      return "";
-    }
-  }
-
   if (typeof value === "object") {
-    if (
-      value._id &&
-      value._id !== value
-    ) {
-      return normalizeId(
-        value._id
-      );
-    }
-
-    if (
-      value.userId &&
-      value.userId !== value
-    ) {
-      return normalizeId(
-        value.userId
-      );
-    }
-
-
-    if (
-      Object.prototype
-        .hasOwnProperty.call(
-          value,
-          "id"
-        )
-    ) {
+    if (value._id && value._id !== value) return normalizeId(value._id);
+    if (value.userId && value.userId !== value) return normalizeId(value.userId);
+    if (Object.prototype.hasOwnProperty.call(value, "id")) {
       const ownId = value.id;
-
-      if (
-        ownId &&
-        ownId !== value
-      ) {
-        return normalizeId(
-          ownId
-        );
-      }
+      if (ownId && ownId !== value) return normalizeId(ownId);
     }
-
     return "";
   }
-
-  const stringValue =
-    String(value).trim();
-
-  return stringValue ===
-    "[object Object]"
-    ? ""
-    : stringValue;
+  const stringValue = String(value).trim();
+  return stringValue === "[object Object]" ? "" : stringValue;
 };
 
-const normalizeClientMessageId = (
-  value
-) => {
-  const normalized =
-    String(value || "").trim();
-
-  if (!normalized) {
-    return "";
-  }
-
-  if (
-    normalized.length > 120 ||
-    !/^[a-zA-Z0-9:_-]+$/.test(
-      normalized
-    )
-  ) {
-    return "";
-  }
-
+const normalizeClientMessageId = (value) => {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+  if (normalized.length > 120 || !/^[a-zA-Z0-9:_-]+$/.test(normalized)) return "";
   return normalized;
 };
 
+const getUserBlockState = async (firstUserId, secondUserId) => {
+  const firstId = normalizeId(firstUserId);
+  const secondId = normalizeId(secondUserId);
 
-
-const getUserBlockState =
-  async (
-    firstUserId,
-    secondUserId
-  ) => {
-    const firstId =
-      normalizeId(firstUserId);
-
-    const secondId =
-      normalizeId(secondUserId);
-
-    if (
-      !firstId ||
-      !secondId
-    ) {
-      return {
-        blockedByFirst: false,
-        blockedBySecond: false,
-        isBlocked: false,
-      };
-    }
-
-    const users =
-      await User.find({
-        _id: {
-          $in: [
-            firstId,
-            secondId,
-          ],
-        },
-      })
-        .select(
-          "_id blockedUsers"
-        )
-        .lean();
-
-    const userMap =
-      new Map(
-        users.map((user) => [
-          normalizeId(user?._id),
-          user,
-        ])
-      );
-
-    const firstUser =
-      userMap.get(firstId);
-
-    const secondUser =
-      userMap.get(secondId);
-
-    const blockedByFirst =
-      Array.isArray(
-        firstUser?.blockedUsers
-      ) &&
-      firstUser.blockedUsers.some(
-        (userId) =>
-          normalizeId(userId) ===
-          secondId
-      );
-
-    const blockedBySecond =
-      Array.isArray(
-        secondUser?.blockedUsers
-      ) &&
-      secondUser.blockedUsers.some(
-        (userId) =>
-          normalizeId(userId) ===
-          firstId
-      );
-
-    return {
-      blockedByFirst,
-      blockedBySecond,
-
-      isBlocked:
-        blockedByFirst ||
-        blockedBySecond,
-    };
-  };
-
-const getOtherMessageParticipantId = (
-  message,
-  currentUserId
-) => {
-  const senderId =
-    normalizeId(
-      message?.sender
-    );
-
-  const receiverId =
-    normalizeId(
-      message?.receiver
-    );
-
-  if (
-    senderId ===
-    normalizeId(currentUserId)
-  ) {
-    return receiverId;
+  if (!firstId || !secondId) {
+    return { blockedByFirst: false, blockedBySecond: false, isBlocked: false };
   }
 
-  if (
-    receiverId ===
-    normalizeId(currentUserId)
-  ) {
-    return senderId;
-  }
+  const users = await User.find({ _id: { $in: [firstId, secondId] } })
+    .select("_id blockedUsers").lean();
 
+  const userMap = new Map(users.map((user) => [normalizeId(user?._id), user]));
+  const firstUser = userMap.get(firstId);
+  const secondUser = userMap.get(secondId);
+
+  const blockedByFirst = Array.isArray(firstUser?.blockedUsers) &&
+    firstUser.blockedUsers.some((userId) => normalizeId(userId) === secondId);
+
+  const blockedBySecond = Array.isArray(secondUser?.blockedUsers) &&
+    secondUser.blockedUsers.some((userId) => normalizeId(userId) === firstId);
+
+  return { blockedByFirst, blockedBySecond, isBlocked: blockedByFirst || blockedBySecond };
+};
+
+const getOtherMessageParticipantId = (message, currentUserId) => {
+  const senderId = normalizeId(message?.sender);
+  const receiverId = normalizeId(message?.receiver);
+  if (senderId === normalizeId(currentUserId)) return receiverId;
+  if (receiverId === normalizeId(currentUserId)) return senderId;
   return "";
 };
 
-const isValidObjectId = (value) =>
-  mongoose.isValidObjectId(
-    normalizeId(value)
-  );
+const isValidObjectId = (value) => mongoose.isValidObjectId(normalizeId(value));
 
 const getAllowedReactions = () => {
-  if (
-    typeof Message.getAllowedReactions ===
-    "function"
-  ) {
-    return Message.getAllowedReactions();
-  }
-
+  if (typeof Message.getAllowedReactions === "function") return Message.getAllowedReactions();
   return [...DEFAULT_REACTIONS];
 };
 
-/*
- * getIO() initialize kakapothe
- * controller crash avvakunda safe access.
- */
 const getSafeIO = () => {
-  try {
-    return getIO();
-  } catch (error) {
-    console.error(
-      "SOCKET IO ACCESS ERROR:",
-      error?.message || error
-    );
-
+  try { return getIO(); } catch (error) {
+    console.error("SOCKET IO ACCESS ERROR:", error?.message || error);
     return null;
   }
 };
 
-const emitToParticipants = (
-  firstUserId,
-  secondUserId,
-  eventName,
-  payload
-) => {
+const emitToParticipants = (firstUserId, secondUserId, eventName, payload) => {
   const io = getSafeIO();
+  if (!io) return false;
 
-  if (!io) {
-    return false;
-  }
+  const firstId = normalizeId(firstUserId);
+  const secondId = normalizeId(secondUserId);
 
-  const firstId =
-    normalizeId(firstUserId);
+  if (firstId) io.to(firstId).emit(eventName, payload);
+  if (secondId && secondId !== firstId) io.to(secondId).emit(eventName, payload);
 
-  const secondId =
-    normalizeId(secondUserId);
-
-  if (firstId) {
-    io.to(firstId).emit(
-      eventName,
-      payload
-    );
-  }
-
-  if (
-    secondId &&
-    secondId !== firstId
-  ) {
-    io.to(secondId).emit(
-      eventName,
-      payload
-    );
-  }
-
-  return Boolean(
-    firstId ||
-    secondId
-  );
+  return Boolean(firstId || secondId);
 };
 
+const canSendMessageToUser = async (senderIdValue, receiverIdValue) => {
+  const senderId = normalizeId(senderIdValue);
+  const receiverId = normalizeId(receiverIdValue);
 
-const canSendMessageToUser =
-  async (
-    senderIdValue,
-    receiverIdValue
-  ) => {
-    const senderId =
-      normalizeId(senderIdValue);
+  if (!senderId || !receiverId) {
+    return { allowed: false, permission: "no-one", receiverExists: false };
+  }
 
-    const receiverId =
-      normalizeId(receiverIdValue);
+  const receiver = await User.findById(receiverId)
+    .select(["followers", "following", "privacySettings.messagePermission"].join(" "))
+    .lean();
 
-    if (
-      !senderId ||
-      !receiverId
-    ) {
-      return {
-        allowed: false,
-        permission: "no-one",
-        receiverExists: false,
-      };
-    }
+  if (!receiver) return { allowed: false, permission: "no-one", receiverExists: false };
 
-    const receiver =
-      await User.findById(
-        receiverId
-      )
-        .select(
-          [
-            "followers",
-            "following",
-            "privacySettings.messagePermission",
-          ].join(" ")
-        )
-        .lean();
+  const permission = ["everyone", "followers", "following", "no-one"].includes(receiver?.privacySettings?.messagePermission)
+    ? receiver.privacySettings.messagePermission
+    : "everyone";
 
-    if (!receiver) {
-      return {
-        allowed: false,
-        permission: "no-one",
-        receiverExists: false,
-      };
-    }
+  if (permission === "everyone") return { allowed: true, permission, receiverExists: true };
+  if (permission === "no-one") return { allowed: false, permission, receiverExists: true };
 
-    const permission =
-      [
-        "everyone",
-        "followers",
-        "following",
-        "no-one",
-      ].includes(
-        receiver
-          ?.privacySettings
-          ?.messagePermission
-      )
-        ? receiver
-          .privacySettings
-          .messagePermission
-        : "everyone";
+  const senderIsFollower = Array.isArray(receiver.followers) && receiver.followers.some((userId) => normalizeId(userId) === senderId);
+  const receiverFollowsSender = Array.isArray(receiver.following) && receiver.following.some((userId) => normalizeId(userId) === senderId);
 
-    if (permission === "everyone") {
-      return {
-        allowed: true,
-        permission,
-        receiverExists: true,
-      };
-    }
+  if (permission === "followers") return { allowed: senderIsFollower, permission, receiverExists: true };
+  if (permission === "following") return { allowed: receiverFollowsSender, permission, receiverExists: true };
 
-    if (permission === "no-one") {
-      return {
-        allowed: false,
-        permission,
-        receiverExists: true,
-      };
-    }
+  return { allowed: false, permission, receiverExists: true };
+};
 
-    const senderIsFollower =
-      Array.isArray(
-        receiver.followers
-      ) &&
-      receiver.followers.some(
-        (userId) =>
-          normalizeId(userId) ===
-          senderId
-      );
-
-    const receiverFollowsSender =
-      Array.isArray(
-        receiver.following
-      ) &&
-      receiver.following.some(
-        (userId) =>
-          normalizeId(userId) ===
-          senderId
-      );
-
-    if (permission === "followers") {
-      return {
-        allowed:
-          senderIsFollower,
-        permission,
-        receiverExists: true,
-      };
-    }
-
-    if (permission === "following") {
-      return {
-        allowed:
-          receiverFollowsSender,
-        permission,
-        receiverExists: true,
-      };
-    }
-
-    return {
-      allowed: false,
-      permission,
-      receiverExists: true,
-    };
-  };
-
-const getMessagePermissionError = (
-  permission
-) => {
+const getMessagePermissionError = (permission) => {
   switch (permission) {
-    case "followers":
-      return {
-        message:
-          "Only this user's followers can send messages",
-        code:
-          "MESSAGES_FOLLOWERS_ONLY",
-      };
-
-    case "following":
-      return {
-        message:
-          "Only people this user follows can send messages",
-        code:
-          "MESSAGES_FOLLOWING_ONLY",
-      };
-
-    case "no-one":
-      return {
-        message:
-          "This user is not accepting messages",
-        code:
-          "MESSAGES_DISABLED",
-      };
-
-    default:
-      return {
-        message:
-          "You cannot send messages to this user",
-        code:
-          "MESSAGE_PERMISSION_DENIED",
-      };
+    case "followers": return { message: "Only this user's followers can send messages", code: "MESSAGES_FOLLOWERS_ONLY" };
+    case "following": return { message: "Only people this user follows can send messages", code: "MESSAGES_FOLLOWING_ONLY" };
+    case "no-one": return { message: "This user is not accepting messages", code: "MESSAGES_DISABLED" };
+    default: return { message: "You cannot send messages to this user", code: "MESSAGE_PERMISSION_DENIED" };
   }
 };
 
+const getFastSendAccessContext = async (senderIdValue, receiverIdValue) => {
+  const senderId = normalizeId(senderIdValue);
+  const receiverId = normalizeId(receiverIdValue);
 
-/* =========================
-   FAST SEND ACCESS
-========================= */
-
-const getFastSendAccessContext =
-  async (
-    senderIdValue,
-    receiverIdValue
-  ) => {
-    const senderId =
-      normalizeId(senderIdValue);
-
-    const receiverId =
-      normalizeId(receiverIdValue);
-
-    if (!senderId || !receiverId) {
-      return {
-        sender: null,
-        receiver: null,
-
-        blockedBySender: false,
-        blockedByReceiver: false,
-        isBlocked: false,
-
-        allowed: false,
-        permission: "no-one",
-
-        existingConversation: false,
-      };
-    }
-
-    /*
-     * One User query only.
-     *
-     * Previously:
-     * 1. getUserBlockState()
-     * 2. canSendMessageToUser()
-     *
-     * both queried User separately.
-     */
-    const [
-      users,
-      existingConversation,
-    ] = await Promise.all([
-      User.find({
-        _id: {
-          $in: [
-            senderId,
-            receiverId,
-          ],
-        },
-      })
-        .select(
-          [
-            "_id",
-            "name",
-            "username",
-            "profilePic",
-            "blockedUsers",
-            "followers",
-            "following",
-            "privacySettings.messagePermission",
-          ].join(" ")
-        )
-        .lean(),
-
-      Message.exists({
-        $or: [
-          {
-            sender: senderId,
-            receiver: receiverId,
-          },
-          {
-            sender: receiverId,
-            receiver: senderId,
-          },
-        ],
-      }),
-    ]);
-
-    const userMap =
-      new Map(
-        users.map((user) => [
-          normalizeId(user?._id),
-          user,
-        ])
-      );
-
-    const sender =
-      userMap.get(senderId) ||
-      null;
-
-    const receiver =
-      userMap.get(receiverId) ||
-      null;
-
-    if (!receiver) {
-      return {
-        sender,
-        receiver: null,
-
-        blockedBySender: false,
-        blockedByReceiver: false,
-        isBlocked: false,
-
-        allowed: false,
-        permission: "no-one",
-
-        existingConversation:
-          Boolean(
-            existingConversation
-          ),
-      };
-    }
-
-    const blockedBySender =
-      Array.isArray(
-        sender?.blockedUsers
-      ) &&
-      sender.blockedUsers.some(
-        (userId) =>
-          normalizeId(userId) ===
-          receiverId
-      );
-
-    const blockedByReceiver =
-      Array.isArray(
-        receiver?.blockedUsers
-      ) &&
-      receiver.blockedUsers.some(
-        (userId) =>
-          normalizeId(userId) ===
-          senderId
-      );
-
-    const isBlocked =
-      blockedBySender ||
-      blockedByReceiver;
-
-    const rawPermission =
-      receiver
-        ?.privacySettings
-        ?.messagePermission;
-
-    const permission =
-      [
-        "everyone",
-        "followers",
-        "following",
-        "no-one",
-      ].includes(rawPermission)
-        ? rawPermission
-        : "everyone";
-
-    let allowed = false;
-
-    if (permission === "everyone") {
-      allowed = true;
-    } else if (
-      permission === "followers"
-    ) {
-      allowed =
-        Array.isArray(
-          receiver.followers
-        ) &&
-        receiver.followers.some(
-          (userId) =>
-            normalizeId(userId) ===
-            senderId
-        );
-    } else if (
-      permission === "following"
-    ) {
-      allowed =
-        Array.isArray(
-          receiver.following
-        ) &&
-        receiver.following.some(
-          (userId) =>
-            normalizeId(userId) ===
-            senderId
-        );
-    }
-
-    return {
-      sender,
-      receiver,
-
-      blockedBySender,
-      blockedByReceiver,
-      isBlocked,
-
-      allowed,
-      permission,
-
-      existingConversation:
-        Boolean(
-          existingConversation
-        ),
-    };
-  };
-
-const toMessageUserPayload = (
-  user
-) => {
-  if (!user) {
-    return null;
+  if (!senderId || !receiverId) {
+    return { sender: null, receiver: null, blockedBySender: false, blockedByReceiver: false, isBlocked: false, allowed: false, permission: "no-one", existingConversation: false };
   }
 
-  return {
-    _id: user._id,
-
-    name:
-      String(
-        user.name || ""
-      ).trim(),
-
-    username:
-      String(
-        user.username || ""
-      ).trim(),
-
-    profilePic:
-      String(
-        user.profilePic || ""
-      ).trim(),
-  };
-};
-
-/* =========================
-   MESSAGE MEDIA HELPERS
-========================= */
-
-
-const cleanupMessageImageIfUnused =
-  async ({
-    imageFileId,
-  }) => {
-    const normalizedFileId =
-      String(
-        imageFileId || ""
-      ).trim();
-
-    if (!normalizedFileId) {
-      return;
-    }
-
-    try {
-      const imageStillUsed =
-        await Message.exists({
-          imageFileId:
-            normalizedFileId,
-        });
-
-      if (imageStillUsed) {
-        return;
-      }
-
-      await deleteImageKitFile(
-        normalizedFileId
-      );
-    } catch (error) {
-      console.error(
-        "MESSAGE IMAGE CLEANUP ERROR:",
-        error
-      );
-    }
-  };
-
-const populateMessage = async (
-  message
-) => {
-  await message.populate([
-    {
-      path: "sender",
-      select:
-        "name username profilePic",
-    },
-    {
-      path: "receiver",
-      select:
-        "name username profilePic",
-    },
-    {
-      path: "replyTo",
-
-      populate: {
-        path: "sender",
-        select:
-          "name username profilePic",
-      },
-    },
-    {
-      path: "reactions.user",
-      select:
-        "name username profilePic",
-    },
-    {
-      path: "pinnedBy",
-      select:
-        "name username profilePic",
-    },
+  const [users, existingConversation] = await Promise.all([
+    User.find({ _id: { $in: [senderId, receiverId] } })
+      .select(["_id", "name", "username", "profilePic", "blockedUsers", "followers", "following", "privacySettings.messagePermission"].join(" "))
+      .lean(),
+    Message.exists({
+      $or: [{ sender: senderId, receiver: receiverId }, { sender: receiverId, receiver: senderId }],
+    }),
   ]);
 
+  const userMap = new Map(users.map((user) => [normalizeId(user?._id), user]));
+  const sender = userMap.get(senderId) || null;
+  const receiver = userMap.get(receiverId) || null;
+
+  if (!receiver) {
+    return { sender, receiver: null, blockedBySender: false, blockedByReceiver: false, isBlocked: false, allowed: false, permission: "no-one", existingConversation: Boolean(existingConversation) };
+  }
+
+  const blockedBySender = Array.isArray(sender?.blockedUsers) && sender.blockedUsers.some((userId) => normalizeId(userId) === receiverId);
+  const blockedByReceiver = Array.isArray(receiver?.blockedUsers) && receiver.blockedUsers.some((userId) => normalizeId(userId) === senderId);
+  const isBlocked = blockedBySender || blockedByReceiver;
+
+  const rawPermission = receiver?.privacySettings?.messagePermission;
+  const permission = ["everyone", "followers", "following", "no-one"].includes(rawPermission) ? rawPermission : "everyone";
+
+  let allowed = false;
+  if (permission === "everyone") {
+    allowed = true;
+  } else if (permission === "followers") {
+    allowed = Array.isArray(receiver.followers) && receiver.followers.some((userId) => normalizeId(userId) === senderId);
+  } else if (permission === "following") {
+    allowed = Array.isArray(receiver.following) && receiver.following.some((userId) => normalizeId(userId) === senderId);
+  }
+
+  return { sender, receiver, blockedBySender, blockedByReceiver, isBlocked, allowed, permission, existingConversation: Boolean(existingConversation) };
+};
+
+const toMessageUserPayload = (user) => {
+  if (!user) return null;
+  return { _id: user._id, name: String(user.name || "").trim(), username: String(user.username || "").trim(), profilePic: String(user.profilePic || "").trim() };
+};
+
+const cleanupMessageImageIfUnused = async ({ imageFileId }) => {
+  const normalizedFileId = String(imageFileId || "").trim();
+  if (!normalizedFileId) return;
+  try {
+    const imageStillUsed = await Message.exists({ imageFileId: normalizedFileId });
+    if (imageStillUsed) return;
+    await deleteImageKitFile(normalizedFileId);
+  } catch (error) {
+    console.error("MESSAGE IMAGE CLEANUP ERROR:", error);
+  }
+};
+
+const populateMessage = async (message) => {
+  await message.populate([
+    { path: "sender", select: "name username profilePic" },
+    { path: "receiver", select: "name username profilePic" },
+    { path: "replyTo", populate: { path: "sender", select: "name username profilePic" } },
+    { path: "reactions.user", select: "name username profilePic" },
+    { path: "pinnedBy", select: "name username profilePic" },
+  ]);
   return message;
 };
 
-const populateSentMessage =
-  async (message) => {
-    const populateOptions = [
-      {
-        path: "sender",
-        select:
-          "name username profilePic",
-      },
-      {
-        path: "receiver",
-        select:
-          "name username profilePic",
-      },
-    ];
-
-    if (message?.replyTo) {
-      populateOptions.push({
-        path: "replyTo",
-
-        populate: {
-          path: "sender",
-          select:
-            "name username profilePic",
-        },
-      });
-    }
-
-    await message.populate(
-      populateOptions
-    );
-
-    return message;
-  };
-
-const getControllerErrorResponse = (
-  error,
-  fallbackMessage
-) => {
-  if (
-    error?.name ===
-    "ValidationError" ||
-    error?.name ===
-    "CastError"
-  ) {
-    return {
-      status: 400,
-
-      message:
-        error.message ||
-        "Invalid request data",
-    };
+const populateSentMessage = async (message) => {
+  const populateOptions = [
+    { path: "sender", select: "name username profilePic" },
+    { path: "receiver", select: "name username profilePic" },
+  ];
+  if (message?.replyTo) {
+    populateOptions.push({ path: "replyTo", populate: { path: "sender", select: "name username profilePic" } });
   }
+  await message.populate(populateOptions);
+  return message;
+};
 
-  return {
-    status: 500,
-    message: fallbackMessage,
-  };
+const getControllerErrorResponse = (error, fallbackMessage) => {
+  if (error?.name === "ValidationError" || error?.name === "CastError") {
+    return { status: 400, message: error.message || "Invalid request data" };
+  }
+  return { status: 500, message: fallbackMessage };
 };
 
 /* =========================
    SEND MESSAGE
 ========================= */
 
-const sendMessage = async (
-  req,
-  res
-) => {
+const sendMessage = async (req, res) => {
   let uploadedImageUrl = "";
   let uploadedImageFileId = "";
   let persistedMessage = null;
 
   try {
-    const senderId =
-      normalizeId(req.user);
+    const senderId = normalizeId(req.user);
+    const receiverId = normalizeId(req.body?.receiver);
+    const replyToId = normalizeId(req.body?.replyTo);
+    const normalizedText = String(req.body?.text || "").trim();
+    const sharedPostId = normalizeId(req.body?.sharedPostId);
+    const rawClientMessageId = String(req.body?.clientMessageId || "").trim();
+    const clientMessageId = normalizeClientMessageId(rawClientMessageId);
 
-    const receiverId =
-      normalizeId(
-        req.body?.receiver
-      );
+    if (!senderId || !isValidObjectId(senderId)) return res.status(401).json({ success: false, message: "Authentication required" });
+    if (!receiverId || !isValidObjectId(receiverId)) return res.status(400).json({ success: false, message: "A valid receiver is required" });
+    if (senderId === receiverId) return res.status(400).json({ success: false, message: "You cannot send a message to yourself" });
 
-    const replyToId =
-      normalizeId(
-        req.body?.replyTo
-      );
+    if (rawClientMessageId && !clientMessageId) return res.status(400).json({ success: false, message: "Invalid client message ID", code: "INVALID_CLIENT_MESSAGE_ID" });
 
-    const normalizedText =
-      String(
-        req.body?.text || ""
-      ).trim();
-
-    const sharedPostId =
-      normalizeId(
-        req.body?.sharedPostId
-      );
-
-    const rawClientMessageId =
-      String(
-        req.body?.clientMessageId ||
-        ""
-      ).trim();
-
-    const clientMessageId =
-      normalizeClientMessageId(
-        rawClientMessageId
-      );
-
-    /* =========================
-       AUTH VALIDATION
-    ========================= */
-
-    if (
-      !senderId ||
-      !isValidObjectId(senderId)
-    ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
-    }
-
-    if (
-      !receiverId ||
-      !isValidObjectId(receiverId)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "A valid receiver is required",
-      });
-    }
-
-    if (senderId === receiverId) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "You cannot send a message to yourself",
-      });
-    }
-
-    /* =========================
-       CLIENT MESSAGE ID
-    ========================= */
-
-    if (
-      rawClientMessageId &&
-      !clientMessageId
-    ) {
-      return res.status(400).json({
-        success: false,
-
-        message:
-          "Invalid client message ID",
-
-        code:
-          "INVALID_CLIENT_MESSAGE_ID",
-      });
-    }
-
-    /*
-     * Retry/idempotency path.
-     *
-     * Rare path, so population here is
-     * acceptable. Normal send path below
-     * no longer populates after save.
-     */
     if (clientMessageId) {
-      const existingMessage =
-        await Message.findOne({
-          sender: senderId,
-          clientMessageId,
-        });
-
+      const existingMessage = await Message.findOne({ sender: senderId, clientMessageId });
       if (existingMessage) {
-        const existingReceiverId =
-          normalizeId(
-            existingMessage.receiver
-          );
-
-        if (
-          existingReceiverId !==
-          receiverId
-        ) {
-          return res
-            .status(409)
-            .json({
-              success: false,
-
-              message:
-                "Client message ID is already in use",
-
-              code:
-                "CLIENT_MESSAGE_ID_CONFLICT",
-            });
+        if (normalizeId(existingMessage.receiver) !== receiverId) {
+          return res.status(409).json({ success: false, message: "Client message ID is already in use", code: "CLIENT_MESSAGE_ID_CONFLICT" });
         }
-
-        await populateSentMessage(
-          existingMessage
-        );
-
-        return res.status(200).json({
-          success: true,
-          duplicate: true,
-
-          message:
-            "Message already sent",
-
-          data:
-            existingMessage.toObject(),
-        });
+        await populateSentMessage(existingMessage);
+        return res.status(200).json({ success: true, duplicate: true, message: "Message already sent", data: existingMessage.toObject() });
       }
     }
 
-    /* =========================
-       CONTENT VALIDATION
-    ========================= */
+    if (normalizedText.length > MAX_MESSAGE_LENGTH) return res.status(400).json({ success: false, message: `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters` });
+    if (!normalizedText && !req.file && !sharedPostId) return res.status(400).json({ success: false, message: "Message must contain text, an image, or a shared post" });
+    if (replyToId && !isValidObjectId(replyToId)) return res.status(400).json({ success: false, message: "Invalid reply message" });
+    if (sharedPostId && !isValidObjectId(sharedPostId)) return res.status(400).json({ success: false, message: "Invalid shared post" });
 
-    if (
-      normalizedText.length >
-      MAX_MESSAGE_LENGTH
-    ) {
-      return res.status(400).json({
-        success: false,
-
-        message:
-          `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`,
-      });
-    }
-
-    if (
-      !normalizedText &&
-      !req.file &&
-      !sharedPostId
-    ) {
-      return res.status(400).json({
-        success: false,
-
-        message:
-          "Message must contain text, an image, or a shared post",
-      });
-    }
-
-    if (
-      replyToId &&
-      !isValidObjectId(replyToId)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid reply message",
-      });
-    }
-
-    if (
-      sharedPostId &&
-      !isValidObjectId(
-        sharedPostId
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid shared post",
-      });
-    }
-
-    /* =========================
-       FAST ACCESS CHECK
-    ========================= */
-
-    const access =
-      await getFastSendAccessContext(
-        senderId,
-        receiverId
-      );
-
-    if (!access.sender) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Sender not found",
-      });
-    }
-
-    if (!access.receiver) {
-      return res.status(404).json({
-        success: false,
-
-        message:
-          "Receiver not found",
-
-        code:
-          "RECEIVER_NOT_FOUND",
-      });
-    }
-
+    const access = await getFastSendAccessContext(senderId, receiverId);
+    if (!access.sender) return res.status(401).json({ success: false, message: "Sender not found" });
+    if (!access.receiver) return res.status(404).json({ success: false, message: "Receiver not found", code: "RECEIVER_NOT_FOUND" });
     if (access.isBlocked) {
       return res.status(403).json({
         success: false,
-
-        message:
-          access.blockedBySender
-            ? "Unblock this user to send messages"
-            : "You cannot send messages to this user",
-
-        code:
-          access.blockedBySender
-            ? "USER_BLOCKED_BY_YOU"
-            : "USER_BLOCKED_YOU",
+        message: access.blockedBySender ? "Unblock this user to send messages" : "You cannot send messages to this user",
+        code: access.blockedBySender ? "USER_BLOCKED_BY_YOU" : "USER_BLOCKED_YOU",
       });
     }
 
-    /*
-     * Existing conversation users can
-     * continue the conversation.
-     *
-     * New conversations respect receiver
-     * message privacy permission.
-     */
-    if (
-      !access.existingConversation &&
-      !access.allowed
-    ) {
-      const permissionError =
-        getMessagePermissionError(
-          access.permission
-        );
-
-      return res.status(403).json({
-        success: false,
-
-        message:
-          permissionError.message,
-
-        code:
-          permissionError.code,
-
-        data: {
-          userId:
-            receiverId,
-
-          messagePermission:
-            access.permission,
-        },
-      });
+    if (!access.existingConversation && !access.allowed) {
+      const permissionError = getMessagePermissionError(access.permission);
+      return res.status(403).json({ success: false, message: permissionError.message, code: permissionError.code, data: { userId: receiverId, messagePermission: access.permission } });
     }
-
-    /* =========================
-       OPTIONAL DATA
-    ========================= */
 
     let sharedPostData = null;
     let replyPayload = null;
 
-    /*
-     * Reply and shared-post lookups can
-     * run together when both exist.
-     */
-    const [
-      repliedMessage,
-      sharedPost,
-    ] = await Promise.all([
-      replyToId
-        ? Message.findOne({
-          _id: replyToId,
-
-          deletedForEveryone:
-            false,
-
-          deletedFor: {
-            $nin: [
-              senderId,
-            ],
-          },
-
-          $or: [
-            {
-              sender:
-                senderId,
-              receiver:
-                receiverId,
-            },
-            {
-              sender:
-                receiverId,
-              receiver:
-                senderId,
-            },
-          ],
-        })
-          .populate(
-            "sender",
-            "name username profilePic"
-          )
-          .lean()
-        : Promise.resolve(null),
-
-      sharedPostId
-        ? Post.findById(
-          sharedPostId
-        )
-          .populate(
-            "user",
-            "name username profilePic"
-          )
-          .lean()
-        : Promise.resolve(null),
+    const [repliedMessage, sharedPost] = await Promise.all([
+      replyToId ? Message.findOne({
+        _id: replyToId, deletedForEveryone: false, deletedFor: { $nin: [senderId] }, $or: [{ sender: senderId, receiver: receiverId }, { sender: receiverId, receiver: senderId }],
+      }).populate("sender", "name username profilePic").lean() : Promise.resolve(null),
+      sharedPostId ? Post.findById(sharedPostId).populate("user", "name username profilePic").lean() : Promise.resolve(null),
     ]);
 
-    /* =========================
-       REPLY
-    ========================= */
+    if (replyToId && !repliedMessage) return res.status(400).json({ success: false, message: "Reply message was not found in this conversation" });
+    if (repliedMessage) replyPayload = repliedMessage;
 
-    if (
-      replyToId &&
-      !repliedMessage
-    ) {
-      return res.status(400).json({
-        success: false,
-
-        message:
-          "Reply message was not found in this conversation",
-      });
-    }
-
-    if (repliedMessage) {
-      replyPayload =
-        repliedMessage;
-    }
-
-    /* =========================
-       SHARED POST
-    ========================= */
-
-    if (
-      sharedPostId &&
-      !sharedPost
-    ) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Shared post not found",
-      });
-    }
-
+    if (sharedPostId && !sharedPost) return res.status(404).json({ success: false, message: "Shared post not found" });
     if (sharedPost) {
-      const sharedPostOwner =
-        sharedPost.user || {};
-
-      const ownerId =
-        normalizeId(
-          sharedPostOwner
-        );
-
-      if (!ownerId) {
-        return res.status(400).json({
-          success: false,
-
-          message:
-            "Shared post owner is unavailable",
-        });
-      }
-
+      const ownerId = normalizeId(sharedPost.user);
+      if (!ownerId) return res.status(400).json({ success: false, message: "Shared post owner is unavailable" });
       sharedPostData = {
-        postId:
-          sharedPost._id,
-
-        image:
-          String(
-            sharedPost.image || ""
-          ).trim(),
-
-        caption:
-          String(
-            sharedPost.caption || ""
-          ).trim(),
-
-        owner:
-          ownerId,
-
-        ownerName:
-          String(
-            sharedPostOwner.name ||
-            ""
-          ).trim(),
-
-        ownerUsername:
-          String(
-            sharedPostOwner
-              .username || ""
-          ).trim(),
-
-        ownerProfilePic:
-          String(
-            sharedPostOwner
-              .profilePic || ""
-          ).trim(),
+        postId: sharedPost._id, image: String(sharedPost.image || "").trim(), caption: String(sharedPost.caption || "").trim(),
+        owner: ownerId, ownerName: String(sharedPost.user?.name || "").trim(), ownerUsername: String(sharedPost.user?.username || "").trim(), ownerProfilePic: String(sharedPost.user?.profilePic || "").trim(),
       };
     }
 
-    /* =========================
-       IMAGE UPLOAD
-    ========================= */
-
     if (req.file) {
-      const uploaded =
-        await uploadImageKitFile(
-          req.file.buffer,
-
-          req.file.originalname ||
-          "message.jpg",
-
-          "/pingme/messages"
-        );
-
-      uploadedImageUrl =
-        String(
-          uploaded?.url || ""
-        ).trim();
-
-      uploadedImageFileId =
-        String(
-          uploaded?.fileId || ""
-        ).trim();
-
-      if (
-        !uploadedImageUrl ||
-        !uploadedImageFileId
-      ) {
-        throw new Error(
-          "Message image upload returned an invalid response"
-        );
-      }
+      const uploaded = await uploadImageKitFile(req.file.buffer, req.file.originalname || "message.jpg", "/pingme/messages");
+      uploadedImageUrl = String(uploaded?.url || "").trim();
+      uploadedImageFileId = String(uploaded?.fileId || "").trim();
+      if (!uploadedImageUrl || !uploadedImageFileId) throw new Error("Message image upload returned an invalid response");
     }
 
-    /* =========================
-       CREATE MESSAGE
-    ========================= */
+    // 2. ADDED: Real-time dynamic status based on presence
+    const receiverIsOnline = typeof isUserOnline === 'function' ? isUserOnline(receiverId) : false;
+    const initialStatus = receiverIsOnline ? "delivered" : "sent";
+    const initialDeliveredAt = receiverIsOnline ? new Date() : null;
 
-    persistedMessage =
-      await Message.create({
-        sender:
-          senderId,
+    persistedMessage = await Message.create({
+      sender: senderId,
+      receiver: receiverId,
+      clientMessageId: clientMessageId || null,
+      text: normalizedText,
+      image: uploadedImageUrl,
+      imageFileId: uploadedImageFileId,
+      sharedPost: sharedPostData,
+      status: initialStatus,         // Updated dynamically
+      deliveredAt: initialDeliveredAt, // Updated dynamically
+      replyTo: replyToId || null,
+      reactions: [],
+    });
 
-        receiver:
-          receiverId,
-
-        clientMessageId:
-          clientMessageId ||
-          null,
-
-        text:
-          normalizedText,
-
-        image:
-          uploadedImageUrl,
-
-        imageFileId:
-          uploadedImageFileId,
-
-        sharedPost:
-          sharedPostData,
-
-        status:
-          "sent",
-
-        replyTo:
-          replyToId ||
-          null,
-
-        reactions:
-          [],
-      });
-
-    /*
-     * CRITICAL PERFORMANCE CHANGE:
-     *
-     * No populateSentMessage() here.
-     *
-     * Sender + receiver already came from
-     * the access query.
-     *
-     * Reply payload was already loaded only
-     * when the message is actually a reply.
-     */
-    const rawMessage =
-      persistedMessage.toObject();
-
+    const rawMessage = persistedMessage.toObject();
     const messagePayload = {
       ...rawMessage,
-
-      sender:
-        toMessageUserPayload(
-          access.sender
-        ),
-
-      receiver:
-        toMessageUserPayload(
-          access.receiver
-        ),
-
-      replyTo:
-        replyPayload ||
-        null,
+      sender: toMessageUserPayload(access.sender),
+      receiver: toMessageUserPayload(access.receiver),
+      replyTo: replyPayload || null,
     };
 
-    /* =========================
-       REALTIME DELIVERY
-    ========================= */
+    const io = getSafeIO();
+    if (io) io.to(receiverId).emit("newMessage", messagePayload);
 
-    const io =
-      getSafeIO();
-
-    if (io) {
-      io.to(receiverId).emit(
-        "newMessage",
-        messagePayload
-      );
-    }
-
-    /*
-     * HTTP response and socket receiver
-     * payload use the exact same object.
-     */
-    return res.status(201).json({
-      success: true,
-      duplicate: false,
-
-      message:
-        "Message sent successfully",
-
-      data:
-        messagePayload,
-    });
+    return res.status(201).json({ success: true, duplicate: false, message: "Message sent successfully", data: messagePayload });
   } catch (error) {
-    /*
-     * Unique clientMessageId race.
-     */
-    const duplicateClientMessageId =
-      error?.code === 11000 &&
-      Boolean(
-        error?.keyPattern
-          ?.clientMessageId ||
-        error?.keyValue
-          ?.clientMessageId
-      );
+    const duplicateClientMessageId = error?.code === 11000 && Boolean(error?.keyPattern?.clientMessageId || error?.keyValue?.clientMessageId);
+    if (duplicateClientMessageId) {
+      const senderId = normalizeId(req.user);
+      const receiverId = normalizeId(req.body?.receiver);
+      const clientMessageId = normalizeClientMessageId(req.body?.clientMessageId);
 
-    if (
-      duplicateClientMessageId
-    ) {
-      const senderId =
-        normalizeId(req.user);
-
-      const receiverId =
-        normalizeId(
-          req.body?.receiver
-        );
-
-      const clientMessageId =
-        normalizeClientMessageId(
-          req.body?.clientMessageId
-        );
-
-      /*
-       * A duplicate image request may
-       * already have uploaded another file.
-       * Remove that unused upload.
-       */
       if (uploadedImageFileId) {
-        try {
-          await deleteImageKitFile(
-            uploadedImageFileId
-          );
-        } catch (cleanupError) {
-          console.error(
-            "DUPLICATE MESSAGE IMAGE CLEANUP ERROR:",
-            cleanupError
-          );
-        }
-
-        uploadedImageFileId = "";
-        uploadedImageUrl = "";
+        try { await deleteImageKitFile(uploadedImageFileId); } catch (e) { console.error("DUPLICATE CLEANUP ERROR:", e); }
+        uploadedImageFileId = ""; uploadedImageUrl = "";
       }
 
-      const existingMessage =
-        await Message.findOne({
-          sender:
-            senderId,
-
-          receiver:
-            receiverId,
-
-          clientMessageId,
-        });
-
+      const existingMessage = await Message.findOne({ sender: senderId, receiver: receiverId, clientMessageId });
       if (existingMessage) {
-        await populateSentMessage(
-          existingMessage
-        );
-
-        return res.status(200).json({
-          success: true,
-          duplicate: true,
-
-          message:
-            "Message already sent",
-
-          data:
-            existingMessage.toObject(),
-        });
+        await populateSentMessage(existingMessage);
+        return res.status(200).json({ success: true, duplicate: true, message: "Message already sent", data: existingMessage.toObject() });
       }
     }
 
-    /*
-     * Upload succeeded but DB create did
-     * not. Cleanup ImageKit orphan.
-     */
-    if (
-      uploadedImageFileId &&
-      !persistedMessage
-    ) {
-      void deleteImageKitFile(
-        uploadedImageFileId
-      ).catch(
-        (cleanupError) => {
-          console.error(
-            "MESSAGE UPLOAD ROLLBACK ERROR:",
-            cleanupError
-          );
-        }
-      );
+    if (uploadedImageFileId && !persistedMessage) {
+      void deleteImageKitFile(uploadedImageFileId).catch((e) => console.error("MESSAGE UPLOAD ROLLBACK ERROR:", e));
     }
-
-    console.error(
-      "SEND MESSAGE ERROR:",
-      error
-    );
-
-    const result =
-      getControllerErrorResponse(
-        error,
-        "Unable to send message"
-      );
-
-    return res
-      .status(result.status)
-      .json({
-        success: false,
-        message:
-          result.message,
-      });
+    console.error("SEND MESSAGE ERROR:", error);
+    const result = getControllerErrorResponse(error, "Unable to send message");
+    return res.status(result.status).json({ success: false, message: result.message });
   }
 };
 
@@ -1562,1467 +384,361 @@ const sendMessage = async (
    GET CONVERSATION
 ========================= */
 
-const getMessages = async (
-  req,
-  res
-) => {
-  console.log(
-    "NEW GET MESSAGES ACTIVE:",
-    req.params?.userId
-  );
+const getMessages = async (req, res) => {
   try {
-    const currentUserId =
-      normalizeId(req.user);
+    const currentUserId = normalizeId(req.user);
+    const otherUserId = normalizeId(req.params?.userId);
 
-    const otherUserId =
-      normalizeId(
-        req.params?.userId
-      );
+    if (!currentUserId || !isValidObjectId(currentUserId)) return res.status(401).json({ success: false, message: "Authentication required" });
+    if (!otherUserId || !isValidObjectId(otherUserId)) return res.status(400).json({ success: false, message: "Invalid user ID" });
+    if (currentUserId === otherUserId) return res.status(400).json({ success: false, message: "Invalid conversation" });
 
-    if (
-      !currentUserId ||
-      !isValidObjectId(
-        currentUserId
-      )
-    ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
-    }
-
-    if (
-      !otherUserId ||
-      !isValidObjectId(
-        otherUserId
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid user ID",
-      });
-    }
-
-    if (
-      currentUserId ===
-      otherUserId
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid conversation",
-      });
-    }
-
-    const requestedLimit =
-      Number.parseInt(
-        req.query?.limit,
-        10
-      );
-
-    const limit = Math.min(
-      Math.max(
-        Number.isNaN(
-          requestedLimit
-        )
-          ? DEFAULT_PAGE_SIZE
-          : requestedLimit,
-        1
-      ),
-      MAX_PAGE_SIZE
-    );
-
-    const before =
-      req.query?.before;
+    const requestedLimit = Number.parseInt(req.query?.limit, 10);
+    const limit = Math.min(Math.max(Number.isNaN(requestedLimit) ? DEFAULT_PAGE_SIZE : requestedLimit, 1), MAX_PAGE_SIZE);
+    const before = req.query?.before;
 
     const conversationQuery = {
-      $or: [
-        {
-          sender:
-            currentUserId,
-
-          receiver:
-            otherUserId,
-        },
-        {
-          sender:
-            otherUserId,
-
-          receiver:
-            currentUserId,
-        },
-      ],
-
-
-      deletedFor: {
-        $nin: [
-          currentUserId,
-        ],
-      },
+      $or: [{ sender: currentUserId, receiver: otherUserId }, { sender: otherUserId, receiver: currentUserId }],
+      deletedFor: { $nin: [currentUserId] },
     };
 
     if (before) {
-      const beforeDate =
-        new Date(before);
-
-      if (
-        Number.isNaN(
-          beforeDate.getTime()
-        )
-      ) {
-        return res.status(400).json({
-          success: false,
-
-          message:
-            "Invalid pagination cursor",
-        });
-      }
-
-      conversationQuery.createdAt = {
-        $lt: beforeDate,
-      };
+      const beforeDate = new Date(before);
+      if (Number.isNaN(beforeDate.getTime())) return res.status(400).json({ success: false, message: "Invalid pagination cursor" });
+      conversationQuery.createdAt = { $lt: beforeDate };
     }
 
-    const fetchedMessages =
-      await Message.find(
-        conversationQuery
-      )
-        .populate(
-          "sender",
-          "name username profilePic"
-        )
-        .populate(
-          "receiver",
-          "name username profilePic"
-        )
-        .populate({
-          path: "replyTo",
+    const fetchedMessages = await Message.find(conversationQuery)
+      .populate("sender", "name username profilePic")
+      .populate("receiver", "name username profilePic")
+      .populate({ path: "replyTo", populate: { path: "sender", select: "name username profilePic" } })
+      .populate("reactions.user", "name username profilePic")
+      .populate("pinnedBy", "name username profilePic")
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit + 1).lean();
 
-          populate: {
-            path: "sender",
-            select:
-              "name username profilePic",
-          },
-        })
-        .populate(
-          "reactions.user",
-          "name username profilePic"
-        )
-        .populate(
-          "pinnedBy",
-          "name username profilePic"
-        )
-        .sort({
-          createdAt: -1,
-          _id: -1,
-        })
-        .limit(limit + 1)
-        .lean();
+    const hasMore = fetchedMessages.length > limit;
+    const pageMessages = hasMore ? fetchedMessages.slice(0, limit) : fetchedMessages;
 
-    const hasMore =
-      fetchedMessages.length >
-      limit;
-
-    const pageMessages =
-      hasMore
-        ? fetchedMessages.slice(
-          0,
-          limit
-        )
-        : fetchedMessages;
-
-    /*
-     * Database latest-first.
-     * UI oldest-first.
-     */
-    pageMessages.reverse();
-
-    const nextCursor =
-      hasMore &&
-        pageMessages.length > 0
-        ? pageMessages[0]
-          .createdAt
-        : null;
-
-    return res.status(200).json({
-      success: true,
-
-      count:
-        pageMessages.length,
-
-      messages:
-        pageMessages,
-
-      pagination: {
-        limit,
-        hasMore,
-        nextCursor,
-      },
-    });
-  } catch (error) {
-    console.error(
-      "GET MESSAGES ERROR:",
-      error
+    // 3. ADDED: Auto-mark as read logic when conversation is opened/fetched
+    const unreadMessages = pageMessages.filter(
+      (m) => String(m.sender?._id || m.sender) === otherUserId && (m.status === "sent" || m.status === "delivered")
     );
 
-    const result =
-      getControllerErrorResponse(
-        error,
-        "Unable to load messages"
-      );
+    if (unreadMessages.length > 0) {
+      const now = new Date();
+      const unreadIds = unreadMessages.map((m) => m._id);
 
-    return res
-      .status(result.status)
-      .json({
-        success: false,
-        message: result.message,
+      // Async Update in DB without blocking the response
+      Message.updateMany(
+        { _id: { $in: unreadIds } },
+        { $set: { status: "read", readAt: now } }
+      ).catch(e => console.error("GET_MESSAGES AUTO-READ UPDATE ERROR:", e));
+
+      // Update local payload for UI consistency
+      pageMessages.forEach(m => {
+        if (unreadIds.some(id => id.toString() === m._id.toString())) {
+          m.status = "read";
+          m.readAt = now;
+        }
       });
+
+      // Emit read receipt back to sender via Socket
+      const io = getSafeIO();
+      if (io) {
+        io.to(otherUserId).emit("conversationRead", {
+          readBy: currentUserId,
+          readAt: now
+        });
+      }
+    }
+
+    pageMessages.reverse();
+    const nextCursor = hasMore && pageMessages.length > 0 ? pageMessages[0].createdAt : null;
+
+    return res.status(200).json({ success: true, count: pageMessages.length, messages: pageMessages, pagination: { limit, hasMore, nextCursor } });
+  } catch (error) {
+    console.error("GET MESSAGES ERROR:", error);
+    const result = getControllerErrorResponse(error, "Unable to load messages");
+    return res.status(result.status).json({ success: false, message: result.message });
   }
 };
-
 
 /* =========================
    GET PINNED MESSAGE
 ========================= */
 
-const getPinnedMessage = async (
-  req,
-  res
-) => {
+const getPinnedMessage = async (req, res) => {
   try {
-    const currentUserId =
-      normalizeId(req.user);
+    const currentUserId = normalizeId(req.user);
+    const otherUserId = normalizeId(req.params?.userId);
 
-    const otherUserId =
-      normalizeId(
-        req.params?.userId
-      );
+    if (!currentUserId || !isValidObjectId(currentUserId)) return res.status(401).json({ success: false, message: "Authentication required" });
+    if (!otherUserId || !isValidObjectId(otherUserId)) return res.status(400).json({ success: false, message: "Invalid user ID" });
+    if (currentUserId === otherUserId) return res.status(400).json({ success: false, message: "Invalid conversation" });
 
-    if (
-      !currentUserId ||
-      !isValidObjectId(
-        currentUserId
-      )
-    ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
-    }
+    const pinnedMessage = await Message.findOne({
+      pinnedAt: { $ne: null }, deletedForEveryone: false, deletedFor: { $nin: [currentUserId] }, $or: [{ sender: currentUserId, receiver: otherUserId }, { sender: otherUserId, receiver: currentUserId }],
+    }).sort({ pinnedAt: -1 });
 
-    if (
-      !otherUserId ||
-      !isValidObjectId(
-        otherUserId
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid user ID",
-      });
-    }
+    if (!pinnedMessage) return res.status(200).json({ success: true, data: null });
 
-    if (
-      currentUserId ===
-      otherUserId
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid conversation",
-      });
-    }
-
-    const pinnedMessage =
-      await Message.findOne({
-        pinnedAt: {
-          $ne: null,
-        },
-
-        deletedForEveryone:
-          false,
-
-        deletedFor: {
-          $nin: [
-            currentUserId,
-          ],
-        },
-
-        $or: [
-          {
-            sender:
-              currentUserId,
-
-            receiver:
-              otherUserId,
-          },
-          {
-            sender:
-              otherUserId,
-
-            receiver:
-              currentUserId,
-          },
-        ],
-      }).sort({
-        pinnedAt: -1,
-      });
-
-    if (!pinnedMessage) {
-      return res.status(200).json({
-        success: true,
-        data: null,
-      });
-    }
-
-    await populateMessage(
-      pinnedMessage
-    );
-
-    return res.status(200).json({
-      success: true,
-      data:
-        pinnedMessage.toObject(),
-    });
+    await populateMessage(pinnedMessage);
+    return res.status(200).json({ success: true, data: pinnedMessage.toObject() });
   } catch (error) {
-    console.error(
-      "GET PINNED MESSAGE ERROR:",
-      error
-    );
-
-    const result =
-      getControllerErrorResponse(
-        error,
-        "Unable to get pinned message"
-      );
-
-    return res
-      .status(result.status)
-      .json({
-        success: false,
-        message: result.message,
-      });
+    console.error("GET PINNED MESSAGE ERROR:", error);
+    const result = getControllerErrorResponse(error, "Unable to get pinned message");
+    return res.status(result.status).json({ success: false, message: result.message });
   }
 };
-
 
 /* =========================
    TOGGLE MESSAGE REACTION
 ========================= */
 
-const toggleReaction = async (
-  req,
-  res
-) => {
+const toggleReaction = async (req, res) => {
   try {
-    const currentUserId =
-      normalizeId(req.user);
+    const currentUserId = normalizeId(req.user);
+    const messageId = normalizeId(req.params?.messageId);
+    const emoji = String(req.body?.emoji || "").trim();
 
-    const messageId =
-      normalizeId(
-        req.params?.messageId
-      );
+    if (!currentUserId || !isValidObjectId(currentUserId)) return res.status(401).json({ success: false, message: "Authentication required" });
+    if (!messageId || !isValidObjectId(messageId)) return res.status(400).json({ success: false, message: "Invalid message ID" });
 
-    const emoji =
-      String(
-        req.body?.emoji || ""
-      ).trim();
+    const allowedReactions = getAllowedReactions();
+    if (!emoji || !allowedReactions.includes(emoji)) return res.status(400).json({ success: false, message: "Unsupported reaction", allowedReactions });
 
-    if (
-      !currentUserId ||
-      !isValidObjectId(
-        currentUserId
-      )
-    ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
-    }
+    const message = await Message.findOne({
+      _id: messageId, deletedForEveryone: false, deletedFor: { $nin: [currentUserId] }, $or: [{ sender: currentUserId }, { receiver: currentUserId }],
+    });
 
-    if (
-      !messageId ||
-      !isValidObjectId(
-        messageId
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid message ID",
-      });
-    }
+    if (!message) return res.status(404).json({ success: false, message: "Message not found or you cannot react to it" });
 
-    const allowedReactions =
-      getAllowedReactions();
+    const reactionOtherUserId = getOtherMessageParticipantId(message, currentUserId);
+    const reactionBlockState = await getUserBlockState(currentUserId, reactionOtherUserId);
 
-    if (
-      !emoji ||
-      !allowedReactions.includes(
-        emoji
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-
-        message:
-          "Unsupported reaction",
-
-        allowedReactions,
-      });
-    }
-
-    const message =
-      await Message.findOne({
-        _id: messageId,
-
-        deletedForEveryone:
-          false,
-
-        deletedFor: {
-          $nin: [
-            currentUserId,
-          ],
-        },
-
-        $or: [
-          {
-            sender:
-              currentUserId,
-          },
-          {
-            receiver:
-              currentUserId,
-          },
-        ],
-      });
-
-    if (!message) {
-      return res.status(404).json({
-        success: false,
-
-        message:
-          "Message not found or you cannot react to it",
-      });
-    }
-
-    const reactionOtherUserId =
-      getOtherMessageParticipantId(
-        message,
-        currentUserId
-      );
-
-    const reactionBlockState =
-      await getUserBlockState(
-        currentUserId,
-        reactionOtherUserId
-      );
-
-    if (
-      reactionBlockState.isBlocked
-    ) {
+    if (reactionBlockState.isBlocked) {
       return res.status(403).json({
         success: false,
-
-        message:
-          reactionBlockState
-            .blockedByFirst
-            ? "Unblock this user to react to messages"
-            : "You cannot react to this user's messages",
-
-        code:
-          reactionBlockState
-            .blockedByFirst
-            ? "USER_BLOCKED_BY_YOU"
-            : "USER_BLOCKED_YOU",
+        message: reactionBlockState.blockedByFirst ? "Unblock this user to react to messages" : "You cannot react to this user's messages",
+        code: reactionBlockState.blockedByFirst ? "USER_BLOCKED_BY_YOU" : "USER_BLOCKED_YOU",
       });
     }
 
-    if (
-      !Array.isArray(
-        message.reactions
-      )
-    ) {
-      message.reactions = [];
-    }
-
-    const existingIndex =
-      message.reactions.findIndex(
-        (reaction) =>
-          normalizeId(
-            reaction?.user
-          ) === currentUserId
-      );
-
+    if (!Array.isArray(message.reactions)) message.reactions = [];
+    const existingIndex = message.reactions.findIndex((reaction) => normalizeId(reaction?.user) === currentUserId);
     let action = "set";
 
-    /*
-     * Same reaction:
-     * remove.
-     */
-    if (
-      existingIndex >= 0 &&
-      message.reactions[
-        existingIndex
-      ]?.emoji === emoji
-    ) {
-      message.reactions.splice(
-        existingIndex,
-        1
-      );
-
+    if (existingIndex >= 0 && message.reactions[existingIndex]?.emoji === emoji) {
+      message.reactions.splice(existingIndex, 1);
       action = "removed";
-    } else if (
-      existingIndex >= 0
-    ) {
-
-      message.reactions[
-        existingIndex
-      ].emoji = emoji;
-
-      message.reactions[
-        existingIndex
-      ].createdAt =
-        new Date();
+    } else if (existingIndex >= 0) {
+      message.reactions[existingIndex].emoji = emoji;
+      message.reactions[existingIndex].createdAt = new Date();
     } else {
-
-      message.reactions.push({
-        user: currentUserId,
-        emoji,
-        createdAt:
-          new Date(),
-      });
+      message.reactions.push({ user: currentUserId, emoji, createdAt: new Date() });
     }
 
-
-    message.markModified(
-      "reactions"
-    );
-
+    message.markModified("reactions");
     await message.save();
+    await message.populate("reactions.user", "name username profilePic");
 
-    await message.populate(
-      "reactions.user",
-      "name username profilePic"
-    );
+    const messageObject = message.toObject();
+    const reactionPayload = { messageId: normalizeId(messageObject._id), reactions: messageObject.reactions || [], updatedBy: currentUserId, action };
 
-    const senderId =
-      normalizeId(
-        message.sender
-      );
+    emitToParticipants(normalizeId(message.sender), normalizeId(message.receiver), "messageReactionUpdated", reactionPayload);
 
-    const receiverId =
-      normalizeId(
-        message.receiver
-      );
-
-    const messageObject =
-      message.toObject();
-
-    const reactionPayload = {
-      messageId:
-        normalizeId(
-          messageObject._id
-        ),
-
-      reactions:
-        messageObject.reactions ||
-        [],
-
-      updatedBy:
-        currentUserId,
-
-      action,
-    };
-
-
-    emitToParticipants(
-      senderId,
-      receiverId,
-      "messageReactionUpdated",
-      reactionPayload
-    );
-
-    return res.status(200).json({
-      success: true,
-
-      message:
-        action === "removed"
-          ? "Reaction removed"
-          : "Reaction updated",
-
-      data:
-        reactionPayload,
-    });
+    return res.status(200).json({ success: true, message: action === "removed" ? "Reaction removed" : "Reaction updated", data: reactionPayload });
   } catch (error) {
-    console.error(
-      "TOGGLE REACTION ERROR:",
-      error
-    );
-
-    const result =
-      getControllerErrorResponse(
-        error,
-        "Unable to update reaction"
-      );
-
-    return res
-      .status(result.status)
-      .json({
-        success: false,
-        message: result.message,
-      });
+    console.error("TOGGLE REACTION ERROR:", error);
+    const result = getControllerErrorResponse(error, "Unable to update reaction");
+    return res.status(result.status).json({ success: false, message: result.message });
   }
 };
-
 
 /* =========================
    EDIT MESSAGE
 ========================= */
 
-const editMessage = async (
-  req,
-  res
-) => {
+const editMessage = async (req, res) => {
   try {
-    const currentUserId =
-      normalizeId(req.user);
+    const currentUserId = normalizeId(req.user);
+    const messageId = normalizeId(req.params?.messageId);
+    const normalizedText = String(req.body?.text || "").trim();
 
-    const messageId =
-      normalizeId(
-        req.params?.messageId
-      );
+    if (!currentUserId || !isValidObjectId(currentUserId)) return res.status(401).json({ success: false, message: "Authentication required" });
+    if (!messageId || !isValidObjectId(messageId)) return res.status(400).json({ success: false, message: "Invalid message ID" });
+    if (!normalizedText) return res.status(400).json({ success: false, message: "Edited message cannot be empty" });
+    if (normalizedText.length > MAX_MESSAGE_LENGTH) return res.status(400).json({ success: false, message: `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters` });
 
-    const normalizedText =
-      String(
-        req.body?.text || ""
-      ).trim();
+    const message = await Message.findOne({ _id: messageId, sender: currentUserId, deletedForEveryone: false, deletedFor: { $nin: [currentUserId] } });
+    if (!message) return res.status(404).json({ success: false, message: "Message not found or you cannot edit it" });
 
-
-    if (
-      !currentUserId ||
-      !isValidObjectId(
-        currentUserId
-      )
-    ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
-    }
-
-    if (
-      !messageId ||
-      !isValidObjectId(
-        messageId
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid message ID",
-      });
-    }
-
-    if (!normalizedText) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Edited message cannot be empty",
-      });
-    }
-
-    if (
-      normalizedText.length >
-      MAX_MESSAGE_LENGTH
-    ) {
-      return res.status(400).json({
-        success: false,
-
-        message:
-          `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters`,
-      });
-    }
-
-    const message =
-      await Message.findOne({
-        _id: messageId,
-        sender: currentUserId,
-
-        deletedForEveryone:
-          false,
-
-        deletedFor: {
-          $nin: [
-            currentUserId,
-          ],
-        },
-      });
-
-    if (!message) {
-      return res.status(404).json({
-        success: false,
-
-        message:
-          "Message not found or you cannot edit it",
-      });
-    }
-
-
-    const editOtherUserId =
-      getOtherMessageParticipantId(
-        message,
-        currentUserId
-      );
-
-    const editBlockState =
-      await getUserBlockState(
-        currentUserId,
-        editOtherUserId
-      );
+    const editOtherUserId = getOtherMessageParticipantId(message, currentUserId);
+    const editBlockState = await getUserBlockState(currentUserId, editOtherUserId);
 
     if (editBlockState.isBlocked) {
       return res.status(403).json({
         success: false,
-
-        message:
-          editBlockState.blockedByFirst
-            ? "Unblock this user to edit messages"
-            : "You cannot edit messages in this conversation",
-
-        code:
-          editBlockState.blockedByFirst
-            ? "USER_BLOCKED_BY_YOU"
-            : "USER_BLOCKED_YOU",
+        message: editBlockState.blockedByFirst ? "Unblock this user to edit messages" : "You cannot edit messages in this conversation",
+        code: editBlockState.blockedByFirst ? "USER_BLOCKED_BY_YOU" : "USER_BLOCKED_YOU",
       });
     }
 
-    /*
-     * Image-only message edit
-     * disable chesthunnam.
-     */
-    const existingText =
-      String(
-        message.text || ""
-      ).trim();
+    const existingText = String(message.text || "").trim();
+    if (!existingText) return res.status(400).json({ success: false, message: "Image-only messages cannot be edited" });
+    if (existingText === normalizedText) return res.status(400).json({ success: false, message: "No changes were made" });
 
-    if (!existingText) {
-      return res.status(400).json({
-        success: false,
-
-        message:
-          "Image-only messages cannot be edited",
-      });
-    }
-
-    if (
-      existingText ===
-      normalizedText
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "No changes were made",
-      });
-    }
-
-    message.text =
-      normalizedText;
-
-    message.editedAt =
-      new Date();
-
+    message.text = normalizedText;
+    message.editedAt = new Date();
     await message.save();
+    await populateMessage(message);
 
-    await populateMessage(
-      message
-    );
+    const messagePayload = message.toObject();
+    emitToParticipants(normalizeId(messagePayload.sender), normalizeId(messagePayload.receiver), "messageEdited", messagePayload);
 
-    const messagePayload =
-      message.toObject();
-
-    const senderId =
-      normalizeId(
-        messagePayload.sender
-      );
-
-    const receiverId =
-      normalizeId(
-        messagePayload.receiver
-      );
-
-    /*
-     * Sender and receiver UI rendu
-     * real-time update avutayi.
-     */
-    emitToParticipants(
-      senderId,
-      receiverId,
-      "messageEdited",
-      messagePayload
-    );
-
-    return res.status(200).json({
-      success: true,
-
-      message:
-        "Message edited successfully",
-
-      data:
-        messagePayload,
-    });
+    return res.status(200).json({ success: true, message: "Message edited successfully", data: messagePayload });
   } catch (error) {
-    console.error(
-      "EDIT MESSAGE ERROR:",
-      error
-    );
-
-    const result =
-      getControllerErrorResponse(
-        error,
-        "Unable to edit message"
-      );
-
-    return res
-      .status(result.status)
-      .json({
-        success: false,
-        message: result.message,
-      });
+    console.error("EDIT MESSAGE ERROR:", error);
+    const result = getControllerErrorResponse(error, "Unable to edit message");
+    return res.status(result.status).json({ success: false, message: result.message });
   }
 };
-
 
 /* =========================
    FORWARD MESSAGE
 ========================= */
 
-const forwardMessage = async (
-  req,
-  res
-) => {
+const forwardMessage = async (req, res) => {
   try {
-    const currentUserId =
-      normalizeId(req.user);
+    const currentUserId = normalizeId(req.user);
+    const sourceMessageId = normalizeId(req.params?.messageId);
+    const receiverId = normalizeId(req.body?.receiver);
 
-    const sourceMessageId =
-      normalizeId(
-        req.params?.messageId
-      );
+    if (!currentUserId || !isValidObjectId(currentUserId)) return res.status(401).json({ success: false, message: "Authentication required" });
+    if (!sourceMessageId || !isValidObjectId(sourceMessageId)) return res.status(400).json({ success: false, message: "Invalid message ID" });
+    if (!receiverId || !isValidObjectId(receiverId)) return res.status(400).json({ success: false, message: "A valid receiver is required" });
+    if (currentUserId === receiverId) return res.status(400).json({ success: false, message: "You cannot forward a message to yourself" });
 
-    const receiverId =
-      normalizeId(
-        req.body?.receiver
-      );
+    const sourceMessage = await Message.findOne({
+      _id: sourceMessageId, deletedForEveryone: false, deletedFor: { $nin: [currentUserId] }, $or: [{ sender: currentUserId }, { receiver: currentUserId }],
+    });
 
-    if (
-      !currentUserId ||
-      !isValidObjectId(
-        currentUserId
-      )
-    ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
+    if (!sourceMessage) return res.status(404).json({ success: false, message: "Message not found or you cannot forward it" });
+
+    const sourceText = String(sourceMessage.text || "").trim();
+    const sourceImage = String(sourceMessage.image || "").trim();
+    const sourceImageFileId = String(sourceMessage.imageFileId || "").trim();
+    const sourceSharedPost = sourceMessage.sharedPost ? {
+      postId: sourceMessage.sharedPost.postId, image: sourceMessage.sharedPost.image || "", caption: sourceMessage.sharedPost.caption || "",
+      owner: sourceMessage.sharedPost.owner, ownerName: sourceMessage.sharedPost.ownerName || "", ownerUsername: sourceMessage.sharedPost.ownerUsername || "", ownerProfilePic: sourceMessage.sharedPost.ownerProfilePic || "",
+    } : null;
+
+    if (!sourceText && !sourceImage && !sourceSharedPost?.postId) {
+      return res.status(400).json({ success: false, message: "This message cannot be forwarded" });
     }
 
-    if (
-      !sourceMessageId ||
-      !isValidObjectId(
-        sourceMessageId
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid message ID",
-      });
-    }
-
-    if (
-      !receiverId ||
-      !isValidObjectId(
-        receiverId
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "A valid receiver is required",
-      });
-    }
-
-    if (
-      currentUserId ===
-      receiverId
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "You cannot forward a message to yourself",
-      });
-    }
-
-
-    const sourceMessage =
-      await Message.findOne({
-        _id:
-          sourceMessageId,
-
-        deletedForEveryone:
-          false,
-
-        deletedFor: {
-          $nin: [
-            currentUserId,
-          ],
-        },
-
-        $or: [
-          {
-            sender:
-              currentUserId,
-          },
-          {
-            receiver:
-              currentUserId,
-          },
-        ],
-      });
-
-    if (!sourceMessage) {
-      return res.status(404).json({
-        success: false,
-
-        message:
-          "Message not found or you cannot forward it",
-      });
-    }
-
-    const sourceText =
-      String(
-        sourceMessage.text || ""
-      ).trim();
-
-    const sourceImage =
-      String(
-        sourceMessage.image || ""
-      ).trim();
-
-    const sourceImageFileId =
-      String(
-        sourceMessage.imageFileId ||
-        ""
-      ).trim();
-
-    const sourceSharedPost =
-      sourceMessage.sharedPost
-        ? {
-          postId:
-            sourceMessage.sharedPost
-              .postId,
-
-          image:
-            sourceMessage.sharedPost
-              .image || "",
-
-          caption:
-            sourceMessage.sharedPost
-              .caption || "",
-
-          owner:
-            sourceMessage.sharedPost
-              .owner,
-
-          ownerName:
-            sourceMessage.sharedPost
-              .ownerName || "",
-
-          ownerUsername:
-            sourceMessage.sharedPost
-              .ownerUsername || "",
-
-          ownerProfilePic:
-            sourceMessage.sharedPost
-              .ownerProfilePic || "",
-        }
-        : null;
-
-    if (
-      !sourceText &&
-      !sourceImage &&
-      !sourceSharedPost?.postId
-    ) {
-
-      return res.status(400).json({
-        success: false,
-        message:
-          "This message cannot be forwarded",
-      });
-    }
-
-    const forwardBlockState =
-      await getUserBlockState(
-        currentUserId,
-        receiverId
-      );
-
-
-
+    const forwardBlockState = await getUserBlockState(currentUserId, receiverId);
     if (forwardBlockState.isBlocked) {
       return res.status(403).json({
         success: false,
-
-        message:
-          forwardBlockState
-            .blockedByFirst
-            ? "Unblock this user before forwarding messages"
-            : "You cannot forward messages to this user",
-
-        code:
-          forwardBlockState
-            .blockedByFirst
-            ? "USER_BLOCKED_BY_YOU"
-            : "USER_BLOCKED_YOU",
-
-        data: {
-          userId: receiverId,
-        },
+        message: forwardBlockState.blockedByFirst ? "Unblock this user before forwarding messages" : "You cannot forward messages to this user",
+        code: forwardBlockState.blockedByFirst ? "USER_BLOCKED_BY_YOU" : "USER_BLOCKED_YOU",
+        data: { userId: receiverId },
       });
     }
 
-    const forwardPermissionResult =
-      await canSendMessageToUser(
-        currentUserId,
-        receiverId
-      );
+    const forwardPermissionResult = await canSendMessageToUser(currentUserId, receiverId);
+    if (!forwardPermissionResult.receiverExists) return res.status(404).json({ success: false, message: "Receiver not found", code: "RECEIVER_NOT_FOUND" });
 
-    if (
-      !forwardPermissionResult
-        .receiverExists
-    ) {
-      return res.status(404).json({
-        success: false,
-        message: "Receiver not found",
-        code: "RECEIVER_NOT_FOUND",
-      });
+    if (!forwardPermissionResult.allowed) {
+      const permissionError = getMessagePermissionError(forwardPermissionResult.permission);
+      return res.status(403).json({ success: false, message: permissionError.message, code: permissionError.code, data: { userId: receiverId, messagePermission: forwardPermissionResult.permission } });
     }
 
-    if (
-      !forwardPermissionResult.allowed
-    ) {
-      const permissionError =
-        getMessagePermissionError(
-          forwardPermissionResult
-            .permission
-        );
-
-      return res.status(403).json({
-        success: false,
-        message:
-          permissionError.message,
-        code:
-          permissionError.code,
-
-        data: {
-          userId: receiverId,
-          messagePermission:
-            forwardPermissionResult
-              .permission,
-        },
-      });
-    }
-
-    const forwardedMessage =
-      await Message.create({
-        sender:
-          currentUserId,
-
-        receiver:
-          receiverId,
-
-        text:
-          sourceText,
-
-        image:
-          sourceImage,
-
-        imageFileId:
-          sourceImageFileId,
-
-        sharedPost:
-          sourceSharedPost,
-
-        status:
-          "sent",
-
-        replyTo:
-          null,
-
-        reactions:
-          [],
-
-        editedAt:
-          null,
-
-        isForwarded:
-          true,
-
-        forwardedFrom:
-          sourceMessage._id,
-      });
-
-    await populateMessage(
-      forwardedMessage
-    );
-
-    const messagePayload =
-      forwardedMessage.toObject();
-
-    /*
-     * Receiver authenticated socket room ki
-     * forwarded message real-time emit.
-     */
-    const io = getSafeIO();
-
-    if (io) {
-      io.to(receiverId).emit(
-        "newMessage",
-        messagePayload
-      );
-    }
-
-    return res.status(201).json({
-      success: true,
-
-      message:
-        "Message forwarded successfully",
-
-      data:
-        messagePayload,
+    const forwardedMessage = await Message.create({
+      sender: currentUserId, receiver: receiverId, text: sourceText, image: sourceImage, imageFileId: sourceImageFileId,
+      sharedPost: sourceSharedPost, status: "sent", replyTo: null, reactions: [], editedAt: null, isForwarded: true, forwardedFrom: sourceMessage._id,
     });
+
+    await populateMessage(forwardedMessage);
+    const messagePayload = forwardedMessage.toObject();
+
+    const io = getSafeIO();
+    if (io) io.to(receiverId).emit("newMessage", messagePayload);
+
+    return res.status(201).json({ success: true, message: "Message forwarded successfully", data: messagePayload });
   } catch (error) {
-    console.error(
-      "FORWARD MESSAGE ERROR:",
-      error
-    );
-
-    const result =
-      getControllerErrorResponse(
-        error,
-        "Unable to forward message"
-      );
-
-    return res
-      .status(result.status)
-      .json({
-        success: false,
-        message: result.message,
-      });
+    console.error("FORWARD MESSAGE ERROR:", error);
+    const result = getControllerErrorResponse(error, "Unable to forward message");
+    return res.status(result.status).json({ success: false, message: result.message });
   }
 };
-
-
 
 /* =========================
    TOGGLE PIN MESSAGE
 ========================= */
 
-const togglePinMessage = async (
-  req,
-  res
-) => {
+const togglePinMessage = async (req, res) => {
   try {
-    const currentUserId =
-      normalizeId(req.user);
+    const currentUserId = normalizeId(req.user);
+    const messageId = normalizeId(req.params?.messageId);
 
-    const messageId =
-      normalizeId(
-        req.params?.messageId
-      );
+    if (!currentUserId || !isValidObjectId(currentUserId)) return res.status(401).json({ success: false, message: "Authentication required" });
+    if (!messageId || !isValidObjectId(messageId)) return res.status(400).json({ success: false, message: "Invalid message ID" });
 
-    if (
-      !currentUserId ||
-      !isValidObjectId(
-        currentUserId
-      )
-    ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
-    }
+    const message = await Message.findOne({
+      _id: messageId, deletedForEveryone: false, deletedFor: { $nin: [currentUserId] }, $or: [{ sender: currentUserId }, { receiver: currentUserId }],
+    });
 
-    if (
-      !messageId ||
-      !isValidObjectId(
-        messageId
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid message ID",
-      });
-    }
+    if (!message) return res.status(404).json({ success: false, message: "Message not found or you cannot pin it" });
 
-    const message =
-      await Message.findOne({
-        _id: messageId,
+    const senderId = normalizeId(message.sender);
+    const receiverId = normalizeId(message.receiver);
+    const otherUserId = senderId === currentUserId ? receiverId : senderId;
 
-        deletedForEveryone:
-          false,
-
-        deletedFor: {
-          $nin: [
-            currentUserId,
-          ],
-        },
-
-        $or: [
-          {
-            sender:
-              currentUserId,
-          },
-          {
-            receiver:
-              currentUserId,
-          },
-        ],
-      });
-
-    if (!message) {
-      return res.status(404).json({
-        success: false,
-
-        message:
-          "Message not found or you cannot pin it",
-      });
-    }
-
-    const senderId =
-      normalizeId(
-        message.sender
-      );
-
-    const receiverId =
-      normalizeId(
-        message.receiver
-      );
-
-    const otherUserId =
-      senderId ===
-        currentUserId
-        ? receiverId
-        : senderId;
-
-    const pinBlockState =
-      await getUserBlockState(
-        currentUserId,
-        otherUserId
-      );
-
+    const pinBlockState = await getUserBlockState(currentUserId, otherUserId);
     if (pinBlockState.isBlocked) {
       return res.status(403).json({
         success: false,
-
-        message:
-          pinBlockState.blockedByFirst
-            ? "Unblock this user to pin messages"
-            : "You cannot pin messages in this conversation",
-
-        code:
-          pinBlockState.blockedByFirst
-            ? "USER_BLOCKED_BY_YOU"
-            : "USER_BLOCKED_YOU",
+        message: pinBlockState.blockedByFirst ? "Unblock this user to pin messages" : "You cannot pin messages in this conversation",
+        code: pinBlockState.blockedByFirst ? "USER_BLOCKED_BY_YOU" : "USER_BLOCKED_YOU",
       });
     }
 
-    const conversationFilter = {
-      $or: [
-        {
-          sender:
-            senderId,
-
-          receiver:
-            receiverId,
-        },
-        {
-          sender:
-            receiverId,
-
-          receiver:
-            senderId,
-        },
-      ],
-    };
-
-    const isCurrentlyPinned =
-      Boolean(
-        message.pinnedAt
-      );
-
+    const conversationFilter = { $or: [{ sender: senderId, receiver: receiverId }, { sender: receiverId, receiver: senderId }] };
+    const isCurrentlyPinned = Boolean(message.pinnedAt);
     let clearedMessageIds = [];
 
     if (isCurrentlyPinned) {
-      /*
-       * Current pinned message:
-       * unpin chestham.
-       */
-      message.pinnedAt =
-        null;
-
-      message.pinnedBy =
-        null;
+      message.pinnedAt = null;
+      message.pinnedBy = null;
     } else {
-      /*
-       * Existing pinned messages identify
-       * chesi client UI clear cheyyadaniki
-       * IDs payload lo pampistham.
-       */
-      const previouslyPinnedMessages =
-        await Message.find({
-          ...conversationFilter,
+      const previouslyPinnedMessages = await Message.find({ ...conversationFilter, _id: { $ne: message._id }, pinnedAt: { $ne: null } }).select("_id").lean();
+      clearedMessageIds = previouslyPinnedMessages.map((item) => normalizeId(item?._id)).filter(Boolean);
 
-          _id: {
-            $ne:
-              message._id,
-          },
-
-          pinnedAt: {
-            $ne: null,
-          },
-        })
-          .select("_id")
-          .lean();
-
-      clearedMessageIds =
-        previouslyPinnedMessages
-          .map((item) =>
-            normalizeId(
-              item?._id
-            )
-          )
-          .filter(Boolean);
-
-      /*
-       * Conversation lo previous pin
-       * automatic ga remove.
-       */
       await Message.updateMany(
-        {
-          ...conversationFilter,
-
-          _id: {
-            $ne:
-              message._id,
-          },
-
-          pinnedAt: {
-            $ne: null,
-          },
-        },
-        {
-          $set: {
-            pinnedAt:
-              null,
-
-            pinnedBy:
-              null,
-          },
-        }
+        { ...conversationFilter, _id: { $ne: message._id }, pinnedAt: { $ne: null } },
+        { $set: { pinnedAt: null, pinnedBy: null } }
       );
 
-      message.pinnedAt =
-        new Date();
-
-      message.pinnedBy =
-        currentUserId;
+      message.pinnedAt = new Date();
+      message.pinnedBy = currentUserId;
     }
 
     await message.save();
+    await populateMessage(message);
 
-    await populateMessage(
-      message
-    );
+    const messagePayload = message.toObject();
+    const pinPayload = { messageId: normalizeId(messagePayload._id), isPinned: Boolean(messagePayload.pinnedAt), pinnedAt: messagePayload.pinnedAt || null, pinnedBy: messagePayload.pinnedBy || null, clearedMessageIds, message: messagePayload };
 
-    const messagePayload =
-      message.toObject();
+    emitToParticipants(senderId, receiverId, "messagePinUpdated", pinPayload);
 
-    const pinPayload = {
-      messageId:
-        normalizeId(
-          messagePayload._id
-        ),
-
-      isPinned:
-        Boolean(
-          messagePayload.pinnedAt
-        ),
-
-      pinnedAt:
-        messagePayload.pinnedAt ||
-        null,
-
-      pinnedBy:
-        messagePayload.pinnedBy ||
-        null,
-
-      clearedMessageIds,
-
-      message:
-        messagePayload,
-    };
-
-    /*
-     * Participants rendu devices lo
-     * real-time pin state update.
-     */
-    emitToParticipants(
-      senderId,
-      receiverId,
-      "messagePinUpdated",
-      pinPayload
-    );
-
-    return res.status(200).json({
-      success: true,
-
-      message:
-        pinPayload.isPinned
-          ? "Message pinned successfully"
-          : "Message unpinned successfully",
-
-      data:
-        pinPayload,
-    });
+    return res.status(200).json({ success: true, message: pinPayload.isPinned ? "Message pinned successfully" : "Message unpinned successfully", data: pinPayload });
   } catch (error) {
-    console.error(
-      "TOGGLE PIN MESSAGE ERROR:",
-      error
-    );
-
-    const result =
-      getControllerErrorResponse(
-        error,
-        "Unable to update pinned message"
-      );
-
-    return res
-      .status(result.status)
-      .json({
-        success: false,
-        message: result.message,
-      });
+    console.error("TOGGLE PIN MESSAGE ERROR:", error);
+    const result = getControllerErrorResponse(error, "Unable to update pinned message");
+    return res.status(result.status).json({ success: false, message: result.message });
   }
 };
 
@@ -3030,323 +746,69 @@ const togglePinMessage = async (
    DELETE MESSAGE
 ========================= */
 
-const deleteMessage = async (
-  req,
-  res
-) => {
+const deleteMessage = async (req, res) => {
   try {
-    const currentUserId =
-      normalizeId(req.user);
+    const currentUserId = normalizeId(req.user);
+    const messageId = normalizeId(req.params?.messageId);
+    const requestedMode = String(req.body?.mode || "forEveryone").trim().toLowerCase();
+    const deleteMode = requestedMode === "forme" ? "forMe" : requestedMode === "foreveryone" ? "forEveryone" : "";
 
-    const messageId =
-      normalizeId(
-        req.params?.messageId
-      );
+    if (!currentUserId || !isValidObjectId(currentUserId)) return res.status(401).json({ success: false, message: "Authentication required" });
+    if (!messageId || !isValidObjectId(messageId)) return res.status(400).json({ success: false, message: "Invalid message ID" });
+    if (!deleteMode) return res.status(400).json({ success: false, message: "Delete mode must be forMe or forEveryone" });
 
-    const requestedMode =
-      String(
-        req.body?.mode ||
-        "forEveryone"
-      )
-        .trim()
-        .toLowerCase();
+    const message = await Message.findOne({ _id: messageId, $or: [{ sender: currentUserId }, { receiver: currentUserId }] });
+    if (!message) return res.status(404).json({ success: false, message: "Message not found or you cannot delete it" });
 
-    const deleteMode =
-      requestedMode === "forme"
-        ? "forMe"
-        : requestedMode ===
-          "foreveryone"
-          ? "forEveryone"
-          : "";
+    const senderId = normalizeId(message.sender);
+    const receiverId = normalizeId(message.receiver);
+    const isSender = senderId === currentUserId;
 
-    if (
-      !currentUserId ||
-      !isValidObjectId(
-        currentUserId
-      )
-    ) {
-      return res.status(401).json({
-        success: false,
-
-        message:
-          "Authentication required",
-      });
-    }
-
-    if (
-      !messageId ||
-      !isValidObjectId(
-        messageId
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-
-        message:
-          "Invalid message ID",
-      });
-    }
-
-    if (!deleteMode) {
-      return res.status(400).json({
-        success: false,
-
-        message:
-          "Delete mode must be forMe or forEveryone",
-      });
-    }
-
-    /*
-     * Sender or receiver rendu
-     * Delete for me use cheyyachu.
-     */
-    const message =
-      await Message.findOne({
-        _id: messageId,
-
-        $or: [
-          {
-            sender:
-              currentUserId,
-          },
-          {
-            receiver:
-              currentUserId,
-          },
-        ],
-      });
-
-    if (!message) {
-      return res.status(404).json({
-        success: false,
-
-        message:
-          "Message not found or you cannot delete it",
-      });
-    }
-
-    const senderId =
-      normalizeId(
-        message.sender
-      );
-
-    const receiverId =
-      normalizeId(
-        message.receiver
-      );
-
-    const isSender =
-      senderId ===
-      currentUserId;
-
-    /*
-     * =========================
-     * DELETE FOR ME
-     * =========================
-     */
     if (deleteMode === "forMe") {
-      const deletedForIds =
-        Array.isArray(message.deletedFor)
-          ? message.deletedFor.map(
-            (userId) =>
-              normalizeId(userId)
-          )
-          : [];
-
-      if (
-        !deletedForIds.includes(
-          currentUserId
-        )
-      ) {
-        message.deletedFor = [
-          ...(Array.isArray(
-            message.deletedFor
-          )
-            ? message.deletedFor
-            : []),
-
-          currentUserId,
-        ];
-
-        message.markModified(
-          "deletedFor"
-        );
-
-        await message.save({
-          validateModifiedOnly: true,
-        });
+      const deletedForIds = Array.isArray(message.deletedFor) ? message.deletedFor.map((userId) => normalizeId(userId)) : [];
+      if (!deletedForIds.includes(currentUserId)) {
+        message.deletedFor = [...(Array.isArray(message.deletedFor) ? message.deletedFor : []), currentUserId];
+        message.markModified("deletedFor");
+        await message.save({ validateModifiedOnly: true });
       }
 
-      const payload = {
-        messageId:
-          normalizeId(message._id),
-
-        mode: "forMe",
-        userId: currentUserId,
-      };
-
+      const payload = { messageId: normalizeId(message._id), mode: "forMe", userId: currentUserId };
       const io = getSafeIO();
+      if (io) io.to(currentUserId).emit("messageDeleted", payload);
 
-      if (io) {
-        io.to(currentUserId).emit(
-          "messageDeleted",
-          payload
-        );
-      }
+      return res.status(200).json({ success: true, message: "Message deleted for you", data: payload });
+    }
 
+    if (!isSender) return res.status(403).json({ success: false, message: "Only the sender can delete this message for everyone" });
+
+    if (message.deletedForEveryone) {
       return res.status(200).json({
-        success: true,
-        message:
-          "Message deleted for you",
-        data: payload,
-      });
-    }
-    /*
-     * =========================
-     * DELETE FOR EVERYONE
-     * =========================
-     */
-
-    if (!isSender) {
-      return res.status(403).json({
-        success: false,
-
-        message:
-          "Only the sender can delete this message for everyone",
+        success: true, message: "Message was already deleted for everyone",
+        data: { messageId: normalizeId(message._id), mode: "forEveryone", deletedAt: message.deletedAt || null, message: message.toObject() },
       });
     }
 
-    /*
-     * Already deleted ayithe
-     * idempotent success return.
-     */
-    if (
-      message.deletedForEveryone
-    ) {
-      return res.status(200).json({
-        success: true,
+    const imageFileId = String(message.imageFileId || "").trim();
+    message.text = ""; message.image = ""; message.imageFileId = ""; message.sharedPost = null;
+    message.replyTo = null; message.reactions = []; message.editedAt = null;
+    message.pinnedAt = null; message.pinnedBy = null;
+    message.deletedForEveryone = true; message.deletedAt = new Date(); message.deletedBy = currentUserId;
 
-        message:
-          "Message was already deleted for everyone",
-
-        data: {
-          messageId:
-            normalizeId(
-              message._id
-            ),
-
-          mode:
-            "forEveryone",
-
-          deletedAt:
-            message.deletedAt ||
-            null,
-
-          message:
-            message.toObject(),
-        },
-      });
-    }
-
-    const imageFileId =
-      String(
-        message.imageFileId ||
-        ""
-      ).trim();
-
-    message.text = "";
-    message.image = "";
-    message.imageFileId = "";
-    message.sharedPost = null;
-
-    message.replyTo = null;
-    message.reactions = [];
-
-    message.editedAt = null;
-
-    message.pinnedAt = null;
-    message.pinnedBy = null;
-
-    message.deletedForEveryone =
-      true;
-
-    message.deletedAt =
-      new Date();
-
-    message.deletedBy =
-      currentUserId;
-
-    message.markModified(
-      "reactions"
-    );
-
+    message.markModified("reactions");
     await message.save();
+    await populateMessage(message);
 
-    await populateMessage(
-      message
-    );
+    const messagePayload = message.toObject();
+    const payload = { messageId: normalizeId(messagePayload._id), mode: "forEveryone", deletedAt: messagePayload.deletedAt, deletedBy: currentUserId, message: messagePayload };
 
-    const messagePayload =
-      message.toObject();
+    emitToParticipants(senderId, receiverId, "messageDeleted", payload);
+    if (imageFileId) await cleanupMessageImageIfUnused({ imageFileId });
 
-    const payload = {
-      messageId:
-        normalizeId(
-          messagePayload._id
-        ),
-
-      mode:
-        "forEveryone",
-
-      deletedAt:
-        messagePayload.deletedAt,
-
-      deletedBy:
-        currentUserId,
-
-      message:
-        messagePayload,
-    };
-
-    emitToParticipants(
-      senderId,
-      receiverId,
-      "messageDeleted",
-      payload
-    );
-
-    if (imageFileId) {
-      await cleanupMessageImageIfUnused({
-        imageFileId,
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-
-      message:
-        "Message deleted for everyone",
-
-      data: payload,
-    });
+    return res.status(200).json({ success: true, message: "Message deleted for everyone", data: payload });
   } catch (error) {
-    console.error(
-      "DELETE MESSAGE ERROR:",
-      error
-    );
-
-    const result =
-      getControllerErrorResponse(
-        error,
-        "Unable to delete message"
-      );
-
-    return res
-      .status(result.status)
-      .json({
-        success: false,
-        message: result.message,
-      });
+    console.error("DELETE MESSAGE ERROR:", error);
+    const result = getControllerErrorResponse(error, "Unable to delete message");
+    return res.status(result.status).json({ success: false, message: result.message });
   }
 };
 
@@ -3354,351 +816,52 @@ const deleteMessage = async (
    CHAT SUMMARIES
 ========================= */
 
-const getChatSummaries = async (
-  req,
-  res
-) => {
+const getChatSummaries = async (req, res) => {
   try {
-    const currentUserId =
-      normalizeId(req.user);
+    const currentUserId = normalizeId(req.user);
+    if (!currentUserId || !isValidObjectId(currentUserId)) return res.status(401).json({ success: false, message: "Authentication required" });
 
-    if (
-      !currentUserId ||
-      !isValidObjectId(
-        currentUserId
-      )
-    ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication required",
-      });
-    }
+    const currentUserObjectId = new mongoose.Types.ObjectId(currentUserId);
+    const conversationResults = await Message.aggregate([
+      { $match: { $or: [{ sender: currentUserObjectId }, { receiver: currentUserObjectId }], deletedFor: { $nin: [currentUserObjectId] } } },
+      { $sort: { createdAt: -1, _id: -1 } },
+      { $addFields: { otherUserId: { $cond: [{ $eq: ["$sender", currentUserObjectId] }, "$receiver", "$sender"] } } },
+      {
+        $group: {
+          _id: "$otherUserId",
+          lastMessage: { $first: { _id: "$_id", sender: "$sender", receiver: "$receiver", text: "$text", image: "$image", sharedPost: "$sharedPost", status: "$status", createdAt: "$createdAt", updatedAt: "$updatedAt", editedAt: "$editedAt", isForwarded: "$isForwarded", deletedForEveryone: "$deletedForEveryone", deletedAt: "$deletedAt", deletedBy: "$deletedBy" } },
+          unreadCount: { $sum: { $cond: [{ $and: [{ $eq: ["$sender", "$otherUserId"] }, { $eq: ["$receiver", currentUserObjectId] }, { $in: ["$status", ["sent", "delivered"]] }, { $ne: ["$deletedForEveryone", true] }] }, 1, 0] } },
+        }
+      },
+      { $sort: { "lastMessage.createdAt": -1, "lastMessage._id": -1 } },
+    ]);
 
-    const currentUserObjectId =
-      new mongoose.Types.ObjectId(
-        currentUserId
-      );
+    if (conversationResults.length === 0) return res.status(200).json({ success: true, count: 0, chats: [] });
 
-    /*
-     * ChatRequest system remove chesam.
-     *
-     * Ippudu current user sender/receiver
-     * ga unna existing messages base meeda
-     * conversations build chestham.
-     */
-    const conversationResults =
-      await Message.aggregate([
-        {
-          $match: {
-            $or: [
-              {
-                sender:
-                  currentUserObjectId,
-              },
-              {
-                receiver:
-                  currentUserObjectId,
-              },
-            ],
+    const otherUserIds = conversationResults.map((conversation) => conversation?._id).filter(Boolean);
+    const users = await User.find({ _id: { $in: otherUserIds } }).select(["_id", "name", "username", "profilePic", "isOnline", "lastSeen", "privacySettings.showOnlineStatus", "privacySettings.showLastSeen"].join(" ")).lean();
+    const userMap = new Map(users.map((user) => [normalizeId(user?._id), user]));
 
-            /*
-             * Current user "Delete for me"
-             * chesina messages summaries lo
-             * consider cheyyakudadhu.
-             */
-            deletedFor: {
-              $nin: [
-                currentUserObjectId,
-              ],
-            },
-          },
-        },
+    const chats = conversationResults.map((conversation) => {
+      const otherUser = userMap.get(normalizeId(conversation?._id));
+      if (!otherUser) return null;
 
-        /*
-         * Latest message first.
-         * Group lo $first latest message
-         * avvadaniki sort mundu chestham.
-         */
-        {
-          $sort: {
-            createdAt: -1,
-            _id: -1,
-          },
-        },
+      const showOnlineStatus = otherUser?.privacySettings?.showOnlineStatus !== false;
+      const showLastSeen = otherUser?.privacySettings?.showLastSeen !== false;
 
-        /*
-         * Conversation other participant
-         * identify chestham.
-         */
-        {
-          $addFields: {
-            otherUserId: {
-              $cond: [
-                {
-                  $eq: [
-                    "$sender",
-                    currentUserObjectId,
-                  ],
-                },
+      const safeUser = {
+        _id: otherUser._id, id: otherUser._id, name: otherUser.name || "User", username: otherUser.username || "user", profilePic: otherUser.profilePic || "",
+        isOnline: showOnlineStatus ? Boolean(otherUser.isOnline) : false, lastSeen: showLastSeen ? otherUser.lastSeen || null : null,
+      };
 
-                "$receiver",
-                "$sender",
-              ],
-            },
-          },
-        },
+      return { user: safeUser, lastMessage: conversation.lastMessage || null, unreadCount: Number(conversation.unreadCount || 0) };
+    }).filter(Boolean);
 
-        /*
-         * One result per conversation.
-         */
-        {
-          $group: {
-            _id: "$otherUserId",
-
-            lastMessage: {
-              $first: {
-                _id: "$_id",
-                sender: "$sender",
-                receiver: "$receiver",
-                text: "$text",
-                image: "$image",
-                sharedPost:
-                  "$sharedPost",
-                status: "$status",
-                createdAt:
-                  "$createdAt",
-                updatedAt:
-                  "$updatedAt",
-                editedAt:
-                  "$editedAt",
-                isForwarded:
-                  "$isForwarded",
-                deletedForEveryone:
-                  "$deletedForEveryone",
-                deletedAt:
-                  "$deletedAt",
-                deletedBy:
-                  "$deletedBy",
-              },
-            },
-
-            /*
-             * Other user pampina
-             * sent/delivered messages unread.
-             */
-            unreadCount: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      {
-                        $eq: [
-                          "$sender",
-                          "$otherUserId",
-                        ],
-                      },
-
-                      {
-                        $eq: [
-                          "$receiver",
-                          currentUserObjectId,
-                        ],
-                      },
-
-                      {
-                        $in: [
-                          "$status",
-                          [
-                            "sent",
-                            "delivered",
-                          ],
-                        ],
-                      },
-
-                      {
-                        $ne: [
-                          "$deletedForEveryone",
-                          true,
-                        ],
-                      },
-                    ],
-                  },
-
-                  1,
-                  0,
-                ],
-              },
-            },
-          },
-        },
-
-        /*
-         * Latest conversation first.
-         */
-        {
-          $sort: {
-            "lastMessage.createdAt":
-              -1,
-            "lastMessage._id": -1,
-          },
-        },
-      ]);
-
-    if (
-      conversationResults.length ===
-      0
-    ) {
-      return res.status(200).json({
-        success: true,
-        count: 0,
-        chats: [],
-      });
-    }
-
-    const otherUserIds =
-      conversationResults
-        .map(
-          (conversation) =>
-            conversation?._id
-        )
-        .filter(Boolean);
-
-    const users =
-      await User.find({
-        _id: {
-          $in: otherUserIds,
-        },
-      })
-        .select(
-          [
-            "_id",
-            "name",
-            "username",
-            "profilePic",
-            "isOnline",
-            "lastSeen",
-            "privacySettings.showOnlineStatus",
-            "privacySettings.showLastSeen",
-          ].join(" ")
-        )
-        .lean();
-
-    const userMap =
-      new Map(
-        users.map((user) => [
-          normalizeId(user?._id),
-          user,
-        ])
-      );
-
-    const chats =
-      conversationResults
-        .map((conversation) => {
-          const otherUserId =
-            normalizeId(
-              conversation?._id
-            );
-
-          const otherUser =
-            userMap.get(
-              otherUserId
-            );
-
-          /*
-           * Deleted/missing account ni
-           * chat list lo show cheyyamu.
-           */
-          if (!otherUser) {
-            return null;
-          }
-
-          const showOnlineStatus =
-            otherUser
-              ?.privacySettings
-              ?.showOnlineStatus !==
-            false;
-
-          const showLastSeen =
-            otherUser
-              ?.privacySettings
-              ?.showLastSeen !==
-            false;
-
-          const safeUser = {
-            _id:
-              otherUser._id,
-
-            id:
-              otherUser._id,
-
-            name:
-              otherUser.name ||
-              "User",
-
-            username:
-              otherUser.username ||
-              "user",
-
-            profilePic:
-              otherUser.profilePic ||
-              "",
-
-            isOnline:
-              showOnlineStatus
-                ? Boolean(
-                  otherUser.isOnline
-                )
-                : false,
-
-            lastSeen:
-              showLastSeen
-                ? otherUser.lastSeen ||
-                null
-                : null,
-          };
-
-          return {
-            user: safeUser,
-
-            lastMessage:
-              conversation
-                .lastMessage ||
-              null,
-
-            unreadCount:
-              Number(
-                conversation
-                  .unreadCount ||
-                0
-              ),
-          };
-        })
-        .filter(Boolean);
-
-    return res.status(200).json({
-      success: true,
-      count: chats.length,
-      chats,
-    });
+    return res.status(200).json({ success: true, count: chats.length, chats });
   } catch (error) {
-    console.error(
-      "GET CHAT SUMMARIES ERROR:",
-      error
-    );
-
-    const result =
-      getControllerErrorResponse(
-        error,
-        "Unable to load chat summaries"
-      );
-
-    return res
-      .status(result.status)
-      .json({
-        success: false,
-        message: result.message,
-      });
+    console.error("GET CHAT SUMMARIES ERROR:", error);
+    const result = getControllerErrorResponse(error, "Unable to load chat summaries");
+    return res.status(result.status).json({ success: false, message: result.message });
   }
 };
 
@@ -3707,13 +870,5 @@ const getChatSummaries = async (
 ========================= */
 
 module.exports = {
-  sendMessage,
-  getMessages,
-  getPinnedMessage,
-  toggleReaction,
-  editMessage,
-  forwardMessage,
-  togglePinMessage,
-  deleteMessage,
-  getChatSummaries,
+  sendMessage, getMessages, getPinnedMessage, toggleReaction, editMessage, forwardMessage, togglePinMessage, deleteMessage, getChatSummaries,
 };

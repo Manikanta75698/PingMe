@@ -67,17 +67,17 @@ const sendOtpEmail = async ({
       to: cleanEmail,
 
       subject:
-        "Verify your Nexora account",
+        "Verify your PingMe account",
 
       text: [
         `Hi ${name?.trim() || "there"},`,
         "",
-        `Your Nexora verification code is: ${cleanOtp}`,
+        `Your PingMe verification code is: ${cleanOtp}`,
         "",
         "This code expires in 10 minutes.",
         "Do not share this code with anyone.",
         "",
-        "If you did not create a Nexora account, ignore this email.",
+        "If you did not create a PingMe account, ignore this email.",
       ].join("\n"),
 
       html: `
@@ -130,7 +130,7 @@ const sendOtpEmail = async ({
                       font-size:28px;
                     "
                   >
-                    Nexora
+                    PingMe
                   </h1>
                 </div>
 
@@ -159,7 +159,7 @@ const sendOtpEmail = async ({
                     "
                   >
                     Hi ${safeName}, use the verification
-                    code below to complete your Nexora
+                    code below to complete your PingMe
                     account setup.
                   </p>
 
@@ -201,7 +201,7 @@ const sendOtpEmail = async ({
                     font-size:12px;
                   "
                 >
-                  If you did not create a Nexora account,
+                  If you did not create a PingMe   account,
                   you can ignore this email.
                 </div>
               </div>
