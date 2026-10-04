@@ -202,7 +202,7 @@
 
   .pageContent {
     width: 100%;
-    padding: 16px 12px 84px;
+    padding: calc(74px + env(safe-area-inset-top, 0px)) 12px 84px;
   }
 
   .stats {

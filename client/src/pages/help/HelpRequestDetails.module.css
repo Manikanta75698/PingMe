@@ -1670,9 +1670,9 @@
   }
 
   .pageContent {
-    padding-top: 12px;
+    padding-top: calc(74px + env(safe-area-inset-top, 0px));
     padding-bottom:
-      calc(28px + env(safe-area-inset-bottom,
+      calc(96px + env(safe-area-inset-bottom,
           0px));
   }
 

@@ -47,8 +47,7 @@
     margin-left: 0;
 
     padding:
-      calc(env(safe-area-inset-top,
-          0px) + 14px) 14px calc(82px + env(safe-area-inset-bottom,
+      calc(76px + env(safe-area-inset-top, 0px)) 14px calc(92px + env(safe-area-inset-bottom,
           0px));
 
     background: var(--background);

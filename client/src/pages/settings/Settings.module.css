@@ -1753,8 +1753,7 @@
     margin-left: 0;
 
     padding:
-      env(safe-area-inset-top,
-        0px) 0 calc(72px + env(safe-area-inset-bottom,
+      calc(62px + env(safe-area-inset-top, 0px)) 0 calc(84px + env(safe-area-inset-bottom,
           0px));
 
     background:

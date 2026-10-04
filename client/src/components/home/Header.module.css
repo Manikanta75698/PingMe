@@ -327,6 +327,10 @@
 ========================================= */
 
 @media (max-width: 768px) {
+    .chatRouteHidden {
+        display: none !important;
+    }
+
     /* TOP HEADER */
 
     .mobileTopHeader {

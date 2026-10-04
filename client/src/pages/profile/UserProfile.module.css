@@ -951,7 +951,7 @@
         width: 100%;
 
         padding:
-            16px 12px calc(94px + env(safe-area-inset-bottom,
+            calc(78px + env(safe-area-inset-top, 0px)) 12px calc(94px + env(safe-area-inset-bottom,
                     0px));
     }
 

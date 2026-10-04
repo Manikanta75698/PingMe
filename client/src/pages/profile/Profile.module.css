@@ -158,10 +158,11 @@
 
     margin-left: 0;
 
-    padding-top: 0;
+    padding-top:
+      calc(62px + env(safe-area-inset-top, 0px));
 
     padding-bottom:
-      calc(64px + env(safe-area-inset-bottom,
+      calc(92px + env(safe-area-inset-bottom,
           0px));
   }
 

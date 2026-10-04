@@ -1183,8 +1183,7 @@
     margin-left: 0;
 
     padding-top:
-      env(safe-area-inset-top,
-        0px);
+      calc(62px + env(safe-area-inset-top, 0px));
 
     padding-bottom:
       calc(72px + env(safe-area-inset-bottom,

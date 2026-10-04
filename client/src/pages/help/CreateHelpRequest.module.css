@@ -1160,7 +1160,7 @@
     margin: 0;
 
     padding:
-      12px 10px calc(10px + env(safe-area-inset-bottom,
+      calc(74px + env(safe-area-inset-top, 0px)) 10px calc(96px + env(safe-area-inset-bottom,
           0px));
   }
 

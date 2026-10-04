@@ -115,6 +115,11 @@ const Header = () => {
   const location =
     useLocation();
 
+  const isOpenConversation =
+    /^\/chat\/[^/]+/.test(
+      location.pathname
+    );
+
   const [
     showTopHeader,
     setShowTopHeader,
@@ -477,7 +482,10 @@ const Header = () => {
       {/* MOBILE TOP HEADER */}
 
       <header
-        className={`${styles.mobileTopHeader} ${!showTopHeader
+        className={`${styles.mobileTopHeader} ${isOpenConversation
+          ? styles.chatRouteHidden
+          : ""
+          } ${!showTopHeader
           ? styles.hideTopHeader
           : ""
           }`}
@@ -680,9 +688,10 @@ const Header = () => {
       {/* MOBILE BOTTOM NAVIGATION */}
 
       <nav
-        className={
-          styles.mobileBottomNav
-        }
+        className={`${styles.mobileBottomNav} ${isOpenConversation
+          ? styles.chatRouteHidden
+          : ""
+          }`}
         aria-label="Mobile navigation"
       >
         <div
