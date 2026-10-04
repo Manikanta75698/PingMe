@@ -137,6 +137,7 @@ const normalizeOrigin = (value) => {
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost",
+  "https://localhost",
   "capacitor://localhost",
 
   normalizeOrigin(
@@ -611,3 +612,4 @@ process.on(
     );
   }
 );
+
