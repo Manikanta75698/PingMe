@@ -766,45 +766,45 @@ const CreatePost = ({
       !editorFrameRef.current
     ) {
       return;
+    }
 
-      const now = Date.now();
+    const now = Date.now();
 
-      const tapDistance =
-        Math.hypot(
-          event.clientX -
-          gestureRef.current.lastTapX,
-          event.clientY -
-          gestureRef.current.lastTapY
-        );
+    const tapDistance =
+      Math.hypot(
+        event.clientX -
+        gestureRef.current.lastTapX,
+        event.clientY -
+        gestureRef.current.lastTapY
+      );
 
-      const isDoubleTap =
-        now -
-        gestureRef.current.lastTapTime <
-        300 &&
-        tapDistance < 35;
+    const isDoubleTap =
+      now -
+      gestureRef.current.lastTapTime <
+      300 &&
+      tapDistance < 35;
 
-      gestureRef.current.lastTapTime =
-        now;
+    gestureRef.current.lastTapTime =
+      now;
 
-      gestureRef.current.lastTapX =
-        event.clientX;
+    gestureRef.current.lastTapX =
+      event.clientX;
 
-      gestureRef.current.lastTapY =
-        event.clientY;
+    gestureRef.current.lastTapY =
+      event.clientY;
 
-      if (
-        isDoubleTap &&
-        event.pointerType === "touch"
-      ) {
-        setZoom(1);
+    if (
+      isDoubleTap &&
+      event.pointerType === "touch"
+    ) {
+      setZoom(1);
 
-        setPosition({
-          x: 0,
-          y: 0,
-        });
+      setPosition({
+        x: 0,
+        y: 0,
+      });
 
-        return;
-      }
+      return;
     }
 
     event.currentTarget

@@ -227,7 +227,8 @@ const Login = () => {
           );
 
           throw new Error(
-            "Unable to save your session"
+            "Unable to save your session",
+            { cause: storageError }
           );
         }
 

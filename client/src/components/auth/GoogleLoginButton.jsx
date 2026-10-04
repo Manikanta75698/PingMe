@@ -171,11 +171,12 @@ const GoogleLoginButton = ({
     DEFAULT_BUTTON_WIDTH
   );
 
-  disabledRef.current =
-    disabled;
-
   const isDisabled =
     disabled || loading;
+
+  useEffect(() => {
+    disabledRef.current = disabled;
+  }, [disabled]);
 
   /* =====================================
      MOUNT STATUS
@@ -334,7 +335,8 @@ const GoogleLoginButton = ({
             );
 
             throw new Error(
-              "Unable to save your login session."
+              "Unable to save your login session.",
+              { cause: storageError }
             );
           }
 

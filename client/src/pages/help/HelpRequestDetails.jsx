@@ -353,7 +353,7 @@ const HelpRequestDetails = () => {
       } finally {
         setLoading(false);
       }
-    }, [requestId]);
+    }, [requestId, setHelpRequest]);
 
   useEffect(() => {
     loadRequest();

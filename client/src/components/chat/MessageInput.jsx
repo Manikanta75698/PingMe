@@ -175,10 +175,6 @@ const MessageInput = () => {
       blockStatus?.isBlocked
     );
 
-  const composerDisabled =
-    !selectedChat ||
-    isBlocked;
-
   const composerActionDisabled =
     !selectedChat ||
     blockStatusLoading ||

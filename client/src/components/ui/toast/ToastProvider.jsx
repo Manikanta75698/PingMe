@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -105,7 +106,7 @@ const ToastItem = ({
     useRef(null);
 
   const startedAtRef =
-    useRef(Date.now());
+    useRef(0);
 
   const remainingTimeRef =
     useRef(toast.duration);
@@ -232,11 +233,9 @@ const ToastItem = ({
       startAutoCloseTimer,
     ]);
 
-  useState(() => {
+  useEffect(() => {
     startAutoCloseTimer();
-
-    return undefined;
-  });
+  }, [startAutoCloseTimer]);
 
   const config =
     TOAST_CONFIG[
