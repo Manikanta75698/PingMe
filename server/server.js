@@ -28,8 +28,6 @@ const helpRequestRoutesModule = require("./routes/helpRequestRoutes");
    CRON JOB IMPORTS
 ========================= */
 
-const startDeleteExpiredMessages = require("./cron/deleteExpiredMessages");
-
 const {
   startStoryCleanupJob,
 } = require("./cron/storyCleanup");
@@ -534,18 +532,6 @@ const PORT =
 const runStartupJobs = () => {
   if (
     typeof
-    startDeleteExpiredMessages ===
-    "function"
-  ) {
-    startDeleteExpiredMessages();
-  } else {
-    console.warn(
-      "⚠️ deleteExpiredMessages job is not a function"
-    );
-  }
-
-  if (
-    typeof
     startStoryCleanupJob ===
     "function"
   ) {
@@ -625,4 +611,3 @@ process.on(
     );
   }
 );
-
