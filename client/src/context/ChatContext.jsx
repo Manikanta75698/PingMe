@@ -3028,6 +3028,26 @@ export const ChatProvider = ({
       });
     };
 
+    const handleMessagesDelivered = (payload = {}) => {
+      const messageIds = Array.isArray(payload?.messageIds)
+        ? payload.messageIds
+        : [];
+
+      messageIds.forEach((messageId) => {
+        handleStatus({ messageId, status: "delivered" });
+      });
+    };
+
+    const handleConversationRead = (payload = {}) => {
+      const messageIds = Array.isArray(payload?.messageIds)
+        ? payload.messageIds
+        : [];
+
+      messageIds.forEach((messageId) => {
+        handleStatus({ messageId, status: "read" });
+      });
+    };
+
     socket.on(
       "messageStatusUpdate",
       handleStatus
@@ -3037,6 +3057,9 @@ export const ChatProvider = ({
       "messageDelivered",
       handleDelivered
     );
+
+    socket.on("messagesDelivered", handleMessagesDelivered);
+    socket.on("conversationRead", handleConversationRead);
 
     socket.on(
       "messageRead",
@@ -3058,6 +3081,9 @@ export const ChatProvider = ({
         "messageDelivered",
         handleDelivered
       );
+
+      socket.off("messagesDelivered", handleMessagesDelivered);
+      socket.off("conversationRead", handleConversationRead);
 
       socket.off(
         "messageRead",

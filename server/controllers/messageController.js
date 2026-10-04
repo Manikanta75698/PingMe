@@ -448,7 +448,8 @@ const getMessages = async (req, res) => {
       if (io) {
         io.to(otherUserId).emit("conversationRead", {
           readBy: currentUserId,
-          readAt: now
+          readAt: now,
+          messageIds: unreadIds.map((id) => normalizeId(id))
         });
       }
     }

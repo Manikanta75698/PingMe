@@ -347,25 +347,26 @@ const socketHandler = (io) => {
 
         const now = new Date();
 
-        const updateResult = await Message.updateMany(
-          {
-            sender: partnerId,
-            receiver: currentUserId,
-            status: { $in: ["sent", "delivered"] },
-            deletedForEveryone: false,
-          },
-          {
-            $set: {
-              status: "read",
-              readAt: now,
-            },
-          }
-        );
+        const unreadMessages = await Message.find({
+          sender: partnerId,
+          receiver: currentUserId,
+          status: { $in: ["sent", "delivered"] },
+          deletedForEveryone: false,
+        }).select("_id").lean();
+
+        const messageIds = unreadMessages.map((message) => message._id);
+        const updateResult = messageIds.length
+          ? await Message.updateMany(
+            { _id: { $in: messageIds } },
+            { $set: { status: "read", readAt: now } }
+          )
+          : { modifiedCount: 0 };
 
         if (updateResult.modifiedCount > 0) {
           io.to(partnerId).emit("conversationRead", {
             readBy: currentUserId,
             readAt: now,
+            messageIds: messageIds.map(normalizeId),
           });
         }
       } catch (error) {
