@@ -1,4 +1,9 @@
 import {
+  lazy,
+  Suspense,
+} from "react";
+
+import {
   Navigate,
   Outlet,
   Route,
@@ -9,29 +14,30 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { ChatProvider } from "../context/ChatContext";
 import Header from "../components/home/Header";
+import Loader from "../components/ui/loader/Loader";
 
-import Login from "../pages/auth/login";
-import Register from "../pages/auth/register";
-import ForgotPassword from "../pages/auth/forgot-password";
-import Otp from "../pages/auth/otp";
-import ResetOtp from "../pages/auth/reset-otp/ResetOtp";
-import ResetPassword from "../pages/auth/reset-password";
+const Login = lazy(() => import("../pages/auth/login"));
+const Register = lazy(() => import("../pages/auth/register"));
+const ForgotPassword = lazy(() => import("../pages/auth/forgot-password"));
+const Otp = lazy(() => import("../pages/auth/otp"));
+const ResetOtp = lazy(() => import("../pages/auth/reset-otp/ResetOtp"));
+const ResetPassword = lazy(() => import("../pages/auth/reset-password"));
 
-import Home from "../pages/home/Home";
-import Settings from "../pages/settings/Settings";
-import Chat from "../pages/chat/Chat";
-import Activity from "../pages/activity/Activity";
-import Profile from "../pages/profile/Profile";
-import UserProfile from "../pages/profile/UserProfile";
-import CreatePost from "../components/home/CreatePost";
-import PostDetails from "../pages/post/PostDetails";
-import Explore from "../pages/explore/Explore";
+const Home = lazy(() => import("../pages/home/Home"));
+const Settings = lazy(() => import("../pages/settings/Settings"));
+const Chat = lazy(() => import("../pages/chat/Chat"));
+const Activity = lazy(() => import("../pages/activity/Activity"));
+const Profile = lazy(() => import("../pages/profile/Profile"));
+const UserProfile = lazy(() => import("../pages/profile/UserProfile"));
+const CreatePost = lazy(() => import("../components/home/CreatePost"));
+const PostDetails = lazy(() => import("../pages/post/PostDetails"));
+const Explore = lazy(() => import("../pages/explore/Explore"));
 
-import HelpFeed from "../pages/help/HelpFeed";
-import CreateHelpRequest from "../pages/help/CreateHelpRequest";
-import HelpRequestDetails from "../pages/help/HelpRequestDetails";
-import MyHelpHistory from "../pages/help/MyHelpHistory";
-import CommunityImpact from "../pages/help/CommunityImpact";
+const HelpFeed = lazy(() => import("../pages/help/HelpFeed"));
+const CreateHelpRequest = lazy(() => import("../pages/help/CreateHelpRequest"));
+const HelpRequestDetails = lazy(() => import("../pages/help/HelpRequestDetails"));
+const MyHelpHistory = lazy(() => import("../pages/help/MyHelpHistory"));
+const CommunityImpact = lazy(() => import("../pages/help/CommunityImpact"));
 
 /* =========================
    AUTH HELPERS
@@ -60,7 +66,18 @@ const PublicOnlyLayout = () => {
     );
   }
 
-  return <Outlet />;
+  return (
+    <Suspense
+      fallback={
+        <Loader
+          fullScreen
+          label="Loading page"
+        />
+      }
+    >
+      <Outlet />
+    </Suspense>
+  );
 };
 
 /* =========================
@@ -82,7 +99,13 @@ const ProtectedAppLayout = () => {
   return (
     <ChatProvider>
       <Header />
-      <Outlet />
+      <Suspense
+        fallback={
+          <Loader label="Loading page" />
+        }
+      >
+        <Outlet />
+      </Suspense>
     </ChatProvider>
   );
 };
