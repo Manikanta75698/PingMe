@@ -26,6 +26,10 @@ import {
   useNavigate,
 } from "react-router-dom";
 
+import {
+  useAuth,
+} from "../../context/AuthContext";
+
 import Header from "../../components/home/Header";
 
 import {
@@ -75,6 +79,8 @@ const CATEGORIES = [
     icon: HandHeart,
   },
 ];
+
+const helpRequestsCache = new Map();
 
 const SORT_OPTIONS = [
   {
@@ -286,15 +292,22 @@ const HelpFeed = () => {
   const navigate =
     useNavigate();
 
+  const { user } = useAuth();
+  const currentUserId = String(
+    user?._id || user?.id || user?.userId || "anonymous"
+  );
+  const initialCacheKey = `${currentUserId}:all:all:latest::`;
+  const initialCachedFeed = helpRequestsCache.get(initialCacheKey);
+
   const [
     helpRequests,
     setHelpRequests,
-  ] = useState([]);
+  ] = useState(() => initialCachedFeed?.helpRequests || []);
 
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] = useState(() => !initialCachedFeed);
 
   const [
     loadingMore,
@@ -364,6 +377,22 @@ const HelpFeed = () => {
         append = false,
         isRefresh = false,
       } = {}) => {
+        const cacheKey = [
+          currentUserId,
+          selectedCategory,
+          selectedUrgency,
+          selectedSort,
+          city.trim().toLowerCase(),
+          searchQuery.trim().toLowerCase(),
+        ].join(":");
+        const cachedFeed = helpRequestsCache.get(cacheKey);
+
+        if (!append && cachedFeed) {
+          setHelpRequests(cachedFeed.helpRequests);
+          setPagination(cachedFeed.pagination);
+          setLoading(false);
+        }
+
         try {
           setError("");
 
@@ -372,7 +401,7 @@ const HelpFeed = () => {
           } else if (append) {
             setLoadingMore(true);
           } else {
-            setLoading(true);
+            if (!cachedFeed) setLoading(true);
           }
 
           const response =
@@ -418,13 +447,25 @@ const HelpFeed = () => {
                 page > 1,
             }
           );
+          if (!append) {
+            helpRequestsCache.set(cacheKey, {
+              helpRequests: receivedRequests,
+              pagination: response?.pagination || {
+                currentPage: page,
+                totalPages: 1,
+                totalItems: receivedRequests.length,
+                hasNextPage: false,
+                hasPreviousPage: page > 1,
+              },
+            });
+          }
         } catch (requestError) {
           setError(
             requestError?.message ||
             "Unable to load community requests"
           );
 
-          if (!append) {
+          if (!append && !cachedFeed) {
             setHelpRequests([]);
           }
         } finally {
@@ -439,6 +480,7 @@ const HelpFeed = () => {
         selectedSort,
         city,
         searchQuery,
+        currentUserId,
       ]
     );
 

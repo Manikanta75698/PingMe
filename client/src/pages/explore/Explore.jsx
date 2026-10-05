@@ -20,6 +20,10 @@ import {
   useNavigate,
 } from "react-router-dom";
 
+import {
+  useAuth,
+} from "../../context/AuthContext";
+
 import DefaultAvatar from "../../assets/default-avatar.png";
 
 import {
@@ -37,6 +41,7 @@ import {
 import styles from "./Explore.module.css";
 
 const PAGE_LIMIT = 12;
+const exploreResultsCache = new Map();
 
 
 const INTENT_STORAGE_KEY =
@@ -166,6 +171,9 @@ const Explore = () => {
   const navigate =
     useNavigate();
 
+  const { user } = useAuth();
+  const currentUserId = normalizeId(user) || "anonymous";
+
   const searchTimerRef =
     useRef(null);
 
@@ -175,7 +183,10 @@ const Explore = () => {
   const [
     users,
     setUsers,
-  ] = useState([]);
+  ] = useState(() => {
+    const cached = exploreResultsCache.get(`${currentUserId}:`);
+    return cached?.users || [];
+  });
 
   const [
     searchInput,
@@ -195,18 +206,24 @@ const Explore = () => {
   const [
     hasMore,
     setHasMore,
-  ] = useState(false);
+  ] = useState(() =>
+    Boolean(exploreResultsCache.get(`${currentUserId}:`)?.hasMore)
+  );
 
   const [
     sameIntentTotal,
     setSameIntentTotal,
-  ] = useState(0);
+  ] = useState(() =>
+    exploreResultsCache.get(`${currentUserId}:`)?.sameIntentTotal || 0
+  );
 
 
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] = useState(() =>
+    !exploreResultsCache.has(`${currentUserId}:`)
+  );
 
   const [
     loadingMore,
@@ -403,11 +420,20 @@ const Explore = () => {
         requestIdRef.current =
           currentRequestId;
 
+        const cacheKey = `${currentUserId}:${searchQuery.trim().toLowerCase()}`;
+        const cachedResults = exploreResultsCache.get(cacheKey);
+        if (!append && cachedResults) {
+          setUsers(cachedResults.users);
+          setSameIntentTotal(cachedResults.sameIntentTotal);
+          setHasMore(cachedResults.hasMore);
+          setLoading(false);
+        }
+
         try {
           if (append) {
             setLoadingMore(true);
           } else {
-            setLoading(true);
+            if (!cachedResults) setLoading(true);
             setError("");
           }
 
@@ -481,6 +507,13 @@ const Explore = () => {
               pagination?.hasMore
             )
           );
+          if (!append) {
+            exploreResultsCache.set(cacheKey, {
+              users: loadedUsers,
+              sameIntentTotal: intentMatchTotal,
+              hasMore: Boolean(pagination?.hasMore),
+            });
+          }
         } catch (loadError) {
           if (
             requestIdRef.current !==
@@ -507,8 +540,10 @@ const Explore = () => {
             });
           } else {
             setError(message);
-            setUsers([]);
-            setHasMore(false);
+            if (!cachedResults) {
+              setUsers([]);
+              setHasMore(false);
+            }
           }
         } finally {
           if (
@@ -520,7 +555,7 @@ const Explore = () => {
           }
         }
       },
-      [searchQuery]
+      [currentUserId, searchQuery]
     );
 
   useEffect(() => {

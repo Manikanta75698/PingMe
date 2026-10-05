@@ -48,6 +48,9 @@ import StoryDeleteModal from "../stories/StoryDeleteModal";
 
 import StoryToast from "../stories/StoryToast";
 
+// Keep the last story list between route visits so Home can render instantly.
+const storiesCache = new Map();
+
 const STORY_DURATION_MS = 5000;
 
 /* =========================
@@ -358,12 +361,16 @@ const Stories = () => {
   const [
     stories,
     setStories,
-  ] = useState([]);
+  ] = useState(() =>
+    storiesCache.get(currentUserId) || []
+  );
 
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] = useState(() =>
+    !storiesCache.has(currentUserId)
+  );
 
   const [
     uploading,
@@ -553,6 +560,10 @@ const Stories = () => {
           setStories(
             normalizedStories
           );
+          storiesCache.set(
+            currentUserId,
+            normalizedStories
+          );
         } catch (
         loadError
         ) {
@@ -578,9 +589,9 @@ const Stories = () => {
 
   useEffect(() => {
     void loadStories({
-      showLoading: true,
+      showLoading: !storiesCache.has(currentUserId),
     });
-  }, [loadStories]);
+  }, [currentUserId, loadStories]);
 
   /* =========================
      REALTIME STORY EVENTS
