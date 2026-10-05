@@ -80,6 +80,13 @@ const storySchema =
         trim: true,
       },
 
+      caption: {
+        type: String,
+        default: "",
+        trim: true,
+        maxlength: [250, "Story caption cannot exceed 250 characters"],
+      },
+
       /* =========================
          LEGACY VIEWERS
       ========================= */

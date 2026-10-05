@@ -45,6 +45,7 @@ const ZOOM_STEP = 0.05;
 const DOUBLE_TAP_DELAY = 300;
 const DOUBLE_TAP_DISTANCE = 36;
 const GESTURE_HINT_DURATION = 4200;
+const MAX_STORY_CAPTION_LENGTH = 250;
 
 /* =========================
    HELPERS
@@ -407,6 +408,8 @@ const StoryUploadPreview = ({
     setImageSource,
   ] = useState("");
 
+  const [caption, setCaption] = useState("");
+
   const [
     imageLoading,
     setImageLoading,
@@ -676,7 +679,8 @@ const StoryUploadPreview = ({
             });
 
           await onConfirm(
-            preparedFile
+            preparedFile,
+            caption.trim()
           );
         } catch (
         prepareError
@@ -697,6 +701,7 @@ const StoryUploadPreview = ({
       },
       [
         busy,
+        caption,
         file,
         fitMode,
         imageSource,
@@ -1418,6 +1423,12 @@ const StoryUploadPreview = ({
                     </div>
                   )}
 
+                  {caption.trim() && (
+                    <div className={styles.storyCaptionPreview}>
+                      {caption.trim()}
+                    </div>
+                  )}
+
                   <div
                     className={
                       styles.zoomBadge
@@ -1747,6 +1758,22 @@ const StoryUploadPreview = ({
               </div>
             </div>
           )}
+
+          <div className={styles.storyCaptionField}>
+            <label htmlFor="story-caption">Add a caption</label>
+            <textarea
+              id="story-caption"
+              value={caption}
+              onChange={(event) =>
+                setCaption(event.target.value.slice(0, MAX_STORY_CAPTION_LENGTH))
+              }
+              placeholder="Say something about this moment…"
+              maxLength={MAX_STORY_CAPTION_LENGTH}
+              disabled={busy}
+              rows={3}
+            />
+            <span>{caption.length}/{MAX_STORY_CAPTION_LENGTH}</span>
+          </div>
 
           {error &&
             imageSource && (

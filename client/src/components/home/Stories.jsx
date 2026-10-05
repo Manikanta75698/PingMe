@@ -588,9 +588,13 @@ const Stories = () => {
     );
 
   useEffect(() => {
-    void loadStories({
-      showLoading: !storiesCache.has(currentUserId),
-    });
+    const timer = window.setTimeout(() => {
+      void loadStories({
+        showLoading: !storiesCache.has(currentUserId),
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [currentUserId, loadStories]);
 
   /* =========================
@@ -1599,7 +1603,7 @@ const Stories = () => {
 
   const handleConfirmStoryUpload =
     useCallback(
-      async (preparedFile) => {
+      async (preparedFile, caption = "") => {
         if (
           !preparedFile ||
           uploading
@@ -1613,7 +1617,8 @@ const Stories = () => {
 
           const response =
             await createStory(
-              preparedFile
+              preparedFile,
+              caption
             );
 
           const createdStory =
@@ -2543,6 +2548,12 @@ const Stories = () => {
                     );
                   }}
                 />
+
+                {activeStory.caption && (
+                  <div className={styles.viewerCaption}>
+                    {activeStory.caption}
+                  </div>
+                )}
               </div>
 
               {activeStory.isOwner && (

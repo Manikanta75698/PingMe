@@ -339,6 +339,18 @@ const createStory = async (
         });
     }
 
+    const caption =
+      typeof req.body?.caption === "string"
+        ? req.body.caption.trim()
+        : "";
+
+    if (caption.length > 250) {
+      return res.status(400).json({
+        success: false,
+        message: "Story caption cannot exceed 250 characters",
+      });
+    }
+
     if (
       !Buffer.isBuffer(
         req.file.buffer
@@ -412,6 +424,8 @@ const createStory = async (
           currentUserId,
 
         image,
+
+        caption,
 
         imageFileId,
 

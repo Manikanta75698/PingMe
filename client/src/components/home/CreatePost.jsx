@@ -353,6 +353,9 @@ const CreatePost = ({
   const fileInputRef =
     useRef(null);
 
+  const captionRef =
+    useRef(null);
+
   const editorFrameRef =
     useRef(null);
 
@@ -464,6 +467,24 @@ const CreatePost = ({
       imageSource &&
       !busy
     );
+
+  const insertCaptionToken =
+    useCallback((token) => {
+      const textarea = captionRef.current;
+      const start = textarea?.selectionStart ?? caption.length;
+      const end = textarea?.selectionEnd ?? caption.length;
+      const needsSpaceBefore = start > 0 && !/\s/.test(caption[start - 1]);
+      const insertion = `${needsSpaceBefore ? " " : ""}${token}`;
+      const nextCaption = `${caption.slice(0, start)}${insertion}${caption.slice(end)}`
+        .slice(0, MAX_CAPTION_LENGTH);
+      const nextCaret = Math.min(start + insertion.length, nextCaption.length);
+
+      setCaption(nextCaption);
+      requestAnimationFrame(() => {
+        textarea?.focus();
+        textarea?.setSelectionRange(nextCaret, nextCaret);
+      });
+    }, [caption]);
 
   const MIN_ZOOM = 1;
   const MAX_ZOOM = 3;
@@ -1518,6 +1539,7 @@ const CreatePost = ({
                   }
                 >
                   <textarea
+                    ref={captionRef}
                     value={
                       caption
                     }
@@ -1543,6 +1565,40 @@ const CreatePost = ({
                     disabled={busy}
                     autoFocus
                   />
+
+                  <div className={styles.captionQuickActions} aria-label="Quick caption inserts">
+                    <div>
+                      {[
+                        ["❤️", "Heart"],
+                        ["😂", "Laugh"],
+                        ["✨", "Sparkles"],
+                        ["🙌", "Celebrate"],
+                        ["🔥", "Fire"],
+                      ].map(([emoji, label]) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => insertCaptionToken(emoji)}
+                          disabled={busy}
+                          aria-label={`Insert ${label} emoji`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                    <div>
+                      {["#moments", "#travel", "#life", "#pingme"].map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => insertCaptionToken(tag)}
+                          disabled={busy || caption.length >= MAX_CAPTION_LENGTH}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   <div
                     className={

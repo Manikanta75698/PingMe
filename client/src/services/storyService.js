@@ -15,7 +15,7 @@ export const getStories = async () => {
   return response.data;
 };
 
-export const createStory = async (file) => {
+export const createStory = async (file, caption = "") => {
   if (!(file instanceof File)) {
     throw new Error("Please select a valid image");
   }
@@ -30,6 +30,7 @@ export const createStory = async (file) => {
 
   const formData = new FormData();
   formData.append("storyImage", file);
+  formData.append("caption", String(caption).trim().slice(0, 250));
 
   const response = await api.post(
     "/stories/create",
